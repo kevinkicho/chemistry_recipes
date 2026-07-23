@@ -33,11 +33,12 @@ Evidence-first process recipe hub (not GMP / not regulatory decision support).
 | [Engineering hub](./engineering/README.md) | Engineering table of contents |
 | [Architecture](./engineering/architecture.md) | Stack, modules, request paths |
 | [Dossier pipeline](./engineering/dossier-pipeline.md) | Gather → score → shell → Ollama → enrich |
+| [Process facts & accuracy](./engineering/process-facts-accuracy.md) | Sourced manufacturing atoms, public process brief |
 | [Multi-source APIs](./engineering/multi-source-apis.md) | Wired free APIs, registry, probes |
 | [AI & Ollama](./engineering/ai-and-ollama.md) | Cloud + local hosts, proxies, quality gate |
 | [Client storage](./engineering/client-storage.md) | IndexedDB cache, snapshots, health |
 | [Tech-transfer export](./engineering/tech-transfer-export.md) | Schema v2, MES/LIMS rows, validation checklist |
-| [Testing](./engineering/testing.md) | Contract tests and how to run them |
+| [Testing](./engineering/testing.md) | Unit contracts, API smoke, coverage commands |
 
 ### Reference (data & sources)
 

@@ -42,6 +42,16 @@ schema: "chemistry-recipes.compare-export.v1"
 
 `{ a, b, links }` where `a`/`b` are tech-transfer packs or null.
 
+### Public process brief (sourced-only)
+
+```text
+schema: "chemistry-recipes.public-process-brief.v1"
+```
+
+Builder: `buildPublicProcessBrief(LiveDossier)`  
+
+Contains extracted process-fact atoms, open gaps, manager risks, and preferred route **without** AI narrative padding or uncited plant numbers. Intended for workers/managers who need verifiable public leads.
+
 ## Validation checklist items (live)
 
 Identity, evidence score, sources, BOM, steps, CPP/IPC, apparatus, EHS, explicit not-GMP review.

@@ -17,6 +17,7 @@ import type {
   ScaleUpNotes,
   SourceRef,
 } from "@/lib/types/process";
+import type { ProcessFactBundle } from "@/lib/dossier/processFacts";
 
 export type DossierTier = "B" | "C";
 
@@ -205,6 +206,8 @@ export interface CompoundEvidence {
   traces: ApiFetchTrace[];
   sourceRefs: SourceRef[];
   fetchErrors: string[];
+  /** Extracted process fact atoms (accuracy layer) */
+  processFacts?: ProcessFactBundle;
 }
 
 export interface EvidenceScoreSnapshot {
@@ -215,6 +218,10 @@ export interface EvidenceScoreSnapshot {
   reasons: string[];
   processLitCount: number;
   processPatentCount: number;
+  /** Sourced condition atoms extracted from public text */
+  processFactConditions?: number;
+  unitOpFacts?: number;
+  productionBriefEligible?: boolean;
   /** Short human lines for the score explainer UI */
   explainer?: string[];
   /** Whether AI was recommended */
@@ -263,6 +270,10 @@ export interface LiveDossier {
   generatedAt: string;
   /** Free-public evidence richness (drives AI + confidence UX) */
   evidenceScore?: EvidenceScoreSnapshot;
+  /** Structured process facts extracted from free-public text */
+  processFacts?: ProcessFactBundle;
+  /** process-recipe vs evidence-lead-pack framing for UI */
+  processFraming?: import("@/lib/dossier/processFacts").ProcessFraming;
   /** How this dossier was produced */
   buildMode?: "ai" | "evidence-shell" | "ai-skipped-thin-evidence";
   /** Inferred production modality (small-molecule default) */

@@ -39,8 +39,11 @@ const CONDITION_LABELS: Record<string, string> = {
 
 function ConditionChips({
   conditions,
+  sourced,
 }: {
   conditions: ProcessStep["conditions"];
+  /** When true, style as sourced fact; when false hide in manufacturing-strict mode */
+  sourced?: boolean;
 }) {
   if (!conditions) return null;
   const entries = Object.entries(conditions).filter(
@@ -52,12 +55,22 @@ function ConditionChips({
       {entries.map(([k, v]) => (
         <span
           key={k}
-          className="inline-flex items-baseline gap-1 rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-1 text-[11px]"
+          title={sourced ? "Sourced or fact-aligned condition" : "Condition"}
+          className={`inline-flex items-baseline gap-1 rounded-full border px-2.5 py-1 text-[11px] ${
+            sourced
+              ? "border-teal-500/35 bg-teal-500/10"
+              : "border-slate-700 bg-slate-950/70"
+          }`}
         >
           <span className="font-medium text-slate-500">
             {CONDITION_LABELS[k] || k}
           </span>
           <span className="text-slate-200">{v}</span>
+          {sourced ? (
+            <span className="text-[9px] font-semibold uppercase text-teal-400/90">
+              src
+            </span>
+          ) : null}
         </span>
       ))}
     </div>
@@ -76,9 +89,11 @@ function StepCard({
   const showMech = view === "mechanism" || view === "dual";
   const showMfg = view === "manufacturing" || view === "dual";
 
+  const hasStepSource = Boolean(step.sourceRefs?.some((s) => s.type !== "editorial"));
   const critical = cleanLines(step.controls?.criticalParameters);
-  const ipc = cleanLines(step.controls?.ipcMethods);
-  const cqa = cleanLines(step.controls?.cqaTargets);
+  // Manufacturing accuracy: never show AI IPC/CQA as plant methods
+  const ipc = showMfg ? undefined : cleanLines(step.controls?.ipcMethods);
+  const cqa = showMfg ? undefined : cleanLines(step.controls?.cqaTargets);
   const envNotes =
     step.environment?.notes && !isJunkLine(step.environment.notes)
       ? step.environment.notes
@@ -112,6 +127,11 @@ function StepCard({
         </span>
         <h4 className="text-base font-semibold text-slate-100">{step.title}</h4>
         {step.mechanismClass && showMech ? <Tag>{step.mechanismClass}</Tag> : null}
+        {hasStepSource ? (
+          <span className="rounded bg-teal-500/10 px-2 py-0.5 text-[10px] font-medium text-teal-200/90 ring-1 ring-teal-500/25">
+            Sourced lead
+          </span>
+        ) : null}
         {aiProvenance ? (
           <AiProvenance
             provenance={aiProvenance}
@@ -121,11 +141,24 @@ function StepCard({
         ) : null}
       </header>
 
-      {/* Conditions always visible as recipe chips when present */}
+      {/* Conditions: shown as sourced chips when step has non-editorial sources */}
       {step.conditions &&
       Object.values(step.conditions).some((v) => v && !isJunkLine(String(v))) ? (
         <div className="border-b border-slate-800/80 bg-slate-950/40 px-4 py-2.5">
-          <ConditionChips conditions={step.conditions} />
+          <ConditionChips conditions={step.conditions} sourced={hasStepSource} />
+          {hasStepSource && step.sourceRefs?.[0]?.url ? (
+            <p className="mt-1.5 text-[10px] text-slate-600">
+              Verify:{" "}
+              <a
+                href={step.sourceRefs[0].url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-teal-500/90 hover:underline"
+              >
+                {step.sourceRefs[0].label || step.sourceRefs[0].id}
+              </a>
+            </p>
+          ) : null}
         </div>
       ) : null}
 
@@ -291,7 +324,7 @@ export function RoutePanel({
   aiProvenance?: AiProvenanceRecord | null;
 }) {
   const [routeId, setRouteId] = useState(routes[0]?.id ?? "");
-  const [view, setView] = useState<AudienceView>("dual");
+  const [view, setView] = useState<AudienceView>("manufacturing");
   const route = routes.find((r) => r.id === routeId) ?? routes[0];
 
   if (!route) {

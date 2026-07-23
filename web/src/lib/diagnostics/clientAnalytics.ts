@@ -72,9 +72,18 @@ export interface ClientAnalytics {
   };
   aggregates: {
     avgEvidenceScore: number | null;
+    avgAccuracyScore: number | null;
+    framingCounts: Record<string, number>;
     buildModes: Record<string, number>;
     annotationSourceCounts: Record<string, number>;
     apiHosts: ApiTraceStat[];
+  };
+  /** Accuracy-layer health from cached dossiers */
+  accuracy: {
+    dossiersWithFacts: number;
+    processRecipeFraming: number;
+    evidenceLeadPack: number;
+    avgSourcedConditions: number | null;
   };
 }
 
@@ -146,6 +155,14 @@ export async function collectClientAnalytics(): Promise<ClientAnalytics> {
   const hostMap = new Map<string, { ok: number; fail: number; total: number }>();
   let scoreSum = 0;
   let scoreN = 0;
+  let accSum = 0;
+  let accN = 0;
+  let condSum = 0;
+  let condN = 0;
+  let dossiersWithFacts = 0;
+  let processRecipeFraming = 0;
+  let evidenceLeadPack = 0;
+  const framingCounts: Record<string, number> = {};
   let snapshotSamples = 0;
 
   for (const row of list.slice(0, 40)) {
@@ -160,6 +177,22 @@ export async function collectClientAnalytics(): Promise<ClientAnalytics> {
     if (typeof stat.evidenceScore === "number") {
       scoreSum += stat.evidenceScore;
       scoreN += 1;
+    }
+
+    const pf = full.dossier.processFacts;
+    if (pf) {
+      dossiersWithFacts += 1;
+      const fr =
+        full.dossier.processFraming || pf.framing || "evidence-lead-pack";
+      framingCounts[fr] = (framingCounts[fr] || 0) + 1;
+      if (fr === "process-recipe") processRecipeFraming += 1;
+      else evidenceLeadPack += 1;
+      if (typeof pf.metrics?.accuracyScore === "number") {
+        accSum += pf.metrics.accuracyScore;
+        accN += 1;
+      }
+      condSum += pf.sourcedConditionCount || 0;
+      condN += 1;
     }
     for (const s of stat.annotationSources) {
       annotationSourceCounts[s] = (annotationSourceCounts[s] || 0) + 1;
@@ -227,9 +260,17 @@ export async function collectClientAnalytics(): Promise<ClientAnalytics> {
     },
     aggregates: {
       avgEvidenceScore: scoreN ? Math.round(scoreSum / scoreN) : null,
+      avgAccuracyScore: accN ? Math.round(accSum / accN) : null,
+      framingCounts,
       buildModes,
       annotationSourceCounts,
       apiHosts,
+    },
+    accuracy: {
+      dossiersWithFacts,
+      processRecipeFraming,
+      evidenceLeadPack,
+      avgSourcedConditions: condN ? Math.round((condSum / condN) * 10) / 10 : null,
     },
   };
 }

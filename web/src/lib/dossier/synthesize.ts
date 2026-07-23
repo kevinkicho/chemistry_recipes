@@ -34,27 +34,25 @@ import { parseAiContradictions } from "@/lib/dossier/contradictions";
 const AI_TIMEOUT_MS = 90_000;
 const MAX_EVIDENCE_CHARS = 14_000;
 
-const SYSTEM = `You are a senior process chemist writing educational dual-view plant dossiers for Chemistry Recipes.
+const SYSTEM = `You are a senior process chemist assembling ACCURACY-FIRST dual-view plant dossiers for Chemistry Recipes (educational public-evidence guides for MSAT / process teams — NOT GMP SOPs).
 
-INPUT: free public evidence only (PubChem facts/uses, literature titles/abstracts, patent titles/abstracts, GHS).
+INPUT: free public evidence only, including structured processFacts[] (extracted atoms with source labels). PubChem, literature titles/abstracts, patent titles/abstracts, GHS, multi-API annotations.
 
 OUTPUT: one JSON object (no markdown fences) with the schema below.
 
-HARD RULES:
-1. NEVER invent specific numeric yields, exact temperatures, pressures, or CAS numbers that are not supported by the evidence. If unknown, OMIT the field entirely (do not write "not specified", "N/A", or "define IPC before scale-up").
-2. NEVER turn PubChem TOC boilerplate ("This section provides information…", "Major uses of this chemical…") into process steps.
-3. Build 1–2 routes when evidence supports alternatives (e.g. industrial + literature, or biocatalytic + chemical). Each route: 3–6 REAL process steps. Prefer two routes when patents/lit disagree on path so users can compare. Steps should read like plant-ready educational scaffolds:
-   - title (e.g. "Fermentation / biocatalytic formation", "Isolation and crystallization")
-   - description: what is done (charge, reaction, workup) in plain process language
-   - mechanismClass + mechanismNotes when chemistry is clear
-   - apparatus as equipment CLASSES only (glass-lined-reactor, crystallizer, centrifuge, filter-dryer, scrubber, hydrogenator, distillation-column, packed-bed-reactor, …) when reasonably implied
-   - environment / controls ONLY when you can state something informative (utilities, containment class, typical IPC categories). Prefer informative ranges labeled "typical industrial / literature" over silence when chemistry is standard — still never invent precise numbers.
-4. If the molecule is made by well-known industrial chemistry (e.g. amino-acid fermentation, classical acetylation) and evidence supports use/manufacture context, you MAY describe that standard route in educational language and list the gap that site packages must validate.
-5. applications, manufacturingSummary, overview, ehsHighlights must be informative prose drawn from evidence.
-6. gaps[] lists what primary sources still lack.
-7. relatedEntities[] names intermediates, impurities, reagents, solvents ONLY when supported by evidence or standard industrial knowledge clearly implied by evidence (include CAS only if in evidence). Roles: starting-material|intermediate|impurity|reagent|solvent|catalyst|drug-product|other.
-8. contradictions[] when literature vs patents (or two manufacturing narratives) disagree on route class or conditions — list both sides, do NOT pick a winner.
-9. modality when clear: small-molecule|peptide|oligonucleotide|mab|formulation|fermentation|other.
+HARD RULES (accuracy):
+1. NEVER invent numeric temperatures, pressures, times, yields, stoichiometry, or CAS. If not in evidence or processFacts, OMIT the field entirely (no "not specified", "N/A", "typical plant", "define IPC").
+2. Every conditions.* value you emit MUST be copyable from processFacts or a quoted abstract/title snippet in the evidence package.
+3. NEVER invent IPC methods, CQA targets, or hold points. Prefer empty controls over fiction. You may list criticalParameters ONLY as qualitative risks stated in evidence (e.g. "exotherm on charge" if text says so).
+4. NEVER turn PubChem TOC boilerplate into process steps.
+5. Prefer ONE strong route when processFacts.productionBriefEligible is false or condition atoms are few. Use two routes only when patents/lit clearly disagree on path class.
+6. Steps: imperative plant English when sourced ("Charge SM under N2") — but only if evidence supports; otherwise describe the public lead without numbers.
+7. apparatus = equipment CLASSES only when implied by evidence (glass-lined-reactor, hydrogenator, filter-dryer, crystallizer, scrubber, …). Omit if unknown.
+8. gaps[] MUST list missing plant detail (validated CPPs, IPC methods, full patent examples not in abstract, cleaning, hold times).
+9. relatedEntities[] only when named in evidence (CAS only if present). Roles: starting-material|intermediate|impurity|reagent|solvent|catalyst|drug-product|other.
+10. contradictions[] when sources disagree — do NOT pick a winner.
+11. modality when clear: small-molecule|peptide|oligonucleotide|mab|formulation|fermentation|other.
+12. manufacturingSummary / overview: cite what public sources say; do not claim "commercial plant standard" without patent/paper support.
 
 SCHEMA:
 {
@@ -110,7 +108,33 @@ function buildEvidenceObject(ev: CompoundEvidence) {
     return score(b.title, b.abstract) - score(a.title, a.abstract);
   });
 
+  const pf = ev.processFacts;
+
   return {
+    processFacts: pf
+      ? {
+          summary: pf.summary,
+          productionBriefEligible: pf.productionBriefEligible,
+          sourcedConditionCount: pf.sourcedConditionCount,
+          unitOpCount: pf.unitOpCount,
+          openGaps: pf.openGaps.slice(0, 8),
+          managerRisks: pf.managerRisks.slice(0, 8),
+          // Feed atoms the model must ground conditions on
+          atoms: pf.facts
+            .filter((f) => f.kind !== "open-gap")
+            .slice(0, 40)
+            .map((f) => ({
+              kind: f.kind,
+              claim: f.claim,
+              value: f.value,
+              unit: f.unit,
+              quote: f.quote,
+              sourceLabel: f.sourceLabel,
+              sourceId: f.sourceId,
+              provenance: f.provenance,
+            })),
+        }
+      : undefined,
     identity: ev.identity
       ? {
           name: ev.identity.name,
@@ -324,9 +348,14 @@ function fieldsFromSynthesis(s: AiSynthesis): string[] {
 const JUNK_STEP =
   /this section provides information|major uses of this chemical|public manufacturing \/ use note|not specified in public excerpt|define ipc\/cqas|extracted from pubchem pug view/i;
 
+const INVENTED_PLANT =
+  /\b(typical industrial|plant typical|site standard|validated ipc|cqa of|batch record|gmp release)\b/i;
+const NUMERIC_COND =
+  /\d+(?:\.\d+)?\s*(?:°\s*C|C\b|bar|atm|psi|%|h\b|hr|min|eq)/i;
+
 /**
- * Stronger dual-view quality bar: drop boilerplate, thin steps, and
- * routes that never produce plant-relevant or chemistry-relevant body.
+ * Stronger dual-view quality bar: drop boilerplate, thin steps, invented
+ * plant language, and routes without process-relevant body.
  */
 export function qualityGateSynthesis(s: AiSynthesis): AiSynthesis {
   if (!s.parsed || !s.routes?.length) return s;
@@ -337,13 +366,12 @@ export function qualityGateSynthesis(s: AiSynthesis): AiSynthesis {
         .filter((step) => {
           const blob = `${step.title} ${step.description}`;
           if (JUNK_STEP.test(blob)) return false;
+          if (INVENTED_PLANT.test(blob)) return false;
           if (/^process route synthesis pending/i.test(step.title)) return false;
           if (step.description.trim().length < 48) return false;
-          // Reject pure TOC / section-title steps
           if (/^(uses?|description|methods? of manufacturing|overview)$/i.test(step.title.trim())) {
             return false;
           }
-          // Prefer steps that look like unit operations or real chemistry
           const opLike =
             /charge|react|quench|crystall|filter|dry|distill|extract|hydrog|ferment|isolat|work.?up|heat|cool|cataly|acylation|alkylat|hydrogen|purif|wash|centrifug|mill|blend|fill/i.test(
               blob
@@ -351,7 +379,6 @@ export function qualityGateSynthesis(s: AiSynthesis): AiSynthesis {
           const hasPlant =
             Boolean(step.apparatus?.length) ||
             Boolean(step.controls?.criticalParameters?.length) ||
-            Boolean(step.controls?.ipcMethods?.length) ||
             Boolean(step.environment?.atmosphere || step.environment?.utilities?.length);
           const hasChem = Boolean(step.mechanismClass || step.mechanismNotes);
           if (!opLike && !hasPlant && !hasChem && step.description.length < 120) {
@@ -360,48 +387,72 @@ export function qualityGateSynthesis(s: AiSynthesis): AiSynthesis {
           return true;
         })
         .map((step) => {
-          // Strip junk control lines
-          if (!step.controls) return step;
+          // Drop invented IPC/CQA/hold; scrub junk CPP lines
           const scrub = (arr?: string[]) =>
             arr?.filter(
               (x) =>
                 x &&
-                !/not specified|define ipc|n\/a|placeholder|validate on site/i.test(x)
+                !/not specified|define ipc|n\/a|placeholder|validate on site|typical industrial/i.test(
+                  x
+                )
             );
+          // Numeric condition fact-stripping runs post-AI in pipeline (processFacts)
+          const controls = step.controls
+            ? {
+                criticalParameters: scrub(step.controls.criticalParameters)?.filter(
+                  (x) => !NUMERIC_COND.test(x) || /exotherm|hazard|risk/i.test(x)
+                ),
+                // Never keep AI IPC/CQA/hold as plant truth
+                ipcMethods: undefined as string[] | undefined,
+                cqaTargets: undefined as string[] | undefined,
+                holdPoints: undefined as string[] | undefined,
+              }
+            : undefined;
+          const hasCpp = Boolean(controls?.criticalParameters?.length);
           return {
             ...step,
-            controls: {
-              ...step.controls,
-              ipcMethods: scrub(step.controls.ipcMethods),
-              criticalParameters: scrub(step.controls.criticalParameters),
-              cqaTargets: scrub(step.controls.cqaTargets),
-              holdPoints: scrub(step.controls.holdPoints),
-            },
+            conditions: step.conditions,
+            controls: hasCpp ? controls : undefined,
           };
         });
-      // Require at least 2 real steps for a dual-view "route"
       if (steps.length < 2) return null;
       if (r.summary.trim().length < 28) return null;
+      if (INVENTED_PLANT.test(r.summary)) return null;
       return { ...r, steps };
     })
     .filter(Boolean) as typeof s.routes;
 
-  if (!routes.length) {
+  // Prefer single route when only one survives or second is thin
+  let finalRoutes = routes;
+  if (routes.length > 1) {
+    const rich = routes.filter((r) =>
+      r.steps.some(
+        (s) =>
+          Boolean(s.conditions && Object.values(s.conditions).some(Boolean)) ||
+          Boolean(s.apparatus?.length)
+      )
+    );
+    if (rich.length === 1) finalRoutes = rich;
+    else if (rich.length === 0) finalRoutes = routes.slice(0, 1);
+    else finalRoutes = rich.slice(0, 2);
+  }
+
+  if (!finalRoutes.length) {
     return {
       ...s,
       parsed: false,
       routes: undefined,
       rawError:
         (s.rawError ? s.rawError + " · " : "") +
-        "Quality gate rejected routes (thin, boilerplate, or non-process steps).",
+        "Quality gate rejected routes (thin, boilerplate, invented plant language, or non-process steps).",
       gaps: [
         ...(s.gaps || []),
-        "AI routes failed stronger dual-view quality gate — evidence shell / literature leads only",
+        "AI routes failed accuracy quality gate — public process facts / literature leads only",
       ],
     };
   }
 
-  return { ...s, routes };
+  return { ...s, routes: finalRoutes };
 }
 
 function extractJson(text: string): unknown | null {
@@ -1023,19 +1074,23 @@ export function aiRoutesToProcessRoutes(
       sourceRefs,
     }));
 
-    let materials = r.materials ?? [];
-    if (materials.length === 0) {
-      const seen = new Set<string>();
-      for (const s of steps) {
-        for (const m of s.materials ?? []) {
-          const key = `${m.role}:${m.name}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            materials.push(m);
-          }
-        }
-      }
-    }
+    const materials =
+      r.materials && r.materials.length > 0
+        ? r.materials
+        : (() => {
+            const acc: Material[] = [];
+            const seen = new Set<string>();
+            for (const s of steps) {
+              for (const m of s.materials ?? []) {
+                const key = `${m.role}:${m.name}`;
+                if (!seen.has(key)) {
+                  seen.add(key);
+                  acc.push(m);
+                }
+              }
+            }
+            return acc;
+          })();
 
     return {
       id: r.id || `ai-route-${i + 1}`,

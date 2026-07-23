@@ -10,16 +10,23 @@ Live builds run on the server and stream progress to the browser over **SSE**.
 
 ```text
 1. gatherCompoundEvidence     multi-API harvest + traces
-2. scoreCompoundEvidence      0–100 score, shouldSynthesize, preferFastModel
-3. buildScaffoldDossier       evidence shell (no fake IPC)
+   └─ extractProcessFacts     condition/unit-op atoms from titles/abstracts
+2. scoreCompoundEvidence      0–100 score (weights process-fact density)
+3. buildScaffoldDossier       fact-enriched leads (no fake IPC)
 4. partial SSE                UI usable early
 5. synthesize (if canCall && score gate)
-   └─ qualityGateSynthesis    drop junk / thin routes
+   └─ qualityGateSynthesis    drop junk / invented plant language
+   └─ stripUncitedRouteDetails  drop numeric conditions not aligned to facts
+   └─ preferRoutesForEvidence   one route when thin; two when rich
 6. enrich                     modality, related entities, contradictions,
                               unit-op fill, parameters, build audit
-7. complete SSE               full LiveDossier
+7. complete SSE               full LiveDossier (+ processFacts)
 8. client IndexedDB put       cache + optional snapshot
 ```
+
+## Accuracy law
+
+Manufacturing numbers and public process brief export only include **sourced** process-fact atoms or fact-aligned conditions. See `lib/dossier/processFacts.ts` and [tech-transfer-export.md](./tech-transfer-export.md).
 
 ## Evidence score
 

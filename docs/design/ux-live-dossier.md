@@ -9,13 +9,15 @@ Make a live PubChem-based dossier feel like a **recipe**, not a literature dump 
 Primary column (≈2/3):
 
 1. **Identity** — name, CAS, CID, structure  
-2. **Evidence score** — why AI ran / skipped (`EvidenceScoreExplainer`)  
+2. **Evidence score** — process-fact density + AI gate (`EvidenceScoreExplainer`)  
 3. **Source coverage** — which free APIs returned data (`SourceCoverageMap`)  
-4. **Transfer readiness checklist** — pre-validation gaps (`ValidationChecklist`)  
-5. **Process recipe** — routes, dual plant/chemistry views (`RoutePanel` + `ViewToggle`)  
-6. **Control points** — CPPs / IPC board  
-7. **Multi-source annotations** — ChEMBL, openFDA, CompTox, …  
-8. Literature / patents / manufacturing excerpts  
+4. **Manager / MSAT brief** — preferred path, risks, open site gaps (`ManagerBriefPanel`)  
+5. **Public process facts** — sourced atoms vs dashed open gaps (`ProcessFactsPanel`)  
+6. **Transfer readiness checklist** — pre-validation gaps (`ValidationChecklist`)  
+7. **Process recipe** — plant-first dual view; conditions marked `src` when sourced  
+8. **Control points** — qualitative CPPs only when evidence-backed  
+9. **Multi-source annotations** — ChEMBL, openFDA, CompTox, …  
+10. Literature / patents / manufacturing excerpts  
 
 Secondary column:
 

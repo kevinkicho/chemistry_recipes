@@ -9,7 +9,16 @@
     "lint": "eslint",
     "test:evidence": "node scripts/test-evidence-filter.mjs",
     "test:hub": "node scripts/test-hub-lib.mjs",
-    "test": "npm run test:evidence && npm run test:hub"
+    "test:process-facts": "node scripts/test-process-facts.mjs",
+    "test:export-ai": "node scripts/test-export-and-ai.mjs",
+    "test:lib-modules": "node scripts/test-lib-modules.mjs",
+    "test:tier-a": "node scripts/test-tier-a-golden.mjs",
+    "test:smoke": "node scripts/test-smoke-apis.mjs",
+    "test:smoke:strict": "node scripts/test-smoke-apis.mjs --strict",
+    "test:unit": "npm run test:evidence && npm run test:hub && npm run test:process-facts && npm run test:export-ai && npm run test:lib-modules && npm run test:tier-a",
+    "test": "npm run test:unit",
+    "test:coverage": "npm run test:unit && npm run test:smoke && npx tsc --noEmit && npx eslint src --max-warnings 0",
+    "test:all": "npm run test:coverage && npm run build"
   },
   "dependencies": {
     "react": "19.1.0",

@@ -6,6 +6,8 @@ import type { LiveDossier } from "@/lib/dossier/types";
 import type { MoleculeDossier } from "@/lib/types/process";
 import {
   buildMesLimsFromTechTransfer,
+  buildOperatorJobAidExport,
+  buildPublicProcessBrief,
   buildTechTransferFromExample,
   buildTechTransferFromLive,
   downloadJson,
@@ -61,6 +63,28 @@ export function TechTransferExport({
     downloadJson(`${nameBase()}-mes-lims.json`, buildMesLimsFromTechTransfer(p));
   }
 
+  function onPublicProcessBrief() {
+    if (source.kind !== "live") {
+      alert("Public process brief is available on live PubChem dossiers.");
+      return;
+    }
+    downloadJson(
+      `${nameBase()}-public-process-brief.json`,
+      buildPublicProcessBrief(source.dossier)
+    );
+  }
+
+  function onOperatorJobAid() {
+    if (source.kind !== "live") {
+      alert("Operator job aid export is available on live dossiers.");
+      return;
+    }
+    downloadJson(
+      `${nameBase()}-operator-job-aid.json`,
+      buildOperatorJobAidExport(source.dossier)
+    );
+  }
+
   if (compact) {
     return (
       <div className="print:hidden inline-flex flex-wrap items-center gap-1.5">
@@ -91,6 +115,28 @@ export function TechTransferExport({
             MES/LIMS JSON
           </button>
         </Tooltip>
+        {source.kind === "live" ? (
+          <>
+            <Tooltip content="Sourced-only process atoms + open gaps (no invented plant numbers)">
+              <button
+                type="button"
+                onClick={onPublicProcessBrief}
+                className="rounded-md border border-teal-500/30 bg-teal-500/10 px-2.5 py-1 text-xs font-medium text-teal-100 hover:bg-teal-500/15"
+              >
+                Public process brief
+              </button>
+            </Tooltip>
+            <Tooltip content="Operator shift-brief JSON: sequence, EHS, site-fill checklist">
+              <button
+                type="button"
+                onClick={onOperatorJobAid}
+                className="rounded-md border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-xs font-medium text-slate-300 hover:border-teal-500/40 hover:text-teal-200"
+              >
+                Operator job aid
+              </button>
+            </Tooltip>
+          </>
+        ) : null}
       </div>
     );
   }
@@ -126,6 +172,18 @@ export function TechTransferExport({
           >
             Tech-transfer pack (JSON)
           </button>
+          {source.kind === "live" ? (
+            <button
+              type="button"
+              className="block w-full px-3 py-2 text-left text-xs text-teal-100 hover:bg-slate-800"
+              onClick={() => {
+                onPublicProcessBrief();
+                setOpen(false);
+              }}
+            >
+              Public process brief (sourced)
+            </button>
+          ) : null}
           <button
             type="button"
             className="block w-full px-3 py-2 text-left text-xs text-slate-200 hover:bg-slate-800"

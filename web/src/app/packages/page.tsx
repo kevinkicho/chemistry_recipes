@@ -72,6 +72,71 @@ export default async function PackagesPage({ searchParams }: Props) {
         </p>
       </div>
 
+      {/* Domain playbooks */}
+      <section className="mt-6 rounded-xl border border-violet-500/20 bg-violet-500/5 p-4">
+        <h2 className="text-sm font-semibold text-violet-100">
+          Domain playbooks (modality scaffolds)
+        </h2>
+        <p className="mt-1 text-xs text-slate-500">
+          Teaching structures for how a modality is usually organized — not entity-specific
+          plant routes. Open a package for unit ops + parameter honesty, then hang a live
+          PubChem CID for public process facts.
+        </p>
+        <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            {
+              id: "sm-finish",
+              title: "Small-molecule API finishing",
+              modality: "small-molecule",
+              blurb: "Charge → reaction → workup → crystallize → dry",
+            },
+            {
+              id: "mab-dsp",
+              title: "mAb DSP skeleton",
+              modality: "mab",
+              blurb: "Harvest → capture → polish → VF → fill",
+            },
+            {
+              id: "adc",
+              title: "ADC conjugation frame",
+              modality: "adc",
+              blurb: "mAb supply → conjugation → purification → fill",
+            },
+            {
+              id: "peptide",
+              title: "Peptide SPPS / isolation",
+              modality: "peptide",
+              blurb: "Assembly → cleavage → purify → lyophilize",
+            },
+            {
+              id: "ferment",
+              title: "Fermentation / biocatalysis",
+              modality: "fermentation",
+              blurb: "Seed → production → harvest → isolate",
+            },
+            {
+              id: "gene",
+              title: "Gene therapy unit-op map",
+              modality: "gene-therapy",
+              blurb: "Upstream → harvest → purify → formulate",
+            },
+          ].map((p) => (
+            <li key={p.id}>
+              <Link
+                href={`/packages?modality=${encodeURIComponent(p.modality)}`}
+                className="block h-full rounded-lg border border-slate-800 bg-slate-950/50 p-3 transition hover:border-violet-500/40"
+              >
+                <div className="text-xs font-semibold text-slate-100">{p.title}</div>
+                <p className="mt-1 text-[11px] text-slate-500">{p.blurb}</p>
+                <span className="mt-2 inline-block text-[10px] text-violet-300/90">
+                  Browse {p.modality} packages →
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
       {/* Domain pack summary */}
       <section className="mt-6 rounded-xl border border-slate-800 bg-slate-900/40 p-4">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">

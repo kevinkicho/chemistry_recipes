@@ -40,6 +40,7 @@ Free public chemical APIs + optional [Ollama Cloud](https://docs.ollama.com/clou
 |-----|-------------|
 | [Architecture](docs/engineering/architecture.md) | Stack, modules, routes |
 | [Dossier pipeline](docs/engineering/dossier-pipeline.md) | Gather → score → shell → Ollama → enrich |
+| [Process facts & accuracy](docs/engineering/process-facts-accuracy.md) | Sourced manufacturing atoms, public process brief |
 | [Multi-source APIs](docs/engineering/multi-source-apis.md) | Wired free APIs, registry, probes |
 | [AI & Ollama](docs/engineering/ai-and-ollama.md) | Cloud + local hosts, proxies, quality gate |
 | [Client storage](docs/engineering/client-storage.md) | IndexedDB cache, snapshots, health |
@@ -169,12 +170,14 @@ Deep dive: [docs/engineering/dossier-pipeline.md](docs/engineering/dossier-pipel
 
 ```bash
 cd web
-npm run dev           # Next.js dev server
-npm run build         # production build
-npm test              # evidence + hub contract tests
-npm run test:evidence
-npm run test:hub
-npx tsc --noEmit      # TypeScript
+npm run dev              # Next.js dev server
+npm run build            # production build
+npm test                 # unit / contract integrity (offline)
+npm run test:coverage    # unit + free-API smoke + tsc + eslint
+npm run test:all         # coverage + production build
+npm run test:smoke       # live free-API probes (soft if offline)
+npm run test:smoke:strict
+npx tsc --noEmit
 ```
 
 See [docs/engineering/testing.md](docs/engineering/testing.md).

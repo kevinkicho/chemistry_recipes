@@ -15,6 +15,7 @@ import {
 } from "@/lib/export/techTransfer";
 import { getExampleById } from "@/lib/data/examples";
 import { TechTransferExport } from "@/components/TechTransferExport";
+import { warmLiveDossier } from "@/lib/dossier/warmCache";
 
 type Resolved =
   | { kind: "cid"; cid: number; label: string; href: string }
@@ -75,21 +76,21 @@ function CompareInner() {
   const [right, setRight] = useState(sp.get("b") || "");
   const [dossierA, setDossierA] = useState<LiveDossier | null>(null);
   const [dossierB, setDossierB] = useState<LiveDossier | null>(null);
+  const [warming, setWarming] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
 
   const resA = useMemo(() => resolveInput(left), [left]);
   const resB = useMemo(() => resolveInput(right), [right]);
 
   const loadCaches = useCallback(async () => {
-    setDossierA(null);
-    setDossierB(null);
     if (resA?.kind === "cid") {
       const c = await getCachedDossier(resA.cid);
       if (c?.dossier) setDossierA(c.dossier);
-    }
+    } else setDossierA(null);
     if (resB?.kind === "cid") {
       const c = await getCachedDossier(resB.cid);
       if (c?.dossier) setDossierB(c.dossier);
-    }
+    } else setDossierB(null);
   }, [resA, resB]);
 
   useEffect(() => {
@@ -103,9 +104,44 @@ function CompareInner() {
     router.replace(`/compare?${params.toString()}`);
   }
 
+  async function warmBoth(force = false) {
+    const cids: number[] = [];
+    if (resA?.kind === "cid") cids.push(resA.cid);
+    if (resB?.kind === "cid") cids.push(resB.cid);
+    if (!cids.length) {
+      alert("Enter two PubChem CIDs (or hub names that resolve to CIDs).");
+      return;
+    }
+    setWarming(true);
+    setStatus("Warming live dossiers…");
+    try {
+      const results = await Promise.all(
+        cids.map((cid) =>
+          warmLiveDossier(cid, {
+            force,
+            onStatus: (s) => setStatus(s),
+          })
+        )
+      );
+      if (resA?.kind === "cid") {
+        const d = results[cids.indexOf(resA.cid)] || null;
+        if (d) setDossierA(d);
+      }
+      if (resB?.kind === "cid") {
+        const d = results[cids.indexOf(resB.cid)] || null;
+        if (d) setDossierB(d);
+      }
+      setStatus("Warm complete — dual export ready when both sides loaded.");
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "Warm failed");
+    } finally {
+      setWarming(false);
+    }
+  }
+
   function exportBoth() {
     if (!dossierA && !dossierB) {
-      alert("Open and cache both live dossiers first (visit each page once).");
+      alert("Warm or open both live dossiers first.");
       return;
     }
     const pack = {
@@ -130,8 +166,9 @@ function CompareInner() {
         Compare recipes
       </h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
-        Side-by-side scouting for two entities. Visit each live dossier once so IndexedDB can
-        cache them for metrics and dual export — no collaborative sharing.
+        Side-by-side scouting for two entities.{" "}
+        <strong className="font-medium text-slate-300">Warm both</strong> streams
+        live builds into IndexedDB so dual export works without visiting each page.
       </p>
       <div className="mt-4">
         <RegulatoryDisclaimer compact />
@@ -186,12 +223,33 @@ function CompareInner() {
         </button>
         <button
           type="button"
+          disabled={warming}
+          onClick={() => void warmBoth(false)}
+          className="rounded-lg bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-500 disabled:opacity-40"
+        >
+          {warming ? "Warming…" : "Warm both (stream + cache)"}
+        </button>
+        <button
+          type="button"
+          disabled={warming}
+          onClick={() => void warmBoth(true)}
+          className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-900 disabled:opacity-40"
+        >
+          Force rebuild both
+        </button>
+        <button
+          type="button"
           onClick={exportBoth}
           className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-500"
         >
           Export both (JSON)
         </button>
       </div>
+      {status ? (
+        <p className="mt-2 text-xs text-slate-500" role="status">
+          {status}
+        </p>
+      ) : null}
 
       <div className="mt-8 grid gap-4 lg:grid-cols-2">
         <ComparePane
@@ -259,19 +317,23 @@ function ComparePane({
               </dd>
             </div>
             <div>
-              <dt className="text-slate-600">Mode</dt>
-              <dd className="text-slate-200">{dossier.buildMode || "—"}</dd>
+              <dt className="text-slate-600">Framing</dt>
+              <dd className="text-slate-200">
+                {dossier.processFraming ||
+                  dossier.processFacts?.framing ||
+                  "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-slate-600">Accuracy</dt>
+              <dd className="text-slate-200">
+                {dossier.processFacts?.metrics?.accuracyScore ?? "—"}/100
+              </dd>
             </div>
             <div>
               <dt className="text-slate-600">Lit / patents</dt>
               <dd className="text-slate-200">
                 {dossier.literature.length} · {dossier.patents.length}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-slate-600">Multi-source</dt>
-              <dd className="text-slate-200">
-                {dossier.annotations?.length ?? 0} annotations
               </dd>
             </div>
             <div className="col-span-2">
@@ -295,26 +357,25 @@ function ComparePane({
         </div>
       ) : resolved.kind === "cid" ? (
         <div className="mt-4 space-y-2 text-xs text-slate-500">
-          <p>No IndexedDB cache yet for this CID.</p>
+          <p>No IndexedDB cache yet — use Warm both above.</p>
           <Link
             href={resolved.href}
             className="inline-block text-teal-400 hover:underline"
             onClick={() => {
-              // user will return — refresh cache when they come back
               window.setTimeout(onRefreshCache, 500);
             }}
           >
-            Build live dossier →
+            Or open live dossier →
           </Link>
         </div>
       ) : resolved.kind === "example" ? (
         <p className="mt-4 text-xs text-slate-500">
-          Curated Tier-A example — open full page for dual-view recipe. Dual export uses live
-          caches only.
+          Curated Tier-A example — open full page for dual-view recipe. Dual export
+          uses live caches.
         </p>
       ) : (
         <p className="mt-4 text-xs text-slate-500">
-          Resolve via search, then open a PubChem CID for live compare metrics.
+          Resolve via search, then warm a PubChem CID for live compare metrics.
         </p>
       )}
     </article>

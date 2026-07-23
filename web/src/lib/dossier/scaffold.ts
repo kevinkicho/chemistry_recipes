@@ -12,6 +12,10 @@ import {
   looksLikeProcessLiterature,
 } from "@/lib/dossier/evidenceFilter";
 import { scoreCompoundEvidence } from "@/lib/dossier/evidenceScore";
+import {
+  extractProcessFacts,
+  routesFromProcessFacts,
+} from "@/lib/dossier/processFacts";
 import type { CompoundEvidence, LiveDossier } from "@/lib/dossier/types";
 import { DEFAULT_DOSSIER_DISCLAIMER } from "@/lib/dossier/types";
 import type {
@@ -37,6 +41,15 @@ function editorialRefs(cid: number): SourceRef[] {
  * Manufacturing column intentionally sparse until AI or real process evidence.
  */
 export function scaffoldRoutesFromEvidence(evidence: CompoundEvidence): ProcessRoute[] {
+  const bundle = evidence.processFacts ?? extractProcessFacts(evidence);
+  // Prefer fact-enriched leads when extraction found anything usable
+  if (
+    bundle.facts.some((f) => f.kind === "condition" || f.kind === "unit-op") ||
+    bundle.productionBriefEligible
+  ) {
+    return routesFromProcessFacts(evidence, bundle);
+  }
+
   const name = evidence.identity?.name || `CID ${evidence.cid}`;
   const refs = editorialRefs(evidence.cid);
 
@@ -194,7 +207,11 @@ export function buildScaffoldDossier(evidence: CompoundEvidence): LiveDossier {
       : null,
   ].filter(Boolean);
 
-  const processRoutes = scaffoldRoutesFromEvidence(evidence);
+  const processFacts = evidence.processFacts ?? extractProcessFacts(evidence);
+  const processRoutes = scaffoldRoutesFromEvidence({
+    ...evidence,
+    processFacts,
+  });
   const hasSubstance =
     Boolean(evidence.identity) ||
     Boolean(evidence.view?.blocks.length) ||
@@ -206,7 +223,7 @@ export function buildScaffoldDossier(evidence: CompoundEvidence): LiveDossier {
     .filter((t) => t.length > 8)
     .slice(0, 8);
 
-  const scored = scoreCompoundEvidence(evidence);
+  const scored = scoreCompoundEvidence({ ...evidence, processFacts });
 
   return {
     tier: hasSubstance ? "B" : "C",
@@ -219,6 +236,8 @@ export function buildScaffoldDossier(evidence: CompoundEvidence): LiveDossier {
     literature: evidence.literature,
     patents: evidence.patents,
     annotations: evidence.annotations ?? [],
+    processFacts,
+    processFraming: processFacts.framing,
     synthesis: {
       available: false,
       parsed: false,
@@ -232,9 +251,11 @@ export function buildScaffoldDossier(evidence: CompoundEvidence): LiveDossier {
       apparatusCatalog: undefined,
       environmentBaseline: undefined,
       gaps: [
-        "Dual-view process routes are filled by Ollama from literature/patents when the AI step succeeds",
-        "Free APIs rarely publish validated plant SOPs — treat all content as educational",
-        ...scored.reasons.slice(0, 4),
+        "Manufacturing conditions appear only when extracted from free-public patents/literature text",
+        "Validated IPC/CPP/hold times are site QMS only — never invented here",
+        processFacts.summary,
+        ...processFacts.openGaps.slice(0, 3),
+        ...scored.reasons.slice(0, 3),
       ],
       confidence: scored.confidence,
     },
@@ -251,6 +272,9 @@ export function buildScaffoldDossier(evidence: CompoundEvidence): LiveDossier {
       reasons: scored.reasons,
       processLitCount: scored.processLitCount,
       processPatentCount: scored.processPatentCount,
+      processFactConditions: scored.processFactConditions,
+      unitOpFacts: scored.unitOpFacts,
+      productionBriefEligible: scored.productionBriefEligible,
       explainer: scored.explainer,
       aiRecommendation: scored.aiRecommendation,
     },

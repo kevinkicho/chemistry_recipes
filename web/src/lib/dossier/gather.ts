@@ -29,6 +29,7 @@ import type {
   ExternalAnnotation,
 } from "@/lib/dossier/types";
 import { scoreCompoundEvidence } from "@/lib/dossier/evidenceScore";
+import { extractProcessFacts } from "@/lib/dossier/processFacts";
 
 function mergeLiterature(lists: LiteratureHit[][]): LiteratureHit[] {
   const map = new Map<string, LiteratureHit>();
@@ -405,7 +406,7 @@ export async function gatherCompoundEvidence(
     });
   }
 
-  const evidence: CompoundEvidence = {
+  const base: CompoundEvidence = {
     cid,
     identity,
     view: viewResult,
@@ -429,6 +430,8 @@ export async function gatherCompoundEvidence(
     fetchErrors,
   };
 
+  const processFacts = extractProcessFacts(base);
+  const evidence: CompoundEvidence = { ...base, processFacts };
   void scoreCompoundEvidence(evidence);
 
   return evidence;

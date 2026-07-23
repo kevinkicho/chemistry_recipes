@@ -156,12 +156,8 @@ export function ApiProgressOverlay({
   if (!open) return null;
 
   const latest = events[events.length - 1];
-  let stepsTotal = RECIPE_STEPS.length;
   let stepsDone = 0;
   for (const ev of events) {
-    if (typeof ev.stepsTotal === "number" && ev.stepsTotal > 0) {
-      stepsTotal = Math.min(ev.stepsTotal, RECIPE_STEPS.length) || RECIPE_STEPS.length;
-    }
     if (typeof ev.stepsDone === "number" && ev.stepsDone > stepsDone) {
       stepsDone = ev.stepsDone;
     }

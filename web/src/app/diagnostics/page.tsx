@@ -364,6 +364,57 @@ export default function DiagnosticsPage() {
                 </div>
               </section>
 
+              {client.accuracy ? (
+                <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+                  <h2 className="text-sm font-semibold text-slate-100">
+                    Accuracy health (cached dossiers)
+                  </h2>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Process-fact density and recipe vs evidence-lead framing on this
+                    device. Higher recipe framing means denser public conditions — not
+                    GMP readiness.
+                  </p>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <Mini
+                      title="With process facts"
+                      body={String(client.accuracy.dossiersWithFacts)}
+                      ok
+                    />
+                    <Mini
+                      title="Process-recipe framing"
+                      body={String(client.accuracy.processRecipeFraming)}
+                      ok={client.accuracy.processRecipeFraming > 0}
+                    />
+                    <Mini
+                      title="Evidence-lead pack"
+                      body={String(client.accuracy.evidenceLeadPack)}
+                      ok
+                    />
+                    <Mini
+                      title="Avg accuracy score"
+                      body={
+                        client.aggregates.avgAccuracyScore != null
+                          ? String(client.aggregates.avgAccuracyScore)
+                          : "—"
+                      }
+                      ok={
+                        client.aggregates.avgAccuracyScore == null ||
+                        client.aggregates.avgAccuracyScore >= 25
+                      }
+                    />
+                    <Mini
+                      title="Avg sourced conditions"
+                      body={
+                        client.accuracy.avgSourcedConditions != null
+                          ? String(client.accuracy.avgSourcedConditions)
+                          : "—"
+                      }
+                      ok
+                    />
+                  </div>
+                </section>
+              ) : null}
+
               {client.idbHealth ? (
                 <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">

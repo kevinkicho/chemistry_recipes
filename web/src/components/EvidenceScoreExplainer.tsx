@@ -37,7 +37,14 @@ export function EvidenceScoreExplainer({ dossier }: { dossier: LiveDossier }) {
         </span>
       </div>
       <p className="mt-1 text-[11px] text-slate-500">
-        Why this score — and whether dual-view AI synthesis is warranted.
+        Process-fact density and multi-source evidence — gates AI so plant numbers
+        are not invented from thin abstracts
+        {es.productionBriefEligible != null
+          ? es.productionBriefEligible
+            ? " · public process brief eligible"
+            : " · thin process-fact density"
+          : ""}
+        .
       </p>
       <ul className="mt-3 space-y-1 text-xs text-slate-400">
         {lines.map((line) => (

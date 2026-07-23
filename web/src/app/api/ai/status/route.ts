@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { debugServerAiEnvStatus, getServerAiEnv } from "@/lib/ai/serverEnv";
+import { getServerAiEnv } from "@/lib/ai/serverEnv";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

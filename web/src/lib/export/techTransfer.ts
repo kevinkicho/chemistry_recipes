@@ -11,6 +11,10 @@ import type {
 } from "@/lib/types/process";
 import { DEFAULT_DOSSIER_DISCLAIMER } from "@/lib/dossier/types";
 import { buildSourceCoverage } from "@/lib/dossier/sourceCoverage";
+import {
+  PUBLIC_PROCESS_BRIEF_DISCLAIMER,
+  type PublicProcessBrief,
+} from "@/lib/dossier/processFacts";
 
 export const REGULATORY_DISCLAIMER =
   "NOT FOR REGULATORY DECISION SUPPORT. Not a GMP procedure, batch record, DMF, CTD module, " +
@@ -36,6 +40,25 @@ export interface TechTransferPack {
     empty: number;
     fail: number;
   };
+  processFacts?: {
+    summary: string;
+    productionBriefEligible: boolean;
+    framing?: string;
+    accuracyScore?: number;
+    sourcedConditionCount: number;
+    unitOpCount: number;
+    openGaps: string[];
+    managerRisks: string[];
+    ipPointers?: string[];
+    exampleDenseSources?: string[];
+  };
+  /** Impurity / intermediate / SM map for tech-transfer handoff */
+  relatedMaterials?: Array<{
+    role: string;
+    name: string;
+    cas?: string;
+    notes?: string;
+  }>;
   entity: {
     name: string;
     cas?: string;
@@ -165,6 +188,18 @@ function buildValidationChecklist(
       note: score ? `Score ${score}` : "No score",
     },
     {
+      id: "process-facts",
+      item: "Public process-fact density (sourced conditions / unit ops)",
+      status: dossier.processFacts?.productionBriefEligible
+        ? "ok"
+        : dossier.processFacts?.sourcedConditionCount
+          ? "review"
+          : "gap",
+      note: dossier.processFacts
+        ? `${dossier.processFacts.sourcedConditionCount} cond · ${dossier.processFacts.unitOpCount} unit ops`
+        : "No process facts",
+    },
+    {
       id: "sources",
       item: "Primary literature / patents linked for process claims",
       status: lit + pats >= 3 ? "ok" : lit + pats > 0 ? "review" : "gap",
@@ -226,6 +261,26 @@ export function buildTechTransferFromLive(dossier: LiveDossier): TechTransferPac
       empty: coverage.empty,
       fail: coverage.fail,
     },
+    processFacts: dossier.processFacts
+      ? {
+          summary: dossier.processFacts.summary,
+          productionBriefEligible: dossier.processFacts.productionBriefEligible,
+          framing: dossier.processFacts.framing,
+          accuracyScore: dossier.processFacts.metrics?.accuracyScore,
+          sourcedConditionCount: dossier.processFacts.sourcedConditionCount,
+          unitOpCount: dossier.processFacts.unitOpCount,
+          openGaps: dossier.processFacts.openGaps,
+          managerRisks: dossier.processFacts.managerRisks,
+          ipPointers: dossier.processFacts.ipPointers,
+          exampleDenseSources: dossier.processFacts.exampleDenseSources,
+        }
+      : undefined,
+    relatedMaterials: (dossier.relatedEntities || []).map((e) => ({
+      role: e.role,
+      name: e.name,
+      cas: e.cas,
+      notes: e.notes,
+    })),
     entity: {
       name: hit?.name || `CID ${dossier.cid}`,
       cas: hit?.cas,
@@ -527,4 +582,78 @@ export function slugifyName(name: string): string {
       .replace(/^-|-$/g, "")
       .slice(0, 48) || "entity"
   );
+}
+
+/**
+ * Sourced-only public process brief for workers/managers.
+ * Omits AI narrative padding and uncited plant fiction.
+ */
+export function buildPublicProcessBrief(dossier: LiveDossier): PublicProcessBrief {
+  const pf = dossier.processFacts;
+  const preferred = dossier.processRoutes[0];
+  return {
+    schema: "chemistry-recipes.public-process-brief.v1",
+    exportedAt: new Date().toISOString(),
+    disclaimer: PUBLIC_PROCESS_BRIEF_DISCLAIMER,
+    entity: {
+      name: dossier.identity?.name || `CID ${dossier.cid}`,
+      cas: dossier.identity?.cas,
+      pubchemCid: dossier.cid,
+      formula: dossier.identity?.formula,
+    },
+    processFactSummary: pf?.summary || "No process facts extracted",
+    productionBriefEligible: Boolean(pf?.productionBriefEligible),
+    sourcedFacts: (pf?.facts || [])
+      .filter((f) => f.kind !== "open-gap")
+      .slice(0, 80)
+      .map((f) => ({
+        kind: f.kind,
+        claim: f.claim,
+        value: f.value,
+        unit: f.unit,
+        quote: f.quote,
+        sourceLabel: f.sourceLabel,
+        sourceUrl: f.sourceUrl,
+        provenance: f.provenance,
+      })),
+    openGaps: pf?.openGaps || [
+      "Process fact extraction unavailable on this dossier — re-run live build.",
+    ],
+    managerRisks: pf?.managerRisks || [],
+    preferredRoute: preferred
+      ? {
+          name: preferred.name,
+          summary: preferred.summary,
+          steps: preferred.steps.map((s) => ({
+            order: s.order,
+            title: s.title,
+            description: s.description,
+            conditions: s.conditions,
+            sourceLabels: s.sourceRefs?.map((r) => r.label || r.id).filter(Boolean) as
+              | string[]
+              | undefined,
+          })),
+        }
+      : undefined,
+  };
+}
+
+/** Operator shift-brief JSON (sourced sequence + gaps + EHS). */
+export function buildOperatorJobAidExport(dossier: LiveDossier) {
+  const brief = buildPublicProcessBrief(dossier);
+  return {
+    schema: "chemistry-recipes.operator-job-aid.v1" as const,
+    exportedAt: new Date().toISOString(),
+    disclaimer: brief.disclaimer,
+    framing: dossier.processFraming || dossier.processFacts?.framing,
+    accuracyScore: dossier.processFacts?.metrics?.accuracyScore,
+    entity: brief.entity,
+    sequence: brief.preferredRoute,
+    ehs: {
+      ghs: dossier.hazards.hazardStatements?.slice(0, 12),
+      processRisks: dossier.processFacts?.managerRisks || [],
+    },
+    siteFillChecklist: brief.openGaps,
+    sourcedFactCount: brief.sourcedFacts.length,
+  };
 }

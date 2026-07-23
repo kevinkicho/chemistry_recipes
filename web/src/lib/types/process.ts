@@ -201,6 +201,8 @@ export interface ProcessStep {
   mechanismNotes?: string;
   materials?: Material[];
   conditions?: StepConditions;
+  /** Process-fact atom ids that support conditions/description (citation graph) */
+  factIds?: string[];
   apparatus?: ApparatusItem[];
   environment?: EnvironmentSpec;
   controls?: ProcessControls;

@@ -11,6 +11,11 @@ import {
 import { buildScaffoldDossier } from "@/lib/dossier/scaffold";
 import { scoreCompoundEvidence } from "@/lib/dossier/evidenceScore";
 import { gatherCompoundEvidence } from "@/lib/dossier/gather";
+import {
+  extractProcessFacts,
+  preferRoutesForEvidence,
+  stripUncitedRouteDetails,
+} from "@/lib/dossier/processFacts";
 import type { LiveDossier } from "@/lib/dossier/types";
 import {
   createProgressClock,
@@ -171,10 +176,13 @@ export async function buildLiveDossierWithProgress(
     stepsTotal: STEPS_TOTAL,
   });
   const tSc = Date.now();
+  const processFacts = evidence.processFacts ?? extractProcessFacts(evidence);
+  evidence.processFacts = processFacts;
   const scored = scoreCompoundEvidence(evidence);
   let dossier = buildScaffoldDossier(evidence);
   dossier = {
     ...dossier,
+    processFacts,
     evidenceScore: {
       score: scored.score,
       confidence: scored.confidence,
@@ -183,6 +191,9 @@ export async function buildLiveDossierWithProgress(
       reasons: scored.reasons,
       processLitCount: scored.processLitCount,
       processPatentCount: scored.processPatentCount,
+      processFactConditions: scored.processFactConditions,
+      unitOpFacts: scored.unitOpFacts,
+      productionBriefEligible: scored.productionBriefEligible,
       explainer: scored.explainer,
       aiRecommendation: scored.aiRecommendation,
     },
@@ -195,7 +206,7 @@ export async function buildLiveDossierWithProgress(
     ok: true,
     durationMs: Date.now() - tSc,
     evidenceScore: scored.score,
-    detail: `Score ${scored.score}/100 (${scored.confidence}) · ${dossier.literature.length} lit · ${dossier.patents.length} patents · ${dossier.annotations?.length || 0} multi-source · processLit ${scored.processLitCount}`,
+    detail: `Score ${scored.score}/100 (${scored.confidence}) · facts ${processFacts.sourcedConditionCount} cond / ${processFacts.unitOpCount} ops · ${dossier.literature.length} lit · ${dossier.patents.length} patents · ${dossier.annotations?.length || 0} multi-source`,
     ...tickDone(),
   });
 
@@ -270,11 +281,13 @@ export async function buildLiveDossierWithProgress(
           id: `ollama-synthesis:${cid}`,
           label: `${orgLabel} synthesis from public evidence`,
           note: synthesis.model
-            ? `Model ${synthesis.model} — not primary literature`
-            : "AI synthesis — not primary literature",
+            ? `Model ${synthesis.model} — structure only; uncited numbers stripped`
+            : "AI synthesis — structure only; uncited numbers stripped",
         },
       ];
-      const aiRoutes = aiRoutesToProcessRoutes(synthesis.routes, editorialRef);
+      let aiRoutes = aiRoutesToProcessRoutes(synthesis.routes, editorialRef);
+      aiRoutes = stripUncitedRouteDetails(aiRoutes, processFacts);
+      aiRoutes = preferRoutesForEvidence(aiRoutes, processFacts);
       const processRoutes = aiRoutes.length ? aiRoutes : dossier.processRoutes;
       const relatedEntities = withEntityLinks(
         mergeRelatedEntities(
@@ -409,6 +422,9 @@ export async function buildLiveDossierWithProgress(
 
   dossier = {
     ...dossier,
+    processFacts: dossier.processFacts || processFacts,
+    processFraming:
+      (dossier.processFacts || processFacts).framing || "evidence-lead-pack",
     modality,
     relatedEntities,
     contradictions,
@@ -421,6 +437,10 @@ export async function buildLiveDossierWithProgress(
       contradictions,
       unitOpFills,
       modality,
+      gaps: [
+        ...(dossier.synthesis.gaps || []),
+        // de-dupe later in UI if needed
+      ].filter((g, i, a) => a.indexOf(g) === i),
     },
   };
 

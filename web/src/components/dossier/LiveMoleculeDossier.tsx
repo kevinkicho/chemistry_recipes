@@ -3,7 +3,7 @@
  * Content from free APIs + optional Ollama; AI blocks keep provenance chips.
  */
 
-import type { ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { AiProvenance } from "@/components/AiProvenance";
 import { ApiProvenance } from "@/components/ApiProvenance";
@@ -34,6 +34,12 @@ import { DossierDiagnostics } from "@/components/DossierDiagnostics";
 import { SourceCoverageMap } from "@/components/SourceCoverageMap";
 import { EvidenceScoreExplainer } from "@/components/EvidenceScoreExplainer";
 import { ValidationChecklist } from "@/components/ValidationChecklist";
+import { ProcessFactsPanel } from "@/components/ProcessFactsPanel";
+import { ManagerBriefPanel } from "@/components/ManagerBriefPanel";
+import { OperatorJobAid } from "@/components/OperatorJobAid";
+import { LocalTextEnrich } from "@/components/LocalTextEnrich";
+import { ProcessFramingBanner } from "@/components/ProcessFramingBanner";
+import { applyLocalFactEnrichment } from "@/lib/dossier/enrichClientFacts";
 import { formatCacheAge } from "@/lib/idb/dossierCache";
 
 function SectionTitle({
@@ -62,12 +68,18 @@ export type LiveDossierChrome = {
 };
 
 export function LiveMoleculeDossier({
-  dossier,
+  dossier: dossierIn,
   chrome,
 }: {
   dossier: LiveDossier;
   chrome?: LiveDossierChrome;
 }) {
+  const [enrichTick, setEnrichTick] = useState(0);
+  const dossier = useMemo(() => {
+    void enrichTick;
+    return applyLocalFactEnrichment(dossierIn);
+  }, [dossierIn, enrichTick]);
+
   const hit = dossier.identity;
   const cid = dossier.cid;
   const name = hit?.name || `CID ${cid}`;
@@ -391,8 +403,16 @@ export function LiveMoleculeDossier({
       {/* Main + sidebar — recipe primary, evidence secondary */}
       <div className="mt-10 grid gap-6 lg:grid-cols-3">
         <div className="space-y-8 lg:col-span-2">
+          <ProcessFramingBanner dossier={dossier} />
           <EvidenceScoreExplainer dossier={dossier} />
           <SourceCoverageMap dossier={dossier} />
+          <ManagerBriefPanel dossier={dossier} />
+          <OperatorJobAid dossier={dossier} />
+          <ProcessFactsPanel dossier={dossier} />
+          <LocalTextEnrich
+            cid={cid}
+            onSaved={() => setEnrichTick((n) => n + 1)}
+          />
           <ValidationChecklist dossier={dossier} />
 
           <section id="routes" className="scroll-mt-24">
@@ -400,13 +420,16 @@ export function LiveMoleculeDossier({
               ai={routesFromAi && aiChip ? aiChip : undefined}
               field="Process recipe"
             >
-              Process recipe
+              {dossier.processFraming === "process-recipe"
+                ? "Process recipe"
+                : "Evidence leads (not a recipe)"}
             </SectionTitle>
             <p className="mb-4 text-xs leading-relaxed text-slate-500">
-              Ingredients, method steps, and dual plant / chemistry view.
+              Plant-first dual view. Numeric conditions appear only when aligned with
+              public process facts or cited leads
               {routesFromAi
-                ? " Built from free public evidence with Ollama."
-                : " Evidence leads until synthesis is available."}{" "}
+                ? " (Ollama structures evidence; uncited numbers are stripped)."
+                : " (evidence leads until synthesis is available)."}{" "}
               Not a GMP batch record.
             </p>
             <RoutePanel
