@@ -435,6 +435,7 @@ export function LiveMoleculeDossier({
             <RoutePanel
               routes={dossier.processRoutes}
               aiProvenance={routesFromAi ? aiChip : null}
+              processFacts={dossier.processFacts?.facts}
             />
           </section>
 

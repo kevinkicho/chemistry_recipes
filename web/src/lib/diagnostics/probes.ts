@@ -166,6 +166,23 @@ export async function runPublicApiProbes(): Promise<ApiProbeResult[]> {
       "https://api.semanticscholar.org/graph/v1/paper/search?query=aspirin+synthesis&limit=1&fields=title",
       "literature"
     ),
+    probeGet(
+      "pubchem-patents",
+      "PubChem Patent xrefs",
+      "NCBI (NIH)",
+      "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/xrefs/PatentID/JSON",
+      "patents",
+      (s, body) => s >= 200 && s < 400 && /PatentID/i.test(body)
+    ),
+    probeGet(
+      "ord-site",
+      "Open Reaction Database",
+      "ORD community",
+      "https://open-reaction-database.org/",
+      "reactions",
+      // Site is a SPA — any 2xx/3xx HTML is "reachable"
+      (s) => s >= 200 && s < 500
+    ),
   ];
 
   const results = await Promise.all(jobs);

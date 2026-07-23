@@ -19,6 +19,8 @@ const WIRED_SOURCE_IDS = new Set([
   "comptox",
   "dailymed",
   "semantic-scholar",
+  "ord",
+  "pubchem-patents",
 ]);
 
 const PRIORITY_BLURB: Record<SourcePriority, string> = {

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AiProvenance } from "@/components/AiProvenance";
 import type { AiProvenanceRecord } from "@/lib/dossier/types";
+import type { ProcessFact } from "@/lib/dossier/processFacts";
 import type { ProcessRoute, ProcessStep } from "@/lib/types/process";
 import { ViewToggle, type AudienceView } from "./ViewToggle";
 
@@ -40,22 +41,28 @@ const CONDITION_LABELS: Record<string, string> = {
 function ConditionChips({
   conditions,
   sourced,
+  citationHint,
 }: {
   conditions: ProcessStep["conditions"];
   /** When true, style as sourced fact; when false hide in manufacturing-strict mode */
   sourced?: boolean;
+  /** Quote / source label for citation graph */
+  citationHint?: string;
 }) {
   if (!conditions) return null;
   const entries = Object.entries(conditions).filter(
     ([, v]) => v && !isJunkLine(String(v))
   );
   if (!entries.length) return null;
+  const tip =
+    citationHint ||
+    (sourced ? "Sourced or fact-aligned condition — verify primary source" : "Condition");
   return (
     <div className="flex flex-wrap gap-1.5">
       {entries.map(([k, v]) => (
         <span
           key={k}
-          title={sourced ? "Sourced or fact-aligned condition" : "Condition"}
+          title={tip}
           className={`inline-flex items-baseline gap-1 rounded-full border px-2.5 py-1 text-[11px] ${
             sourced
               ? "border-teal-500/35 bg-teal-500/10"
@@ -81,15 +88,30 @@ function StepCard({
   step,
   view,
   aiProvenance,
+  factHints,
 }: {
   step: ProcessStep;
   view: AudienceView;
   aiProvenance?: AiProvenanceRecord | null;
+  /** factId → short citation string */
+  factHints?: Map<string, string>;
 }) {
   const showMech = view === "mechanism" || view === "dual";
   const showMfg = view === "manufacturing" || view === "dual";
 
   const hasStepSource = Boolean(step.sourceRefs?.some((s) => s.type !== "editorial"));
+  const citationHint =
+    step.factIds
+      ?.map((id) => factHints?.get(id))
+      .filter(Boolean)
+      .slice(0, 3)
+      .join(" · ") ||
+    step.sourceRefs
+      ?.filter((s) => s.type !== "editorial")
+      .map((s) => s.label || s.id)
+      .slice(0, 2)
+      .join(" · ") ||
+    undefined;
   const critical = cleanLines(step.controls?.criticalParameters);
   // Manufacturing accuracy: never show AI IPC/CQA as plant methods
   const ipc = showMfg ? undefined : cleanLines(step.controls?.ipcMethods);
@@ -145,7 +167,11 @@ function StepCard({
       {step.conditions &&
       Object.values(step.conditions).some((v) => v && !isJunkLine(String(v))) ? (
         <div className="border-b border-slate-800/80 bg-slate-950/40 px-4 py-2.5">
-          <ConditionChips conditions={step.conditions} sourced={hasStepSource} />
+          <ConditionChips
+            conditions={step.conditions}
+            sourced={hasStepSource}
+            citationHint={citationHint}
+          />
           {hasStepSource && step.sourceRefs?.[0]?.url ? (
             <p className="mt-1.5 text-[10px] text-slate-600">
               Verify:{" "}
@@ -157,6 +183,9 @@ function StepCard({
               >
                 {step.sourceRefs[0].label || step.sourceRefs[0].id}
               </a>
+              {citationHint ? (
+                <span className="text-slate-600"> · {citationHint.slice(0, 160)}</span>
+              ) : null}
             </p>
           ) : null}
         </div>
@@ -318,14 +347,24 @@ export function RoutePanel({
   routes,
   emptyMessage,
   aiProvenance,
+  processFacts,
 }: {
   routes: ProcessRoute[];
   emptyMessage?: string;
   aiProvenance?: AiProvenanceRecord | null;
+  processFacts?: ProcessFact[];
 }) {
   const [routeId, setRouteId] = useState(routes[0]?.id ?? "");
   const [view, setView] = useState<AudienceView>("manufacturing");
   const route = routes.find((r) => r.id === routeId) ?? routes[0];
+  const factHints = new Map<string, string>();
+  for (const f of processFacts || []) {
+    if (f.kind === "open-gap") continue;
+    factHints.set(
+      f.id,
+      [f.sourceLabel, f.exampleRef, f.quote?.slice(0, 80)].filter(Boolean).join(" · ")
+    );
+  }
 
   if (!route) {
     return (
@@ -475,6 +514,7 @@ export function RoutePanel({
               step={step}
               view={view}
               aiProvenance={aiProvenance}
+              factHints={factHints}
             />
           ))}
       </div>

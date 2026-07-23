@@ -34,6 +34,7 @@ Evidence-first process recipe hub (not GMP / not regulatory decision support).
 | [Architecture](./engineering/architecture.md) | Stack, modules, request paths |
 | [Dossier pipeline](./engineering/dossier-pipeline.md) | Gather → score → shell → Ollama → enrich |
 | [Process facts & accuracy](./engineering/process-facts-accuracy.md) | Sourced manufacturing atoms, public process brief |
+| [Bulk data & ORD](./engineering/data-bulk-and-ord.md) | Patent xrefs, ORD, bulk full-text strategy |
 | [Multi-source APIs](./engineering/multi-source-apis.md) | Wired free APIs, registry, probes |
 | [AI & Ollama](./engineering/ai-and-ollama.md) | Cloud + local hosts, proxies, quality gate |
 | [Client storage](./engineering/client-storage.md) | IndexedDB cache, snapshots, health |

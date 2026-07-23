@@ -108,7 +108,8 @@ export async function searchPatentsView(
       patentNumber: num,
       title: p.patent_title || "(untitled patent)",
       date: p.patent_date,
-      abstract: p.patent_abstract?.slice(0, 1200),
+      // Keep longer abstracts for process-fact extraction (conditions often in abstract)
+      abstract: p.patent_abstract?.slice(0, 4000),
       assignees,
       url: `https://patents.google.com/patent/US${num.replace(/^US/i, "")}`,
     };

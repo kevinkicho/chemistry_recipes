@@ -9,6 +9,7 @@ Implementation notes for the Chemistry Recipes Next.js app (`web/`).
 | [Architecture](./architecture.md) | Stack, modules, routes, data flow |
 | [Dossier pipeline](./dossier-pipeline.md) | SSE build: gather → score → shell → AI → enrich |
 | [Process facts & accuracy](./process-facts-accuracy.md) | Sourced atoms, strip uncited, public process brief |
+| [Bulk data & ORD](./data-bulk-and-ord.md) | PubChem patents, ORD browse, full-text strategy |
 | [Multi-source APIs](./multi-source-apis.md) | Clients, registry, diagnostics probes |
 | [AI & Ollama](./ai-and-ollama.md) | Cloud + local, proxies, synthesis, quality gate |
 | [Client storage](./client-storage.md) | IndexedDB, snapshots, health probe |

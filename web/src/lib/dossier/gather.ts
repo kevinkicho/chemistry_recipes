@@ -21,6 +21,11 @@ import { fetchKeggByName } from "@/lib/api/kegg";
 import { fetchCompToxByName } from "@/lib/api/comptox";
 import { fetchDailyMedByName } from "@/lib/api/dailyMed";
 import { searchSemanticScholarProcess } from "@/lib/api/semanticScholar";
+import {
+  fetchPubchemPatentIds,
+  patentHitsFromPubchemIds,
+} from "@/lib/api/pubchemPatents";
+import { buildOrdBrowseAnnotation } from "@/lib/api/ord";
 import { politeDelay } from "@/lib/api/rateLimit";
 import { slimTraces, type ApiFetchTrace } from "@/lib/api/trace";
 import type { SourceRef } from "@/lib/types/process";
@@ -90,6 +95,7 @@ export async function gatherCompoundEvidence(
     keggResult,
     comptoxResult,
     dailyMedResult,
+    pubchemPatentIds,
   ] = await Promise.all([
     searchEuropePmc(name, { limit: 12 }),
     searchOpenAlexProcess(name, { limit: 6 }),
@@ -104,6 +110,7 @@ export async function gatherCompoundEvidence(
     fetchKeggByName(name),
     fetchCompToxByName(name),
     fetchDailyMedByName(name),
+    fetchPubchemPatentIds(cid, { limit: 40 }),
   ]);
 
   traces.push(...litResult.traces);
@@ -119,6 +126,7 @@ export async function gatherCompoundEvidence(
   traces.push(...keggResult.traces);
   traces.push(...comptoxResult.traces);
   traces.push(...dailyMedResult.traces);
+  traces.push(...pubchemPatentIds.traces);
 
   const literature = mergeLiterature([
     litResult.hits,
@@ -132,7 +140,14 @@ export async function gatherCompoundEvidence(
   for (const p of patentLitResult.hits) {
     if (!patentMap.has(p.id)) patentMap.set(p.id, p);
   }
-  const patents = [...patentMap.values()].slice(0, 14);
+  // PubChem patent xrefs (always free) fill IP coverage when PatentsView key is absent
+  for (const p of patentHitsFromPubchemIds(pubchemPatentIds.ids, name)) {
+    const key = p.patentNumber || p.id;
+    if (![...patentMap.values()].some((x) => x.patentNumber === key || x.id === p.id)) {
+      patentMap.set(p.id, p);
+    }
+  }
+  const patents = [...patentMap.values()].slice(0, 20);
 
   // ── Map non-PubChem hits → annotations + sourceRefs ─────────────
   sourceRefs.push({
@@ -373,6 +388,45 @@ export async function gatherCompoundEvidence(
       note: p.patentNumber,
     });
   }
+
+  if (pubchemPatentIds.ids.length) {
+    annotations.push({
+      source: "PubChem Patents",
+      organization: "NCBI (NIH)",
+      kind: "other",
+      title: `${pubchemPatentIds.ids.length} patent cross-references`,
+      summary:
+        "Free PubChem PatentID xrefs for this CID. Prefer US/EP/WO for English claims/examples; paste public experimental text via Local enrich for denser process facts.",
+      url: `https://pubchem.ncbi.nlm.nih.gov/compound/${cid}#section=Patents`,
+      endpointUrl: "https://pubchem.ncbi.nlm.nih.gov/rest/pug",
+      fields: {
+        sample: pubchemPatentIds.ids.slice(0, 8).join(", "),
+      },
+    });
+    sourceRefs.push({
+      type: "api",
+      id: `pubchem-patents:${cid}`,
+      label: "PubChem patent xrefs",
+      url: `https://pubchem.ncbi.nlm.nih.gov/compound/${cid}#section=Patents`,
+      note: `${pubchemPatentIds.ids.length} PatentID values`,
+    });
+  }
+
+  // ORD — free reaction dataset browse (lab-scale context, not plant SOP)
+  const ord = buildOrdBrowseAnnotation({
+    name,
+    smiles: identity?.smiles,
+    cid,
+  });
+  annotations.push(...ord.annotations);
+  traces.push(...ord.traces);
+  sourceRefs.push({
+    type: "api",
+    id: `ord:${cid}`,
+    label: "Open Reaction Database",
+    url: ord.browseUrl,
+    note: ord.note,
+  });
 
   // Literature source notes
   sourceRefs.push({
