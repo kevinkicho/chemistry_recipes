@@ -1,0 +1,3169 @@
+{
+  "schemaVersion": 1,
+  "title": "BioIntel free public API sources",
+  "productLaw": "Free public APIs only. Evidence-first; not regulatory decision support. Endpoints may require optional free keys (e.g. openFDA rate limit, College Scorecard DEMO_KEY).",
+  "generatedAt": "2026-07-22T18:35:01.362Z",
+  "sourceOfTruth": [
+    "src/lib/panelSources.ts",
+    "src/lib/analytics/api-meta.ts"
+  ],
+  "regenerate": "node scripts/export-api-sources-manifest.js",
+  "counts": {
+    "panels": 122,
+    "metaOnly": 13,
+    "uniqueSources": 131,
+    "apiMetadataKeys": 120
+  },
+  "sources": [
+    {
+      "apiName": "AlphaFold",
+      "organization": "DeepMind / EMBL-EBI",
+      "description": "AlphaFold protein structure predictions",
+      "docsUrl": "https://www.alphafold.ebi.ac.uk/api/",
+      "endpointUrl": "https://alphafold.ebi.ac.uk/api/prediction",
+      "panelIds": [
+        "alphafold"
+      ],
+      "metaKeys": [
+        "alphafold"
+      ]
+    },
+    {
+      "apiName": "AnVIL",
+      "organization": "NHGRI (NIH)",
+      "description": "NHGRI Analysis Visualization and Informatics Lab-space",
+      "docsUrl": "https://anvilproject.org/",
+      "endpointUrl": "https://anvilproject.org/api",
+      "panelIds": [
+        "nhgri-anvil"
+      ],
+      "metaKeys": [
+        "nhgri-anvil"
+      ]
+    },
+    {
+      "apiName": "arXiv",
+      "organization": "Cornell University",
+      "description": "arXiv preprint server for physics, math, and biology",
+      "docsUrl": "https://info.arxiv.org/help/api/",
+      "endpointUrl": "http://export.arxiv.org/api/query",
+      "panelIds": [
+        "arxiv"
+      ],
+      "metaKeys": [
+        "arxiv"
+      ]
+    },
+    {
+      "apiName": "Bgee",
+      "organization": "SIB / UNIL",
+      "description": "Bgee gene expression evolution database",
+      "docsUrl": "https://www.bgee.org/",
+      "endpointUrl": "https://www.bgee.org/api",
+      "panelIds": [
+        "bgee"
+      ],
+      "metaKeys": [
+        "bgee"
+      ]
+    },
+    {
+      "apiName": "BindingDB",
+      "organization": "BindingDB",
+      "description": "BindingDB measured protein-ligand binding affinities",
+      "docsUrl": "https://www.bindingdb.org/bind/chemsearch/marvin/BindingDB-API.pdf",
+      "endpointUrl": "https://bindingdb.org/bind/chemsearch/marvin/MolsFromName.json",
+      "panelIds": [
+        "bindingdb"
+      ],
+      "metaKeys": [
+        "bindingdb"
+      ]
+    },
+    {
+      "apiName": "BioCyc",
+      "organization": "SRI International",
+      "description": "BioCyc collection of organism-specific pathway/genome databases",
+      "docsUrl": "https://biocyc.org/api/",
+      "endpointUrl": "https://websvc.biocyc.org",
+      "panelIds": [
+        "biocyc"
+      ],
+      "metaKeys": [
+        "biocyc"
+      ]
+    },
+    {
+      "apiName": "biologics-licensed",
+      "organization": "U.S. FDA (openFDA)",
+      "description": "FDA-licensed biologics and biosimilar BLA applications via openFDA Drugs@FDA (sponsors, products, marketing status)",
+      "docsUrl": "https://open.fda.gov/apis/drug/drugsfda/",
+      "endpointUrl": "https://api.fda.gov/drug/drugsfda.json",
+      "panelIds": [],
+      "metaKeys": [
+        "biologics-licensed"
+      ]
+    },
+    {
+      "apiName": "BioModels",
+      "organization": "EMBL-EBI",
+      "description": "BioModels database of computational models of biological processes",
+      "docsUrl": "https://www.ebi.ac.uk/biomodels/",
+      "endpointUrl": "https://www.ebi.ac.uk/biomodels",
+      "panelIds": [
+        "biomodels"
+      ],
+      "metaKeys": [
+        "biomodels"
+      ]
+    },
+    {
+      "apiName": "BioSamples",
+      "organization": "EMBL-EBI",
+      "description": "BioSamples biological sample metadata repository",
+      "docsUrl": "https://www.ebi.ac.uk/biosamples/docs/api",
+      "endpointUrl": "https://www.ebi.ac.uk/biosamples/samples",
+      "panelIds": [
+        "biosamples"
+      ],
+      "metaKeys": [
+        "biosamples"
+      ]
+    },
+    {
+      "apiName": "BioThings TTD KP",
+      "organization": "NIH / SJTU via NCATS BioThings",
+      "description": "Therapeutic Target Database associations (free BioThings KP)",
+      "docsUrl": "https://db.idrblab.net/ttd/",
+      "endpointUrl": "https://biothings.ncats.io/ttd",
+      "panelIds": [
+        "ttd"
+      ],
+      "metaKeys": [
+        "ttd"
+      ]
+    },
+    {
+      "apiName": "CATH",
+      "organization": "UCL",
+      "description": "CATH protein domain classification and Gene3D",
+      "docsUrl": "https://www.cath.info/api/",
+      "endpointUrl": "http://www.cathdb.info/api/v1",
+      "panelIds": [
+        "cath"
+      ],
+      "metaKeys": [
+        "cath"
+      ]
+    },
+    {
+      "apiName": "ChEBI",
+      "organization": "EMBL-EBI",
+      "description": "Chemical Entities of Biological Interest ontology",
+      "docsUrl": "https://www.ebi.ac.uk/chebi/about",
+      "endpointUrl": "https://www.ebi.ac.uk/chebi/api/data",
+      "panelIds": [
+        "chebi"
+      ],
+      "metaKeys": [
+        "chebi"
+      ]
+    },
+    {
+      "apiName": "ChEMBL",
+      "organization": "EMBL-EBI",
+      "description": "ChEMBL bioactivity database for drug discovery",
+      "docsUrl": "https://www.ebi.ac.uk/chembl/",
+      "endpointUrl": "https://www.ebi.ac.uk/chembl/api/data",
+      "panelIds": [
+        "chembl"
+      ],
+      "metaKeys": [
+        "chembl"
+      ]
+    },
+    {
+      "apiName": "ChEMBL Indications",
+      "organization": "EMBL-EBI",
+      "description": "ChEMBL drug indications data",
+      "docsUrl": "https://www.ebi.ac.uk/chembl/",
+      "endpointUrl": "https://www.ebi.ac.uk/chembl/api/data",
+      "panelIds": [
+        "chembl-indications"
+      ],
+      "metaKeys": [
+        "chembl-indications"
+      ]
+    },
+    {
+      "apiName": "ChEMBL Mechanisms",
+      "organization": "EMBL-EBI",
+      "description": "ChEMBL mechanism of action data for drugs",
+      "docsUrl": "https://www.ebi.ac.uk/chembl/",
+      "endpointUrl": "https://www.ebi.ac.uk/chembl/api/data/mechanism",
+      "panelIds": [
+        "chembl-mechanisms"
+      ],
+      "metaKeys": [
+        "chembl-mechanisms"
+      ]
+    },
+    {
+      "apiName": "ChemSpider (via PubChem)",
+      "organization": "RSC",
+      "description": "Chemical structure database via PubChem (ChemSpider requires API key)",
+      "docsUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/",
+      "endpointUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound",
+      "panelIds": [
+        "chemspider"
+      ],
+      "metaKeys": [
+        "chemspider"
+      ]
+    },
+    {
+      "apiName": "ClinGen",
+      "organization": "NCBI (NIH)",
+      "description": "ClinGen clinical variant resource",
+      "docsUrl": "https://clinicalgenomics.org/api/",
+      "endpointUrl": "https://clinicalgenomics.org/api",
+      "panelIds": [
+        "clingen"
+      ],
+      "metaKeys": [
+        "clingen"
+      ]
+    },
+    {
+      "apiName": "ClinicalTrials.gov",
+      "organization": "NLM (NIH)",
+      "description": "ClinicalTrials.gov registry of clinical studies",
+      "docsUrl": "https://clinicaltrials.gov/api/",
+      "endpointUrl": "https://clinicaltrials.gov/api/v2/studies",
+      "panelIds": [
+        "clinical-trials"
+      ],
+      "metaKeys": [
+        "clinicaltrials"
+      ]
+    },
+    {
+      "apiName": "ClinVar",
+      "organization": "NCBI (NIH)",
+      "description": "ClinVar aggregates information about genomic variation and its relationship to human health",
+      "docsUrl": "https://www.ncbi.nlm.nih.gov/clinvar/api/",
+      "endpointUrl": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
+      "panelIds": [
+        "clinvar"
+      ],
+      "metaKeys": [
+        "clinvar"
+      ]
+    },
+    {
+      "apiName": "cms-hospitals",
+      "organization": "U.S. CMS",
+      "description": "Medicare Hospital General Information (registered US hospitals)",
+      "docsUrl": "https://data.cms.gov/provider-data/dataset/xubh-q36u",
+      "endpointUrl": "https://data.cms.gov/provider-data/api/1/datastore/query/xubh-q36u/0",
+      "panelIds": [],
+      "metaKeys": [
+        "cms-hospitals"
+      ]
+    },
+    {
+      "apiName": "College Scorecard",
+      "organization": "U.S. Dept of Education",
+      "description": "US college/university directory for research affiliation context (not admissions advice)",
+      "docsUrl": "https://collegescorecard.ed.gov/data/api-documentation/",
+      "endpointUrl": "https://api.data.gov/ed/collegescorecard/v1/schools",
+      "panelIds": [
+        "us-colleges"
+      ],
+      "metaKeys": []
+    },
+    {
+      "apiName": "college-scorecard",
+      "organization": "U.S. Department of Education",
+      "description": "College Scorecard institution directory (costs/outcomes context optional; free api.data.gov DEMO_KEY)",
+      "docsUrl": "https://collegescorecard.ed.gov/data/api-documentation/",
+      "endpointUrl": "https://api.data.gov/ed/collegescorecard/v1/schools",
+      "panelIds": [],
+      "metaKeys": [
+        "college-scorecard"
+      ]
+    },
+    {
+      "apiName": "CompTox",
+      "organization": "EPA",
+      "description": "CompTox Chemicals Dashboard for environmental and toxicological data",
+      "docsUrl": "https://comptox.epa.gov/dashboard-api/ccdapp1",
+      "endpointUrl": "https://comptox.epa.gov/dashboard-api/ccdapp1",
+      "panelIds": [
+        "comptox"
+      ],
+      "metaKeys": [
+        "comptox"
+      ]
+    },
+    {
+      "apiName": "CompTox (ToxCast)",
+      "organization": "EPA",
+      "description": "ToxCast high-throughput screening data via CompTox Dashboard",
+      "docsUrl": "https://www.epa.gov/comptoxics-tools/exploring-toxcast-data",
+      "endpointUrl": "https://comptox.epa.gov/dashboard-api/ccdapp1",
+      "panelIds": [
+        "toxcast"
+      ],
+      "metaKeys": [
+        "toxcast"
+      ]
+    },
+    {
+      "apiName": "CPIC",
+      "organization": "CPIC",
+      "description": "Clinical Pharmacogenetics Implementation Consortium guidelines",
+      "docsUrl": "https://cpic.org/",
+      "endpointUrl": "https://api.cpic.org",
+      "panelIds": [
+        "cpic"
+      ],
+      "metaKeys": [
+        "cpic"
+      ]
+    },
+    {
+      "apiName": "CrossRef",
+      "organization": "CrossRef",
+      "description": "CrossRef DOI metadata and citation data",
+      "docsUrl": "https://api.crossref.org/",
+      "endpointUrl": "https://api.crossref.org/works",
+      "panelIds": [
+        "crossref"
+      ],
+      "metaKeys": [
+        "crossref"
+      ]
+    },
+    {
+      "apiName": "CT.gov · ROR · CMS · Scorecard · RePORTER · Europe PMC",
+      "organization": "Multi-source join",
+      "description": "Deterministic local join of free public profile data: ClinicalTrials.gov sponsors/sites, ROR orgs, CMS Care Compare hospitals, US College Scorecard, NIH RePORTER institutes, and literature row counts (Europe PMC / PubMed / OpenAlex). Not competitive rankings or clinical referral.",
+      "docsUrl": "https://clinicaltrials.gov/data-api/about-api",
+      "endpointUrl": "join://profile/clinical-safety+research-literature",
+      "panelIds": [
+        "evidence-neighborhood"
+      ],
+      "metaKeys": []
+    },
+    {
+      "apiName": "CTD",
+      "organization": "NCSU",
+      "description": "Comparative Toxicogenomics Database connecting chemicals, genes, and diseases",
+      "docsUrl": "https://ctdbase.org/go/api",
+      "endpointUrl": "https://ctdbase.org/tools/api",
+      "panelIds": [
+        "ctd"
+      ],
+      "metaKeys": [
+        "ctd"
+      ]
+    },
+    {
+      "apiName": "CTD",
+      "organization": "NCSU",
+      "description": "Comparative Toxicogenomics Database disease associations",
+      "docsUrl": "https://ctdbase.org/go/api",
+      "endpointUrl": "http://ctdbase.org",
+      "panelIds": [
+        "ctd-diseases"
+      ],
+      "metaKeys": []
+    },
+    {
+      "apiName": "DailyMed",
+      "organization": "NLM (NIH)",
+      "description": "Provides FDA drug labeling information",
+      "docsUrl": "https://dailymed.nlm.nih.gov/dailymed/app-support.cfm#api",
+      "endpointUrl": "https://dailymed.nlm.nih.gov/dailymed/services/v2",
+      "panelIds": [
+        "dailymed"
+      ],
+      "metaKeys": [
+        "dailymed"
+      ]
+    },
+    {
+      "apiName": "dbSNP",
+      "organization": "NCBI (NIH)",
+      "description": "dbSNP database of single nucleotide polymorphisms",
+      "docsUrl": "https://www.ncbi.nlm.nih.gov/snp/",
+      "endpointUrl": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
+      "panelIds": [
+        "dbsnp"
+      ],
+      "metaKeys": [
+        "dbsnp"
+      ]
+    },
+    {
+      "apiName": "DGIdb v5",
+      "organization": "DGIdb",
+      "description": "Drug-Gene Interaction Database aggregating drug-target relationships",
+      "docsUrl": "https://www.dgidb.org/api",
+      "endpointUrl": "https://dgidb.org/api/graphql",
+      "panelIds": [
+        "dgidb"
+      ],
+      "metaKeys": [
+        "dgidb"
+      ]
+    },
+    {
+      "apiName": "DisGeNET",
+      "organization": "DisGeNET",
+      "description": "DisGeNET gene-disease and variant-disease associations",
+      "docsUrl": "https://www.disgenet.org/api/",
+      "endpointUrl": "https://www.disgenet.org/api/gda",
+      "panelIds": [
+        "disgenet"
+      ],
+      "metaKeys": [
+        "disgenet"
+      ]
+    },
+    {
+      "apiName": "DRLS · FEI · Data Dashboard",
+      "organization": "U.S. FDA",
+      "description": "Portal-first manufacturing / establishment deep links: Drug Establishments Current Registration (DRLS), FEI Portal, FDA inspections dashboard, and FDA.gov firm search. There is no free public API that joins every product to certified plants — search official registries by firm name. Not GMP advice or a certification graph.",
+      "docsUrl": "https://www.accessdata.fda.gov/scripts/cder/drls/default.cfm",
+      "endpointUrl": "https://www.accessdata.fda.gov/scripts/cder/drls/default.cfm",
+      "panelIds": [
+        "establishment-links"
+      ],
+      "metaKeys": []
+    },
+    {
+      "apiName": "DrugCentral",
+      "organization": "University of Rome Tor Vergata",
+      "description": "DrugCentral: online drug information resource",
+      "docsUrl": "https://drugcentral.org/",
+      "endpointUrl": "https://drugcentral.org/api",
+      "panelIds": [
+        "drugcentral"
+      ],
+      "metaKeys": [
+        "drugcentral"
+      ]
+    },
+    {
+      "apiName": "ema-bulk",
+      "organization": "European Medicines Agency",
+      "description": "Official EMA medicines Excel dump (biosimilar / orphan / ATMP flags, MAH, dates)",
+      "docsUrl": "https://www.ema.europa.eu/en/medicines/download-medicine-data",
+      "endpointUrl": "https://www.ema.europa.eu/en/documents/report/medicines-output-medicines-report_en.xlsx",
+      "panelIds": [],
+      "metaKeys": [
+        "ema-bulk"
+      ]
+    },
+    {
+      "apiName": "ema-medicines",
+      "organization": "Open Targets + EMA",
+      "description": "EU-facing medicine card from Open Targets GraphQL plus EMA portal/bulk deep links",
+      "docsUrl": "https://platform-docs.opentargets.org/data-access/graphql-api",
+      "endpointUrl": "https://api.platform.opentargets.org/api/v4/graphql",
+      "panelIds": [],
+      "metaKeys": [
+        "ema-medicines"
+      ]
+    },
+    {
+      "apiName": "Ensembl",
+      "organization": "EMBL-EBI",
+      "description": "Ensembl genome browser and annotation",
+      "docsUrl": "https://rest.ensembl.org/",
+      "endpointUrl": "https://rest.ensembl.org",
+      "panelIds": [
+        "ensembl"
+      ],
+      "metaKeys": [
+        "ensembl"
+      ]
+    },
+    {
+      "apiName": "Europe PMC",
+      "organization": "EMBL-EBI",
+      "description": "Europe PMC life sciences literature database",
+      "docsUrl": "https://www.ebi.ac.uk/europepmc/webservices/rest/search/",
+      "endpointUrl": "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+      "panelIds": [
+        "literature"
+      ],
+      "metaKeys": [
+        "europepmc"
+      ]
+    },
+    {
+      "apiName": "Expression Atlas",
+      "organization": "EMBL-EBI",
+      "description": "Expression Atlas gene expression across species and conditions",
+      "docsUrl": "https://www.ebi.ac.uk/gxa/rest",
+      "endpointUrl": "https://www.ebi.ac.uk/gxa",
+      "panelIds": [
+        "expression-atlas"
+      ],
+      "metaKeys": [
+        "expression-atlas"
+      ]
+    },
+    {
+      "apiName": "FDA Drug Shortages",
+      "organization": "U.S. FDA",
+      "description": "FDA current and resolved drug shortage reports",
+      "docsUrl": "https://www.fda.gov/drug-shortages",
+      "endpointUrl": "https://www.fda.gov/drug-shortages",
+      "panelIds": [
+        "drug-shortages"
+      ],
+      "metaKeys": [
+        "fda-drug-shortages"
+      ]
+    },
+    {
+      "apiName": "FooDB",
+      "organization": "University of Alberta",
+      "description": "FooDB database of food constituents and their bioactivities",
+      "docsUrl": "https://foodb.ca/",
+      "endpointUrl": "https://foodb.ca/api",
+      "panelIds": [
+        "foodb"
+      ],
+      "metaKeys": [
+        "foodb"
+      ]
+    },
+    {
+      "apiName": "gene-ontology",
+      "organization": "Gene Ontology Consortium / EBI",
+      "description": "Gene Ontology functional annotation terms via QuickGO",
+      "docsUrl": "https://www.ebi.ac.uk/QuickGO/api/",
+      "endpointUrl": "https://www.ebi.ac.uk/QuickGO/services/ontology/go",
+      "panelIds": [],
+      "metaKeys": [
+        "gene-ontology"
+      ]
+    },
+    {
+      "apiName": "gene3d",
+      "organization": "UCL",
+      "description": "Gene3D protein domain classification via CATH",
+      "docsUrl": "https://www.cath.info/api/",
+      "endpointUrl": "https://www.cath.info/api",
+      "panelIds": [],
+      "metaKeys": [
+        "gene3d"
+      ]
+    },
+    {
+      "apiName": "GEO",
+      "organization": "NCBI (NIH)",
+      "description": "Gene Expression Omnibus functional genomics repository",
+      "docsUrl": "https://www.ncbi.nlm.nih.gov/geo/info/geo_prolonged.html",
+      "endpointUrl": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
+      "panelIds": [
+        "geo"
+      ],
+      "metaKeys": [
+        "geo"
+      ]
+    },
+    {
+      "apiName": "GNPS",
+      "organization": "UC San Diego",
+      "description": "Global Natural Products Social Molecular Networking platform",
+      "docsUrl": "https://gnps.ucsd.edu/ProteoSAFe/static/gnps-theoretical-api.jsp",
+      "endpointUrl": "https://gnps.ucsd.edu/ProteoSAFe",
+      "panelIds": [
+        "gnps"
+      ],
+      "metaKeys": [
+        "gnps-library"
+      ]
+    },
+    {
+      "apiName": "GSRS",
+      "organization": "FDA",
+      "description": "Global Substance Registration System (UNII substances)",
+      "docsUrl": "https://gsrs.ncats.nih.gov/api",
+      "endpointUrl": "https://gsrs.ncats.nih.gov/api",
+      "panelIds": [
+        "gsrs"
+      ],
+      "metaKeys": [
+        "gsrs"
+      ]
+    },
+    {
+      "apiName": "GTEx",
+      "organization": "Broad Institute",
+      "description": "GTEx tissue-specific gene expression data",
+      "docsUrl": "https://gtexportal.org/home/apiDoc",
+      "endpointUrl": "https://gtexportal.org/rest/v1",
+      "panelIds": [
+        "gtex"
+      ],
+      "metaKeys": [
+        "gtex"
+      ]
+    },
+    {
+      "apiName": "Guide to Pharmacology",
+      "organization": "IUPHAR/BPS",
+      "description": "Guide to Pharmacology database of drug targets and ligands",
+      "docsUrl": "https://www.guidetopharmacology.org/services",
+      "endpointUrl": "https://www.guidetopharmacology.org/services",
+      "panelIds": [
+        "iuphar"
+      ],
+      "metaKeys": [
+        "iuphar"
+      ]
+    },
+    {
+      "apiName": "GWAS Catalog",
+      "organization": "EMBL-EBI",
+      "description": "NHGRI-EBI GWAS Catalog of published genome-wide association studies",
+      "docsUrl": "https://www.ebi.ac.uk/gwas/rest/api",
+      "endpointUrl": "https://www.ebi.ac.uk/gwas/api/search",
+      "panelIds": [
+        "gwas"
+      ],
+      "metaKeys": [
+        "gwas-catalog"
+      ]
+    },
+    {
+      "apiName": "HMDB",
+      "organization": "University of Alberta",
+      "description": "Human Metabolome Database of small molecule metabolites",
+      "docsUrl": "https://hmdb.ca/unearth/apidoc",
+      "endpointUrl": "https://hmdb.ca/unearth",
+      "panelIds": [
+        "hmdb"
+      ],
+      "metaKeys": [
+        "hmdb"
+      ]
+    },
+    {
+      "apiName": "Hospital General Information",
+      "organization": "CMS",
+      "description": "US Medicare hospital directory (Care Compare) for affiliation context",
+      "docsUrl": "https://data.cms.gov/provider-data/dataset/xubh-q36u",
+      "endpointUrl": "https://data.cms.gov/provider-data/api/1/datastore/query/xubh-q36u/0",
+      "panelIds": [
+        "us-hospitals"
+      ],
+      "metaKeys": []
+    },
+    {
+      "apiName": "HPO",
+      "organization": "JAX",
+      "description": "Human Phenotype Ontology for clinical abnormalities",
+      "docsUrl": "https://hpo.jax.org/api/",
+      "endpointUrl": "https://hpo.jax.org/api/hpo",
+      "panelIds": [
+        "hpo"
+      ],
+      "metaKeys": [
+        "hpo"
+      ]
+    },
+    {
+      "apiName": "IEDB",
+      "organization": "NIAID (NIH)",
+      "description": "Immune Epitope Database and Analysis Resource",
+      "docsUrl": "https://iedb.org/api",
+      "endpointUrl": "https://iedb.org/api",
+      "panelIds": [
+        "iedb"
+      ],
+      "metaKeys": [
+        "iedb"
+      ]
+    },
+    {
+      "apiName": "ImmPort Shared Data Search",
+      "organization": "NIAID (NIH)",
+      "description": "ImmPort immunology studies (free public search API)",
+      "docsUrl": "https://docs.immport.org/apidocumentation/shareddataapi/search/",
+      "endpointUrl": "https://www.immport.org/data/query/api/search/study",
+      "panelIds": [
+        "niaid-immport"
+      ],
+      "metaKeys": [
+        "niaid-immport"
+      ]
+    },
+    {
+      "apiName": "IntAct",
+      "organization": "EMBL-EBI",
+      "description": "IntAct molecular interaction database",
+      "docsUrl": "https://www.ebi.ac.uk/intact/api/",
+      "endpointUrl": "https://www.ebi.ac.uk/intact/api",
+      "panelIds": [
+        "intact"
+      ],
+      "metaKeys": [
+        "intact"
+      ]
+    },
+    {
+      "apiName": "InterPro",
+      "organization": "EMBL-EBI",
+      "description": "InterPro protein domain and family classification",
+      "docsUrl": "https://www.ebi.ac.uk/interpro/api/",
+      "endpointUrl": "https://www.ebi.ac.uk/interpro/api",
+      "panelIds": [
+        "interpro"
+      ],
+      "metaKeys": []
+    },
+    {
+      "apiName": "IRIS (PubChem)",
+      "organization": "EPA / NLM PubChem",
+      "description": "EPA IRIS RfD/RfC and critical effects via PubChem; CompTox for DTXSID identity",
+      "docsUrl": "https://www.epa.gov/iris",
+      "endpointUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view",
+      "panelIds": [
+        "iris"
+      ],
+      "metaKeys": [
+        "iris"
+      ]
+    },
+    {
+      "apiName": "ISRCTN",
+      "organization": "ISRCTN / BioMed Central",
+      "description": "International Standard Randomised Controlled Trial Number registry",
+      "docsUrl": "https://www.isrctn.com/page/api",
+      "endpointUrl": "https://www.isrctn.com/api",
+      "panelIds": [
+        "isrctn"
+      ],
+      "metaKeys": [
+        "isrctn"
+      ]
+    },
+    {
+      "apiName": "KEGG",
+      "organization": "KEGG / Kyoto University",
+      "description": "Kyoto Encyclopedia of Genes and Genomes pathway database",
+      "docsUrl": "https://www.kegg.jp/kegg/rest/keggapi.html",
+      "endpointUrl": "https://rest.kegg.jp",
+      "panelIds": [
+        "kegg"
+      ],
+      "metaKeys": [
+        "kegg"
+      ]
+    },
+    {
+      "apiName": "KEGG Reaction",
+      "organization": "KEGG / Rhea",
+      "description": "Biosynthesis and reaction pathway data from KEGG and Rhea",
+      "docsUrl": "https://www.kegg.jp/kegg/rest/keggapi.html",
+      "endpointUrl": "https://rest.kegg.jp",
+      "panelIds": [
+        "synthesis"
+      ],
+      "metaKeys": [
+        "synthesis-routes"
+      ]
+    },
+    {
+      "apiName": "LINCS",
+      "organization": "NIH LINCS",
+      "description": "LINCS L1000 Connectivity Map perturbation signatures",
+      "docsUrl": "https://lincsproject.org/",
+      "endpointUrl": "https://lincsportal.ccs.miami.edu/api/v2",
+      "panelIds": [
+        "lincs"
+      ],
+      "metaKeys": [
+        "lincs"
+      ]
+    },
+    {
+      "apiName": "LIPID MAPS",
+      "organization": "LIPID MAPS",
+      "description": "LIPID MAPS comprehensive lipid classification database",
+      "docsUrl": "https://lipidmaps.org/resources/tools/rest-api",
+      "endpointUrl": "https://www.lipidmaps.org/rest",
+      "panelIds": [
+        "lipidmaps"
+      ],
+      "metaKeys": [
+        "lipidmaps"
+      ]
+    },
+    {
+      "apiName": "MassBank",
+      "organization": "MassBank",
+      "description": "Mass spectral database for compound identification",
+      "docsUrl": "https://massbank.eu/MassBank-api",
+      "endpointUrl": "https://massbank.eu/MassBank-api/records",
+      "panelIds": [
+        "massbank"
+      ],
+      "metaKeys": [
+        "massbank"
+      ]
+    },
+    {
+      "apiName": "MassIVE",
+      "organization": "UC San Diego",
+      "description": "MassIVE mass spectrometry proteomics data repository",
+      "docsUrl": "https://massive.ucsd.edu/",
+      "endpointUrl": "https://massive.ucsd.edu/api",
+      "panelIds": [
+        "massive"
+      ],
+      "metaKeys": [
+        "massive"
+      ]
+    },
+    {
+      "apiName": "MedGen",
+      "organization": "NLM (NIH)",
+      "description": "MedGen medical genetics terminology and concepts",
+      "docsUrl": "https://www.ncbi.nlm.nih.gov/medgen/",
+      "endpointUrl": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
+      "panelIds": [
+        "medgen"
+      ],
+      "metaKeys": [
+        "medgen"
+      ]
+    },
+    {
+      "apiName": "MeSH",
+      "organization": "NLM (NIH)",
+      "description": "Medical Subject Headings controlled vocabulary thesaurus",
+      "docsUrl": "https://www.ncbi.nlm.nih.gov/mesh/",
+      "endpointUrl": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=mesh",
+      "panelIds": [
+        "mesh"
+      ],
+      "metaKeys": [
+        "mesh"
+      ]
+    },
+    {
+      "apiName": "MetaboLights",
+      "organization": "EMBL-EBI",
+      "description": "MetaboLights metabolomics experiments repository",
+      "docsUrl": "https://www.ebi.ac.uk/metabolights/ws",
+      "endpointUrl": "https://www.ebi.ac.uk/metabolights/ws",
+      "panelIds": [
+        "metabolights"
+      ],
+      "metaKeys": [
+        "metabolights"
+      ]
+    },
+    {
+      "apiName": "Metabolomics Workbench",
+      "organization": "Metabolomics Workbench",
+      "description": "Metabolomics data repository and analysis",
+      "docsUrl": "https://www.metabolomicsworkbench.org/tools/MWRestAPIv1.0.pdf",
+      "endpointUrl": "https://www.metabolomicsworkbench.org/rest",
+      "panelIds": [
+        "metabolomics"
+      ],
+      "metaKeys": [
+        "metabolomics"
+      ]
+    },
+    {
+      "apiName": "Monarch",
+      "organization": "Monarch Initiative",
+      "description": "Monarch Initiative cross-species phenotype-genotype associations",
+      "docsUrl": "https://monarchinitiative.org/api",
+      "endpointUrl": "https://api.monarchinitiative.org/api",
+      "panelIds": [
+        "monarch"
+      ],
+      "metaKeys": [
+        "monarch"
+      ]
+    },
+    {
+      "apiName": "MyChem",
+      "organization": "MyChem.info",
+      "description": "Integrated chemical annotation data from multiple sources",
+      "docsUrl": "https://mychem.info/v1",
+      "endpointUrl": "https://mychem.info/v1/query",
+      "panelIds": [
+        "mychem"
+      ],
+      "metaKeys": [
+        "mychem"
+      ]
+    },
+    {
+      "apiName": "MyGene",
+      "organization": "MyGene.info",
+      "description": "MyGene.info integrated gene annotation service",
+      "docsUrl": "https://docs.mygene.info/en/v3/",
+      "endpointUrl": "https://mygene.info/v3/query",
+      "panelIds": [
+        "mygene"
+      ],
+      "metaKeys": [
+        "mygene"
+      ]
+    },
+    {
+      "apiName": "NADAC",
+      "organization": "CMS",
+      "description": "National Average Drug Acquisition Cost from Medicaid",
+      "docsUrl": "https://data.medicaid.gov/dataset/nadac",
+      "endpointUrl": "https://data.medicaid.gov/resource/a4y5-998d.json",
+      "panelIds": [
+        "nadac"
+      ],
+      "metaKeys": [
+        "nadac"
+      ]
+    },
+    {
+      "apiName": "NCATS Translator",
+      "organization": "NCATS (NIH)",
+      "description": "NCATS Biomedical Data Translator for reasoning over biomedical data",
+      "docsUrl": "https://ncats.nih.gov/translator",
+      "endpointUrl": "https://translator.broadinstitute.org",
+      "panelIds": [
+        "ncats-translator"
+      ],
+      "metaKeys": [
+        "ncats-translator"
+      ]
+    },
+    {
+      "apiName": "NCBI Gene",
+      "organization": "NCBI (NIH)",
+      "description": "NCBI Gene database of gene-specific information",
+      "docsUrl": "https://www.ncbi.nlm.nih.gov/gene/",
+      "endpointUrl": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
+      "panelIds": [
+        "gene-info"
+      ],
+      "metaKeys": [
+        "ncbi-gene"
+      ]
+    },
+    {
+      "apiName": "NCI EVS REST (NCIt)",
+      "organization": "NCI (NIH)",
+      "description": "NCI Thesaurus concepts (free public EVS; caDSR host deprecated)",
+      "docsUrl": "https://api-evsrest.nci.nih.gov/",
+      "endpointUrl": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit/search",
+      "panelIds": [
+        "nci-cadsr"
+      ],
+      "metaKeys": [
+        "nci-cadsr"
+      ]
+    },
+    {
+      "apiName": "NCI Thesaurus",
+      "organization": "NCI (NIH)",
+      "description": "NCI Thesaurus cancer-related terminology",
+      "docsUrl": "https://evsexplore.semantics.cancer.gov/evs-apex/",
+      "endpointUrl": "https://evs.nci.nih.gov/api",
+      "panelIds": [
+        "nci-thesaurus"
+      ],
+      "metaKeys": [
+        "nci-thesaurus"
+      ]
+    },
+    {
+      "apiName": "NIH RePORTER",
+      "organization": "NIH",
+      "description": "NIH RePORTER extramural research project database",
+      "docsUrl": "https://api.reporter.nih.gov/",
+      "endpointUrl": "https://api.reporter.nih.gov/v2/projects/search",
+      "panelIds": [
+        "nih-reporter"
+      ],
+      "metaKeys": [
+        "nihreporter"
+      ]
+    },
+    {
+      "apiName": "NINDS NeuroMMSig",
+      "organization": "NINDS (NIH)",
+      "description": "NINDS molecular mechanistic signature database",
+      "docsUrl": "https://neurmmsig.scai.fraunhofer.de/",
+      "endpointUrl": "https://stemcells.nindsgenetics.org/api/search",
+      "panelIds": [
+        "ninds-neurommsig"
+      ],
+      "metaKeys": [
+        "ninds-neurommsig"
+      ]
+    },
+    {
+      "apiName": "NSF Awards Search",
+      "organization": "U.S. National Science Foundation",
+      "description": "National Science Foundation awards by keyword (PI, org, abstract)",
+      "docsUrl": "https://www.research.gov/common/webapi/awardapisearch-v1.htm",
+      "endpointUrl": "https://api.nsf.gov/services/v2/awards.json",
+      "panelIds": [
+        "nsf-awards"
+      ],
+      "metaKeys": [
+        "nsf-awards"
+      ]
+    },
+    {
+      "apiName": "OLS",
+      "organization": "EMBL-EBI",
+      "description": "Ontology Lookup Service for ontology term search",
+      "docsUrl": "https://www.ebi.ac.uk/ols4/help",
+      "endpointUrl": "https://www.ebi.ac.uk/ols4/api",
+      "panelIds": [
+        "ols"
+      ],
+      "metaKeys": [
+        "ols"
+      ]
+    },
+    {
+      "apiName": "OMIM",
+      "organization": "Johns Hopkins",
+      "description": "Online Mendelian Inheritance in Man genetic disorder catalog",
+      "docsUrl": "https://omim.org/api",
+      "endpointUrl": "https://api.omim.org/api",
+      "panelIds": [
+        "omim"
+      ],
+      "metaKeys": [
+        "omim"
+      ]
+    },
+    {
+      "apiName": "Open Targets",
+      "organization": "Open Targets",
+      "description": "Open Targets Platform for drug-target-disease associations",
+      "docsUrl": "https://platform.opentargets.org/api",
+      "endpointUrl": "https://api.platform.opentargets.org/api/v4/graphql",
+      "panelIds": [
+        "opentargets"
+      ],
+      "metaKeys": [
+        "opentargets"
+      ]
+    },
+    {
+      "apiName": "OpenAlex",
+      "organization": "OurResearch",
+      "description": "OpenAlex open scholarly metadata catalog",
+      "docsUrl": "https://docs.openalex.org/",
+      "endpointUrl": "https://api.openalex.org",
+      "panelIds": [
+        "open-alex"
+      ],
+      "metaKeys": [
+        "openalex"
+      ]
+    },
+    {
+      "apiName": "OpenCitations",
+      "organization": "OpenCitations",
+      "description": "OpenCitations open scholarly citation data",
+      "docsUrl": "https://opencitations.net/api",
+      "endpointUrl": "https://opencitations.net/index/api/v2",
+      "panelIds": [
+        "open-citations"
+      ],
+      "metaKeys": [
+        "opencitations"
+      ]
+    },
+    {
+      "apiName": "OpenFDA",
+      "organization": "U.S. FDA",
+      "description": "Open data API for FDA drug, device, and food adverse events, recalls, and labeling",
+      "docsUrl": "https://open.fda.gov/api/",
+      "endpointUrl": "https://api.fda.gov/drug/ndc.json",
+      "panelIds": [
+        "companies"
+      ],
+      "metaKeys": [
+        "openfda"
+      ]
+    },
+    {
+      "apiName": "OpenFDA (Enforcement)",
+      "organization": "U.S. FDA",
+      "description": "Drug enforcement reports and recalls via OpenFDA",
+      "docsUrl": "https://open.fda.gov/apis/drug/enforcement/",
+      "endpointUrl": "https://api.fda.gov/drug/enforcement.json",
+      "panelIds": [
+        "recalls"
+      ],
+      "metaKeys": [
+        "recalls"
+      ]
+    },
+    {
+      "apiName": "OpenFDA (FAERS)",
+      "organization": "U.S. FDA",
+      "description": "FAERS adverse event reports via OpenFDA",
+      "docsUrl": "https://open.fda.gov/apis/drug/event/",
+      "endpointUrl": "https://api.fda.gov/drug/event.json",
+      "panelIds": [
+        "adverse-events"
+      ],
+      "metaKeys": [
+        "adverseevents"
+      ]
+    },
+    {
+      "apiName": "openFDA Drug Event",
+      "organization": "UNIV Paris-Saclay",
+      "description": "Side-effect reaction labels from openFDA FAERS (SIDER dumps are not free JSON; panel is SIDER-compatible)",
+      "docsUrl": "https://open.fda.gov/apis/drug/event/",
+      "endpointUrl": "https://api.fda.gov/drug/event.json",
+      "panelIds": [
+        "sider"
+      ],
+      "metaKeys": [
+        "sider"
+      ]
+    },
+    {
+      "apiName": "openFDA drug/label",
+      "organization": "U.S. FDA",
+      "description": "Structured SPL sections (boxed warning, AE, interactions) via free openFDA",
+      "docsUrl": "https://open.fda.gov/apis/drug/label/",
+      "endpointUrl": "https://api.fda.gov/drug/label.json",
+      "panelIds": [
+        "openfda-labels"
+      ],
+      "metaKeys": [
+        "openfda-labels"
+      ]
+    },
+    {
+      "apiName": "openFDA Drugs@FDA",
+      "organization": "U.S. FDA",
+      "description": "NDA/ANDA/BLA applications and products from free openFDA Drugs@FDA",
+      "docsUrl": "https://open.fda.gov/apis/drug/drugsfda/",
+      "endpointUrl": "https://api.fda.gov/drug/drugsfda.json",
+      "panelIds": [
+        "drugs-fda"
+      ],
+      "metaKeys": [
+        "drugs-fda"
+      ]
+    },
+    {
+      "apiName": "OpenFDA NDC",
+      "organization": "U.S. FDA",
+      "description": "National Drug Code directory via OpenFDA",
+      "docsUrl": "https://open.fda.gov/apis/drug/ndc/",
+      "endpointUrl": "https://api.fda.gov/drug/ndc.json",
+      "panelIds": [
+        "ndc"
+      ],
+      "metaKeys": [
+        "fda-ndc"
+      ]
+    },
+    {
+      "apiName": "Orange Book",
+      "organization": "U.S. FDA",
+      "description": "Approved Drug Products with Therapeutic Equivalence Evaluations",
+      "docsUrl": "https://open.fda.gov/apis/drug/ndc/",
+      "endpointUrl": "https://api.fda.gov/drug/ndc.json",
+      "panelIds": [
+        "orange-book"
+      ],
+      "metaKeys": [
+        "orangebook"
+      ]
+    },
+    {
+      "apiName": "Orphanet",
+      "organization": "Orphanet",
+      "description": "Orphanet rare disease and orphan drug information",
+      "docsUrl": "https://www.orphadata.com/api/",
+      "endpointUrl": "https://api.orphadata.com",
+      "panelIds": [
+        "orphanet"
+      ],
+      "metaKeys": [
+        "orphanet"
+      ]
+    },
+    {
+      "apiName": "PatentsView",
+      "organization": "USPTO / PatentsView",
+      "description": "PatentsView patent data for biomedical research",
+      "docsUrl": "https://www.patentsview.org/api/api-inventor/",
+      "endpointUrl": "https://search.patentsview.org/api/v1/patent",
+      "panelIds": [
+        "patents"
+      ],
+      "metaKeys": [
+        "patents"
+      ]
+    },
+    {
+      "apiName": "Pathway Commons",
+      "organization": "UBC / EMBL-EBI",
+      "description": "Pathway Commons integrated pathway and interaction data",
+      "docsUrl": "https://www.pathwaycommons.org/pc2/",
+      "endpointUrl": "https://www.pathwaycommons.org/pc2",
+      "panelIds": [
+        "pathway-commons"
+      ],
+      "metaKeys": [
+        "pathway-commons"
+      ]
+    },
+    {
+      "apiName": "PDBe Ligands",
+      "organization": "EMBL-EBI",
+      "description": "PDBe ligand and chemical component data",
+      "docsUrl": "https://www.ebi.ac.uk/pdbe/api/",
+      "endpointUrl": "https://www.ebi.ac.uk/pdbe/api/pdb/entry",
+      "panelIds": [
+        "pdbe-ligands"
+      ],
+      "metaKeys": [
+        "pdbe-ligands"
+      ]
+    },
+    {
+      "apiName": "PeptideAtlas",
+      "organization": "ISB",
+      "description": "PeptideAtlas proteomics repository",
+      "docsUrl": "https://peptideatlas.org/api/",
+      "endpointUrl": "https://peptideatlas.org/api",
+      "panelIds": [
+        "peptideatlas"
+      ],
+      "metaKeys": [
+        "peptideatlas"
+      ]
+    },
+    {
+      "apiName": "PharmGKB",
+      "organization": "Stanford",
+      "description": "Pharmacogenomics knowledge base for drug-gene relationships",
+      "docsUrl": "https://www.pharmgkb.org/page/api",
+      "endpointUrl": "https://api.pharmgkb.org/v1",
+      "panelIds": [
+        "pharmgkb"
+      ],
+      "metaKeys": [
+        "pharmgkb"
+      ]
+    },
+    {
+      "apiName": "Pharos",
+      "organization": "NIH NCATS",
+      "description": "Pharos Illuminating the Druggable Genome target data",
+      "docsUrl": "https://pharos.nih.gov/api",
+      "endpointUrl": "https://pharos.nih.gov/idg/api/v1",
+      "panelIds": [
+        "pharos"
+      ],
+      "metaKeys": [
+        "pharos"
+      ]
+    },
+    {
+      "apiName": "PRIDE",
+      "organization": "EMBL-EBI",
+      "description": "PRIDE proteomics identification database",
+      "docsUrl": "https://www.ebi.ac.uk/pride/help/archive/rest-api",
+      "endpointUrl": "https://www.ebi.ac.uk/pride/ws/archive",
+      "panelIds": [
+        "pride"
+      ],
+      "metaKeys": [
+        "pride"
+      ]
+    },
+    {
+      "apiName": "Protein Atlas",
+      "organization": "Human Protein Atlas",
+      "description": "Human Protein Atlas tissue and cell expression data",
+      "docsUrl": "https://www.proteinatlas.org/about/help/api",
+      "endpointUrl": "https://www.proteinatlas.org/api",
+      "panelIds": [
+        "human-protein-atlas",
+        "protein-atlas"
+      ],
+      "metaKeys": [
+        "protein-atlas"
+      ]
+    },
+    {
+      "apiName": "Proteins API",
+      "organization": "EMBL-EBI",
+      "description": "EBI Proteins API variation and feature data",
+      "docsUrl": "https://www.ebi.ac.uk/proteins/api/",
+      "endpointUrl": "https://www.ebi.ac.uk/proteins/api",
+      "panelIds": [
+        "ebi-proteins",
+        "ebi-proteomics"
+      ],
+      "metaKeys": [
+        "ebi-proteins"
+      ]
+    },
+    {
+      "apiName": "Proteins API (Cross-references)",
+      "organization": "EMBL-EBI",
+      "description": "EBI Proteins API cross-references",
+      "docsUrl": "https://www.ebi.ac.uk/proteins/api/",
+      "endpointUrl": "https://www.ebi.ac.uk/proteins/api",
+      "panelIds": [
+        "ebi-crossrefs"
+      ],
+      "metaKeys": []
+    },
+    {
+      "apiName": "PubChem BioAssay",
+      "organization": "NCBI (NIH)",
+      "description": "PubChem BioAssay repository of screening and assay data",
+      "docsUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/",
+      "endpointUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/assay",
+      "panelIds": [
+        "bioassay"
+      ],
+      "metaKeys": [
+        "bioassay"
+      ]
+    },
+    {
+      "apiName": "PubChem Hazards",
+      "organization": "NCBI (NIH)",
+      "description": "PubChem GHS hazard classification data",
+      "docsUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/",
+      "endpointUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound",
+      "panelIds": [
+        "hazards"
+      ],
+      "metaKeys": [
+        "pubchem-hazards"
+      ]
+    },
+    {
+      "apiName": "PubChem Properties",
+      "organization": "NCBI (NIH)",
+      "description": "PubChem compound physicochemical properties",
+      "docsUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/",
+      "endpointUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound",
+      "panelIds": [
+        "properties"
+      ],
+      "metaKeys": [
+        "pubchem-properties"
+      ]
+    },
+    {
+      "apiName": "PubMed",
+      "organization": "NLM (NIH)",
+      "description": "PubMed biomedical literature citation database",
+      "docsUrl": "https://www.ncbi.nlm.nih.gov/books/NBK25501/",
+      "endpointUrl": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed",
+      "panelIds": [
+        "pubmed"
+      ],
+      "metaKeys": [
+        "pubmed"
+      ]
+    },
+    {
+      "apiName": "Purple Book / openFDA BLA",
+      "organization": "U.S. FDA",
+      "description": "Licensed biologics and biosimilar family roles from free FDA sources",
+      "docsUrl": "https://purplebooksearch.fda.gov/",
+      "endpointUrl": "https://api.fda.gov/drug/drugsfda.json",
+      "panelIds": [
+        "biosimilar-family"
+      ],
+      "metaKeys": []
+    },
+    {
+      "apiName": "purple-book",
+      "organization": "U.S. FDA",
+      "description": "Purple Book monthly CSV downloads — licensed biologics, biosimilar and interchangeable labels",
+      "docsUrl": "https://purplebooksearch.fda.gov/downloads",
+      "endpointUrl": "https://www.accessdata.fda.gov/drugsatfda_docs/PurpleBook/",
+      "panelIds": [],
+      "metaKeys": [
+        "purple-book"
+      ]
+    },
+    {
+      "apiName": "purple-book-patents",
+      "organization": "U.S. FDA",
+      "description": "Purple Book BPPT patent list (sponsor-submitted patents for certain reference biologics)",
+      "docsUrl": "https://purplebooksearch.fda.gov/patent-list",
+      "endpointUrl": "https://purplebooksearch.fda.gov/patent-list",
+      "panelIds": [],
+      "metaKeys": [
+        "purple-book-patents"
+      ]
+    },
+    {
+      "apiName": "QuickGO",
+      "organization": "Gene Ontology Consortium / EBI",
+      "description": "Gene Ontology functional annotation terms via QuickGO",
+      "docsUrl": "https://www.ebi.ac.uk/QuickGO/api/",
+      "endpointUrl": "https://www.ebi.ac.uk/QuickGO/services/ontology/go",
+      "panelIds": [
+        "go",
+        "quickgo"
+      ],
+      "metaKeys": []
+    },
+    {
+      "apiName": "RCSB PDB",
+      "organization": "RCSB / wwPDB",
+      "description": "Protein Data Bank 3D structure archive",
+      "docsUrl": "https://data.rcsb.org/",
+      "endpointUrl": "https://data.rcsb.org/rest/v1/core/entry",
+      "panelIds": [
+        "pdb"
+      ],
+      "metaKeys": [
+        "pdb"
+      ]
+    },
+    {
+      "apiName": "Reactome",
+      "organization": "Reactome",
+      "description": "Reactome pathway database for biological pathways",
+      "docsUrl": "https://reactome.org/dev/content-service",
+      "endpointUrl": "https://reactome.org/ContentService",
+      "panelIds": [
+        "reactome"
+      ],
+      "metaKeys": [
+        "reactome"
+      ]
+    },
+    {
+      "apiName": "Regulator public portals",
+      "organization": "EMA · MHRA · TGA · PMDA · Health Canada · FDA",
+      "description": "Portal-first international medicines regulator deep links (UK MHRA, AU TGA, JP PMDA, EU EMA, Health Canada, US FDA). Official public search / download URLs only — no scrape. Not clinical decision support.",
+      "docsUrl": "https://www.ema.europa.eu/en/medicines/download-medicine-data",
+      "endpointUrl": "https://www.ema.europa.eu/en/search",
+      "panelIds": [
+        "international-regulators"
+      ],
+      "metaKeys": []
+    },
+    {
+      "apiName": "Research Organization Registry",
+      "organization": "Research Organization Registry",
+      "description": "CC0 research organization IDs matched from trial sponsors/sites and related names",
+      "docsUrl": "https://ror.readme.io/docs/rest-api",
+      "endpointUrl": "https://api.ror.org/v2/organizations",
+      "panelIds": [
+        "research-orgs"
+      ],
+      "metaKeys": [
+        "ror"
+      ]
+    },
+    {
+      "apiName": "ror-eu-pack",
+      "organization": "Research Organization Registry",
+      "description": "EU multi-country ROR packs (education, healthcare, facility types)",
+      "docsUrl": "https://ror.readme.io/docs/api-filtering",
+      "endpointUrl": "https://api.ror.org/v2/organizations",
+      "panelIds": [],
+      "metaKeys": [
+        "ror-eu-pack"
+      ]
+    },
+    {
+      "apiName": "RxClass (ATC)",
+      "organization": "WHO",
+      "description": "ATC drug classification via RxNorm/RxClass",
+      "docsUrl": "https://rxnav.nlm.nih.gov/RxClassIntro.html",
+      "endpointUrl": "https://rxnav.nlm.nih.gov/REST/rxclass",
+      "panelIds": [
+        "atc"
+      ],
+      "metaKeys": [
+        "atc"
+      ]
+    },
+    {
+      "apiName": "RxNorm",
+      "organization": "NLM (NIH)",
+      "description": "RxNorm provides normalized names for clinical drugs",
+      "docsUrl": "https://rxnav.nlm.nih.gov/RESTfulInteraction.html",
+      "endpointUrl": "https://rxnav.nlm.nih.gov/REST",
+      "panelIds": [
+        "drug-interactions"
+      ],
+      "metaKeys": [
+        "rxnorm"
+      ]
+    },
+    {
+      "apiName": "SAbDab",
+      "organization": "Oxford",
+      "description": "Structural Antibody Database",
+      "docsUrl": "https://opig.stats.ox.ac.uk/webapps/sabdab-sabpred/sabdab",
+      "endpointUrl": "http://opig.stats.ox.ac.uk/webapps/abdb/sabdab-json",
+      "panelIds": [
+        "sabdab"
+      ],
+      "metaKeys": [
+        "sabdab"
+      ]
+    },
+    {
+      "apiName": "search",
+      "organization": "PubChem (NIH)",
+      "description": "PubChem molecule search and resolution",
+      "docsUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/",
+      "endpointUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug",
+      "panelIds": [],
+      "metaKeys": [
+        "search"
+      ]
+    },
+    {
+      "apiName": "SEC EDGAR",
+      "organization": "U.S. SEC",
+      "description": "SEC EDGAR corporate filing data for pharmaceutical companies",
+      "docsUrl": "https://www.sec.gov/edgar/sec-api-documentation",
+      "endpointUrl": "https://efts.sec.gov/LATEST/search-index",
+      "panelIds": [
+        "sec"
+      ],
+      "metaKeys": [
+        "secedgar"
+      ]
+    },
+    {
+      "apiName": "Semantic Scholar",
+      "organization": "AI2",
+      "description": "Semantic Scholar academic paper search and citation data",
+      "docsUrl": "https://api.semanticscholar.org/api/v2/",
+      "endpointUrl": "https://api.semanticscholar.org/graph/v1",
+      "panelIds": [
+        "semantic-scholar"
+      ],
+      "metaKeys": [
+        "semantic-scholar"
+      ]
+    },
+    {
+      "apiName": "similar",
+      "organization": "PubChem (NIH)",
+      "description": "PubChem similarity and identity search",
+      "docsUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/",
+      "endpointUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug",
+      "panelIds": [],
+      "metaKeys": [
+        "similar"
+      ]
+    },
+    {
+      "apiName": "SMPDB",
+      "organization": "University of Alberta",
+      "description": "Small Molecule Pathway Database of human metabolic pathways",
+      "docsUrl": "https://smpdb.ca/",
+      "endpointUrl": "https://smpdb.ca/api",
+      "panelIds": [
+        "smpdb"
+      ],
+      "metaKeys": [
+        "smpdb"
+      ]
+    },
+    {
+      "apiName": "STITCH",
+      "organization": "EMBL-EBI",
+      "description": "STITCH chemical-protein interaction network database",
+      "docsUrl": "https://stitch-db.org/help/api/",
+      "endpointUrl": "https://stitch-db.org/api",
+      "panelIds": [
+        "stitch"
+      ],
+      "metaKeys": [
+        "stitch"
+      ]
+    },
+    {
+      "apiName": "STRING",
+      "organization": "EMBL-EBI",
+      "description": "STRING protein-protein interaction network database",
+      "docsUrl": "https://string-db.org/help/api/",
+      "endpointUrl": "https://string-db.org/api",
+      "panelIds": [
+        "string"
+      ],
+      "metaKeys": [
+        "string-db"
+      ]
+    },
+    {
+      "apiName": "UniChem",
+      "organization": "EMBL-EBI",
+      "description": "UniChem cross-references between chemical databases",
+      "docsUrl": "https://www.ebi.ac.uk/unichem/info/wsoverview",
+      "endpointUrl": "https://www.ebi.ac.uk/unichem/api",
+      "panelIds": [
+        "unichem"
+      ],
+      "metaKeys": [
+        "unichem"
+      ]
+    },
+    {
+      "apiName": "UniProt",
+      "organization": "EMBL-EBI / SIB",
+      "description": "Universal Protein Resource for protein sequence and function data",
+      "docsUrl": "https://www.uniprot.org/help/api_queries",
+      "endpointUrl": "https://rest.uniprot.org/uniprotkb",
+      "panelIds": [
+        "uniprot",
+        "uniprot-extended"
+      ],
+      "metaKeys": [
+        "uniprot"
+      ]
+    },
+    {
+      "apiName": "urban-ipeds",
+      "organization": "Urban Institute",
+      "description": "IPEDS directory via Education Data Portal (UNITID lookup, no key)",
+      "docsUrl": "https://educationdata.urban.org/documentation/colleges.html",
+      "endpointUrl": "https://educationdata.urban.org/api/v1/college-university/ipeds/directory",
+      "panelIds": [],
+      "metaKeys": [
+        "urban-ipeds"
+      ]
+    },
+    {
+      "apiName": "WikiPathways",
+      "organization": "WikiPathways",
+      "description": "WikiPathways curated biological pathway database",
+      "docsUrl": "https://webservice.wikipathways.org/",
+      "endpointUrl": "https://webservice.wikipathways.org",
+      "panelIds": [
+        "wikipathways"
+      ],
+      "metaKeys": [
+        "wikipathways"
+      ]
+    }
+  ],
+  "panels": [
+    {
+      "panelId": "adverse-events",
+      "apiName": "OpenFDA (FAERS)",
+      "organization": "U.S. FDA",
+      "source": "U.S. FDA",
+      "description": "FAERS adverse event reports via OpenFDA",
+      "docsUrl": "https://open.fda.gov/apis/drug/event/",
+      "endpointUrl": "https://api.fda.gov/drug/event.json",
+      "metaKey": "adverseevents",
+      "kind": "panel"
+    },
+    {
+      "panelId": "alphafold",
+      "apiName": "AlphaFold",
+      "organization": "DeepMind / EMBL-EBI",
+      "source": "DeepMind / EMBL-EBI",
+      "description": "AlphaFold protein structure predictions",
+      "docsUrl": "https://www.alphafold.ebi.ac.uk/api/",
+      "endpointUrl": "https://alphafold.ebi.ac.uk/api/prediction",
+      "metaKey": "alphafold",
+      "kind": "panel"
+    },
+    {
+      "panelId": "arxiv",
+      "apiName": "arXiv",
+      "organization": "Cornell University",
+      "source": "Cornell University",
+      "description": "arXiv preprint server for physics, math, and biology",
+      "docsUrl": "https://info.arxiv.org/help/api/",
+      "endpointUrl": "http://export.arxiv.org/api/query",
+      "metaKey": "arxiv",
+      "kind": "panel"
+    },
+    {
+      "panelId": "atc",
+      "apiName": "RxClass (ATC)",
+      "organization": "WHO",
+      "source": "WHO",
+      "description": "ATC drug classification via RxNorm/RxClass",
+      "docsUrl": "https://rxnav.nlm.nih.gov/RxClassIntro.html",
+      "endpointUrl": "https://rxnav.nlm.nih.gov/REST/rxclass",
+      "metaKey": "atc",
+      "kind": "panel"
+    },
+    {
+      "panelId": "bgee",
+      "apiName": "Bgee",
+      "organization": "SIB / UNIL",
+      "source": "SIB / UNIL",
+      "description": "Bgee gene expression evolution database",
+      "docsUrl": "https://www.bgee.org/",
+      "endpointUrl": "https://www.bgee.org/api",
+      "metaKey": "bgee",
+      "kind": "panel"
+    },
+    {
+      "panelId": "bindingdb",
+      "apiName": "BindingDB",
+      "organization": "BindingDB",
+      "source": "BindingDB",
+      "description": "BindingDB measured protein-ligand binding affinities",
+      "docsUrl": "https://www.bindingdb.org/bind/chemsearch/marvin/BindingDB-API.pdf",
+      "endpointUrl": "https://bindingdb.org/bind/chemsearch/marvin/MolsFromName.json",
+      "metaKey": "bindingdb",
+      "kind": "panel"
+    },
+    {
+      "panelId": "bioassay",
+      "apiName": "PubChem BioAssay",
+      "organization": "NCBI (NIH)",
+      "source": "NCBI (NIH)",
+      "description": "PubChem BioAssay repository of screening and assay data",
+      "docsUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/",
+      "endpointUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/assay",
+      "metaKey": "bioassay",
+      "kind": "panel"
+    },
+    {
+      "panelId": "biocyc",
+      "apiName": "BioCyc",
+      "organization": "SRI International",
+      "source": "SRI International",
+      "description": "BioCyc collection of organism-specific pathway/genome databases",
+      "docsUrl": "https://biocyc.org/api/",
+      "endpointUrl": "https://websvc.biocyc.org",
+      "metaKey": "biocyc",
+      "kind": "panel"
+    },
+    {
+      "panelId": "biomodels",
+      "apiName": "BioModels",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "BioModels database of computational models of biological processes",
+      "docsUrl": "https://www.ebi.ac.uk/biomodels/",
+      "endpointUrl": "https://www.ebi.ac.uk/biomodels",
+      "metaKey": "biomodels",
+      "kind": "panel"
+    },
+    {
+      "panelId": "biosamples",
+      "apiName": "BioSamples",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "BioSamples biological sample metadata repository",
+      "docsUrl": "https://www.ebi.ac.uk/biosamples/docs/api",
+      "endpointUrl": "https://www.ebi.ac.uk/biosamples/samples",
+      "metaKey": "biosamples",
+      "kind": "panel"
+    },
+    {
+      "panelId": "biosimilar-family",
+      "apiName": "Purple Book / openFDA BLA",
+      "organization": "U.S. FDA",
+      "source": "U.S. FDA",
+      "description": "Licensed biologics and biosimilar family roles from free FDA sources",
+      "docsUrl": "https://purplebooksearch.fda.gov/",
+      "endpointUrl": "https://api.fda.gov/drug/drugsfda.json",
+      "metaKey": null,
+      "kind": "panel"
+    },
+    {
+      "panelId": "cath",
+      "apiName": "CATH",
+      "organization": "UCL",
+      "source": "UCL",
+      "description": "CATH protein domain classification and Gene3D",
+      "docsUrl": "https://www.cath.info/api/",
+      "endpointUrl": "http://www.cathdb.info/api/v1",
+      "metaKey": "cath",
+      "kind": "panel"
+    },
+    {
+      "panelId": "chebi",
+      "apiName": "ChEBI",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "Chemical Entities of Biological Interest ontology",
+      "docsUrl": "https://www.ebi.ac.uk/chebi/about",
+      "endpointUrl": "https://www.ebi.ac.uk/chebi/api/data",
+      "metaKey": "chebi",
+      "kind": "panel"
+    },
+    {
+      "panelId": "chembl",
+      "apiName": "ChEMBL",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "ChEMBL bioactivity database for drug discovery",
+      "docsUrl": "https://www.ebi.ac.uk/chembl/",
+      "endpointUrl": "https://www.ebi.ac.uk/chembl/api/data",
+      "metaKey": "chembl",
+      "kind": "panel"
+    },
+    {
+      "panelId": "chembl-indications",
+      "apiName": "ChEMBL Indications",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "ChEMBL drug indications data",
+      "docsUrl": "https://www.ebi.ac.uk/chembl/",
+      "endpointUrl": "https://www.ebi.ac.uk/chembl/api/data",
+      "metaKey": "chembl-indications",
+      "kind": "panel"
+    },
+    {
+      "panelId": "chembl-mechanisms",
+      "apiName": "ChEMBL Mechanisms",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "ChEMBL mechanism of action data for drugs",
+      "docsUrl": "https://www.ebi.ac.uk/chembl/",
+      "endpointUrl": "https://www.ebi.ac.uk/chembl/api/data/mechanism",
+      "metaKey": "chembl-mechanisms",
+      "kind": "panel"
+    },
+    {
+      "panelId": "chemspider",
+      "apiName": "ChemSpider (via PubChem)",
+      "organization": "RSC",
+      "source": "RSC / PubChem",
+      "description": "Chemical structure database via PubChem (ChemSpider requires API key)",
+      "docsUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/",
+      "endpointUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound",
+      "metaKey": "chemspider",
+      "kind": "panel"
+    },
+    {
+      "panelId": "clingen",
+      "apiName": "ClinGen",
+      "organization": "NCBI (NIH)",
+      "source": "NCBI (NIH)",
+      "description": "ClinGen clinical variant resource",
+      "docsUrl": "https://clinicalgenomics.org/api/",
+      "endpointUrl": "https://clinicalgenomics.org/api",
+      "metaKey": "clingen",
+      "kind": "panel"
+    },
+    {
+      "panelId": "clinical-trials",
+      "apiName": "ClinicalTrials.gov",
+      "organization": "NLM (NIH)",
+      "source": "NLM (NIH)",
+      "description": "ClinicalTrials.gov registry of clinical studies",
+      "docsUrl": "https://clinicaltrials.gov/api/",
+      "endpointUrl": "https://clinicaltrials.gov/api/v2/studies",
+      "metaKey": "clinicaltrials",
+      "kind": "panel"
+    },
+    {
+      "panelId": "clinvar",
+      "apiName": "ClinVar",
+      "organization": "NCBI (NIH)",
+      "source": "NCBI (NIH)",
+      "description": "ClinVar aggregates information about genomic variation and its relationship to human health",
+      "docsUrl": "https://www.ncbi.nlm.nih.gov/clinvar/api/",
+      "endpointUrl": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
+      "metaKey": "clinvar",
+      "kind": "panel"
+    },
+    {
+      "panelId": "companies",
+      "apiName": "OpenFDA",
+      "organization": "U.S. FDA",
+      "source": "U.S. FDA",
+      "description": "Open data API for FDA drug, device, and food adverse events, recalls, and labeling",
+      "docsUrl": "https://open.fda.gov/api/",
+      "endpointUrl": "https://api.fda.gov/drug/ndc.json",
+      "metaKey": "openfda",
+      "kind": "panel"
+    },
+    {
+      "panelId": "comptox",
+      "apiName": "CompTox",
+      "organization": "EPA",
+      "source": "EPA",
+      "description": "CompTox Chemicals Dashboard for environmental and toxicological data",
+      "docsUrl": "https://comptox.epa.gov/dashboard-api/ccdapp1",
+      "endpointUrl": "https://comptox.epa.gov/dashboard-api/ccdapp1",
+      "metaKey": "comptox",
+      "kind": "panel"
+    },
+    {
+      "panelId": "cpic",
+      "apiName": "CPIC",
+      "organization": "CPIC",
+      "source": "CPIC",
+      "description": "Clinical Pharmacogenetics Implementation Consortium guidelines",
+      "docsUrl": "https://cpic.org/",
+      "endpointUrl": "https://api.cpic.org",
+      "metaKey": "cpic",
+      "kind": "panel"
+    },
+    {
+      "panelId": "crossref",
+      "apiName": "CrossRef",
+      "organization": "CrossRef",
+      "source": "CrossRef",
+      "description": "CrossRef DOI metadata and citation data",
+      "docsUrl": "https://api.crossref.org/",
+      "endpointUrl": "https://api.crossref.org/works",
+      "metaKey": "crossref",
+      "kind": "panel"
+    },
+    {
+      "panelId": "ctd",
+      "apiName": "CTD",
+      "organization": "NCSU",
+      "source": "NCSU",
+      "description": "Comparative Toxicogenomics Database connecting chemicals, genes, and diseases",
+      "docsUrl": "https://ctdbase.org/go/api",
+      "endpointUrl": "https://ctdbase.org/tools/api",
+      "metaKey": "ctd",
+      "kind": "panel"
+    },
+    {
+      "panelId": "ctd-diseases",
+      "apiName": "CTD",
+      "organization": "NCSU",
+      "source": "NCSU",
+      "description": "Comparative Toxicogenomics Database disease associations",
+      "docsUrl": "https://ctdbase.org/go/api",
+      "endpointUrl": "http://ctdbase.org",
+      "metaKey": null,
+      "kind": "panel"
+    },
+    {
+      "panelId": "dailymed",
+      "apiName": "DailyMed",
+      "organization": "NLM (NIH)",
+      "source": "NLM (NIH)",
+      "description": "Provides FDA drug labeling information",
+      "docsUrl": "https://dailymed.nlm.nih.gov/dailymed/app-support.cfm#api",
+      "endpointUrl": "https://dailymed.nlm.nih.gov/dailymed/services/v2",
+      "metaKey": "dailymed",
+      "kind": "panel"
+    },
+    {
+      "panelId": "dbsnp",
+      "apiName": "dbSNP",
+      "organization": "NCBI (NIH)",
+      "source": "NCBI (NIH)",
+      "description": "dbSNP database of single nucleotide polymorphisms",
+      "docsUrl": "https://www.ncbi.nlm.nih.gov/snp/",
+      "endpointUrl": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
+      "metaKey": "dbsnp",
+      "kind": "panel"
+    },
+    {
+      "panelId": "dgidb",
+      "apiName": "DGIdb v5",
+      "organization": "DGIdb",
+      "source": "DGIdb",
+      "description": "Drug-Gene Interaction Database aggregating drug-target relationships",
+      "docsUrl": "https://www.dgidb.org/api",
+      "endpointUrl": "https://dgidb.org/api/graphql",
+      "metaKey": "dgidb",
+      "kind": "panel"
+    },
+    {
+      "panelId": "disgenet",
+      "apiName": "DisGeNET",
+      "organization": "DisGeNET",
+      "source": "DisGeNET",
+      "description": "DisGeNET gene-disease and variant-disease associations",
+      "docsUrl": "https://www.disgenet.org/api/",
+      "endpointUrl": "https://www.disgenet.org/api/gda",
+      "metaKey": "disgenet",
+      "kind": "panel"
+    },
+    {
+      "panelId": "drug-interactions",
+      "apiName": "RxNorm",
+      "organization": "NLM (NIH)",
+      "source": "NLM (NIH)",
+      "description": "RxNorm provides normalized names for clinical drugs",
+      "docsUrl": "https://rxnav.nlm.nih.gov/RESTfulInteraction.html",
+      "endpointUrl": "https://rxnav.nlm.nih.gov/REST",
+      "metaKey": "rxnorm",
+      "kind": "panel"
+    },
+    {
+      "panelId": "drug-shortages",
+      "apiName": "FDA Drug Shortages",
+      "organization": "U.S. FDA",
+      "source": "U.S. FDA",
+      "description": "FDA current and resolved drug shortage reports",
+      "docsUrl": "https://www.fda.gov/drug-shortages",
+      "endpointUrl": "https://www.fda.gov/drug-shortages",
+      "metaKey": "fda-drug-shortages",
+      "kind": "panel"
+    },
+    {
+      "panelId": "drugcentral",
+      "apiName": "DrugCentral",
+      "organization": "University of Rome Tor Vergata",
+      "source": "DrugCentral",
+      "description": "DrugCentral: online drug information resource",
+      "docsUrl": "https://drugcentral.org/",
+      "endpointUrl": "https://drugcentral.org/api",
+      "metaKey": "drugcentral",
+      "kind": "panel"
+    },
+    {
+      "panelId": "drugs-fda",
+      "apiName": "openFDA Drugs@FDA",
+      "organization": "U.S. FDA",
+      "source": "U.S. FDA",
+      "description": "NDA/ANDA/BLA applications and products from free openFDA Drugs@FDA",
+      "docsUrl": "https://open.fda.gov/apis/drug/drugsfda/",
+      "endpointUrl": "https://api.fda.gov/drug/drugsfda.json",
+      "metaKey": "drugs-fda",
+      "kind": "panel"
+    },
+    {
+      "panelId": "ebi-crossrefs",
+      "apiName": "Proteins API (Cross-references)",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "EBI Proteins API cross-references",
+      "docsUrl": "https://www.ebi.ac.uk/proteins/api/",
+      "endpointUrl": "https://www.ebi.ac.uk/proteins/api",
+      "metaKey": null,
+      "kind": "panel"
+    },
+    {
+      "panelId": "ebi-proteins",
+      "apiName": "Proteins API",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "EBI Proteins API variation and feature data",
+      "docsUrl": "https://www.ebi.ac.uk/proteins/api/",
+      "endpointUrl": "https://www.ebi.ac.uk/proteins/api",
+      "metaKey": "ebi-proteins",
+      "kind": "panel"
+    },
+    {
+      "panelId": "ebi-proteomics",
+      "apiName": "Proteins API",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "EBI Proteins API proteomics data",
+      "docsUrl": "https://www.ebi.ac.uk/proteins/api/",
+      "endpointUrl": "https://www.ebi.ac.uk/proteins/api",
+      "metaKey": null,
+      "kind": "panel"
+    },
+    {
+      "panelId": "ensembl",
+      "apiName": "Ensembl",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "Ensembl genome browser and annotation",
+      "docsUrl": "https://rest.ensembl.org/",
+      "endpointUrl": "https://rest.ensembl.org",
+      "metaKey": "ensembl",
+      "kind": "panel"
+    },
+    {
+      "panelId": "establishment-links",
+      "apiName": "DRLS · FEI · Data Dashboard",
+      "organization": "U.S. FDA",
+      "source": "U.S. FDA",
+      "description": "Portal-first manufacturing / establishment deep links: Drug Establishments Current Registration (DRLS), FEI Portal, FDA inspections dashboard, and FDA.gov firm search. There is no free public API that joins every product to certified plants — search official registries by firm name. Not GMP advice or a certification graph.",
+      "docsUrl": "https://www.accessdata.fda.gov/scripts/cder/drls/default.cfm",
+      "endpointUrl": "https://www.accessdata.fda.gov/scripts/cder/drls/default.cfm",
+      "metaKey": null,
+      "kind": "panel"
+    },
+    {
+      "panelId": "evidence-neighborhood",
+      "apiName": "CT.gov · ROR · CMS · Scorecard · RePORTER · Europe PMC",
+      "organization": "Multi-source join",
+      "source": "Multi-source join",
+      "description": "Deterministic local join of free public profile data: ClinicalTrials.gov sponsors/sites, ROR orgs, CMS Care Compare hospitals, US College Scorecard, NIH RePORTER institutes, and literature row counts (Europe PMC / PubMed / OpenAlex). Not competitive rankings or clinical referral.",
+      "docsUrl": "https://clinicaltrials.gov/data-api/about-api",
+      "endpointUrl": "join://profile/clinical-safety+research-literature",
+      "metaKey": null,
+      "kind": "panel"
+    },
+    {
+      "panelId": "expression-atlas",
+      "apiName": "Expression Atlas",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "Expression Atlas gene expression across species and conditions",
+      "docsUrl": "https://www.ebi.ac.uk/gxa/rest",
+      "endpointUrl": "https://www.ebi.ac.uk/gxa",
+      "metaKey": "expression-atlas",
+      "kind": "panel"
+    },
+    {
+      "panelId": "foodb",
+      "apiName": "FooDB",
+      "organization": "University of Alberta",
+      "source": "Univ. of Alberta",
+      "description": "FooDB database of food constituents and their bioactivities",
+      "docsUrl": "https://foodb.ca/",
+      "endpointUrl": "https://foodb.ca/api",
+      "metaKey": "foodb",
+      "kind": "panel"
+    },
+    {
+      "panelId": "gene-info",
+      "apiName": "NCBI Gene",
+      "organization": "NCBI (NIH)",
+      "source": "NCBI (NIH)",
+      "description": "NCBI Gene database of gene-specific information",
+      "docsUrl": "https://www.ncbi.nlm.nih.gov/gene/",
+      "endpointUrl": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
+      "metaKey": "ncbi-gene",
+      "kind": "panel"
+    },
+    {
+      "panelId": "geo",
+      "apiName": "GEO",
+      "organization": "NCBI (NIH)",
+      "source": "NCBI (NIH)",
+      "description": "Gene Expression Omnibus functional genomics repository",
+      "docsUrl": "https://www.ncbi.nlm.nih.gov/geo/info/geo_prolonged.html",
+      "endpointUrl": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
+      "metaKey": "geo",
+      "kind": "panel"
+    },
+    {
+      "panelId": "gnps",
+      "apiName": "GNPS",
+      "organization": "UC San Diego",
+      "source": "UC San Diego",
+      "description": "Global Natural Products Social Molecular Networking platform",
+      "docsUrl": "https://gnps.ucsd.edu/ProteoSAFe/static/gnps-theoretical-api.jsp",
+      "endpointUrl": "https://gnps.ucsd.edu/ProteoSAFe",
+      "metaKey": "gnps-library",
+      "kind": "panel"
+    },
+    {
+      "panelId": "go",
+      "apiName": "QuickGO",
+      "organization": "Gene Ontology Consortium / EBI",
+      "source": "Gene Ontology Consortium / EBI",
+      "description": "Gene Ontology functional annotation terms via QuickGO",
+      "docsUrl": "https://www.ebi.ac.uk/QuickGO/api/",
+      "endpointUrl": "https://www.ebi.ac.uk/QuickGO/services/ontology/go",
+      "metaKey": null,
+      "kind": "panel"
+    },
+    {
+      "panelId": "gsrs",
+      "apiName": "GSRS",
+      "organization": "FDA",
+      "source": "FDA",
+      "description": "Global Substance Registration System (UNII substances)",
+      "docsUrl": "https://gsrs.ncats.nih.gov/api",
+      "endpointUrl": "https://gsrs.ncats.nih.gov/api",
+      "metaKey": "gsrs",
+      "kind": "panel"
+    },
+    {
+      "panelId": "gtex",
+      "apiName": "GTEx",
+      "organization": "Broad Institute",
+      "source": "Broad Institute",
+      "description": "GTEx tissue-specific gene expression data",
+      "docsUrl": "https://gtexportal.org/home/apiDoc",
+      "endpointUrl": "https://gtexportal.org/rest/v1",
+      "metaKey": "gtex",
+      "kind": "panel"
+    },
+    {
+      "panelId": "gwas",
+      "apiName": "GWAS Catalog",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "NHGRI-EBI GWAS Catalog of published genome-wide association studies",
+      "docsUrl": "https://www.ebi.ac.uk/gwas/rest/api",
+      "endpointUrl": "https://www.ebi.ac.uk/gwas/api/search",
+      "metaKey": "gwas-catalog",
+      "kind": "panel"
+    },
+    {
+      "panelId": "hazards",
+      "apiName": "PubChem Hazards",
+      "organization": "NCBI (NIH)",
+      "source": "NCBI (NIH)",
+      "description": "PubChem GHS hazard classification data",
+      "docsUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/",
+      "endpointUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound",
+      "metaKey": "pubchem-hazards",
+      "kind": "panel"
+    },
+    {
+      "panelId": "hmdb",
+      "apiName": "HMDB",
+      "organization": "University of Alberta",
+      "source": "Univ. of Alberta",
+      "description": "Human Metabolome Database of small molecule metabolites",
+      "docsUrl": "https://hmdb.ca/unearth/apidoc",
+      "endpointUrl": "https://hmdb.ca/unearth",
+      "metaKey": "hmdb",
+      "kind": "panel"
+    },
+    {
+      "panelId": "hpo",
+      "apiName": "HPO",
+      "organization": "JAX",
+      "source": "JAX",
+      "description": "Human Phenotype Ontology for clinical abnormalities",
+      "docsUrl": "https://hpo.jax.org/api/",
+      "endpointUrl": "https://hpo.jax.org/api/hpo",
+      "metaKey": "hpo",
+      "kind": "panel"
+    },
+    {
+      "panelId": "human-protein-atlas",
+      "apiName": "Protein Atlas",
+      "organization": "Human Protein Atlas",
+      "source": "Human Protein Atlas",
+      "description": "Human Protein Atlas tissue and cell expression data",
+      "docsUrl": "https://www.proteinatlas.org/about/help/api",
+      "endpointUrl": "https://www.proteinatlas.org/api",
+      "metaKey": null,
+      "kind": "panel"
+    },
+    {
+      "panelId": "iedb",
+      "apiName": "IEDB",
+      "organization": "NIAID (NIH)",
+      "source": "NIAID (NIH)",
+      "description": "Immune Epitope Database and Analysis Resource",
+      "docsUrl": "https://iedb.org/api",
+      "endpointUrl": "https://iedb.org/api",
+      "metaKey": "iedb",
+      "kind": "panel"
+    },
+    {
+      "panelId": "intact",
+      "apiName": "IntAct",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "IntAct molecular interaction database",
+      "docsUrl": "https://www.ebi.ac.uk/intact/api/",
+      "endpointUrl": "https://www.ebi.ac.uk/intact/api",
+      "metaKey": "intact",
+      "kind": "panel"
+    },
+    {
+      "panelId": "international-regulators",
+      "apiName": "Regulator public portals",
+      "organization": "EMA · MHRA · TGA · PMDA · Health Canada · FDA",
+      "source": "EMA · MHRA · TGA · PMDA · Health Canada · FDA",
+      "description": "Portal-first international medicines regulator deep links (UK MHRA, AU TGA, JP PMDA, EU EMA, Health Canada, US FDA). Official public search / download URLs only — no scrape. Not clinical decision support.",
+      "docsUrl": "https://www.ema.europa.eu/en/medicines/download-medicine-data",
+      "endpointUrl": "https://www.ema.europa.eu/en/search",
+      "metaKey": null,
+      "kind": "panel"
+    },
+    {
+      "panelId": "interpro",
+      "apiName": "InterPro",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "InterPro protein domain and family classification",
+      "docsUrl": "https://www.ebi.ac.uk/interpro/api/",
+      "endpointUrl": "https://www.ebi.ac.uk/interpro/api",
+      "metaKey": null,
+      "kind": "panel"
+    },
+    {
+      "panelId": "iris",
+      "apiName": "IRIS (PubChem)",
+      "organization": "EPA / NLM PubChem",
+      "source": "EPA / PubChem",
+      "description": "EPA IRIS RfD/RfC and critical effects via PubChem; CompTox for DTXSID identity",
+      "docsUrl": "https://www.epa.gov/iris",
+      "endpointUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view",
+      "metaKey": "iris",
+      "kind": "panel"
+    },
+    {
+      "panelId": "isrctn",
+      "apiName": "ISRCTN",
+      "organization": "ISRCTN / BioMed Central",
+      "source": "ISRCTN",
+      "description": "International Standard Randomised Controlled Trial Number registry",
+      "docsUrl": "https://www.isrctn.com/page/api",
+      "endpointUrl": "https://www.isrctn.com/api",
+      "metaKey": "isrctn",
+      "kind": "panel"
+    },
+    {
+      "panelId": "iuphar",
+      "apiName": "Guide to Pharmacology",
+      "organization": "IUPHAR/BPS",
+      "source": "IUPHAR/BPS",
+      "description": "Guide to Pharmacology database of drug targets and ligands",
+      "docsUrl": "https://www.guidetopharmacology.org/services",
+      "endpointUrl": "https://www.guidetopharmacology.org/services",
+      "metaKey": "iuphar",
+      "kind": "panel"
+    },
+    {
+      "panelId": "kegg",
+      "apiName": "KEGG",
+      "organization": "KEGG / Kyoto University",
+      "source": "KEGG / Kyoto University",
+      "description": "Kyoto Encyclopedia of Genes and Genomes pathway database",
+      "docsUrl": "https://www.kegg.jp/kegg/rest/keggapi.html",
+      "endpointUrl": "https://rest.kegg.jp",
+      "metaKey": "kegg",
+      "kind": "panel"
+    },
+    {
+      "panelId": "lincs",
+      "apiName": "LINCS",
+      "organization": "NIH LINCS",
+      "source": "NIH LINCS",
+      "description": "LINCS L1000 Connectivity Map perturbation signatures",
+      "docsUrl": "https://lincsproject.org/",
+      "endpointUrl": "https://lincsportal.ccs.miami.edu/api/v2",
+      "metaKey": "lincs",
+      "kind": "panel"
+    },
+    {
+      "panelId": "lipidmaps",
+      "apiName": "LIPID MAPS",
+      "organization": "LIPID MAPS",
+      "source": "LIPID MAPS",
+      "description": "LIPID MAPS comprehensive lipid classification database",
+      "docsUrl": "https://lipidmaps.org/resources/tools/rest-api",
+      "endpointUrl": "https://www.lipidmaps.org/rest",
+      "metaKey": "lipidmaps",
+      "kind": "panel"
+    },
+    {
+      "panelId": "literature",
+      "apiName": "Europe PMC",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "Europe PMC life sciences literature database",
+      "docsUrl": "https://www.ebi.ac.uk/europepmc/webservices/rest/search/",
+      "endpointUrl": "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+      "metaKey": "europepmc",
+      "kind": "panel"
+    },
+    {
+      "panelId": "massbank",
+      "apiName": "MassBank",
+      "organization": "MassBank",
+      "source": "MassBank",
+      "description": "Mass spectral database for compound identification",
+      "docsUrl": "https://massbank.eu/MassBank-api",
+      "endpointUrl": "https://massbank.eu/MassBank-api/records",
+      "metaKey": "massbank",
+      "kind": "panel"
+    },
+    {
+      "panelId": "massive",
+      "apiName": "MassIVE",
+      "organization": "UC San Diego",
+      "source": "UC San Diego",
+      "description": "MassIVE mass spectrometry proteomics data repository",
+      "docsUrl": "https://massive.ucsd.edu/",
+      "endpointUrl": "https://massive.ucsd.edu/api",
+      "metaKey": "massive",
+      "kind": "panel"
+    },
+    {
+      "panelId": "medgen",
+      "apiName": "MedGen",
+      "organization": "NLM (NIH)",
+      "source": "NLM (NIH)",
+      "description": "MedGen medical genetics terminology and concepts",
+      "docsUrl": "https://www.ncbi.nlm.nih.gov/medgen/",
+      "endpointUrl": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
+      "metaKey": "medgen",
+      "kind": "panel"
+    },
+    {
+      "panelId": "mesh",
+      "apiName": "MeSH",
+      "organization": "NLM (NIH)",
+      "source": "NLM (NIH)",
+      "description": "Medical Subject Headings controlled vocabulary thesaurus",
+      "docsUrl": "https://www.ncbi.nlm.nih.gov/mesh/",
+      "endpointUrl": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=mesh",
+      "metaKey": "mesh",
+      "kind": "panel"
+    },
+    {
+      "panelId": "metabolights",
+      "apiName": "MetaboLights",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "MetaboLights metabolomics experiments repository",
+      "docsUrl": "https://www.ebi.ac.uk/metabolights/ws",
+      "endpointUrl": "https://www.ebi.ac.uk/metabolights/ws",
+      "metaKey": "metabolights",
+      "kind": "panel"
+    },
+    {
+      "panelId": "metabolomics",
+      "apiName": "Metabolomics Workbench",
+      "organization": "Metabolomics Workbench",
+      "source": "Metabolomics Workbench",
+      "description": "Metabolomics data repository and analysis",
+      "docsUrl": "https://www.metabolomicsworkbench.org/tools/MWRestAPIv1.0.pdf",
+      "endpointUrl": "https://www.metabolomicsworkbench.org/rest",
+      "metaKey": "metabolomics",
+      "kind": "panel"
+    },
+    {
+      "panelId": "monarch",
+      "apiName": "Monarch",
+      "organization": "Monarch Initiative",
+      "source": "Monarch Initiative",
+      "description": "Monarch Initiative cross-species phenotype-genotype associations",
+      "docsUrl": "https://monarchinitiative.org/api",
+      "endpointUrl": "https://api.monarchinitiative.org/api",
+      "metaKey": "monarch",
+      "kind": "panel"
+    },
+    {
+      "panelId": "mychem",
+      "apiName": "MyChem",
+      "organization": "MyChem.info",
+      "source": "MyChem.info",
+      "description": "Integrated chemical annotation data from multiple sources",
+      "docsUrl": "https://mychem.info/v1",
+      "endpointUrl": "https://mychem.info/v1/query",
+      "metaKey": "mychem",
+      "kind": "panel"
+    },
+    {
+      "panelId": "mygene",
+      "apiName": "MyGene",
+      "organization": "MyGene.info",
+      "source": "MyGene.info",
+      "description": "MyGene.info integrated gene annotation service",
+      "docsUrl": "https://docs.mygene.info/en/v3/",
+      "endpointUrl": "https://mygene.info/v3/query",
+      "metaKey": "mygene",
+      "kind": "panel"
+    },
+    {
+      "panelId": "nadac",
+      "apiName": "NADAC",
+      "organization": "CMS",
+      "source": "CMS",
+      "description": "National Average Drug Acquisition Cost from Medicaid",
+      "docsUrl": "https://data.medicaid.gov/dataset/nadac",
+      "endpointUrl": "https://data.medicaid.gov/resource/a4y5-998d.json",
+      "metaKey": "nadac",
+      "kind": "panel"
+    },
+    {
+      "panelId": "ncats-translator",
+      "apiName": "NCATS Translator",
+      "organization": "NCATS (NIH)",
+      "source": "NCATS (NIH)",
+      "description": "NCATS Biomedical Data Translator for reasoning over biomedical data",
+      "docsUrl": "https://ncats.nih.gov/translator",
+      "endpointUrl": "https://translator.broadinstitute.org",
+      "metaKey": "ncats-translator",
+      "kind": "panel"
+    },
+    {
+      "panelId": "nci-cadsr",
+      "apiName": "NCI EVS REST (NCIt)",
+      "organization": "NCI (NIH)",
+      "source": "NCI EVS (NIH)",
+      "description": "NCI Thesaurus concepts (free public EVS; caDSR host deprecated)",
+      "docsUrl": "https://api-evsrest.nci.nih.gov/",
+      "endpointUrl": "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit/search",
+      "metaKey": "nci-cadsr",
+      "kind": "panel"
+    },
+    {
+      "panelId": "nci-thesaurus",
+      "apiName": "NCI Thesaurus",
+      "organization": "NCI (NIH)",
+      "source": "NCI (NIH)",
+      "description": "NCI Thesaurus cancer-related terminology",
+      "docsUrl": "https://evsexplore.semantics.cancer.gov/evs-apex/",
+      "endpointUrl": "https://evs.nci.nih.gov/api",
+      "metaKey": "nci-thesaurus",
+      "kind": "panel"
+    },
+    {
+      "panelId": "ndc",
+      "apiName": "OpenFDA NDC",
+      "organization": "U.S. FDA",
+      "source": "U.S. FDA",
+      "description": "National Drug Code directory via OpenFDA",
+      "docsUrl": "https://open.fda.gov/apis/drug/ndc/",
+      "endpointUrl": "https://api.fda.gov/drug/ndc.json",
+      "metaKey": "fda-ndc",
+      "kind": "panel"
+    },
+    {
+      "panelId": "nhgri-anvil",
+      "apiName": "AnVIL",
+      "organization": "NHGRI (NIH)",
+      "source": "NHGRI (NIH)",
+      "description": "NHGRI Analysis Visualization and Informatics Lab-space",
+      "docsUrl": "https://anvilproject.org/",
+      "endpointUrl": "https://anvilproject.org/api",
+      "metaKey": "nhgri-anvil",
+      "kind": "panel"
+    },
+    {
+      "panelId": "niaid-immport",
+      "apiName": "ImmPort Shared Data Search",
+      "organization": "NIAID (NIH)",
+      "source": "NIAID (NIH)",
+      "description": "ImmPort immunology studies (free public search API)",
+      "docsUrl": "https://docs.immport.org/apidocumentation/shareddataapi/search/",
+      "endpointUrl": "https://www.immport.org/data/query/api/search/study",
+      "metaKey": "niaid-immport",
+      "kind": "panel"
+    },
+    {
+      "panelId": "nih-reporter",
+      "apiName": "NIH RePORTER",
+      "organization": "NIH",
+      "source": "NIH",
+      "description": "NIH RePORTER extramural research project database",
+      "docsUrl": "https://api.reporter.nih.gov/",
+      "endpointUrl": "https://api.reporter.nih.gov/v2/projects/search",
+      "metaKey": "nihreporter",
+      "kind": "panel"
+    },
+    {
+      "panelId": "ninds-neurommsig",
+      "apiName": "NINDS NeuroMMSig",
+      "organization": "NINDS (NIH)",
+      "source": "NINDS (NIH)",
+      "description": "NINDS molecular mechanistic signature database",
+      "docsUrl": "https://neurmmsig.scai.fraunhofer.de/",
+      "endpointUrl": "https://stemcells.nindsgenetics.org/api/search",
+      "metaKey": "ninds-neurommsig",
+      "kind": "panel"
+    },
+    {
+      "panelId": "nsf-awards",
+      "apiName": "NSF Awards Search",
+      "organization": "U.S. National Science Foundation",
+      "source": "U.S. NSF",
+      "description": "National Science Foundation awards by keyword (PI, org, abstract)",
+      "docsUrl": "https://www.research.gov/common/webapi/awardapisearch-v1.htm",
+      "endpointUrl": "https://api.nsf.gov/services/v2/awards.json",
+      "metaKey": "nsf-awards",
+      "kind": "panel"
+    },
+    {
+      "panelId": "ols",
+      "apiName": "OLS",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "Ontology Lookup Service for ontology term search",
+      "docsUrl": "https://www.ebi.ac.uk/ols4/help",
+      "endpointUrl": "https://www.ebi.ac.uk/ols4/api",
+      "metaKey": "ols",
+      "kind": "panel"
+    },
+    {
+      "panelId": "omim",
+      "apiName": "OMIM",
+      "organization": "Johns Hopkins",
+      "source": "Johns Hopkins",
+      "description": "Online Mendelian Inheritance in Man genetic disorder catalog",
+      "docsUrl": "https://omim.org/api",
+      "endpointUrl": "https://api.omim.org/api",
+      "metaKey": "omim",
+      "kind": "panel"
+    },
+    {
+      "panelId": "open-alex",
+      "apiName": "OpenAlex",
+      "organization": "OurResearch",
+      "source": "OurResearch",
+      "description": "OpenAlex open scholarly metadata catalog",
+      "docsUrl": "https://docs.openalex.org/",
+      "endpointUrl": "https://api.openalex.org",
+      "metaKey": "openalex",
+      "kind": "panel"
+    },
+    {
+      "panelId": "open-citations",
+      "apiName": "OpenCitations",
+      "organization": "OpenCitations",
+      "source": "OpenCitations",
+      "description": "OpenCitations open scholarly citation data",
+      "docsUrl": "https://opencitations.net/api",
+      "endpointUrl": "https://opencitations.net/index/api/v2",
+      "metaKey": "opencitations",
+      "kind": "panel"
+    },
+    {
+      "panelId": "openfda-labels",
+      "apiName": "openFDA drug/label",
+      "organization": "U.S. FDA",
+      "source": "U.S. FDA",
+      "description": "Structured SPL sections (boxed warning, AE, interactions) via free openFDA",
+      "docsUrl": "https://open.fda.gov/apis/drug/label/",
+      "endpointUrl": "https://api.fda.gov/drug/label.json",
+      "metaKey": "openfda-labels",
+      "kind": "panel"
+    },
+    {
+      "panelId": "opentargets",
+      "apiName": "Open Targets",
+      "organization": "Open Targets",
+      "source": "Open Targets",
+      "description": "Open Targets Platform for drug-target-disease associations",
+      "docsUrl": "https://platform.opentargets.org/api",
+      "endpointUrl": "https://api.platform.opentargets.org/api/v4/graphql",
+      "metaKey": "opentargets",
+      "kind": "panel"
+    },
+    {
+      "panelId": "orange-book",
+      "apiName": "Orange Book",
+      "organization": "U.S. FDA",
+      "source": "U.S. FDA",
+      "description": "Approved Drug Products with Therapeutic Equivalence Evaluations",
+      "docsUrl": "https://open.fda.gov/apis/drug/ndc/",
+      "endpointUrl": "https://api.fda.gov/drug/ndc.json",
+      "metaKey": "orangebook",
+      "kind": "panel"
+    },
+    {
+      "panelId": "orphanet",
+      "apiName": "Orphanet",
+      "organization": "Orphanet",
+      "source": "Orphanet",
+      "description": "Orphanet rare disease and orphan drug information",
+      "docsUrl": "https://www.orphadata.com/api/",
+      "endpointUrl": "https://api.orphadata.com",
+      "metaKey": "orphanet",
+      "kind": "panel"
+    },
+    {
+      "panelId": "patents",
+      "apiName": "PatentsView",
+      "organization": "USPTO / PatentsView",
+      "source": "USPTO / PatentsView",
+      "description": "PatentsView patent data for biomedical research",
+      "docsUrl": "https://www.patentsview.org/api/api-inventor/",
+      "endpointUrl": "https://search.patentsview.org/api/v1/patent",
+      "metaKey": "patents",
+      "kind": "panel"
+    },
+    {
+      "panelId": "pathway-commons",
+      "apiName": "Pathway Commons",
+      "organization": "UBC / EMBL-EBI",
+      "source": "UBC / EMBL-EBI",
+      "description": "Pathway Commons integrated pathway and interaction data",
+      "docsUrl": "https://www.pathwaycommons.org/pc2/",
+      "endpointUrl": "https://www.pathwaycommons.org/pc2",
+      "metaKey": "pathway-commons",
+      "kind": "panel"
+    },
+    {
+      "panelId": "pdb",
+      "apiName": "RCSB PDB",
+      "organization": "RCSB / wwPDB",
+      "source": "RCSB / wwPDB",
+      "description": "Protein Data Bank 3D structure archive",
+      "docsUrl": "https://data.rcsb.org/",
+      "endpointUrl": "https://data.rcsb.org/rest/v1/core/entry",
+      "metaKey": "pdb",
+      "kind": "panel"
+    },
+    {
+      "panelId": "pdbe-ligands",
+      "apiName": "PDBe Ligands",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "PDBe ligand and chemical component data",
+      "docsUrl": "https://www.ebi.ac.uk/pdbe/api/",
+      "endpointUrl": "https://www.ebi.ac.uk/pdbe/api/pdb/entry",
+      "metaKey": "pdbe-ligands",
+      "kind": "panel"
+    },
+    {
+      "panelId": "peptideatlas",
+      "apiName": "PeptideAtlas",
+      "organization": "ISB",
+      "source": "ISB",
+      "description": "PeptideAtlas proteomics repository",
+      "docsUrl": "https://peptideatlas.org/api/",
+      "endpointUrl": "https://peptideatlas.org/api",
+      "metaKey": "peptideatlas",
+      "kind": "panel"
+    },
+    {
+      "panelId": "pharmgkb",
+      "apiName": "PharmGKB",
+      "organization": "Stanford",
+      "source": "Stanford",
+      "description": "Pharmacogenomics knowledge base for drug-gene relationships",
+      "docsUrl": "https://www.pharmgkb.org/page/api",
+      "endpointUrl": "https://api.pharmgkb.org/v1",
+      "metaKey": "pharmgkb",
+      "kind": "panel"
+    },
+    {
+      "panelId": "pharos",
+      "apiName": "Pharos",
+      "organization": "NIH NCATS",
+      "source": "NIH NCATS",
+      "description": "Pharos Illuminating the Druggable Genome target data",
+      "docsUrl": "https://pharos.nih.gov/api",
+      "endpointUrl": "https://pharos.nih.gov/idg/api/v1",
+      "metaKey": "pharos",
+      "kind": "panel"
+    },
+    {
+      "panelId": "pride",
+      "apiName": "PRIDE",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "PRIDE proteomics identification database",
+      "docsUrl": "https://www.ebi.ac.uk/pride/help/archive/rest-api",
+      "endpointUrl": "https://www.ebi.ac.uk/pride/ws/archive",
+      "metaKey": "pride",
+      "kind": "panel"
+    },
+    {
+      "panelId": "properties",
+      "apiName": "PubChem Properties",
+      "organization": "NCBI (NIH)",
+      "source": "NCBI (NIH)",
+      "description": "PubChem compound physicochemical properties",
+      "docsUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/",
+      "endpointUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound",
+      "metaKey": "pubchem-properties",
+      "kind": "panel"
+    },
+    {
+      "panelId": "protein-atlas",
+      "apiName": "Protein Atlas",
+      "organization": "Human Protein Atlas",
+      "source": "Human Protein Atlas",
+      "description": "Human Protein Atlas tissue and cell expression data",
+      "docsUrl": "https://www.proteinatlas.org/about/help/api",
+      "endpointUrl": "https://www.proteinatlas.org/api",
+      "metaKey": "protein-atlas",
+      "kind": "panel"
+    },
+    {
+      "panelId": "pubmed",
+      "apiName": "PubMed",
+      "organization": "NLM (NIH)",
+      "source": "NLM (NIH)",
+      "description": "PubMed biomedical literature citation database",
+      "docsUrl": "https://www.ncbi.nlm.nih.gov/books/NBK25501/",
+      "endpointUrl": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed",
+      "metaKey": "pubmed",
+      "kind": "panel"
+    },
+    {
+      "panelId": "quickgo",
+      "apiName": "QuickGO",
+      "organization": "Gene Ontology Consortium / EBI",
+      "source": "Gene Ontology Consortium / EBI",
+      "description": "Gene Ontology functional annotation terms via QuickGO",
+      "docsUrl": "https://www.ebi.ac.uk/QuickGO/api/",
+      "endpointUrl": "https://www.ebi.ac.uk/QuickGO/services/ontology/go",
+      "metaKey": null,
+      "kind": "panel"
+    },
+    {
+      "panelId": "reactome",
+      "apiName": "Reactome",
+      "organization": "Reactome",
+      "source": "Reactome",
+      "description": "Reactome pathway database for biological pathways",
+      "docsUrl": "https://reactome.org/dev/content-service",
+      "endpointUrl": "https://reactome.org/ContentService",
+      "metaKey": "reactome",
+      "kind": "panel"
+    },
+    {
+      "panelId": "recalls",
+      "apiName": "OpenFDA (Enforcement)",
+      "organization": "U.S. FDA",
+      "source": "U.S. FDA",
+      "description": "Drug enforcement reports and recalls via OpenFDA",
+      "docsUrl": "https://open.fda.gov/apis/drug/enforcement/",
+      "endpointUrl": "https://api.fda.gov/drug/enforcement.json",
+      "metaKey": "recalls",
+      "kind": "panel"
+    },
+    {
+      "panelId": "research-orgs",
+      "apiName": "Research Organization Registry",
+      "organization": "Research Organization Registry",
+      "source": "ROR",
+      "description": "CC0 research organization IDs matched from trial sponsors/sites and related names",
+      "docsUrl": "https://ror.readme.io/docs/rest-api",
+      "endpointUrl": "https://api.ror.org/v2/organizations",
+      "metaKey": "ror",
+      "kind": "panel"
+    },
+    {
+      "panelId": "sabdab",
+      "apiName": "SAbDab",
+      "organization": "Oxford",
+      "source": "Oxford",
+      "description": "Structural Antibody Database",
+      "docsUrl": "https://opig.stats.ox.ac.uk/webapps/sabdab-sabpred/sabdab",
+      "endpointUrl": "http://opig.stats.ox.ac.uk/webapps/abdb/sabdab-json",
+      "metaKey": "sabdab",
+      "kind": "panel"
+    },
+    {
+      "panelId": "sec",
+      "apiName": "SEC EDGAR",
+      "organization": "U.S. SEC",
+      "source": "U.S. SEC",
+      "description": "SEC EDGAR corporate filing data for pharmaceutical companies",
+      "docsUrl": "https://www.sec.gov/edgar/sec-api-documentation",
+      "endpointUrl": "https://efts.sec.gov/LATEST/search-index",
+      "metaKey": "secedgar",
+      "kind": "panel"
+    },
+    {
+      "panelId": "semantic-scholar",
+      "apiName": "Semantic Scholar",
+      "organization": "AI2",
+      "source": "AI2",
+      "description": "Semantic Scholar academic paper search and citation data",
+      "docsUrl": "https://api.semanticscholar.org/api/v2/",
+      "endpointUrl": "https://api.semanticscholar.org/graph/v1",
+      "metaKey": "semantic-scholar",
+      "kind": "panel"
+    },
+    {
+      "panelId": "sider",
+      "apiName": "openFDA Drug Event",
+      "organization": "UNIV Paris-Saclay",
+      "source": "openFDA FAERS (SIDER-compatible)",
+      "description": "Side-effect reaction labels from openFDA FAERS (SIDER dumps are not free JSON; panel is SIDER-compatible)",
+      "docsUrl": "https://open.fda.gov/apis/drug/event/",
+      "endpointUrl": "https://api.fda.gov/drug/event.json",
+      "metaKey": "sider",
+      "kind": "panel"
+    },
+    {
+      "panelId": "smpdb",
+      "apiName": "SMPDB",
+      "organization": "University of Alberta",
+      "source": "Univ. of Alberta",
+      "description": "Small Molecule Pathway Database of human metabolic pathways",
+      "docsUrl": "https://smpdb.ca/",
+      "endpointUrl": "https://smpdb.ca/api",
+      "metaKey": "smpdb",
+      "kind": "panel"
+    },
+    {
+      "panelId": "stitch",
+      "apiName": "STITCH",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "STITCH chemical-protein interaction network database",
+      "docsUrl": "https://stitch-db.org/help/api/",
+      "endpointUrl": "https://stitch-db.org/api",
+      "metaKey": "stitch",
+      "kind": "panel"
+    },
+    {
+      "panelId": "string",
+      "apiName": "STRING",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "STRING protein-protein interaction network database",
+      "docsUrl": "https://string-db.org/help/api/",
+      "endpointUrl": "https://string-db.org/api",
+      "metaKey": "string-db",
+      "kind": "panel"
+    },
+    {
+      "panelId": "synthesis",
+      "apiName": "KEGG Reaction",
+      "organization": "KEGG / Rhea",
+      "source": "KEGG / Rhea",
+      "description": "Biosynthesis and reaction pathway data from KEGG and Rhea",
+      "docsUrl": "https://www.kegg.jp/kegg/rest/keggapi.html",
+      "endpointUrl": "https://rest.kegg.jp",
+      "metaKey": "synthesis-routes",
+      "kind": "panel"
+    },
+    {
+      "panelId": "toxcast",
+      "apiName": "CompTox (ToxCast)",
+      "organization": "EPA",
+      "source": "EPA",
+      "description": "ToxCast high-throughput screening data via CompTox Dashboard",
+      "docsUrl": "https://www.epa.gov/comptoxics-tools/exploring-toxcast-data",
+      "endpointUrl": "https://comptox.epa.gov/dashboard-api/ccdapp1",
+      "metaKey": "toxcast",
+      "kind": "panel"
+    },
+    {
+      "panelId": "ttd",
+      "apiName": "BioThings TTD KP",
+      "organization": "NIH / SJTU via NCATS BioThings",
+      "source": "TTD via BioThings/NCATS",
+      "description": "Therapeutic Target Database associations (free BioThings KP)",
+      "docsUrl": "https://db.idrblab.net/ttd/",
+      "endpointUrl": "https://biothings.ncats.io/ttd",
+      "metaKey": "ttd",
+      "kind": "panel"
+    },
+    {
+      "panelId": "unichem",
+      "apiName": "UniChem",
+      "organization": "EMBL-EBI",
+      "source": "EMBL-EBI",
+      "description": "UniChem cross-references between chemical databases",
+      "docsUrl": "https://www.ebi.ac.uk/unichem/info/wsoverview",
+      "endpointUrl": "https://www.ebi.ac.uk/unichem/api",
+      "metaKey": "unichem",
+      "kind": "panel"
+    },
+    {
+      "panelId": "uniprot",
+      "apiName": "UniProt",
+      "organization": "EMBL-EBI / SIB",
+      "source": "EMBL-EBI / SIB",
+      "description": "Universal Protein Resource for protein sequence and function data",
+      "docsUrl": "https://www.uniprot.org/help/api_queries",
+      "endpointUrl": "https://rest.uniprot.org/uniprotkb",
+      "metaKey": "uniprot",
+      "kind": "panel"
+    },
+    {
+      "panelId": "uniprot-extended",
+      "apiName": "UniProt",
+      "organization": "EMBL-EBI / SIB",
+      "source": "EMBL-EBI / SIB",
+      "description": "UniProt extended protein data",
+      "docsUrl": "https://www.uniprot.org/help/api_queries",
+      "endpointUrl": "https://rest.uniprot.org/uniprotkb",
+      "metaKey": null,
+      "kind": "panel"
+    },
+    {
+      "panelId": "us-colleges",
+      "apiName": "College Scorecard",
+      "organization": "U.S. Dept of Education",
+      "source": "U.S. Dept of Education",
+      "description": "US college/university directory for research affiliation context (not admissions advice)",
+      "docsUrl": "https://collegescorecard.ed.gov/data/api-documentation/",
+      "endpointUrl": "https://api.data.gov/ed/collegescorecard/v1/schools",
+      "metaKey": null,
+      "kind": "panel"
+    },
+    {
+      "panelId": "us-hospitals",
+      "apiName": "Hospital General Information",
+      "organization": "CMS",
+      "source": "CMS",
+      "description": "US Medicare hospital directory (Care Compare) for affiliation context",
+      "docsUrl": "https://data.cms.gov/provider-data/dataset/xubh-q36u",
+      "endpointUrl": "https://data.cms.gov/provider-data/api/1/datastore/query/xubh-q36u/0",
+      "metaKey": null,
+      "kind": "panel"
+    },
+    {
+      "panelId": "wikipathways",
+      "apiName": "WikiPathways",
+      "organization": "WikiPathways",
+      "source": "WikiPathways",
+      "description": "WikiPathways curated biological pathway database",
+      "docsUrl": "https://webservice.wikipathways.org/",
+      "endpointUrl": "https://webservice.wikipathways.org",
+      "metaKey": "wikipathways",
+      "kind": "panel"
+    }
+  ],
+  "metaOnly": [
+    {
+      "panelId": null,
+      "apiName": "biologics-licensed",
+      "organization": "U.S. FDA (openFDA)",
+      "source": "U.S. FDA (openFDA)",
+      "description": "FDA-licensed biologics and biosimilar BLA applications via openFDA Drugs@FDA (sponsors, products, marketing status)",
+      "docsUrl": "https://open.fda.gov/apis/drug/drugsfda/",
+      "endpointUrl": "https://api.fda.gov/drug/drugsfda.json",
+      "metaKey": "biologics-licensed",
+      "kind": "meta-only"
+    },
+    {
+      "panelId": null,
+      "apiName": "cms-hospitals",
+      "organization": "U.S. CMS",
+      "source": "U.S. CMS",
+      "description": "Medicare Hospital General Information (registered US hospitals)",
+      "docsUrl": "https://data.cms.gov/provider-data/dataset/xubh-q36u",
+      "endpointUrl": "https://data.cms.gov/provider-data/api/1/datastore/query/xubh-q36u/0",
+      "metaKey": "cms-hospitals",
+      "kind": "meta-only"
+    },
+    {
+      "panelId": null,
+      "apiName": "college-scorecard",
+      "organization": "U.S. Department of Education",
+      "source": "U.S. Department of Education",
+      "description": "College Scorecard institution directory (costs/outcomes context optional; free api.data.gov DEMO_KEY)",
+      "docsUrl": "https://collegescorecard.ed.gov/data/api-documentation/",
+      "endpointUrl": "https://api.data.gov/ed/collegescorecard/v1/schools",
+      "metaKey": "college-scorecard",
+      "kind": "meta-only"
+    },
+    {
+      "panelId": null,
+      "apiName": "ema-bulk",
+      "organization": "European Medicines Agency",
+      "source": "European Medicines Agency",
+      "description": "Official EMA medicines Excel dump (biosimilar / orphan / ATMP flags, MAH, dates)",
+      "docsUrl": "https://www.ema.europa.eu/en/medicines/download-medicine-data",
+      "endpointUrl": "https://www.ema.europa.eu/en/documents/report/medicines-output-medicines-report_en.xlsx",
+      "metaKey": "ema-bulk",
+      "kind": "meta-only"
+    },
+    {
+      "panelId": null,
+      "apiName": "ema-medicines",
+      "organization": "Open Targets + EMA",
+      "source": "Open Targets + EMA",
+      "description": "EU-facing medicine card from Open Targets GraphQL plus EMA portal/bulk deep links",
+      "docsUrl": "https://platform-docs.opentargets.org/data-access/graphql-api",
+      "endpointUrl": "https://api.platform.opentargets.org/api/v4/graphql",
+      "metaKey": "ema-medicines",
+      "kind": "meta-only"
+    },
+    {
+      "panelId": null,
+      "apiName": "gene-ontology",
+      "organization": "Gene Ontology Consortium / EBI",
+      "source": "Gene Ontology Consortium / EBI",
+      "description": "Gene Ontology functional annotation terms via QuickGO",
+      "docsUrl": "https://www.ebi.ac.uk/QuickGO/api/",
+      "endpointUrl": "https://www.ebi.ac.uk/QuickGO/services/ontology/go",
+      "metaKey": "gene-ontology",
+      "kind": "meta-only"
+    },
+    {
+      "panelId": null,
+      "apiName": "gene3d",
+      "organization": "UCL",
+      "source": "UCL",
+      "description": "Gene3D protein domain classification via CATH",
+      "docsUrl": "https://www.cath.info/api/",
+      "endpointUrl": "https://www.cath.info/api",
+      "metaKey": "gene3d",
+      "kind": "meta-only"
+    },
+    {
+      "panelId": null,
+      "apiName": "purple-book",
+      "organization": "U.S. FDA",
+      "source": "U.S. FDA",
+      "description": "Purple Book monthly CSV downloads — licensed biologics, biosimilar and interchangeable labels",
+      "docsUrl": "https://purplebooksearch.fda.gov/downloads",
+      "endpointUrl": "https://www.accessdata.fda.gov/drugsatfda_docs/PurpleBook/",
+      "metaKey": "purple-book",
+      "kind": "meta-only"
+    },
+    {
+      "panelId": null,
+      "apiName": "purple-book-patents",
+      "organization": "U.S. FDA",
+      "source": "U.S. FDA",
+      "description": "Purple Book BPPT patent list (sponsor-submitted patents for certain reference biologics)",
+      "docsUrl": "https://purplebooksearch.fda.gov/patent-list",
+      "endpointUrl": "https://purplebooksearch.fda.gov/patent-list",
+      "metaKey": "purple-book-patents",
+      "kind": "meta-only"
+    },
+    {
+      "panelId": null,
+      "apiName": "ror-eu-pack",
+      "organization": "Research Organization Registry",
+      "source": "Research Organization Registry",
+      "description": "EU multi-country ROR packs (education, healthcare, facility types)",
+      "docsUrl": "https://ror.readme.io/docs/api-filtering",
+      "endpointUrl": "https://api.ror.org/v2/organizations",
+      "metaKey": "ror-eu-pack",
+      "kind": "meta-only"
+    },
+    {
+      "panelId": null,
+      "apiName": "search",
+      "organization": "PubChem (NIH)",
+      "source": "PubChem (NIH)",
+      "description": "PubChem molecule search and resolution",
+      "docsUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/",
+      "endpointUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug",
+      "metaKey": "search",
+      "kind": "meta-only"
+    },
+    {
+      "panelId": null,
+      "apiName": "similar",
+      "organization": "PubChem (NIH)",
+      "source": "PubChem (NIH)",
+      "description": "PubChem similarity and identity search",
+      "docsUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/",
+      "endpointUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug",
+      "metaKey": "similar",
+      "kind": "meta-only"
+    },
+    {
+      "panelId": null,
+      "apiName": "urban-ipeds",
+      "organization": "Urban Institute",
+      "source": "Urban Institute",
+      "description": "IPEDS directory via Education Data Portal (UNITID lookup, no key)",
+      "docsUrl": "https://educationdata.urban.org/documentation/colleges.html",
+      "endpointUrl": "https://educationdata.urban.org/api/v1/college-university/ipeds/directory",
+      "metaKey": "urban-ipeds",
+      "kind": "meta-only"
+    }
+  ]
+}

@@ -1,0 +1,206 @@
+{
+  "id": "sitagliptin",
+  "tier": "A",
+  "lastReviewed": "2026-07-23",
+  "modality": "small-molecule",
+  "entityRole": "api",
+  "relatedEntities": [
+    {
+      "role": "starting-material",
+      "name": "β-ketoamide / enamine precursors (route-dependent)",
+      "notes": "Classic industrial sitagliptin intermediate families"
+    },
+    {
+      "role": "catalyst",
+      "name": "Transaminase biocatalyst (biocatalytic route)",
+      "notes": "Famous large-scale biocatalytic amination case study"
+    },
+    {
+      "role": "reagent",
+      "name": "Triazole building block",
+      "notes": "Heterocycle fragment of sitagliptin"
+    },
+    {
+      "role": "drug-product",
+      "name": "Sitagliptin phosphate tablets",
+      "notes": "Common salt form for oral solid dose — DP process separate"
+    }
+  ],
+  "identifiers": {
+    "name": "Sitagliptin",
+    "iupacName": "(3R)-3-amino-1-[3-(trifluoromethyl)-5,6-dihydro[1,2,4]triazolo[4,3-a]pyrazin-7(8H)-yl]-4-(2,4,5-trifluorophenyl)butan-1-one",
+    "commonNames": ["MK-0431"],
+    "cas": "486460-32-6",
+    "inchiKey": "MFFMDFFZMYYVKS-SECBINFHSA-N",
+    "pubchemCid": 4369359,
+    "formula": "C16H15F6N5O"
+  },
+  "properties": {
+    "molecularWeight": 407.31,
+    "appearance": "White to off-white solid (free base / salt forms)",
+    "solubility": "Salt-form dependent (phosphate common for DP)"
+  },
+  "hazards": {
+    "signalWord": "Warning",
+    "hazardStatements": ["Confirm current SDS / PubChem GHS"],
+    "notes": "Fluorinated organics and potent API handling policies site-dependent."
+  },
+  "applications": ["DPP-4 inhibitor API", "Type 2 diabetes oral therapy (clinical use not covered here)"],
+  "overview": "Sitagliptin is a classic process-chemistry teaching molecule because industrial manufacture shifted toward a highly efficient biocatalytic asymmetric amination, reducing waste versus earlier rhodium-catalyzed routes. Dual-view routes below contrast biocatalytic vs chemical themes for MSAT / process education.",
+  "manufacturingSummary": "Preferred modern packages emphasize enzymatic transamination to install the chiral amine, followed by coupling/isolation to sitagliptin free base or phosphate salt. Earlier chemical asymmetric hydrogenation packages remain literature-relevant for comparison.",
+  "environmentBaseline": {
+    "atmosphere": "N2 for air-sensitive catalysts where used",
+    "containment": "Potent compound handling for API finishing",
+    "utilities": ["Temperature control", "pH control", "N2", "Vacuum", "Purified water"]
+  },
+  "ehsHighlights": [
+    "Biocatalyst vs heavy-metal catalyst trade-offs (waste / recovery)",
+    "Fluorinated intermediate handling",
+    "API dust control in finishing"
+  ],
+  "apparatusCatalog": [
+    { "equipmentClass": "ss316-reactor", "required": true },
+    { "equipmentClass": "glass-lined-reactor" },
+    { "equipmentClass": "hydrogenator", "notes": "If chemical hydrogenation package used" },
+    { "equipmentClass": "crystallizer" },
+    { "equipmentClass": "filter-dryer" }
+  ],
+  "routes": [
+    {
+      "id": "sita-biocat",
+      "name": "Biocatalytic asymmetric amination (industrial preferred theme)",
+      "type": "biocatalytic",
+      "preference": 1,
+      "scaleClass": "commercial",
+      "summary": "Prochiral ketone intermediate converted with engineered transaminase to the desired chiral amine; isolate and finish to API / salt.",
+      "advantages": [
+        "High enantioselectivity",
+        "Improved green metrics vs early Rh routes (literature)",
+        "Mild aqueous/organic conditions"
+      ],
+      "disadvantages": [
+        "Enzyme supply / immobilization strategy",
+        "Cosolvent and donor amine management"
+      ],
+      "materials": [
+        { "role": "starting-material", "name": "Prochiral ketone intermediate" },
+        { "role": "catalyst", "name": "Engineered transaminase" },
+        { "role": "reagent", "name": "Amine donor (package-specific)" },
+        { "role": "product", "name": "Sitagliptin", "cas": "486460-32-6" }
+      ],
+      "steps": [
+        {
+          "id": "sita-b1",
+          "order": 1,
+          "title": "Enzymatic amination",
+          "description": "Charge ketone intermediate with transaminase and amine donor under controlled pH and temperature. Drive conversion and e.e. to IPC targets.",
+          "mechanismClass": "Biocatalytic reductive amination / transamination",
+          "mechanismNotes": "PLP-dependent transaminases transfer nitrogen from a donor amine to the prochiral ketone, establishing the R-amine stereocenter under evolutionary enzyme engineering.",
+          "conditions": {
+            "temperatureC": "Mild package (enzyme-dependent)",
+            "ph": "Buffered window per enzyme"
+          },
+          "apparatus": [
+            { "equipmentClass": "ss316-reactor" },
+            { "equipmentClass": "other", "notes": "Enzyme reactor if immobilized" }
+          ],
+          "controls": {
+            "criticalParameters": ["pH", "Temperature", "Enzyme loading", "Donor stoichiometry"],
+            "ipcMethods": ["HPLC conversion", "Chiral HPLC or equivalent e.e."],
+            "cqaTargets": ["Conversion", "Enantiomeric excess"]
+          },
+          "scaleNotes": "Mass transfer and enzyme lifetime dominate scale-up for immobilized systems."
+        },
+        {
+          "id": "sita-b2",
+          "order": 2,
+          "title": "Workup, salt formation, isolation",
+          "description": "Separate enzyme/biocatalyst, extract or crystallize free base or form phosphate salt; dry to specification.",
+          "mechanismClass": "Isolation / salt formation",
+          "apparatus": [
+            { "equipmentClass": "crystallizer" },
+            { "equipmentClass": "centrifuge" },
+            { "equipmentClass": "filter-dryer" }
+          ],
+          "controls": {
+            "cqaTargets": ["Assay", "Related substances", "Residual solvents", "Salt stoichiometry if applicable"]
+          }
+        }
+      ],
+      "scaleUp": {
+        "labToKilo": "Validate enzyme reuse cycles and workup emulsion control",
+        "greenChemistryNotes": "Often cited for E-factor improvement vs early chemical routes"
+      },
+      "sourceRefs": [
+        {
+          "type": "editorial",
+          "id": "sita-biocat-scaffold",
+          "note": "Educational outline of industrial biocatalytic theme — not a site package"
+        },
+        {
+          "type": "literature",
+          "id": "sita-process-reviews",
+          "label": "Process chemistry reviews on sitagliptin biocatalysis"
+        }
+      ]
+    },
+    {
+      "id": "sita-chemical",
+      "name": "Chemical asymmetric route theme (literature / historical industrial)",
+      "type": "literature",
+      "preference": 2,
+      "scaleClass": "commercial",
+      "summary": "Asymmetric hydrogenation or other chemical chiral induction to install the amine stereocenter; coupling and isolation.",
+      "advantages": ["No biocatalyst supply chain"],
+      "disadvantages": ["Metal catalyst cost/recovery", "Often higher waste intensity in early packages"],
+      "materials": [
+        { "role": "starting-material", "name": "Enamine / unsaturated intermediate (route-dependent)" },
+        { "role": "catalyst", "name": "Chiral Rh or other metal catalyst (historical packages)" },
+        { "role": "product", "name": "Sitagliptin", "cas": "486460-32-6" }
+      ],
+      "steps": [
+        {
+          "id": "sita-c1",
+          "order": 1,
+          "title": "Asymmetric hydrogenation / chemical chiral step",
+          "description": "Reduce prochiral intermediate under chiral catalysis with controlled H2 pressure and temperature; monitor e.e. and conversion.",
+          "mechanismClass": "Asymmetric hydrogenation",
+          "apparatus": [
+            { "equipmentClass": "hydrogenator", "required": true },
+            { "equipmentClass": "ss316-reactor" }
+          ],
+          "environment": {
+            "utilities": ["H2", "N2", "Temperature control"],
+            "notes": "Hydrogen safety and metal recovery mandatory"
+          },
+          "controls": {
+            "criticalParameters": ["H2 pressure", "Temperature", "Catalyst loading"],
+            "ipcMethods": ["Conversion", "e.e. determination"]
+          }
+        },
+        {
+          "id": "sita-c2",
+          "order": 2,
+          "title": "Coupling / isolation",
+          "description": "Complete remaining fragment couplings if required; crystallize API or salt.",
+          "apparatus": [{ "equipmentClass": "glass-lined-reactor" }, { "equipmentClass": "crystallizer" }]
+        }
+      ],
+      "sourceRefs": [
+        {
+          "type": "editorial",
+          "id": "sita-chem-scaffold",
+          "note": "Historical/chemical theme for route comparison"
+        }
+      ]
+    }
+  ],
+  "disclaimer": "Educational process scaffold highlighting biocatalytic vs chemical themes. Not GMP. Not prescribing information.",
+  "sourceRefs": [
+    {
+      "type": "api",
+      "id": "pubchem-4369359",
+      "url": "https://pubchem.ncbi.nlm.nih.gov/compound/4369359"
+    }
+  ]
+}

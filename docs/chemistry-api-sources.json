@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 1,
+  "title": "Chemistry Recipes free public API sources (product-ranked)",
+  "productLaw": "Free public APIs only. Evidence-first; not regulatory decision support. Manufacturing dossiers are curated overlays.",
+  "generatedAt": "2026-07-22T00:00:00.000Z",
+  "complements": "docs/api-sources-manifest.json",
+  "sources": [
+    {
+      "id": "pubchem-pug",
+      "name": "PubChem PUG REST",
+      "organization": "NCBI (NIH)",
+      "priority": "P0",
+      "category": "identity",
+      "endpointUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug",
+      "docsUrl": "https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest",
+      "role": "Name/CAS/SMILES search, CID resolution, properties, structure images"
+    },
+    {
+      "id": "pubchem-pug-view",
+      "name": "PubChem PUG View",
+      "organization": "NCBI (NIH)",
+      "priority": "P0",
+      "category": "hazards",
+      "endpointUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view",
+      "docsUrl": "https://pubchem.ncbi.nlm.nih.gov/docs/pug-view",
+      "role": "GHS hazards, use & manufacturing text sections"
+    },
+    {
+      "id": "unichem",
+      "name": "UniChem",
+      "organization": "EMBL-EBI",
+      "priority": "P0",
+      "category": "identity",
+      "endpointUrl": "https://www.ebi.ac.uk/unichem/rest",
+      "docsUrl": "https://www.ebi.ac.uk/unichem/info/wsoverview",
+      "role": "Cross-database chemical identifier mapping"
+    },
+    {
+      "id": "chebi",
+      "name": "ChEBI",
+      "organization": "EMBL-EBI",
+      "priority": "P0",
+      "category": "identity",
+      "endpointUrl": "https://www.ebi.ac.uk/chebi/api/data",
+      "docsUrl": "https://www.ebi.ac.uk/chebi/about",
+      "role": "Chemical ontology and biological roles"
+    },
+    {
+      "id": "mychem",
+      "name": "MyChem.info",
+      "organization": "BioThings",
+      "priority": "P0",
+      "category": "identity",
+      "endpointUrl": "https://mychem.info/v1",
+      "docsUrl": "https://mychem.info/v1",
+      "role": "Aggregated chemical annotation"
+    },
+    {
+      "id": "gsrs",
+      "name": "GSRS / UNII",
+      "organization": "FDA",
+      "priority": "P0",
+      "category": "identity",
+      "endpointUrl": "https://gsrs.ncats.nih.gov/api",
+      "docsUrl": "https://gsrs.ncats.nih.gov/api",
+      "role": "Global substance registration identifiers"
+    },
+    {
+      "id": "comptox",
+      "name": "EPA CompTox",
+      "organization": "EPA",
+      "priority": "P0",
+      "category": "hazards",
+      "endpointUrl": "https://comptox.epa.gov/dashboard-api",
+      "docsUrl": "https://www.epa.gov/comptox-tools",
+      "role": "DTXSID, toxicology and exposure context"
+    },
+    {
+      "id": "kegg",
+      "name": "KEGG REST",
+      "organization": "KEGG / Kyoto University",
+      "priority": "P1",
+      "category": "pathways",
+      "endpointUrl": "https://rest.kegg.jp",
+      "docsUrl": "https://www.kegg.jp/kegg/rest/keggapi.html",
+      "role": "Compound–reaction–pathway (often biosynthetic)",
+      "notes": "Not a substitute for industrial organic routes"
+    },
+    {
+      "id": "rhea",
+      "name": "Rhea",
+      "organization": "SIB / EMBL-EBI",
+      "priority": "P1",
+      "category": "reactions",
+      "endpointUrl": "https://www.rhea-db.org/rhea",
+      "docsUrl": "https://www.rhea-db.org/help/rest-api",
+      "role": "Expert-curated enzyme-catalyzed reactions"
+    },
+    {
+      "id": "ord",
+      "name": "Open Reaction Database",
+      "organization": "ORD community",
+      "priority": "P1",
+      "category": "reactions",
+      "endpointUrl": "https://open-reaction-database.org/",
+      "docsUrl": "https://docs.open-reaction-database.org/",
+      "role": "Structured organic reaction records (bulk datasets)",
+      "notes": "Prefer bulk download over ad-hoc REST"
+    },
+    {
+      "id": "patentsview",
+      "name": "PatentsView",
+      "organization": "USPTO / PatentsView",
+      "priority": "P1",
+      "category": "patents",
+      "endpointUrl": "https://search.patentsview.org/api/v1",
+      "docsUrl": "https://patentsview.org/apis/api-query-language",
+      "role": "Process patents, assignees, CPC classification"
+    },
+    {
+      "id": "europepmc",
+      "name": "Europe PMC",
+      "organization": "EMBL-EBI",
+      "priority": "P1",
+      "category": "literature",
+      "endpointUrl": "https://www.ebi.ac.uk/europepmc/webservices/rest",
+      "docsUrl": "https://europepmc.org/RestfulWebService",
+      "role": "Process chemistry and organic synthesis literature"
+    },
+    {
+      "id": "openalex",
+      "name": "OpenAlex",
+      "organization": "OurResearch",
+      "priority": "P1",
+      "category": "literature",
+      "endpointUrl": "https://api.openalex.org",
+      "docsUrl": "https://docs.openalex.org/",
+      "role": "Scholarly works graph and concepts"
+    },
+    {
+      "id": "reactome",
+      "name": "Reactome",
+      "organization": "Reactome",
+      "priority": "P1",
+      "category": "pathways",
+      "endpointUrl": "https://reactome.org/ContentService",
+      "docsUrl": "https://reactome.org/dev/content-service",
+      "role": "Curated biological pathway maps"
+    },
+    {
+      "id": "openfda",
+      "name": "openFDA",
+      "organization": "U.S. FDA",
+      "priority": "P2",
+      "category": "regulatory",
+      "endpointUrl": "https://api.fda.gov",
+      "docsUrl": "https://open.fda.gov/api/",
+      "role": "Marketed drug products, labels, enforcement (context only)"
+    },
+    {
+      "id": "chembl",
+      "name": "ChEMBL",
+      "organization": "EMBL-EBI",
+      "priority": "P2",
+      "category": "supporting",
+      "endpointUrl": "https://www.ebi.ac.uk/chembl/api/data",
+      "docsUrl": "https://www.ebi.ac.uk/chembl/",
+      "role": "Bioactivity and drug-like molecule context"
+    },
+    {
+      "id": "massbank",
+      "name": "MassBank",
+      "organization": "MassBank",
+      "priority": "P2",
+      "category": "supporting",
+      "endpointUrl": "https://massbank.eu/MassBank-api/records",
+      "docsUrl": "https://massbank.eu/MassBank-api",
+      "role": "MS reference spectra for IPC method design"
+    }
+  ]
+}

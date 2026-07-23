@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+:root {
+  --background: #020617;
+  --foreground: #e2e8f0;
+  /* Updated at runtime by HeaderHeightSync; fallback for first paint */
+  --app-header-height: 3.5rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Offset sticky header when jumping via TOC hash links */
+[id] {
+  scroll-margin-top: calc(var(--app-header-height) + 0.75rem);
+}
+
+/* Sticky chrome under measured header height */
+.app-sticky-under-header {
+  top: var(--app-header-height);
+  height: calc(100vh - var(--app-header-height));
+}
+
+/* Subtle grid for industrial lab aesthetic */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(30 41 59 / 0.35) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(30 41 59 / 0.35) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/*
+ * App tooltips are portaled to document.body with fixed position.
+ * Use max 32-bit z-index so they sit above every modal/overlay/header.
+ * Do not use native `title` attributes.
+ */
+.app-tooltip {
+  z-index: 2147483647 !important;
+}
+
+/* Plant summary / tech-transfer export — hide chrome, keep dossier body */
+@media print {
+  body {
+    background: white !important;
+    color: #0f172a !important;
+  }
+  header,
+  footer,
+  .print\:hidden,
+  [aria-label="Search history"],
+  [aria-label="Table of contents"],
+  [data-toc-balance],
+  .app-tooltip {
+    display: none !important;
+  }
+  main {
+    max-width: 100% !important;
+  }
+  a {
+    color: #0f766e !important;
+    text-decoration: none !important;
+  }
+  /* Expand collapsed-looking blocks for plant pack */
+  .print\:block {
+    display: block !important;
+  }
+  section,
+  article {
+    break-inside: avoid;
+  }
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+}

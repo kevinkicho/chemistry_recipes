@@ -1,0 +1,195 @@
+{
+  "id": "penicillin-g",
+  "tier": "A",
+  "lastReviewed": "2026-07-23",
+  "modality": "fermentation",
+  "entityRole": "api",
+  "relatedEntities": [
+    {
+      "role": "starting-material",
+      "name": "Penicillium chrysogenum production strain / media",
+      "notes": "Industrial fermentation host"
+    },
+    {
+      "role": "intermediate",
+      "name": "6-APA",
+      "cas": "551-16-6",
+      "pubchemCid": 8745,
+      "notes": "Downstream semi-synthetic nucleus (see amoxicillin example)"
+    },
+    {
+      "role": "impurity",
+      "name": "Penicilloic acids / degradation products",
+      "notes": "Stability-related impurities"
+    },
+    {
+      "role": "drug-product",
+      "name": "Penicillin G salts (procaine, benzathine, potassium)",
+      "notes": "Salt/DP forms — separate formulation trains"
+    }
+  ],
+  "identifiers": {
+    "name": "Penicillin G",
+    "iupacName": "(2S,5R,6R)-3,3-dimethyl-7-oxo-6-[(2-phenylacetyl)amino]-4-thia-1-azabicyclo[3.2.0]heptane-2-carboxylic acid",
+    "commonNames": ["Benzylpenicillin", "Penicillin G free acid"],
+    "cas": "61-33-6",
+    "pubchemCid": 5904,
+    "formula": "C16H18N2O4S"
+  },
+  "properties": {
+    "molecularWeight": 334.4,
+    "appearance": "White crystalline powder (salt forms common)",
+    "solubility": "Salt-form dependent"
+  },
+  "hazards": {
+    "signalWord": "Danger",
+    "hazardStatements": ["May cause allergy or asthma symptoms — confirm SDS"],
+    "notes": "β-lactam sensitizer — dedicated manufacturing suites common."
+  },
+  "applications": ["β-lactam antibiotic", "Feedstock for 6-APA / semi-synthetics"],
+  "overview": "Penicillin G is produced by aerobic fermentation of Penicillium strains, followed by extraction and crystallization of salt forms. It is both a clinical API family member and the industrial gateway to 6-APA for semi-synthetic penicillins such as amoxicillin.",
+  "manufacturingSummary": "Seed train → production fermentation → broth harvest → solvent extraction / purification → salt crystallization → drying. Cross-contamination control for β-lactams is a facility-level design driver.",
+  "environmentBaseline": {
+    "containment": "β-lactam dedicated HVAC cascades / pressure regimes",
+    "utilities": ["Aeration", "Cooling", "Steam", "CIP/SIP", "Purified water"],
+    "notes": "Biosafety and allergen control dominate plant design"
+  },
+  "ehsHighlights": [
+    "Occupational β-lactam sensitization",
+    "Solvent extraction flammability",
+    "Waste antibiotic destruction"
+  ],
+  "apparatusCatalog": [
+    { "equipmentClass": "ss316-reactor", "notes": "Fermenter class", "required": true },
+    { "equipmentClass": "centrifuge" },
+    { "equipmentClass": "crystallizer" },
+    { "equipmentClass": "filter-dryer" },
+    { "equipmentClass": "scrubber" }
+  ],
+  "routes": [
+    {
+      "id": "peng-ferm",
+      "name": "Aerobic fermentation + extraction (industrial)",
+      "type": "fermentative",
+      "preference": 1,
+      "scaleClass": "commercial",
+      "modality": "fermentation",
+      "summary": "Fed-batch fermentation producing penicillin G, then multi-step recovery to pharmaceutical salt.",
+      "advantages": ["Mature industrial process", "Scalable biology"],
+      "disadvantages": ["Long cycle times", "Contamination risk", "β-lactam facility constraints"],
+      "materials": [
+        { "role": "starting-material", "name": "Production strain inoculum" },
+        { "role": "starting-material", "name": "Carbon / nitrogen media components" },
+        { "role": "product", "name": "Penicillin G", "cas": "61-33-6" }
+      ],
+      "steps": [
+        {
+          "id": "peng-1",
+          "order": 1,
+          "title": "Seed train & production fermentation",
+          "description": "Expand inoculum through seed stages into production fermenter. Control DO, pH, temperature, and feed. Harvest at titer target.",
+          "mechanismClass": "Secondary metabolite fermentation",
+          "apparatus": [{ "equipmentClass": "ss316-reactor", "notes": "Seed + production fermenters" }],
+          "environment": {
+            "utilities": ["Aeration", "Agitation", "Cooling", "CIP/SIP"]
+          },
+          "controls": {
+            "criticalParameters": ["DO", "pH", "Temperature", "Feed rate", "Contamination checks"],
+            "ipcMethods": ["Titer assay", "Microbiology / contamination"],
+            "cqaTargets": ["Broth titer", "Productivity"]
+          },
+          "scaleNotes": "Oxygen transfer and heat removal dominate large fermenters."
+        },
+        {
+          "id": "peng-2",
+          "order": 2,
+          "title": "Harvest, extraction, purification",
+          "description": "Clarify broth; extract penicillin into organic phase under controlled pH; back-extract and purify.",
+          "mechanismClass": "Extraction / purification",
+          "apparatus": [
+            { "equipmentClass": "centrifuge" },
+            { "equipmentClass": "ss316-reactor" },
+            { "equipmentClass": "scrubber" }
+          ],
+          "controls": {
+            "criticalParameters": ["pH during extraction", "Temperature", "Solvent ratios"],
+            "ipcMethods": ["Potency of extracts"]
+          },
+          "environment": {
+            "atexZone": "Solvent areas classified per site standards"
+          }
+        },
+        {
+          "id": "peng-3",
+          "order": 3,
+          "title": "Salt crystallization & drying",
+          "description": "Crystallize potassium, procaine, or benzathine salt per product; wash and dry under controlled conditions.",
+          "mechanismClass": "Crystallization",
+          "apparatus": [
+            { "equipmentClass": "crystallizer" },
+            { "equipmentClass": "filter-dryer" },
+            { "equipmentClass": "centrifuge" }
+          ],
+          "controls": {
+            "cqaTargets": ["Assay / potency", "Related substances", "Water / residual solvents", "Particulates"]
+          }
+        }
+      ],
+      "scaleUp": {
+        "pilotToCommercial": "Fermenter geometry and extraction train capacity",
+        "safetyScaleUp": "β-lactam suite design and decontamination validation"
+      },
+      "sourceRefs": [
+        {
+          "type": "editorial",
+          "id": "peng-ferm-scaffold",
+          "note": "Educational fermentation outline — not a plant design package"
+        }
+      ]
+    },
+    {
+      "id": "peng-to-6apa",
+      "name": "Downstream: cleavage to 6-APA (linked intermediate train)",
+      "type": "biocatalytic",
+      "preference": 2,
+      "scaleClass": "commercial",
+      "summary": "Enzymatic side-chain cleavage of penicillin G to 6-APA for semi-synthetic coupling (e.g. amoxicillin).",
+      "advantages": ["Enables semi-synthetic portfolio"],
+      "disadvantages": ["Additional unit ops and enzyme handling"],
+      "materials": [
+        { "role": "starting-material", "name": "Penicillin G", "cas": "61-33-6" },
+        { "role": "catalyst", "name": "Penicillin acylase" },
+        { "role": "product", "name": "6-APA", "cas": "551-16-6" }
+      ],
+      "steps": [
+        {
+          "id": "peng-6a",
+          "order": 1,
+          "title": "Enzymatic deacylation",
+          "description": "Cleave phenylacetyl side chain with penicillin acylase under controlled pH; isolate 6-APA.",
+          "mechanismClass": "Enzymatic hydrolysis of side-chain amide",
+          "apparatus": [{ "equipmentClass": "ss316-reactor" }, { "equipmentClass": "crystallizer" }],
+          "controls": {
+            "criticalParameters": ["pH", "Temperature", "Enzyme activity"],
+            "ipcMethods": ["6-APA assay", "Residual penicillin"]
+          }
+        }
+      ],
+      "sourceRefs": [
+        {
+          "type": "editorial",
+          "id": "peng-6apa-link",
+          "note": "Cross-link to amoxicillin Tier-A example for full semi-synthetic story"
+        }
+      ]
+    }
+  ],
+  "disclaimer": "Educational β-lactam fermentation scaffold. Not GMP. Not clinical guidance.",
+  "sourceRefs": [
+    {
+      "type": "api",
+      "id": "pubchem-5904",
+      "url": "https://pubchem.ncbi.nlm.nih.gov/compound/5904"
+    }
+  ]
+}

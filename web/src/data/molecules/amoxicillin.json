@@ -1,0 +1,197 @@
+{
+  "id": "amoxicillin",
+  "tier": "A",
+  "lastReviewed": "2026-07-23",
+  "modality": "fermentation",
+  "entityRole": "api",
+  "relatedEntities": [
+    {
+      "role": "intermediate",
+      "name": "6-APA (6-aminopenicillanic acid)",
+      "cas": "551-16-6",
+      "notes": "Key penam nucleus intermediate"
+    },
+    {
+      "role": "starting-material",
+      "name": "Penicillin G / fermentation broth",
+      "notes": "Upstream fermentation feedstock for 6-APA"
+    },
+    {
+      "role": "reagent",
+      "name": "D-p-Hydroxyphenylglycine side-chain donor",
+      "notes": "Enzymatic or chemical acylation partner"
+    },
+    {
+      "role": "impurity",
+      "name": "Penicilloic acids / degradation products",
+      "notes": "Stability-related impurities — method-specific"
+    },
+    {
+      "role": "drug-product",
+      "name": "Amoxicillin capsules / suspensions",
+      "notes": "Formulation and sterile steps are separate DP recipes"
+    }
+  ],
+  "identifiers": {
+    "name": "Amoxicillin",
+    "iupacName": "(2S,5R,6R)-6-[[(2R)-2-amino-2-(4-hydroxyphenyl)acetyl]amino]-3,3-dimethyl-7-oxo-4-thia-1-azabicyclo[3.2.0]heptane-2-carboxylic acid",
+    "commonNames": ["Amoxycillin"],
+    "cas": "26787-78-0",
+    "inchiKey": "LSQZJLYRQKRUHQ-UHFFFAOYSA-N",
+    "pubchemCid": 33613,
+    "formula": "C16H19N3O5S"
+  },
+  "properties": {
+    "molecularWeight": 365.4,
+    "appearance": "White to off-white crystalline powder (often trihydrate)",
+    "solubility": "Slightly soluble in water; pH-dependent"
+  },
+  "hazards": {
+    "signalWord": "Danger",
+    "hazardStatements": ["May cause allergy or asthma symptoms — confirm SDS"],
+    "notes": "β-lactam sensitizer — dedicated equipment and containment policies common."
+  },
+  "applications": ["β-lactam antibiotic API", "Oral solid and suspension DP"],
+  "overview": "Amoxicillin is typically produced by enzymatic (or chemical) acylation of 6-APA with a D-p-hydroxyphenylglycine side chain. 6-APA itself is obtained from penicillin fermentation and enzymatic cleavage. The process spans fermentation, enzymatic transformation, and careful isolation of a sensitizing β-lactam.",
+  "manufacturingSummary": "Upstream penicillin fermentation → 6-APA → enzymatic synthesis of amoxicillin → crystallization (often trihydrate) → drying. Cross-contamination control for β-lactams is a plant-wide design driver.",
+  "environmentBaseline": {
+    "atmosphere": "Controlled humidity for hydrate forms",
+    "containment": "β-lactam dedicated suites / pressure cascades common",
+    "utilities": ["Chilled water", "Purified water", "CIP/SIP", "HVAC cascades", "N2"]
+  },
+  "ehsHighlights": [
+    "β-lactam allergy sensitization — occupational exposure limits and suite design",
+    "Enzyme handling and bioburden control",
+    "Waste β-lactam destruction strategies"
+  ],
+  "apparatusCatalog": [
+    { "equipmentClass": "ss316-reactor", "required": true },
+    { "equipmentClass": "crystallizer" },
+    { "equipmentClass": "filter-dryer" },
+    { "equipmentClass": "centrifuge" },
+    { "equipmentClass": "other", "notes": "Fermenters / enzyme reactors (site class)" }
+  ],
+  "routes": [
+    {
+      "id": "amox-enzymatic",
+      "name": "Enzymatic acylation of 6-APA (industrial preferred)",
+      "type": "biocatalytic",
+      "preference": 1,
+      "scaleClass": "commercial",
+      "modality": "fermentation",
+      "summary": "Condense 6-APA with side-chain donor using penicillin acylase-class biocatalysts; crystallize amoxicillin hydrate.",
+      "advantages": ["Mild conditions", "High selectivity vs older chemical routes"],
+      "disadvantages": ["Enzyme cost / recycling", "Hydrate form control"],
+      "materials": [
+        { "role": "starting-material", "name": "6-APA", "cas": "551-16-6" },
+        { "role": "reagent", "name": "D-p-Hydroxyphenylglycine donor (ester/amide form per package)" },
+        { "role": "catalyst", "name": "Penicillin acylase (immobilized or free)" },
+        { "role": "product", "name": "Amoxicillin", "cas": "26787-78-0" }
+      ],
+      "steps": [
+        {
+          "id": "amox-1",
+          "order": 1,
+          "title": "Enzymatic synthesis",
+          "description": "Charge 6-APA and side-chain donor with biocatalyst under controlled pH and temperature. Monitor conversion and hydrolysis side reactions.",
+          "mechanismClass": "Enzymatic amide bond formation",
+          "mechanismNotes": "Penicillin acylase catalyzes acylation of the 6-amino group; competing hydrolysis is managed by conditions and donor choice.",
+          "conditions": {
+            "temperatureC": "Mild aqueous package (site-specific)",
+            "ph": "Buffered window per enzyme"
+          },
+          "apparatus": [{ "equipmentClass": "ss316-reactor" }, { "equipmentClass": "other", "notes": "Enzyme reactor / packed bed if immobilized" }],
+          "environment": {
+            "utilities": ["Temperature control", "pH control", "Purified water"]
+          },
+          "controls": {
+            "criticalParameters": ["pH", "Temperature", "Enzyme activity", "Donor stoichiometry"],
+            "ipcMethods": ["HPLC conversion", "Residual 6-APA"],
+            "cqaTargets": ["Conversion target", "Related substances in-process"]
+          }
+        },
+        {
+          "id": "amox-2",
+          "order": 2,
+          "title": "Isolation / crystallization / drying",
+          "description": "Crystallize amoxicillin (often trihydrate), wash, and dry under controlled humidity and temperature to form specification.",
+          "mechanismClass": "Crystallization / hydrate control",
+          "apparatus": [
+            { "equipmentClass": "crystallizer" },
+            { "equipmentClass": "centrifuge" },
+            { "equipmentClass": "filter-dryer" }
+          ],
+          "controls": {
+            "cqaTargets": [
+              "Assay / purity",
+              "Water / hydrate form",
+              "Residual solvents",
+              "Related substances"
+            ],
+            "criticalParameters": ["Cooling profile", "Humidity during drying"]
+          },
+          "scaleNotes": "Form control and β-lactam dust containment dominate finishing."
+        }
+      ],
+      "scaleUp": {
+        "labToKilo": "Enzyme loading and mass transfer for immobilized systems",
+        "safetyScaleUp": "Dedicated equipment strategy and decontamination"
+      },
+      "sourceRefs": [
+        {
+          "type": "editorial",
+          "id": "amox-enzymatic-scaffold",
+          "note": "Educational biocatalytic outline — confirm patents and site packages"
+        }
+      ]
+    },
+    {
+      "id": "amox-upstream",
+      "name": "Upstream: penicillin fermentation → 6-APA",
+      "type": "fermentative",
+      "preference": 2,
+      "scaleClass": "commercial",
+      "summary": "Ferment penicillin, isolate, enzymatically cleave side chain to 6-APA for coupling.",
+      "advantages": ["Captive intermediate supply"],
+      "disadvantages": ["Long train; contamination risk"],
+      "materials": [
+        { "role": "starting-material", "name": "Penicillium production strain / media" },
+        { "role": "intermediate", "name": "Penicillin G" },
+        { "role": "product", "name": "6-APA", "cas": "551-16-6" }
+      ],
+      "steps": [
+        {
+          "id": "amox-u1",
+          "order": 1,
+          "title": "Fermentation",
+          "description": "Produce penicillin in aerated fermenters; harvest broth.",
+          "mechanismClass": "Secondary metabolite fermentation",
+          "apparatus": [{ "equipmentClass": "ss316-reactor", "notes": "Production fermenter" }]
+        },
+        {
+          "id": "amox-u2",
+          "order": 2,
+          "title": "Cleavage to 6-APA",
+          "description": "Enzymatic deacylation of penicillin to 6-APA; isolate intermediate.",
+          "mechanismClass": "Enzymatic side-chain cleavage",
+          "apparatus": [{ "equipmentClass": "ss316-reactor" }, { "equipmentClass": "crystallizer" }]
+        }
+      ],
+      "sourceRefs": [
+        {
+          "type": "editorial",
+          "id": "amox-upstream-scaffold",
+          "note": "Outline of linked intermediate train"
+        }
+      ]
+    }
+  ],
+  "disclaimer": "Educational β-lactam process scaffold. Not a GMP procedure. β-lactam plants require specialized containment and regulatory controls beyond this document.",
+  "sourceRefs": [
+    {
+      "type": "api",
+      "id": "pubchem-33613",
+      "url": "https://pubchem.ncbi.nlm.nih.gov/compound/33613"
+    }
+  ]
+}
