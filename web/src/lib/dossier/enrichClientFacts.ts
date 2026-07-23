@@ -7,6 +7,7 @@ import {
   extractProcessFacts,
   type ProcessFactBundle,
 } from "@/lib/dossier/processFacts";
+import { applyPlantDeliverables } from "@/lib/dossier/plantDeliverables";
 import { getUserSupplementsForCid } from "@/lib/idb/userSupplements";
 
 /**
@@ -52,7 +53,7 @@ export function reextractFactsWithLocalSupplements(
 
 export function applyLocalFactEnrichment(dossier: LiveDossier): LiveDossier {
   const processFacts = reextractFactsWithLocalSupplements(dossier);
-  return {
+  const withFacts: LiveDossier = {
     ...dossier,
     processFacts,
     processFraming: processFacts.framing,
@@ -65,4 +66,5 @@ export function applyLocalFactEnrichment(dossier: LiveDossier): LiveDossier {
       ].filter((g, i, a) => a.indexOf(g) === i),
     },
   };
+  return applyPlantDeliverables(withFacts);
 }

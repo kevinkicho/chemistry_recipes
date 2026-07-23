@@ -41,6 +41,7 @@ import { LocalTextEnrich } from "@/components/LocalTextEnrich";
 import { ProcessFramingBanner } from "@/components/ProcessFramingBanner";
 import { applyLocalFactEnrichment } from "@/lib/dossier/enrichClientFacts";
 import { formatCacheAge } from "@/lib/idb/dossierCache";
+import { findHubByCid } from "@/lib/data/hubIndex";
 
 function SectionTitle({
   children,
@@ -57,6 +58,34 @@ function SectionTitle({
       {ai ? <AiProvenance provenance={ai} field={field} label="AI" /> : null}
     </div>
   );
+}
+
+function extractMp(texts: string[]): string | undefined {
+  for (const t of texts) {
+    const m = t.match(
+      /melting\s*(?:point|range)?[:\s]+([0-9.]+\s*(?:–|-|to)\s*[0-9.]+|[0-9.]+)\s*°?\s*C/i
+    );
+    if (m) return m[1];
+  }
+  return undefined;
+}
+
+function extractAppearance(texts: string[]): string | undefined {
+  for (const t of texts) {
+    if (/white|crystal|solid|powder|liquid|colorless|colourless/i.test(t) && t.length < 160) {
+      return t.replace(/^[^:]+:\s*/, "").slice(0, 120);
+    }
+  }
+  return undefined;
+}
+
+function extractSolubility(texts: string[]): string | undefined {
+  for (const t of texts) {
+    if (/solubl/i.test(t) && t.length < 200) {
+      return t.replace(/^[^:]+:\s*/, "").slice(0, 160);
+    }
+  }
+  return undefined;
 }
 
 export type LiveDossierChrome = {
@@ -172,6 +201,20 @@ export function LiveMoleculeDossier({
       evidenceScore: dossier.evidenceScore?.score,
     }
   );
+  const hubTwin = findHubByCid(cid);
+  const tierAHref =
+    hubTwin?.kind === "example" && hubTwin.exampleId
+      ? routes.example(hubTwin.exampleId)
+      : null;
+
+  // Properties for example-like sidebar (PubChem identity + property texts)
+  const plantProps = {
+    molecularWeight: hit?.molecularWeight,
+    formula: hit?.formula,
+    meltingPointC: extractMp(dossier.propertyTexts),
+    appearance: extractAppearance(dossier.propertyTexts),
+    solubility: extractSolubility(dossier.propertyTexts),
+  };
 
   const liveStatusLabel =
     chrome?.fromCache && chrome.cachedAt
@@ -373,14 +416,26 @@ export function LiveMoleculeDossier({
             </div>
           ) : null}
 
+          {tierAHref ? (
+            <p className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-xs text-amber-100/90">
+              <strong className="font-medium">Curated Tier-A twin available</strong>
+              {" — "}
+              open the full dual-view teaching dossier for{" "}
+              <Link href={tierAHref} className="font-medium text-amber-200 hover:underline">
+                {hubTwin?.name || name}
+              </Link>{" "}
+              (mock depth), then return here for live multi-API facts.
+            </p>
+          ) : null}
+
           <p className="rounded-lg border border-teal-500/20 bg-teal-500/5 px-3 py-2 text-xs text-teal-100/90">
             <strong className="font-medium">Live free-public build</strong>
             {" — "}
-            assembled from PubChem, literature, and patents
-            {routesFromAi ? " with Ollama dual-view synthesis" : " (evidence shell)"}
-            . Not a GMP procedure. Open{" "}
-            <span className="text-violet-300/90">AI</span> /{" "}
-            <span className="text-sky-300/90">API</span> chips for provenance.
+            plant sections below mirror curated example dossiers: recipe, control points,
+            manufacturing summary, apparatus, environment, EHS, and properties when public
+            evidence supports them
+            {routesFromAi ? " (plus Ollama dual-view)" : " (evidence shell / fact-derived)"}
+            . Not a GMP procedure.
           </p>
 
           {ai.rawError && !ai.parsed ? (
@@ -400,37 +455,46 @@ export function LiveMoleculeDossier({
         </div>
       </div>
 
-      {/* Main + sidebar — recipe primary, evidence secondary */}
+      {/* Main + sidebar — same information architecture as curated ExampleDossierView */}
       <div className="mt-10 grid gap-6 lg:grid-cols-3">
         <div className="space-y-8 lg:col-span-2">
           <ProcessFramingBanner dossier={dossier} />
-          <EvidenceScoreExplainer dossier={dossier} />
-          <SourceCoverageMap dossier={dossier} />
-          <ManagerBriefPanel dossier={dossier} />
-          <OperatorJobAid dossier={dossier} />
-          <ProcessFactsPanel dossier={dossier} />
-          <LocalTextEnrich
-            cid={cid}
-            onSaved={() => setEnrichTick((n) => n + 1)}
-          />
-          <ValidationChecklist dossier={dossier} />
+
+          {/* Primary plant content (match mock/example order) */}
+          <CriticalParametersBoard routes={dossier.processRoutes} />
+
+          <section id="process-parameters" className="scroll-mt-24">
+            <SectionTitle>Educational parameters</SectionTitle>
+            <p className="mb-3 text-xs text-slate-500">
+              {paramSet.parameters.length} {modalityMeta?.label || modality} teaching
+              envelopes — literature-typical only, not site CQAs.
+            </p>
+            <BiologicParametersPanel
+              parameterSet={paramSet}
+              title={`${modalityMeta?.label || modality} parameters`}
+            />
+          </section>
 
           <section id="routes" className="scroll-mt-24">
             <SectionTitle
               ai={routesFromAi && aiChip ? aiChip : undefined}
               field="Process recipe"
             >
-              {dossier.processFraming === "process-recipe"
-                ? "Process recipe"
-                : "Evidence leads (not a recipe)"}
+              Process recipe
             </SectionTitle>
             <p className="mb-4 text-xs leading-relaxed text-slate-500">
-              Plant-first dual view. Numeric conditions appear only when aligned with
-              public process facts or cited leads
+              Ingredients, method steps, dual plant / chemistry view — same structure as
+              curated examples. Numbers only when public facts support them
               {routesFromAi
-                ? " (Ollama structures evidence; uncited numbers are stripped)."
-                : " (evidence leads until synthesis is available)."}{" "}
+                ? " (Ollama structures evidence; uncited values stripped)."
+                : " (evidence / fact-derived leads)."}{" "}
               Not a GMP batch record.
+              {dossier.processFraming === "evidence-lead-pack" ? (
+                <span className="text-amber-200/80">
+                  {" "}
+                  Framed as evidence-lead pack until process-fact density rises.
+                </span>
+              ) : null}
             </p>
             <RoutePanel
               routes={dossier.processRoutes}
@@ -439,56 +503,10 @@ export function LiveMoleculeDossier({
             />
           </section>
 
-          <CriticalParametersBoard routes={dossier.processRoutes} />
-
-          {(dossier.annotations?.length ?? 0) > 0 ? (
-            <section id="multi-source" className="scroll-mt-24">
-              <SectionTitle>Multi-source free APIs</SectionTitle>
-              <p className="mb-3 text-xs text-slate-500">
-                Beyond PubChem: identity, regulatory, pathway, and mechanism feeds used for this
-                recipe.
-              </p>
-              <ul className="grid gap-2 sm:grid-cols-2">
-                {dossier.annotations.map((a, i) => (
-                  <li
-                    key={`${a.source}-${i}`}
-                    className="rounded-xl border border-slate-800 bg-slate-900/50 p-3"
-                  >
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-sky-200 ring-1 ring-sky-500/25">
-                        {a.source}
-                      </span>
-                      <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-500">
-                        {a.kind}
-                      </span>
-                    </div>
-                    <div className="mt-1.5 text-sm font-medium text-slate-100">
-                      {a.url ? (
-                        <a
-                          href={a.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-teal-300 hover:underline"
-                        >
-                          {a.title}
-                        </a>
-                      ) : (
-                        a.title
-                      )}
-                    </div>
-                    {a.summary ? (
-                      <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-slate-500">
-                        {a.summary}
-                      </p>
-                    ) : null}
-                    {a.organization ? (
-                      <p className="mt-1 text-[10px] text-slate-600">{a.organization}</p>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
+          <section id="route-compare" className="scroll-mt-24">
+            <SectionTitle>Route compare</SectionTitle>
+            <RouteCompare routes={dossier.processRoutes} />
+          </section>
 
           {dossier.relatedEntities && dossier.relatedEntities.length > 0 ? (
             <section id="related-entities" className="scroll-mt-24">
@@ -501,7 +519,7 @@ export function LiveMoleculeDossier({
                 }
                 field="Related materials"
               >
-                Related materials
+                Related entities
               </SectionTitle>
               <EntityGraph centerName={name} entities={dossier.relatedEntities} />
               <ul className="mt-3 space-y-2">
@@ -546,14 +564,81 @@ export function LiveMoleculeDossier({
             </section>
           ) : null}
 
-          {dossier.processRoutes.length >= 2 ? (
+          {dossier.unitOpFills && dossier.unitOpFills.length > 0 ? (
+            <section id="unit-op-fill" className="scroll-mt-24">
+              <SectionTitle>Modality unit ops</SectionTitle>
+              <UnitOpFillPanel
+                fills={dossier.unitOpFills}
+                modalityLabel={modalityMeta?.label}
+              />
+            </section>
+          ) : null}
+
+          {/* Secondary: trust / industry tooling (extra beyond curated mock) */}
+          <CollapsibleSection
+            id="industry-briefs"
+            title="Industry briefs & accuracy tools"
+            summary="Manager brief, operator job aid, process facts, local enrich"
+            badge="extra"
+            defaultOpen={false}
+          >
+            <div className="space-y-6">
+              <EvidenceScoreExplainer dossier={dossier} />
+              <SourceCoverageMap dossier={dossier} />
+              <ManagerBriefPanel dossier={dossier} />
+              <OperatorJobAid dossier={dossier} />
+              <ProcessFactsPanel dossier={dossier} />
+              <LocalTextEnrich
+                cid={cid}
+                onSaved={() => setEnrichTick((n) => n + 1)}
+              />
+              <ValidationChecklist dossier={dossier} />
+            </div>
+          </CollapsibleSection>
+
+          {(dossier.annotations?.length ?? 0) > 0 ? (
             <CollapsibleSection
-              id="route-compare"
-              title="Compare recipes"
-              summary="Side-by-side BOM, scale, and critical parameters"
-              badge={`${dossier.processRoutes.length} routes`}
+              id="multi-source"
+              title="Multi-source free APIs"
+              summary={`${dossier.annotations.length} annotations beyond PubChem identity`}
+              badge={String(dossier.annotations.length)}
             >
-              <RouteCompare routes={dossier.processRoutes} />
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {dossier.annotations.map((a, i) => (
+                  <li
+                    key={`${a.source}-${i}`}
+                    className="rounded-xl border border-slate-800 bg-slate-900/50 p-3"
+                  >
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-sky-200 ring-1 ring-sky-500/25">
+                        {a.source}
+                      </span>
+                      <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-500">
+                        {a.kind}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 text-sm font-medium text-slate-100">
+                      {a.url ? (
+                        <a
+                          href={a.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-teal-300 hover:underline"
+                        >
+                          {a.title}
+                        </a>
+                      ) : (
+                        a.title
+                      )}
+                    </div>
+                    {a.summary ? (
+                      <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-slate-500">
+                        {a.summary}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
             </CollapsibleSection>
           ) : null}
 
@@ -565,31 +650,6 @@ export function LiveMoleculeDossier({
               badge={String(dossier.contradictions.length)}
             >
               <EvidenceContradictions items={dossier.contradictions} />
-            </CollapsibleSection>
-          ) : null}
-
-          <CollapsibleSection
-            id="process-parameters"
-            title="Educational parameters"
-            summary={`${paramSet.parameters.length} ${modalityMeta?.label || modality} teaching envelopes — not site limits`}
-            badge="scaffold"
-          >
-            <BiologicParametersPanel
-              parameterSet={paramSet}
-              title={`${modalityMeta?.label || modality} parameters`}
-            />
-          </CollapsibleSection>
-
-          {dossier.unitOpFills && dossier.unitOpFills.length > 0 ? (
-            <CollapsibleSection
-              id="unit-op-fill"
-              title="Modality unit ops"
-              summary="Template slots matched to evidence steps"
-            >
-              <UnitOpFillPanel
-                fills={dossier.unitOpFills}
-                modalityLabel={modalityMeta?.label}
-              />
             </CollapsibleSection>
           ) : null}
 
@@ -920,16 +980,34 @@ export function LiveMoleculeDossier({
               />
             </div>
             <dl className="space-y-1 text-sm text-slate-400">
-              {hit?.molecularWeight != null ? (
+              {plantProps.molecularWeight != null ? (
                 <div>
                   <span className="text-slate-600">MW </span>
-                  {hit.molecularWeight}
+                  {plantProps.molecularWeight}
                 </div>
               ) : null}
-              {hit?.formula ? (
+              {plantProps.formula ? (
                 <div>
                   <span className="text-slate-600">Formula </span>
-                  {hit.formula}
+                  {plantProps.formula}
+                </div>
+              ) : null}
+              {plantProps.meltingPointC ? (
+                <div>
+                  <span className="text-slate-600">mp </span>
+                  {plantProps.meltingPointC} °C
+                </div>
+              ) : null}
+              {plantProps.appearance ? (
+                <div>
+                  <span className="text-slate-600">Appearance </span>
+                  {plantProps.appearance}
+                </div>
+              ) : null}
+              {plantProps.solubility ? (
+                <div>
+                  <span className="text-slate-600">Solubility </span>
+                  {plantProps.solubility}
                 </div>
               ) : null}
               {hit?.smiles ? (
@@ -937,6 +1015,11 @@ export function LiveMoleculeDossier({
                   <span className="text-slate-600">SMILES </span>
                   {hit.smiles}
                 </div>
+              ) : null}
+              {hit?.molecularWeight == null &&
+              !plantProps.meltingPointC &&
+              !plantProps.appearance ? (
+                <div className="text-slate-600">No property excerpts in this capture.</div>
               ) : null}
             </dl>
             {dossier.propertyTexts.length > 0 ? (

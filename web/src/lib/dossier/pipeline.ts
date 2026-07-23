@@ -16,6 +16,7 @@ import {
   preferRoutesForEvidence,
   stripUncitedRouteDetails,
 } from "@/lib/dossier/processFacts";
+import { applyPlantDeliverables } from "@/lib/dossier/plantDeliverables";
 import type { LiveDossier } from "@/lib/dossier/types";
 import {
   createProgressClock,
@@ -443,6 +444,9 @@ export async function buildLiveDossierWithProgress(
       ].filter((g, i, a) => a.indexOf(g) === i),
     },
   };
+
+  // Example-like plant sections from free-public facts when AI left them empty
+  dossier = applyPlantDeliverables(dossier);
 
   emit({
     type: "complete",
