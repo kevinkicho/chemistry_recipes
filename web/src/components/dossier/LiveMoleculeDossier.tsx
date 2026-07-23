@@ -418,13 +418,14 @@ export function LiveMoleculeDossier({
 
           {tierAHref ? (
             <p className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-xs text-amber-100/90">
-              <strong className="font-medium">Curated Tier-A twin available</strong>
+              <strong className="font-medium">Tier-A teaching baseline merged</strong>
               {" — "}
-              open the full dual-view teaching dossier for{" "}
+              curated dual-view routes/BOM/apparatus for{" "}
               <Link href={tierAHref} className="font-medium text-amber-200 hover:underline">
                 {hubTwin?.name || name}
               </Link>{" "}
-              (mock depth), then return here for live multi-API facts.
+              are included below as labeled educational routes, alongside live multi-API
+              facts. Open the example page for the pure mock layout.
             </p>
           ) : null}
 

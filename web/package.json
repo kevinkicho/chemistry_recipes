@@ -14,9 +14,10 @@
     "test:lib-modules": "node scripts/test-lib-modules.mjs",
     "test:tier-a": "node scripts/test-tier-a-golden.mjs",
     "test:ai-regression": "node scripts/test-ai-regression.mjs",
+    "test:plant-parity": "node scripts/test-plant-parity.mjs",
     "test:smoke": "node scripts/test-smoke-apis.mjs",
     "test:smoke:strict": "node scripts/test-smoke-apis.mjs --strict",
-    "test:unit": "npm run test:evidence && npm run test:hub && npm run test:process-facts && npm run test:export-ai && npm run test:lib-modules && npm run test:tier-a && npm run test:ai-regression",
+    "test:unit": "npm run test:evidence && npm run test:hub && npm run test:process-facts && npm run test:export-ai && npm run test:lib-modules && npm run test:tier-a && npm run test:ai-regression && npm run test:plant-parity",
     "test": "npm run test:unit",
     "test:coverage": "npm run test:unit && npm run test:smoke && npx tsc --noEmit && npx eslint src --max-warnings 0",
     "test:all": "npm run test:coverage && npm run build"

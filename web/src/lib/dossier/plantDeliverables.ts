@@ -10,10 +10,22 @@ import type {
   EnvironmentSpec,
   Material,
   ProcessRoute,
+  ProcessStep,
+  RelatedEntity,
 } from "@/lib/types/process";
 import { filterUsefulTexts } from "@/lib/dossier/evidenceFilter";
+import {
+  evidenceTextBlob,
+  extractChemicalMentions,
+  materialsFromMentions,
+} from "@/lib/dossier/chemicalMentions";
+import { mergeRelatedEntities } from "@/lib/dossier/relatedEntities";
 
-const UNIT_OP_TO_EQUIPMENT: Array<{ re: RegExp; equipmentClass: string; notes: string }> = [
+const UNIT_OP_TO_EQUIPMENT: Array<{
+  re: RegExp;
+  equipmentClass: string;
+  notes: string;
+}> = [
   { re: /hydrogenat/i, equipmentClass: "hydrogenator", notes: "From public unit-op language" },
   { re: /crystall/i, equipmentClass: "crystallizer", notes: "From public unit-op language" },
   { re: /filtr|filter/i, equipmentClass: "filter-dryer", notes: "Filtration / drying language in sources" },
@@ -22,8 +34,16 @@ const UNIT_OP_TO_EQUIPMENT: Array<{ re: RegExp; equipmentClass: string; notes: s
   { re: /ferment/i, equipmentClass: "ss316-reactor", notes: "Fermentation / bioreactor class (educational)" },
   { re: /dry|drying/i, equipmentClass: "drying-oven", notes: "Drying language in sources" },
   { re: /mill/i, equipmentClass: "milling", notes: "From public unit-op language" },
-  { re: /chromatograph/i, equipmentClass: "other", notes: "Chromatography / purification (class TBD on site)" },
-  { re: /react|charge|quench|acylation|alkylat/i, equipmentClass: "glass-lined-reactor", notes: "Reaction language in public text" },
+  {
+    re: /chromatograph/i,
+    equipmentClass: "other",
+    notes: "Chromatography / purification (class TBD on site)",
+  },
+  {
+    re: /react|charge|quench|acylation|alkylat|acetylation/i,
+    equipmentClass: "glass-lined-reactor",
+    notes: "Reaction language in public text",
+  },
 ];
 
 function factsOf(d: LiveDossier): ProcessFact[] {
@@ -46,7 +66,6 @@ function deriveApparatus(facts: ProcessFact[]): ApparatusItem[] {
       }
     }
   }
-  // Always suggest N2 blanket if atmosphere language present
   if (facts.some((f) => /N2|nitrogen|inert|argon/i.test(f.claim + (f.value || "")))) {
     if (!seen.has("nitrogen-blanket")) {
       out.push({
@@ -56,7 +75,25 @@ function deriveApparatus(facts: ProcessFact[]): ApparatusItem[] {
       });
     }
   }
+  if (facts.some((f) => /exotherm|scrubber|acid vapor/i.test(f.claim))) {
+    if (!seen.has("scrubber")) {
+      out.push({
+        equipmentClass: "scrubber",
+        notes: "Process-hazard / acid-gas cue in public text",
+      });
+    }
+  }
   return out.slice(0, 12);
+}
+
+function equipmentForUnitOp(op: string): ApparatusItem[] {
+  const out: ApparatusItem[] = [];
+  for (const m of UNIT_OP_TO_EQUIPMENT) {
+    if (m.re.test(op)) {
+      out.push({ equipmentClass: m.equipmentClass, notes: m.notes });
+    }
+  }
+  return out.slice(0, 2);
 }
 
 function deriveEnvironment(facts: ProcessFact[]): EnvironmentSpec | undefined {
@@ -93,7 +130,7 @@ function deriveEnvironment(facts: ProcessFact[]): EnvironmentSpec | undefined {
   };
 }
 
-function deriveMaterials(facts: ProcessFact[]): Material[] {
+function deriveMaterialsFromFacts(facts: ProcessFact[]): Material[] {
   const out: Material[] = [];
   for (const f of facts.filter((x) => x.kind === "material")) {
     out.push({
@@ -122,20 +159,68 @@ function deriveApplications(d: LiveDossier): string[] {
   return [...new Set([...fromAnn, ...chips])].slice(0, 8);
 }
 
-function deriveManufacturingSummary(d: LiveDossier): string | undefined {
-  if (d.synthesis.manufacturingSummary?.trim()) return d.synthesis.manufacturingSummary;
-  const mfg = filterUsefulTexts(d.manufacturingTexts).slice(0, 4);
-  const factBit = d.processFacts?.summary;
+/**
+ * Coherent plant-train narrative (example-like), not raw excerpt dump.
+ */
+function deriveManufacturingSummary(d: LiveDossier, facts: ProcessFact[]): string | undefined {
+  if (
+    d.synthesis.manufacturingSummary?.trim() &&
+    !/Tier-A teaching/i.test(d.synthesis.manufacturingSummary)
+  ) {
+    // Prefer non-tier-a live summary if already good
+    if (d.synthesis.manufacturingSummary.length > 80) {
+      return d.synthesis.manufacturingSummary;
+    }
+  }
+
+  const name = d.identity?.name || `CID ${d.cid}`;
+  const ops = [
+    ...new Set(
+      facts
+        .filter((f) => f.kind === "unit-op")
+        .map((f) => (f.value || f.unitOp || "").toLowerCase())
+        .filter(Boolean)
+    ),
+  ].slice(0, 8);
+
+  const temps = facts
+    .filter((f) => f.kind === "condition" && /°\s*c|temp/i.test(f.claim))
+    .map((f) => f.value || f.claim)
+    .slice(0, 4);
+  const isolation = facts.some((f) => f.kind === "isolation" || f.kind === "workup");
+  const mfg = filterUsefulTexts(d.manufacturingTexts).slice(0, 2);
   const lit = d.literature[0]?.title;
   const pat = d.patents[0]?.title;
-  const parts = [
-    mfg.join(" "),
-    factBit,
-    lit ? `Process-oriented literature includes “${lit.slice(0, 100)}”.` : null,
-    pat ? `Related IP includes “${pat.slice(0, 100)}”.` : null,
-  ].filter(Boolean);
-  const s = parts.join(" ").trim();
-  return s.length > 40 ? s.slice(0, 1200) : undefined;
+
+  const train =
+    ops.length > 0
+      ? `Public process cues for ${name} suggest a train involving: ${ops.join(" → ")}.`
+      : `Public process sequence for ${name} is not yet dense enough to sketch a full unit-op train.`;
+
+  const condBit = temps.length
+    ? ` Conditions mentioned in free-public text include ${temps.join("; ")} (verify in primary sources).`
+    : "";
+  const isolBit = isolation
+    ? " Isolation / workup language appears in sources."
+    : " Isolation details are largely site-fill from public excerpts.";
+  const mfgBit = mfg.length ? ` PubChem manufacturing/use notes: ${mfg.join(" ")}` : "";
+  const leadBit = [
+    lit ? `Process-oriented literature lead: “${lit.slice(0, 90)}”.` : null,
+    pat ? `IP lead: “${pat.slice(0, 90)}”.` : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const framing =
+    d.processFacts?.framing === "process-recipe"
+      ? " Process-fact density supports process-recipe framing (still not GMP)."
+      : " Currently framed as an evidence-lead pack — not a full manufacturing recipe.";
+
+  const s = `${train}${condBit}${isolBit}${mfgBit} ${leadBit}${framing}`.replace(
+    /\s+/g,
+    " "
+  ).trim();
+  return s.length > 60 ? s.slice(0, 1400) : undefined;
 }
 
 function deriveEhs(d: LiveDossier, facts: ProcessFact[]): string[] {
@@ -148,6 +233,76 @@ function deriveEhs(d: LiveDossier, facts: ProcessFact[]): string[] {
   return [...proc, ...ghs].slice(0, 12);
 }
 
+/**
+ * Enrich thin evidence-lead steps with plant apparatus + dual-view body.
+ */
+function enrichStepsForPlantView(
+  routes: ProcessRoute[],
+  facts: ProcessFact[]
+): ProcessRoute[] {
+  return routes.map((r) => ({
+    ...r,
+    steps: r.steps.map((s) => enrichOneStep(s, facts)),
+  }));
+}
+
+function enrichOneStep(step: ProcessStep, allFacts: ProcessFact[]): ProcessStep {
+  const related = (step.factIds || [])
+    .map((id) => allFacts.find((f) => f.id === id))
+    .filter(Boolean) as ProcessFact[];
+  const unitOps = related
+    .filter((f) => f.kind === "unit-op")
+    .map((f) => f.value || f.unitOp || "")
+    .filter(Boolean);
+  const apparatus =
+    step.apparatus?.length
+      ? step.apparatus
+      : unitOps.flatMap((op) => equipmentForUnitOp(op)).slice(0, 3);
+
+  // Build plant-facing description if step is still a raw abstract dump
+  let description = step.description;
+  const isLead =
+    /literature process lead|patent process lead|open primary source/i.test(
+      step.mechanismClass || ""
+    ) || description.length > 400;
+  if (unitOps.length && (isLead || !step.apparatus?.length)) {
+    const plantLead = [
+      unitOps.length ? `Plant unit-op cues: ${unitOps.join(", ")}.` : null,
+      step.conditions?.temperatureC
+        ? `Temperature in public text: ${step.conditions.temperatureC}.`
+        : null,
+      step.conditions?.time ? `Time in public text: ${step.conditions.time}.` : null,
+      step.conditions?.atmosphere
+        ? `Atmosphere: ${step.conditions.atmosphere}.`
+        : null,
+      "Verify full experimental procedure in the primary source before any plant use.",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    // Keep original abstract as mechanism notes if not set
+    const mechanismNotes =
+      step.mechanismNotes ||
+      (description.length > 40 ? description.slice(0, 500) : undefined);
+    description = plantLead;
+    return {
+      ...step,
+      description,
+      mechanismNotes,
+      apparatus: apparatus.length ? apparatus : step.apparatus,
+      environment:
+        step.environment ||
+        (step.conditions?.atmosphere
+          ? { atmosphere: step.conditions.atmosphere }
+          : undefined),
+    };
+  }
+
+  return {
+    ...step,
+    apparatus: apparatus.length ? apparatus : step.apparatus,
+  };
+}
+
 function enrichRoutesWithMaterials(
   routes: ProcessRoute[],
   materials: Material[]
@@ -155,7 +310,6 @@ function enrichRoutesWithMaterials(
   if (!materials.length) return routes;
   return routes.map((r, i) => {
     if (r.materials?.length) return r;
-    // Attach derived materials only to preferred route
     if (i === 0) return { ...r, materials: [...materials] };
     return r;
   });
@@ -166,21 +320,42 @@ function enrichRoutesWithMaterials(
  */
 export function applyPlantDeliverables(dossier: LiveDossier): LiveDossier {
   const facts = factsOf(dossier);
+  const blob = evidenceTextBlob({
+    manufacturingTexts: dossier.manufacturingTexts,
+    literature: dossier.literature,
+    patents: dossier.patents,
+    processFactQuotes: facts.map((f) => f.quote || f.claim).slice(0, 40),
+  });
+  const mentions = extractChemicalMentions(blob, {
+    excludeName: dossier.identity?.name,
+  });
+  const mentionMaterials = materialsFromMentions(mentions);
+  const factMaterials = deriveMaterialsFromFacts(facts);
+  const materials = [...factMaterials, ...mentionMaterials].slice(0, 16);
+
+  const relatedFromMentions: RelatedEntity[] = mentions;
+  const relatedEntities = mergeRelatedEntities(
+    dossier.relatedEntities || [],
+    relatedFromMentions
+  );
+
   const apparatus =
     dossier.synthesis.apparatusCatalog?.length
       ? dossier.synthesis.apparatusCatalog
       : deriveApparatus(facts);
   const environment =
     dossier.synthesis.environmentBaseline || deriveEnvironment(facts);
-  const materials = deriveMaterials(facts);
   const applications = deriveApplications(dossier);
-  const manufacturingSummary = deriveManufacturingSummary(dossier);
+  const manufacturingSummary = deriveManufacturingSummary(dossier, facts);
   const ehsHighlights = deriveEhs(dossier, facts);
-  const processRoutes = enrichRoutesWithMaterials(dossier.processRoutes, materials);
+
+  let processRoutes = enrichRoutesWithMaterials(dossier.processRoutes, materials);
+  processRoutes = enrichStepsForPlantView(processRoutes, facts);
 
   return {
     ...dossier,
     processRoutes,
+    relatedEntities,
     synthesis: {
       ...dossier.synthesis,
       applications: applications.length ? applications : dossier.synthesis.applications,

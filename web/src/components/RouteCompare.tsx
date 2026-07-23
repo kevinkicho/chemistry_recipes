@@ -33,8 +33,128 @@ function collectMaterials(r: ProcessRoute): string[] {
     .slice(0, 16);
 }
 
+function collectConditions(r: ProcessRoute): string[] {
+  const out: string[] = [];
+  for (const s of r.steps || []) {
+    if (!s.conditions) continue;
+    const bits = [
+      s.conditions.temperatureC && `T ${s.conditions.temperatureC}`,
+      s.conditions.time && `t ${s.conditions.time}`,
+      s.conditions.pressure && `P ${s.conditions.pressure}`,
+      s.conditions.atmosphere && s.conditions.atmosphere,
+    ].filter(Boolean);
+    if (bits.length) out.push(`${s.order}. ${s.title}: ${bits.join("; ")}`);
+  }
+  return out.slice(0, 12);
+}
+
+function RoutePlantCard({
+  route,
+  label,
+}: {
+  route: ProcessRoute;
+  label: string;
+}) {
+  const mats = collectMaterials(route);
+  const equip = collectEquipment(route);
+  const crit = collectCritical(route);
+  const conds = collectConditions(route);
+
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        {label}
+      </div>
+      <h3 className="mt-1 text-sm font-semibold text-slate-100">{route.name}</h3>
+      <p className="mt-1 text-xs text-slate-500">
+        {route.type} · {route.scaleClass}
+        {route.overallYieldTypical
+          ? ` · yield ${route.overallYieldTypical}`
+          : ""}
+      </p>
+      <p className="mt-2 text-xs leading-relaxed text-slate-400">{route.summary}</p>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div>
+          <div className="text-[10px] font-semibold uppercase text-slate-500">
+            BOM / materials
+          </div>
+          {mats.length ? (
+            <ul className="mt-1 space-y-0.5 text-[11px] text-slate-300">
+              {mats.map((m) => (
+                <li key={m}>· {m}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1 text-[11px] text-slate-600">No BOM extracted</p>
+          )}
+        </div>
+        <div>
+          <div className="text-[10px] font-semibold uppercase text-slate-500">
+            Equipment classes
+          </div>
+          {equip.length ? (
+            <ul className="mt-1 space-y-0.5 text-[11px] text-slate-300">
+              {equip.map((e) => (
+                <li key={e}>
+                  <code className="text-teal-300/90">{e}</code>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1 text-[11px] text-slate-600">None listed</p>
+          )}
+        </div>
+        <div>
+          <div className="text-[10px] font-semibold uppercase text-slate-500">
+            Public conditions
+          </div>
+          {conds.length ? (
+            <ul className="mt-1 space-y-0.5 text-[11px] text-slate-300">
+              {conds.map((c) => (
+                <li key={c}>· {c}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1 text-[11px] text-slate-600">No numeric conditions</p>
+          )}
+        </div>
+        <div>
+          <div className="text-[10px] font-semibold uppercase text-slate-500">
+            Critical cues
+          </div>
+          {crit.length ? (
+            <ul className="mt-1 space-y-0.5 text-[11px] text-slate-300">
+              {crit.map((c) => (
+                <li key={c}>· {c}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1 text-[11px] text-slate-600">
+              No CPPs listed (site-fill)
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-3">
+        <div className="text-[10px] font-semibold uppercase text-slate-500">
+          Steps ({route.steps?.length || 0})
+        </div>
+        <ol className="mt-1 list-decimal space-y-0.5 pl-4 text-[11px] text-slate-400">
+          {(route.steps || []).slice(0, 8).map((s) => (
+            <li key={s.id}>
+              <span className="text-slate-300">{s.title}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </div>
+  );
+}
+
 /**
- * Side-by-side comparison of two process routes (tech-transfer / scouting).
+ * Side-by-side comparison of process routes (or single-route plant panel).
  */
 export function RouteCompare({ routes }: { routes: ProcessRoute[] }) {
   const usable = routes.filter((r) => r && r.id);
@@ -50,12 +170,25 @@ export function RouteCompare({ routes }: { routes: ProcessRoute[] }) {
     [usable, rightId]
   );
 
-  if (usable.length < 2) {
+  if (usable.length === 0) {
     return (
       <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4 text-sm text-slate-500">
-        Route compare needs at least two routes on this dossier. After AI synthesis
-        produces dual routes (or when public leads + AI routes coexist), pick any two
-        here for BOM, scale, and critical-parameter comparison.
+        No process routes yet. Public leads, Tier-A teaching baseline (hub CIDs), or
+        Ollama synthesis will populate this panel.
+      </div>
+    );
+  }
+
+  // Single route — still show full plant scouting card (like mock one-route dossiers)
+  if (usable.length === 1 && left) {
+    return (
+      <div id="route-compare" className="scroll-mt-24 space-y-3">
+        <p className="text-xs text-slate-500">
+          One public/teaching route on this dossier — plant scouting panel (BOM,
+          equipment, conditions). A second route (e.g. Tier-A teaching or AI
+          alternative) enables side-by-side compare.
+        </p>
+        <RoutePlantCard route={left} label="Preferred route" />
       </div>
     );
   }
@@ -89,7 +222,7 @@ export function RouteCompare({ routes }: { routes: ProcessRoute[] }) {
             className="mt-1 block w-full min-w-[12rem] rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100"
           >
             {usable.map((r) => (
-              <option key={`b-${r.id}`} value={r.id}>
+              <option key={r.id} value={r.id}>
                 {routeLabel(r)}
               </option>
             ))}
@@ -98,132 +231,9 @@ export function RouteCompare({ routes }: { routes: ProcessRoute[] }) {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {left && right ? (
-          <>
-            <CompareColumn route={left} accent="teal" />
-            <CompareColumn route={right} accent="violet" />
-          </>
-        ) : null}
+        {left ? <RoutePlantCard route={left} label="Route A" /> : null}
+        {right ? <RoutePlantCard route={right} label="Route B" /> : null}
       </div>
-
-      {left && right ? (
-        <div className="overflow-x-auto rounded-xl border border-slate-800">
-          <table className="w-full min-w-[32rem] text-left text-xs text-slate-300">
-            <thead className="bg-slate-900/80 text-[10px] uppercase tracking-wider text-slate-500">
-              <tr>
-                <th className="px-3 py-2">Dimension</th>
-                <th className="px-3 py-2">Route A</th>
-                <th className="px-3 py-2">Route B</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-              <Row label="Type" a={left.type} b={right.type} />
-              <Row label="Scale class" a={left.scaleClass} b={right.scaleClass} />
-              <Row
-                label="Steps"
-                a={String(left.steps?.length ?? 0)}
-                b={String(right.steps?.length ?? 0)}
-              />
-              <Row
-                label="Materials (BOM lines)"
-                a={String(left.materials?.length ?? 0)}
-                b={String(right.materials?.length ?? 0)}
-              />
-              <Row
-                label="Yield note"
-                a={left.overallYieldTypical || "—"}
-                b={right.overallYieldTypical || "—"}
-              />
-              <Row
-                label="Equipment classes"
-                a={collectEquipment(left).join(", ") || "—"}
-                b={collectEquipment(right).join(", ") || "—"}
-              />
-            </tbody>
-          </table>
-        </div>
-      ) : null}
     </div>
-  );
-}
-
-function Row({ label, a, b }: { label: string; a: string; b: string }) {
-  const differ = a !== b;
-  return (
-    <tr className={differ ? "bg-amber-500/5" : undefined}>
-      <td className="px-3 py-2 font-medium text-slate-400">{label}</td>
-      <td className="px-3 py-2">{a}</td>
-      <td className="px-3 py-2">{b}</td>
-    </tr>
-  );
-}
-
-function CompareColumn({
-  route,
-  accent,
-}: {
-  route: ProcessRoute;
-  accent: "teal" | "violet";
-}) {
-  const ring =
-    accent === "teal" ? "border-teal-500/30" : "border-violet-500/30";
-  const title =
-    accent === "teal" ? "text-teal-300" : "text-violet-300";
-  return (
-    <article className={`rounded-xl border ${ring} bg-slate-900/50 p-4`}>
-      <h3 className={`text-sm font-semibold ${title}`}>{route.name}</h3>
-      <p className="mt-1 text-xs text-slate-500">
-        {route.type} · {route.scaleClass} · pref {route.preference}
-      </p>
-      <p className="mt-3 text-sm leading-relaxed text-slate-300">{route.summary}</p>
-      {route.advantages?.length ? (
-        <div className="mt-3">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-            Advantages
-          </div>
-          <ul className="mt-1 list-inside list-disc text-xs text-slate-400">
-            {route.advantages.slice(0, 5).map((a) => (
-              <li key={a}>{a}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      {route.disadvantages?.length ? (
-        <div className="mt-2">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-            Disadvantages
-          </div>
-          <ul className="mt-1 list-inside list-disc text-xs text-slate-400">
-            {route.disadvantages.slice(0, 5).map((a) => (
-              <li key={a}>{a}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      <div className="mt-3">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-          BOM (sample)
-        </div>
-        <ul className="mt-1 space-y-0.5 font-mono text-[11px] text-slate-400">
-          {collectMaterials(route).length ? (
-            collectMaterials(route).map((m) => <li key={m}>{m}</li>)
-          ) : (
-            <li className="text-slate-600">No materials listed</li>
-          )}
-        </ul>
-      </div>
-      <div className="mt-3">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-          Critical parameters
-        </div>
-        <ul className="mt-1 space-y-0.5 text-[11px] text-slate-400">
-          {collectCritical(route).length ? (
-            collectCritical(route).map((c) => <li key={c}>{c}</li>)
-          ) : (
-            <li className="text-slate-600">None extracted</li>
-          )}
-        </ul>
-      </div>
-    </article>
   );
 }

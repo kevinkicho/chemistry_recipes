@@ -17,6 +17,7 @@ import {
   stripUncitedRouteDetails,
 } from "@/lib/dossier/processFacts";
 import { applyPlantDeliverables } from "@/lib/dossier/plantDeliverables";
+import { applyTierABaseline } from "@/lib/dossier/tierABaseline";
 import type { LiveDossier } from "@/lib/dossier/types";
 import {
   createProgressClock,
@@ -446,6 +447,10 @@ export async function buildLiveDossierWithProgress(
   };
 
   // Example-like plant sections from free-public facts when AI left them empty
+  dossier = applyPlantDeliverables(dossier);
+  // Hub CIDs: merge curated Tier-A teaching routes/entities (labeled editorial)
+  dossier = applyTierABaseline(dossier);
+  // Re-apply plant deliverables so BOM/related merge stays consistent
   dossier = applyPlantDeliverables(dossier);
 
   emit({

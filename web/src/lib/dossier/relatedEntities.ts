@@ -10,6 +10,7 @@ import type {
   RelatedEntity,
 } from "@/lib/types/process";
 import { routes } from "@/lib/routes";
+import { extractChemicalMentions } from "@/lib/dossier/chemicalMentions";
 
 const ROLE_MAP: Record<string, EntityRole> = {
   "starting-material": "starting-material",
@@ -125,31 +126,41 @@ export function relatedFromEvidenceText(
 ): RelatedEntity[] {
   const texts = [
     ...(evidence.view?.manufacturingTexts || []),
-    ...evidence.literature.slice(0, 8).map((h) => `${h.title} ${h.abstract || ""}`),
+    ...evidence.literature.slice(0, 10).map((h) => `${h.title} ${h.abstract || ""}`),
+    ...evidence.patents.slice(0, 10).map((p) => `${p.title || ""} ${p.abstract || ""}`),
   ].join("\n");
 
   const out: RelatedEntity[] = [];
   const seen = new Set<string>();
 
-  // CAS RN mentions near a role-ish word
-  const casRe =
-    /\b(\d{2,7}-\d{2}-\d)\b/g;
+  // Named process chemicals (known public teaching set — only if text contains them)
+  for (const e of extractChemicalMentions(texts, {
+    excludeName: evidence.identity?.name,
+  })) {
+    const key = `${e.role}:${e.name.toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(e);
+  }
+
+  // CAS RN mentions
+  const casRe = /\b(\d{2,7}-\d{2}-\d)\b/g;
   let m: RegExpExecArray | null;
   while ((m = casRe.exec(texts)) !== null) {
     const cas = m[1];
     if (seen.has(cas)) continue;
+    if (evidence.identity?.cas && cas === evidence.identity.cas) continue;
     seen.add(cas);
-    // Skip if same as main identity CAS when we add that later
     out.push({
       role: "other",
       name: `CAS ${cas}`,
       cas,
-      notes: "CAS mentioned in public manufacturing or literature text",
+      notes: "CAS mentioned in public manufacturing, literature, or patent text",
     });
-    if (out.length >= 8) break;
+    if (out.length >= 16) break;
   }
 
-  return out;
+  return out.slice(0, 20);
 }
 
 export function mergeRelatedEntities(

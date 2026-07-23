@@ -670,7 +670,10 @@ export function routesFromProcessFacts(
       }
     }
     const hasCond = Object.keys(conditions).length > 0;
-    const unitOps = related.filter((f) => f.kind === "unit-op").map((f) => f.value || f.claim);
+    const unitOps = related
+      .filter((f) => f.kind === "unit-op")
+      .map((f) => f.value || f.claim)
+      .filter(Boolean) as string[];
     const workup = related.find((f) => f.kind === "workup")?.quote;
     const isolation = related.find((f) => f.kind === "isolation")?.quote;
     const scaleNotes = related
@@ -679,26 +682,72 @@ export function routesFromProcessFacts(
       .slice(0, 3)
       .join("; ");
 
+    // Dual-view body: plant description from unit ops; chemistry notes from abstract
+    const abstractBody =
+      description ||
+      (related[0]?.quote
+        ? related[0].quote
+        : "Open primary source for experimental detail.");
+    const plantDesc = [
+      unitOps.length ? `Plant unit-op cues: ${unitOps.join(", ")}.` : null,
+      hasCond
+        ? `Public conditions: ${[
+            conditions.temperatureC && `T ${conditions.temperatureC}`,
+            conditions.time && `t ${conditions.time}`,
+            conditions.pressure && `P ${conditions.pressure}`,
+            conditions.atmosphere && conditions.atmosphere,
+          ]
+            .filter(Boolean)
+            .join("; ")}.`
+        : null,
+      workup || isolation
+        ? `Workup/isolation language present in source excerpt.`
+        : null,
+      "Verify full experimental procedure in the primary source before any plant use.",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    const apparatus = unitOps.flatMap((op) => {
+      const items: Array<{ equipmentClass: string; notes: string }> = [];
+      if (/hydrogenat/i.test(op))
+        items.push({ equipmentClass: "hydrogenator", notes: "Unit-op cue" });
+      if (/crystall/i.test(op))
+        items.push({ equipmentClass: "crystallizer", notes: "Unit-op cue" });
+      if (/filtr|filter/i.test(op))
+        items.push({ equipmentClass: "filter-dryer", notes: "Unit-op cue" });
+      if (/distill/i.test(op))
+        items.push({
+          equipmentClass: "distillation-column",
+          notes: "Unit-op cue",
+        });
+      if (/ferment/i.test(op))
+        items.push({ equipmentClass: "ss316-reactor", notes: "Unit-op cue" });
+      if (/react|charge|acylation|alkylat|acetylation/i.test(op))
+        items.push({
+          equipmentClass: "glass-lined-reactor",
+          notes: "Unit-op cue",
+        });
+      return items;
+    });
+
     steps.push({
       id: `${type}-${order}`,
       order: order++,
-      title: title.slice(0, 120),
-      description:
-        description ||
-        (related[0]?.quote
-          ? related[0].quote
-          : "Open primary source for experimental detail."),
+      title: unitOps[0]
+        ? `${String(unitOps[0]).replace(/^./, (c) => c.toUpperCase())} (public lead)`
+        : title.slice(0, 120),
+      description: plantDesc || abstractBody,
       mechanismClass:
         unitOps[0] ||
         (type === "patent" ? "Patent process lead" : "Literature process lead"),
-      mechanismNotes: related
-        .filter((f) => f.kind === "unit-op")
-        .map((f) => f.value)
-        .filter(Boolean)
-        .slice(0, 4)
-        .join(", "),
+      mechanismNotes: abstractBody.slice(0, 600),
       conditions: hasCond ? conditions : undefined,
       factIds: related.map((f) => f.id).slice(0, 20),
+      apparatus: apparatus.length ? apparatus : undefined,
+      environment: conditions.atmosphere
+        ? { atmosphere: conditions.atmosphere }
+        : undefined,
       workup: workup || isolation,
       scaleNotes: scaleNotes || undefined,
       sourceRefs: [
@@ -710,7 +759,6 @@ export function routesFromProcessFacts(
         },
         ...sourceRefsFromFacts(related),
       ],
-      // Fact-backed controls only — never invent IPC methods
       controls: related.some((f) => f.kind === "yield")
         ? {
             notes: related

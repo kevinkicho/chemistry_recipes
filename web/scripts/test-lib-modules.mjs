@@ -122,10 +122,18 @@ ok("live dossier mounts LocalTextEnrich", /LocalTextEnrich/.test(liveDossier));
 ok("live dossier mounts ProcessFramingBanner", /ProcessFramingBanner/.test(liveDossier));
 
 const schemaCache = read("lib/idb/dossierCache.ts");
-ok("IndexedDB schema version >= 8", /SCHEMA_VERSION\s*=\s*([8-9]|\d{2,})/.test(schemaCache));
+ok("IndexedDB schema version >= 9", /SCHEMA_VERSION\s*=\s*([9]|\d{2,})/.test(schemaCache));
 ok(
   "plant deliverables module exists",
   fs.existsSync(path.join(srcRoot, "lib/dossier/plantDeliverables.ts"))
+);
+ok(
+  "tier-A baseline module exists",
+  fs.existsSync(path.join(srcRoot, "lib/dossier/tierABaseline.ts"))
+);
+ok(
+  "chemical mentions module exists",
+  fs.existsSync(path.join(srcRoot, "lib/dossier/chemicalMentions.ts"))
 );
 
 ok(

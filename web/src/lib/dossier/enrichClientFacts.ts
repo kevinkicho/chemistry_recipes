@@ -8,6 +8,7 @@ import {
   type ProcessFactBundle,
 } from "@/lib/dossier/processFacts";
 import { applyPlantDeliverables } from "@/lib/dossier/plantDeliverables";
+import { applyTierABaseline } from "@/lib/dossier/tierABaseline";
 import { getUserSupplementsForCid } from "@/lib/idb/userSupplements";
 
 /**
@@ -66,5 +67,8 @@ export function applyLocalFactEnrichment(dossier: LiveDossier): LiveDossier {
       ].filter((g, i, a) => a.indexOf(g) === i),
     },
   };
-  return applyPlantDeliverables(withFacts);
+  let next = applyPlantDeliverables(withFacts);
+  next = applyTierABaseline(next);
+  next = applyPlantDeliverables(next);
+  return next;
 }

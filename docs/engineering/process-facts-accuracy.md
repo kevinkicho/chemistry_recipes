@@ -18,6 +18,18 @@ Goal: manufacturing guidance that hands-on workers and managers can **verify**, 
 Users may paste **public** patent example text (browser localStorage).  
 `extractFactsFromUserText` → merged via `applyLocalFactEnrichment` on the live dossier.
 
+## Live ≈ curated parity helpers
+
+| Module | Role |
+|--------|------|
+| `plantDeliverables.ts` | Manufacturing narrative train, apparatus, BOM, step plant bodies |
+| `chemicalMentions.ts` | Named reagents/solvents/SMs from public text → related entities |
+| `tierABaseline.ts` | Hub CIDs merge Tier-A teaching routes/entities (labeled editorial) |
+
+## Route compare
+
+Single-route dossiers still get a plant scouting panel (BOM, equipment, conditions, steps).
+
 ## Module
 
 `web/src/lib/dossier/processFacts.ts`
