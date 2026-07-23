@@ -94,7 +94,7 @@ export interface AiDataFeedSource {
  * Attached to AI-generated UI so every chip can open prompt/data/model/timing.
  */
 export interface AiProvenanceRecord {
-  provider: "ollama-cloud";
+  provider: "ollama-cloud" | "ollama-local";
   host: string;
   model: string;
   /** ISO start time */
@@ -172,12 +172,33 @@ export interface AiSynthesis {
   provenance?: AiProvenanceRecord;
 }
 
+/** Non-PubChem free-public annotations shown on the dossier + fed to AI. */
+export interface ExternalAnnotation {
+  source: string;
+  organization?: string;
+  kind:
+    | "identity"
+    | "regulatory"
+    | "pathway"
+    | "mechanism"
+    | "literature"
+    | "hazards"
+    | "other";
+  title: string;
+  summary?: string;
+  url?: string;
+  endpointUrl?: string;
+  fields?: Record<string, string>;
+}
+
 export interface CompoundEvidence {
   cid: number;
   identity: PubChemHit | null;
   view: PugViewResult | null;
   literature: LiteratureHit[];
   patents: PatentHit[];
+  /** ChEMBL, openFDA, RxNorm, KEGG, MyChem, Crossref, … */
+  annotations: ExternalAnnotation[];
   literatureQuery?: string;
   patentsQuery?: string;
   patentsNote?: string;
@@ -194,6 +215,10 @@ export interface EvidenceScoreSnapshot {
   reasons: string[];
   processLitCount: number;
   processPatentCount: number;
+  /** Short human lines for the score explainer UI */
+  explainer?: string[];
+  /** Whether AI was recommended */
+  aiRecommendation?: string;
 }
 
 /** Audit trail of how a live dossier was assembled (for tech-transfer + QA). */
@@ -228,6 +253,8 @@ export interface LiveDossier {
   descriptionTexts: string[];
   literature: LiteratureHit[];
   patents: PatentHit[];
+  /** Multi-source free public annotations (ChEMBL, openFDA, KEGG, …) */
+  annotations: ExternalAnnotation[];
   synthesis: AiSynthesis;
   traces: ApiFetchTrace[];
   sourceRefs: SourceRef[];

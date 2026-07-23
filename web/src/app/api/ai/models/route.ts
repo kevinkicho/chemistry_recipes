@@ -1,44 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
-import { OLLAMA_CLOUD_HOST } from "@/lib/ai/config";
+import {
+  isAllowedOllamaHost,
+  isLocalOllamaHost,
+  OLLAMA_CLOUD_HOST,
+} from "@/lib/ai/config";
 import { getServerAiEnv, resolveRequestApiKey } from "@/lib/ai/serverEnv";
 
 export const runtime = "nodejs";
 
 /**
- * List models on Ollama Cloud.
- * Auth: request Bearer key, else OLLAMA_CLOUD_API_KEY / OLLAMA_API_KEY from .env
+ * List models on Ollama Cloud or local Ollama.
+ * Cloud requires API key; local loopback/LAN does not.
  */
 export async function POST(req: NextRequest) {
   try {
-    const { apiKey } = resolveRequestApiKey(req.headers.get("authorization"));
-    if (!apiKey) {
+    const body = (await req.json().catch(() => ({}))) as { host?: string };
+    const env = getServerAiEnv();
+    const host = (body.host || env.host || OLLAMA_CLOUD_HOST).replace(/\/$/, "");
+    if (!isAllowedOllamaHost(host)) {
       return NextResponse.json(
         {
           error:
-            "No Ollama API key. Set OLLAMA_CLOUD_API_KEY in .env (dev) or add a key in Settings → AI.",
+            "Host not allowed. Use https://ollama.com or a local/LAN Ollama host.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const local = isLocalOllamaHost(host);
+    const { apiKey } = resolveRequestApiKey(req.headers.get("authorization"));
+    if (!local && !apiKey) {
+      return NextResponse.json(
+        {
+          error:
+            "No Ollama API key. Set OLLAMA_CLOUD_API_KEY in .env or Settings → AI. Local Ollama needs no key.",
         },
         { status: 401 }
       );
     }
 
-    const body = (await req.json().catch(() => ({}))) as { host?: string };
-    const env = getServerAiEnv();
-    const host = (body.host || env.host || OLLAMA_CLOUD_HOST).replace(/\/$/, "");
-    try {
-      const u = new URL(host);
-      if (u.protocol !== "https:" || u.hostname !== "ollama.com") {
-        return NextResponse.json({ error: "Host not allowed" }, { status: 400 });
-      }
-    } catch {
-      return NextResponse.json({ error: "Invalid host" }, { status: 400 });
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+    };
+    if (apiKey) {
+      headers.Authorization = `Bearer ${apiKey}`;
     }
 
-    const upstream = await fetch(`${host}/api/tags`, {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        Accept: "application/json",
-      },
-    });
+    const upstream = await fetch(`${host}/api/tags`, { headers });
 
     const text = await upstream.text();
     let data: unknown = null;
@@ -55,7 +63,7 @@ export async function POST(req: NextRequest) {
         "error" in data &&
         typeof (data as { error: unknown }).error === "string"
           ? (data as { error: string }).error
-          : `Ollama Cloud error (HTTP ${upstream.status})`;
+          : `Ollama error (HTTP ${upstream.status})`;
       return NextResponse.json({ error: err }, { status: upstream.status });
     }
 

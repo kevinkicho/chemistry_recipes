@@ -1,9 +1,9 @@
 /**
- * Curated dossier layout (original Chemistry Recipes molecule page).
- * Content only from live APIs + optional Ollama — no static seed molecules.
- * Every AI-generated block carries an opacity-0.3 AI provenance chip.
+ * Live PubChem dossier — plant-ready layout aligned with curated ExampleDossierView.
+ * Content from free APIs + optional Ollama; AI blocks keep provenance chips.
  */
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { AiProvenance } from "@/components/AiProvenance";
 import { ApiProvenance } from "@/components/ApiProvenance";
@@ -29,6 +29,12 @@ import {
   getParameterSetForModality,
 } from "@/lib/modality/biologicParameters";
 import { BiologicParametersPanel } from "@/components/BiologicParametersPanel";
+import { CollapsibleSection } from "@/components/CollapsibleSection";
+import { DossierDiagnostics } from "@/components/DossierDiagnostics";
+import { SourceCoverageMap } from "@/components/SourceCoverageMap";
+import { EvidenceScoreExplainer } from "@/components/EvidenceScoreExplainer";
+import { ValidationChecklist } from "@/components/ValidationChecklist";
+import { formatCacheAge } from "@/lib/idb/dossierCache";
 
 function SectionTitle({
   children,
@@ -40,49 +46,40 @@ function SectionTitle({
   field?: string;
 }) {
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-2">
+    <div className="mb-4 flex flex-wrap items-center gap-2">
       <h2 className="text-lg font-semibold text-slate-100">{children}</h2>
       {ai ? <AiProvenance provenance={ai} field={field} label="AI" /> : null}
     </div>
   );
 }
 
-function SideTitle({
-  children,
-  ai,
-  field,
-  className = "text-sm font-semibold text-teal-300",
-}: {
-  children: React.ReactNode;
-  ai?: LiveDossier["synthesis"]["provenance"];
-  field?: string;
-  className?: string;
-}) {
-  return (
-    <div className="mb-2 flex flex-wrap items-center gap-2">
-      <h3 className={className}>{children}</h3>
-      {ai ? <AiProvenance provenance={ai} field={field} label="AI" /> : null}
-    </div>
-  );
-}
+export type LiveDossierChrome = {
+  fromCache?: boolean;
+  cachedAt?: number | null;
+  phase?: "shell" | "ready" | string;
+  onRefresh?: () => void;
+  snapshots?: ReactNode;
+};
 
-export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
+export function LiveMoleculeDossier({
+  dossier,
+  chrome,
+}: {
+  dossier: LiveDossier;
+  chrome?: LiveDossierChrome;
+}) {
   const hit = dossier.identity;
   const cid = dossier.cid;
   const name = hit?.name || `CID ${cid}`;
   const traces = slimTraces(dossier.traces);
   const ai = dossier.synthesis;
   const prov = ai.provenance;
-  /** Only chip content that actually came from a successful AI parse */
   const aiChip = ai.parsed && prov ? prov : null;
-  /** Failed AI call still shows provenance on a banner if we have a record */
   const aiAttempt = prov ?? null;
 
   const overviewFromAi = Boolean(ai.parsed && ai.overview);
   const overview =
-    ai.overview ||
-    dossier.descriptionTexts[0] ||
-    null;
+    ai.overview || dossier.descriptionTexts[0] || null;
 
   const mfgFromAi = Boolean(ai.parsed && ai.manufacturingSummary);
   const manufacturingSummary =
@@ -127,7 +124,6 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
   );
   const pugViewTraces = traces.filter((t) => t.endpointUrl.includes("pug_view"));
   const pubchemTraces = traces.filter((t) => t.endpointUrl.includes("pubchem"));
-  /** Prefer PUG View “Use and Manufacturing” captures for that section’s API chip */
   const mfgTraces = pugViewTraces.filter((t) =>
     /Use\+and\+Manufacturing|Use%20and%20Manufacturing|manufacturing/i.test(
       t.endpointUrl
@@ -144,20 +140,6 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
       url: "https://search.patentsview.org/api/v1/patent/",
       note: "Free public USPTO PatentsView endpoint (API key optional)",
     },
-    {
-      type: "api" as const,
-      id: `epmc-patent-lit:${cid}`,
-      label: "Europe PMC patent-adjacent literature",
-      url: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
-      note: "Free public process/IP literature search (EMBL-EBI)",
-    },
-    {
-      type: "api" as const,
-      id: `patentsview-docs:${cid}`,
-      label: "PatentsView API docs",
-      url: "https://patentsview.org/apis/api-query-language",
-      note: "Documentation for free public patent queries",
-    },
   ];
   const mfgSourceRefs = [
     {
@@ -167,35 +149,52 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
       url: `https://pubchem.ncbi.nlm.nih.gov/compound/${cid}#section=Use-and-Manufacturing`,
       note: "NIH free public compound section",
     },
-    {
-      type: "api" as const,
-      id: `pubchem-mfg-api:${cid}`,
-      label: "PUG View API · Use and Manufacturing",
-      url: `https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/${cid}/JSON?heading=Use+and+Manufacturing`,
-      note: "Free public API endpoint used for manufacturing text",
-    },
   ];
 
   const modality = dossier.modality || "small-molecule";
   const modalityMeta = MODALITY_TEMPLATES[modality];
+  const paramSet = annotateParametersForDossier(
+    getParameterSetForModality(modality),
+    {
+      hasAiRoutes: routesFromAi,
+      evidenceScore: dossier.evidenceScore?.score,
+    }
+  );
+
+  const liveStatusLabel =
+    chrome?.fromCache && chrome.cachedAt
+      ? `Cached · ${formatCacheAge(chrome.cachedAt)}`
+      : chrome?.phase === "shell"
+        ? "Live shell · AI in progress"
+        : "Live free-API dossier";
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-      <div className="mb-4 text-sm text-slate-500">
+      {/* Breadcrumb — same pattern as example dossiers */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+        <Link href={routes.home()} className="hover:text-teal-400">
+          Home
+        </Link>
+        <span className="mx-1">/</span>
         <Link href={routes.search()} className="hover:text-teal-400">
           Search
         </Link>
-        <span className="mx-2">/</span>
+        <span className="mx-1">/</span>
         <Link href={routes.catalog()} className="hover:text-teal-400">
           Catalog
         </Link>
-        <span className="mx-2">/</span>
+        <span className="mx-1">/</span>
         <span className="text-slate-400">{name}</span>
+        <span className="rounded-full bg-teal-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-200 ring-1 ring-teal-500/30">
+          Live dossier
+        </span>
       </div>
-      <div className="mb-6 print:block">
+
+      <div className="mb-6">
         <RegulatoryDisclaimer compact />
       </div>
 
+      {/* Identity hero — mirrors ExampleDossierView */}
       <div
         id="identity"
         className="scroll-mt-24 flex flex-col gap-6 lg:flex-row lg:items-start"
@@ -211,6 +210,7 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
             className="max-h-full max-w-full object-contain"
           />
         </div>
+
         <div className="min-w-0 flex-1 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-3xl font-semibold tracking-tight text-slate-50">{name}</h1>
@@ -220,22 +220,6 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
               score={dossier.evidenceScore?.score}
               reasons={dossier.evidenceScore?.reasons}
             />
-            {ai.parsed ? (
-              <span className="inline-flex items-center rounded-full bg-violet-500/15 px-2.5 py-0.5 text-xs font-medium text-violet-300 ring-1 ring-inset ring-violet-500/30">
-                Ollama · {ai.model || "cloud"}
-              </span>
-            ) : (
-              <span className="inline-flex items-center rounded-full bg-slate-500/15 px-2.5 py-0.5 text-xs font-medium text-slate-400 ring-1 ring-inset ring-slate-500/30">
-                {dossier.buildMode === "ai-skipped-thin-evidence"
-                  ? "Evidence shell · AI skipped"
-                  : "Evidence shell"}
-              </span>
-            )}
-            {dossier.modality ? (
-              <span className="inline-flex items-center rounded-full bg-sky-500/10 px-2.5 py-0.5 text-xs font-medium text-sky-200 ring-1 ring-inset ring-sky-500/25">
-                {modalityMeta?.label || dossier.modality}
-              </span>
-            ) : null}
             <span className="print:hidden inline-flex flex-wrap items-center gap-1.5">
               <TechTransferExport source={{ kind: "live", dossier }} compact />
               <AddToProject
@@ -246,6 +230,40 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
                 cas={hit?.cas}
                 modality={modality}
               />
+              {chrome?.onRefresh ? (
+                <Tooltip content="Clear IndexedDB cache and re-run free APIs + Ollama">
+                  <button
+                    type="button"
+                    onClick={chrome.onRefresh}
+                    className="rounded-md border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-xs font-medium text-slate-300 hover:border-teal-500/40 hover:text-teal-200"
+                  >
+                    Refresh live data
+                  </button>
+                </Tooltip>
+              ) : null}
+            </span>
+          </div>
+
+          {/* Secondary meta pills — not crowding the title */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {ai.parsed ? (
+              <span className="inline-flex items-center rounded-full bg-violet-500/15 px-2.5 py-0.5 text-[11px] font-medium text-violet-300 ring-1 ring-inset ring-violet-500/30">
+                Ollama · {ai.model || "cloud"}
+              </span>
+            ) : (
+              <span className="inline-flex items-center rounded-full bg-slate-500/15 px-2.5 py-0.5 text-[11px] font-medium text-slate-400 ring-1 ring-inset ring-slate-500/30">
+                {dossier.buildMode === "ai-skipped-thin-evidence"
+                  ? "Evidence shell · AI skipped"
+                  : "Evidence shell"}
+              </span>
+            )}
+            {modalityMeta ? (
+              <span className="inline-flex items-center rounded-full bg-sky-500/10 px-2.5 py-0.5 text-[11px] font-medium text-sky-200 ring-1 ring-inset ring-sky-500/25">
+                {modalityMeta.label}
+              </span>
+            ) : null}
+            <span className="inline-flex items-center rounded-full bg-slate-800 px-2.5 py-0.5 text-[11px] text-slate-400 ring-1 ring-slate-700">
+              {liveStatusLabel}
             </span>
             <ApiProvenance
               pubchemCid={cid}
@@ -254,22 +272,20 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
               label="API"
               sourceRefs={dossier.sourceRefs}
             />
-            {/* AI provenance chip (opacity 0.3) — full call: prompt, data fed, sources, model, timing */}
             {aiAttempt ? (
               <AiProvenance
                 provenance={aiAttempt}
                 field="Full dossier synthesis call"
                 label="AI"
               />
-            ) : ai.parsed ? (
-              <Tooltip content="AI ran but provenance was not stored (old cache). Use Refresh live data.">
-                <span className="rounded border border-violet-500/30 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-violet-400/50">
-                  AI
-                </span>
-              </Tooltip>
             ) : null}
           </div>
-          {hit?.iupacName ? <p className="text-sm text-slate-400">{hit.iupacName}</p> : null}
+
+          {hit?.iupacName ? (
+            <p className="text-sm text-slate-400">{hit.iupacName}</p>
+          ) : null}
+
+          {/* Identifier row — same shape as curated dossiers */}
           <dl className="flex flex-wrap gap-x-6 gap-y-1 font-mono text-sm text-slate-400">
             {hit?.formula ? (
               <div>
@@ -277,7 +293,13 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
                 <dd className="inline text-slate-300">{hit.formula}</dd>
               </div>
             ) : null}
-            {hit?.molecularWeight ? (
+            {hit?.cas ? (
+              <div>
+                <dt className="inline text-slate-600">CAS </dt>
+                <dd className="inline text-slate-300">{hit.cas}</dd>
+              </div>
+            ) : null}
+            {hit?.molecularWeight != null ? (
               <div>
                 <dt className="inline text-slate-600">MW </dt>
                 <dd className="inline text-slate-300">{hit.molecularWeight} g/mol</dd>
@@ -302,28 +324,23 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
                 <dd className="inline break-all text-slate-300">{hit.inchiKey}</dd>
               </div>
             ) : null}
-            {hit?.smiles ? (
-              <div className="basis-full">
-                <dt className="inline text-slate-600">SMILES </dt>
-                <dd className="inline break-all text-xs text-slate-500">{hit.smiles}</dd>
-              </div>
-            ) : null}
           </dl>
 
+          {/* Overview as clean prose — like example dossiers */}
           <div id="overview" className="scroll-mt-24 max-w-3xl">
-            <div className="mb-1 flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">
-                Overview
-              </span>
-              {overviewFromAi && aiChip ? (
-                <AiProvenance provenance={aiChip} field="Overview" label="AI" />
-              ) : null}
-            </div>
             {overview ? (
-              <p className="leading-relaxed text-slate-300">{overview}</p>
+              <p className="leading-relaxed text-slate-300">
+                {overviewFromAi && aiChip ? (
+                  <span className="mr-2 inline-flex align-middle">
+                    <AiProvenance provenance={aiChip} field="Overview" label="AI" />
+                  </span>
+                ) : null}
+                {overview}
+              </p>
             ) : (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm leading-relaxed text-slate-500">
                 Overview appears when PubChem description or Ollama synthesis is available.
+                Process steps below use public literature, patents, and manufacturing text.
               </p>
             )}
           </div>
@@ -344,47 +361,53 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
             </div>
           ) : null}
 
+          <p className="rounded-lg border border-teal-500/20 bg-teal-500/5 px-3 py-2 text-xs text-teal-100/90">
+            <strong className="font-medium">Live free-public build</strong>
+            {" — "}
+            assembled from PubChem, literature, and patents
+            {routesFromAi ? " with Ollama dual-view synthesis" : " (evidence shell)"}
+            . Not a GMP procedure. Open{" "}
+            <span className="text-violet-300/90">AI</span> /{" "}
+            <span className="text-sky-300/90">API</span> chips for provenance.
+          </p>
+
           {ai.rawError && !ai.parsed ? (
             <p className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-200/90">
               <span>
-                AI enhance skipped or incomplete: {ai.rawError}. Showing free-API evidence scaffold.
+                AI enhance incomplete: {ai.rawError}. Showing free-API evidence scaffold.
               </span>
               {aiAttempt ? (
                 <AiProvenance provenance={aiAttempt} field="Failed AI attempt" label="AI" />
               ) : null}
             </p>
           ) : null}
+
+          {chrome?.snapshots ? (
+            <div className="print:hidden pt-1">{chrome.snapshots}</div>
+          ) : null}
         </div>
       </div>
 
+      {/* Main + sidebar — recipe primary, evidence secondary */}
       <div className="mt-10 grid gap-6 lg:grid-cols-3">
         <div className="space-y-8 lg:col-span-2">
-          <CriticalParametersBoard routes={dossier.processRoutes} />
-
-          <BiologicParametersPanel
-            parameterSet={annotateParametersForDossier(
-              getParameterSetForModality(modality),
-              {
-                hasAiRoutes: routesFromAi,
-                evidenceScore: dossier.evidenceScore?.score,
-              }
-            )}
-            title={`${modalityMeta?.label || modality} — educational parameters`}
-          />
+          <EvidenceScoreExplainer dossier={dossier} />
+          <SourceCoverageMap dossier={dossier} />
+          <ValidationChecklist dossier={dossier} />
 
           <section id="routes" className="scroll-mt-24">
             <SectionTitle
               ai={routesFromAi && aiChip ? aiChip : undefined}
-              field="Routes & process steps"
+              field="Process recipe"
             >
-              Routes &amp; process steps
+              Process recipe
             </SectionTitle>
             <p className="mb-4 text-xs leading-relaxed text-slate-500">
-              Dual audience view (mechanism / manufacturing). Content from free public evidence
-              {routesFromAi ? " + Ollama synthesis" : " scaffold"}
-              — not a validated batch record. Hover/click{" "}
-              <span className="text-violet-300/80">AI</span> chips for prompt, data fed, model, and
-              timing.
+              Ingredients, method steps, and dual plant / chemistry view.
+              {routesFromAi
+                ? " Built from free public evidence with Ollama."
+                : " Evidence leads until synthesis is available."}{" "}
+              Not a GMP batch record.
             </p>
             <RoutePanel
               routes={dossier.processRoutes}
@@ -392,45 +415,54 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
             />
           </section>
 
-          <section id="route-compare" className="scroll-mt-24">
-            <SectionTitle>Route compare</SectionTitle>
-            <p className="mb-4 text-xs leading-relaxed text-slate-500">
-              Side-by-side scouting for tech transfer: BOM sample, scale class, equipment, and
-              critical parameters. Differences highlight in the table.
-            </p>
-            <RouteCompare routes={dossier.processRoutes} />
-          </section>
+          <CriticalParametersBoard routes={dossier.processRoutes} />
 
-          {dossier.contradictions && dossier.contradictions.length > 0 ? (
-            <EvidenceContradictions items={dossier.contradictions} />
-          ) : null}
-
-          {dossier.unitOpFills && dossier.unitOpFills.length > 0 ? (
-            <UnitOpFillPanel
-              fills={dossier.unitOpFills}
-              modalityLabel={modalityMeta?.label}
-            />
-          ) : modalityMeta ? (
-            <section id="modality-template" className="scroll-mt-24">
-              <SectionTitle>Modality unit ops</SectionTitle>
+          {(dossier.annotations?.length ?? 0) > 0 ? (
+            <section id="multi-source" className="scroll-mt-24">
+              <SectionTitle>Multi-source free APIs</SectionTitle>
               <p className="mb-3 text-xs text-slate-500">
-                Structural template for{" "}
-                <strong className="font-medium text-slate-400">{modalityMeta.label}</strong> —
-                parameters must come from evidence or site validation, not this skeleton.
+                Beyond PubChem: identity, regulatory, pathway, and mechanism feeds used for this
+                recipe.
               </p>
-              <ol className="list-inside list-decimal space-y-1 rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-sm text-slate-400">
-                {modalityMeta.unitOps.map((op) => (
-                  <li key={op.id}>
-                    <span className="text-slate-200">{op.title}</span>
-                    <span className="text-slate-600"> — {op.description}</span>
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {dossier.annotations.map((a, i) => (
+                  <li
+                    key={`${a.source}-${i}`}
+                    className="rounded-xl border border-slate-800 bg-slate-900/50 p-3"
+                  >
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-sky-200 ring-1 ring-sky-500/25">
+                        {a.source}
+                      </span>
+                      <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-500">
+                        {a.kind}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 text-sm font-medium text-slate-100">
+                      {a.url ? (
+                        <a
+                          href={a.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-teal-300 hover:underline"
+                        >
+                          {a.title}
+                        </a>
+                      ) : (
+                        a.title
+                      )}
+                    </div>
+                    {a.summary ? (
+                      <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-slate-500">
+                        {a.summary}
+                      </p>
+                    ) : null}
+                    {a.organization ? (
+                      <p className="mt-1 text-[10px] text-slate-600">{a.organization}</p>
+                    ) : null}
                   </li>
                 ))}
-              </ol>
-              {modalityMeta.cqaPlaceholders.length ? (
-                <p className="mt-2 text-[11px] text-slate-600">
-                  CQA slots: {modalityMeta.cqaPlaceholders.join(" · ")}
-                </p>
-              ) : null}
+              </ul>
             </section>
           ) : null}
 
@@ -438,18 +470,15 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
             <section id="related-entities" className="scroll-mt-24">
               <SectionTitle
                 ai={
-                  aiChip && ai.provenance?.fieldsGenerated?.includes("relatedEntities")
+                  aiChip &&
+                  ai.provenance?.fieldsGenerated?.includes("relatedEntities")
                     ? aiChip
                     : undefined
                 }
-                field="Related entities"
+                field="Related materials"
               >
-                Related entities (API · intermediates · impurities)
+                Related materials
               </SectionTitle>
-              <p className="mb-3 text-xs text-slate-500">
-                Linked materials for tech-transfer graphs. Open live CIDs for child dossiers;
-                CAS search when only registry numbers are known.
-              </p>
               <EntityGraph centerName={name} entities={dossier.relatedEntities} />
               <ul className="mt-3 space-y-2">
                 {dossier.relatedEntities.map((rel, i) => {
@@ -483,11 +512,6 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
                           {rel.cas}
                         </span>
                       ) : null}
-                      {rel.pubchemCid ? (
-                        <span className="ml-2 text-[11px] text-slate-600">
-                          CID {rel.pubchemCid}
-                        </span>
-                      ) : null}
                       {rel.notes ? (
                         <p className="mt-1 text-xs text-slate-500">{rel.notes}</p>
                       ) : null}
@@ -498,11 +522,64 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
             </section>
           ) : null}
 
-          <section id="pubchem-manufacturing" className="scroll-mt-24">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-semibold text-slate-100">
-                Use &amp; manufacturing
-              </h2>
+          {dossier.processRoutes.length >= 2 ? (
+            <CollapsibleSection
+              id="route-compare"
+              title="Compare recipes"
+              summary="Side-by-side BOM, scale, and critical parameters"
+              badge={`${dossier.processRoutes.length} routes`}
+            >
+              <RouteCompare routes={dossier.processRoutes} />
+            </CollapsibleSection>
+          ) : null}
+
+          {dossier.contradictions && dossier.contradictions.length > 0 ? (
+            <CollapsibleSection
+              id="contradictions"
+              title="Evidence tensions"
+              summary="Public sources disagree — review both sides"
+              badge={String(dossier.contradictions.length)}
+            >
+              <EvidenceContradictions items={dossier.contradictions} />
+            </CollapsibleSection>
+          ) : null}
+
+          <CollapsibleSection
+            id="process-parameters"
+            title="Educational parameters"
+            summary={`${paramSet.parameters.length} ${modalityMeta?.label || modality} teaching envelopes — not site limits`}
+            badge="scaffold"
+          >
+            <BiologicParametersPanel
+              parameterSet={paramSet}
+              title={`${modalityMeta?.label || modality} parameters`}
+            />
+          </CollapsibleSection>
+
+          {dossier.unitOpFills && dossier.unitOpFills.length > 0 ? (
+            <CollapsibleSection
+              id="unit-op-fill"
+              title="Modality unit ops"
+              summary="Template slots matched to evidence steps"
+            >
+              <UnitOpFillPanel
+                fills={dossier.unitOpFills}
+                modalityLabel={modalityMeta?.label}
+              />
+            </CollapsibleSection>
+          ) : null}
+
+          <CollapsibleSection
+            id="pubchem-manufacturing"
+            title="Public manufacturing text"
+            summary={
+              dossier.manufacturingTexts.length
+                ? `${dossier.manufacturingTexts.length} PubChem excerpt(s)`
+                : "No excerpts in this capture"
+            }
+            badge="API"
+          >
+            <div className="mb-2">
               <ApiProvenance
                 pubchemCid={cid}
                 traces={
@@ -518,7 +595,7 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
               />
             </div>
             {dossier.manufacturingTexts.length > 0 ? (
-              <ul className="max-h-72 space-y-2 overflow-y-auto">
+              <ul className="max-h-64 space-y-2 overflow-y-auto">
                 {dossier.manufacturingTexts.map((t, i) => (
                   <li
                     key={i}
@@ -529,17 +606,21 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-slate-500">
-                No use/manufacturing excerpts in the free public capture. Open{" "}
-                <strong className="font-medium text-slate-400">API</strong> for the live PUG View
-                endpoint and PubChem section.
-              </p>
+              <p className="text-sm text-slate-500">No use/manufacturing excerpts.</p>
             )}
-          </section>
+          </CollapsibleSection>
 
-          <section id="literature" className="scroll-mt-24">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-semibold text-slate-100">Literature</h2>
+          <CollapsibleSection
+            id="literature"
+            title="Literature"
+            summary={
+              dossier.literature.length
+                ? `${dossier.literature.length} process-ranked hits`
+                : "No hits"
+            }
+            badge="API"
+          >
+            <div className="mb-2">
               <ApiProvenance
                 traces={litTraces.length ? litTraces : traces}
                 sourceRefs={litRefs}
@@ -548,58 +629,56 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
               />
             </div>
             {dossier.literature.length === 0 ? (
-              <p className="text-sm text-slate-500">No literature hits for this query.</p>
+              <p className="text-sm text-slate-500">No literature hits.</p>
             ) : (
-              <ul className="space-y-3">
-                {dossier.literature.map((h) => {
-                  // Inline process-relevance badge (0–100 style band)
+              <ul className="space-y-2">
+                {dossier.literature.slice(0, 10).map((h) => {
                   const hay = `${h.title} ${h.abstract || ""}`;
                   const processy =
                     /synthes|manufactur|process|ferment|preparat|industrial|scale|product|biocatal/i.test(
                       hay
                     );
                   return (
-                  <li
-                    key={h.id}
-                    className="rounded-xl border border-slate-800 bg-slate-900/40 px-3 py-2"
-                  >
-                    <div className="flex flex-wrap items-start gap-2">
-                    <a
-                      href={h.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-sm font-medium text-teal-300 hover:underline"
+                    <li
+                      key={h.id}
+                      className="rounded-xl border border-slate-800 bg-slate-900/40 px-3 py-2"
                     >
-                      {h.title}
-                    </a>
-                    {processy ? (
-                      <span className="rounded bg-teal-500/10 px-1.5 py-0.5 text-[10px] font-medium text-teal-300/90 ring-1 ring-teal-500/25">
-                        process-ish
-                      </span>
-                    ) : (
-                      <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-500">
-                        general
-                      </span>
-                    )}
-                    </div>
-                    <div className="mt-0.5 text-xs text-slate-600">
-                      {[h.authors?.split(",")[0], h.journal, h.year].filter(Boolean).join(" · ")}
-                    </div>
-                    {h.abstract ? (
-                      <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-slate-500">
-                        {h.abstract}
-                      </p>
-                    ) : null}
-                  </li>
+                      <div className="flex flex-wrap items-start gap-2">
+                        <a
+                          href={h.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sm font-medium text-teal-300 hover:underline"
+                        >
+                          {h.title}
+                        </a>
+                        {processy ? (
+                          <span className="rounded bg-teal-500/10 px-1.5 py-0.5 text-[10px] text-teal-300/90 ring-1 ring-teal-500/25">
+                            process
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-0.5 text-xs text-slate-600">
+                        {[h.journal, h.year].filter(Boolean).join(" · ")}
+                      </div>
+                    </li>
                   );
                 })}
               </ul>
             )}
-          </section>
+          </CollapsibleSection>
 
-          <section id="patents" className="scroll-mt-24">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-semibold text-slate-100">Patents &amp; process IP</h2>
+          <CollapsibleSection
+            id="patents"
+            title="Patents & process IP"
+            summary={
+              dossier.patents.length
+                ? `${dossier.patents.length} record(s)`
+                : "No hits"
+            }
+            badge="API"
+          >
+            <div className="mb-2">
               <ApiProvenance
                 pubchemCid={cid}
                 traces={
@@ -615,8 +694,8 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
               />
             </div>
             {dossier.patents.length > 0 ? (
-              <ul className="space-y-3">
-                {dossier.patents.map((p) => (
+              <ul className="space-y-2">
+                {dossier.patents.slice(0, 8).map((p) => (
                   <li
                     key={p.id}
                     className="rounded-xl border border-slate-800 bg-slate-900/40 px-3 py-2"
@@ -633,24 +712,16 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
                       {p.patentNumber}
                       {p.date ? ` · ${p.date}` : ""}
                     </div>
-                    {p.abstract ? (
-                      <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-slate-500">
-                        {p.abstract}
-                      </p>
-                    ) : null}
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-slate-500">
-                No patent hits in the free public capture. Open{" "}
-                <strong className="font-medium text-slate-400">API</strong> for PatentsView / Europe
-                PMC endpoints and any live responses.
-              </p>
+              <p className="text-sm text-slate-500">No patent hits.</p>
             )}
-          </section>
+          </CollapsibleSection>
         </div>
 
+        {/* Right rail — same plant cards as curated dossiers */}
         <aside className="space-y-4">
           <div
             id="manufacturing"
@@ -670,9 +741,13 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
               )}
             </div>
             {manufacturingSummary ? (
-              <p className="mt-2 text-sm leading-relaxed text-slate-400">{manufacturingSummary}</p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                {manufacturingSummary}
+              </p>
             ) : (
-              <p className="mt-2 text-sm text-slate-600">No manufacturing summary in free evidence.</p>
+              <p className="mt-2 text-sm text-slate-600">
+                No manufacturing summary in free evidence.
+              </p>
             )}
           </div>
 
@@ -681,12 +756,18 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
               id="environment"
               className="scroll-mt-24 space-y-2 rounded-xl border border-slate-800 bg-slate-900/50 p-4"
             >
-              <SideTitle
-                ai={envFromAi && aiChip ? aiChip : undefined}
-                field="Plant environment baseline"
-              >
-                Plant environment baseline
-              </SideTitle>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-semibold text-teal-300">
+                  Plant environment baseline
+                </h3>
+                {envFromAi && aiChip ? (
+                  <AiProvenance
+                    provenance={aiChip}
+                    field="Plant environment baseline"
+                    label="AI"
+                  />
+                ) : null}
+              </div>
               {environmentBaseline.atmosphere ? (
                 <p className="text-sm text-slate-300">
                   <span className="text-slate-500">Atmosphere: </span>
@@ -721,14 +802,12 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
               id="apparatus"
               className="scroll-mt-24 rounded-xl border border-slate-800 bg-slate-900/50 p-4"
             >
-              <SideTitle
-                ai={
-                  aiChip && (apparatusFromAi || ai.parsed) ? aiChip : undefined
-                }
-                field="Apparatus catalog"
-              >
-                Apparatus catalog
-              </SideTitle>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-semibold text-teal-300">Apparatus catalog</h3>
+                {aiChip && (apparatusFromAi || ai.parsed) ? (
+                  <AiProvenance provenance={aiChip} field="Apparatus catalog" label="AI" />
+                ) : null}
+              </div>
               <ul className="space-y-2 text-sm">
                 {apparatusCatalog.map((a, i) => (
                   <li key={i} className="border-b border-slate-800/80 pb-2 last:border-0">
@@ -785,21 +864,12 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
               />
             </div>
             {dossier.hazards.signalWord ? (
-              <p className="text-sm text-amber-200/90">Signal: {dossier.hazards.signalWord}</p>
+              <p className="text-sm text-amber-200/90">
+                Signal: {dossier.hazards.signalWord}
+              </p>
             ) : null}
-            {dossier.hazards.ghsPictograms && dossier.hazards.ghsPictograms.length > 0 ? (
-              <div className="flex flex-wrap gap-1">
-                {dossier.hazards.ghsPictograms.slice(0, 8).map((p) => (
-                  <span
-                    key={p}
-                    className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400"
-                  >
-                    {p}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-            {dossier.hazards.hazardStatements && dossier.hazards.hazardStatements.length > 0 ? (
+            {dossier.hazards.hazardStatements &&
+            dossier.hazards.hazardStatements.length > 0 ? (
               <ul className="max-h-40 list-inside list-disc space-y-0.5 overflow-y-auto text-xs text-slate-400">
                 {dossier.hazards.hazardStatements.slice(0, 12).map((s, i) => (
                   <li key={i}>{s}</li>
@@ -812,40 +882,59 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
             )}
           </div>
 
-          {dossier.propertyTexts.length > 0 ? (
-            <div
-              id="properties"
-              className="scroll-mt-24 rounded-xl border border-slate-800 bg-slate-900/50 p-4"
-            >
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <h3 className="text-sm font-semibold text-slate-200">Properties</h3>
-                <ApiProvenance
-                  pubchemCid={cid}
-                  traces={pugViewTraces.length ? pugViewTraces : pubchemTraces}
-                  title="PubChem properties"
-                  label="API"
-                />
-              </div>
-              <ul className="max-h-36 space-y-1 overflow-y-auto text-xs text-slate-500">
-                {dossier.propertyTexts.slice(0, 15).map((t, i) => (
+          <div
+            id="properties"
+            className="scroll-mt-24 rounded-xl border border-slate-800 bg-slate-900/50 p-4"
+          >
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <h3 className="text-sm font-semibold text-slate-200">Properties</h3>
+              <ApiProvenance
+                pubchemCid={cid}
+                traces={pugViewTraces.length ? pugViewTraces : pubchemTraces}
+                title="PubChem properties"
+                label="API"
+              />
+            </div>
+            <dl className="space-y-1 text-sm text-slate-400">
+              {hit?.molecularWeight != null ? (
+                <div>
+                  <span className="text-slate-600">MW </span>
+                  {hit.molecularWeight}
+                </div>
+              ) : null}
+              {hit?.formula ? (
+                <div>
+                  <span className="text-slate-600">Formula </span>
+                  {hit.formula}
+                </div>
+              ) : null}
+              {hit?.smiles ? (
+                <div className="break-all text-xs">
+                  <span className="text-slate-600">SMILES </span>
+                  {hit.smiles}
+                </div>
+              ) : null}
+            </dl>
+            {dossier.propertyTexts.length > 0 ? (
+              <ul className="mt-2 max-h-28 space-y-1 overflow-y-auto text-xs text-slate-500">
+                {dossier.propertyTexts.slice(0, 8).map((t, i) => (
                   <li key={i}>{t}</li>
                 ))}
               </ul>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
 
           <div
             id="sources"
             className="scroll-mt-24 rounded-xl border border-slate-800 bg-slate-900/50 p-4"
           >
-            <h3 className="mb-2 text-sm font-semibold text-slate-200">Sources &amp; provenance</h3>
+            <h3 className="mb-2 text-sm font-semibold text-slate-200">Sources</h3>
             <p className="mb-2 text-xs text-slate-500">
-              {traces.length} live HTTP capture{traces.length === 1 ? "" : "s"}. API chips = free
-              public HTTP. AI chips = Ollama prompt + data fed.
+              {traces.length} live HTTP capture{traces.length === 1 ? "" : "s"}.
             </p>
-            <ul className="mb-3 max-h-40 space-y-1 overflow-y-auto text-[11px] text-slate-500">
-              {dossier.sourceRefs.slice(0, 12).map((r) => (
-                <li key={`${r.type}:${r.id}`}>
+            <ul className="max-h-40 space-y-1 overflow-y-auto text-xs text-slate-500">
+              {dossier.sourceRefs.slice(0, 14).map((r, i) => (
+                <li key={`${r.type}:${r.id}:${i}`}>
                   <span className="uppercase text-slate-600">{r.type}</span>
                   {" · "}
                   {r.url ? (
@@ -855,15 +944,15 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
                       rel="noreferrer"
                       className="text-teal-400/90 hover:underline"
                     >
-                      {(r.label || r.id).slice(0, 60)}
+                      {(r.label || r.id).slice(0, 56)}
                     </a>
                   ) : (
-                    (r.label || r.id).slice(0, 60)
+                    (r.label || r.id).slice(0, 56)
                   )}
                 </li>
               ))}
             </ul>
-            <div className="flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap gap-2">
               <ApiProvenance
                 pubchemCid={cid}
                 traces={traces}
@@ -883,14 +972,8 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
 
           {ai.gaps && ai.gaps.length > 0 ? (
             <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
-              <SideTitle
-                className="text-sm font-semibold text-slate-400"
-                ai={aiChip && ai.parsed ? aiChip : undefined}
-                field="Evidence gaps"
-              >
-                Evidence gaps
-              </SideTitle>
-              <ul className="list-inside list-disc space-y-1 text-xs text-slate-600">
+              <h3 className="text-sm font-semibold text-slate-400">Evidence gaps</h3>
+              <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-slate-600">
                 {ai.gaps.map((g, i) => (
                   <li key={i}>{g}</li>
                 ))}
@@ -900,10 +983,14 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
         </aside>
       </div>
 
+      <div className="mt-10">
+        <DossierDiagnostics dossier={dossier} />
+      </div>
+
       {dossier.buildAudit ? (
         <div
           id="build-audit"
-          className="mt-10 scroll-mt-24 rounded-xl border border-slate-800 bg-slate-900/40 p-4"
+          className="mt-6 scroll-mt-24 rounded-xl border border-slate-800 bg-slate-900/40 p-4"
         >
           <h2 className="text-sm font-semibold text-slate-300">Build audit</h2>
           <p className="mt-1 text-xs text-slate-500">
@@ -933,26 +1020,10 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
               <dd className="text-slate-300">
                 {dossier.buildAudit.evidenceScore ?? "—"} ·{" "}
                 {dossier.buildAudit.literatureCount ?? 0} lit ·{" "}
-                {dossier.buildAudit.patentCount ?? 0} patents ·{" "}
-                {dossier.buildAudit.apiTraceCount ?? 0} HTTP
+                {dossier.buildAudit.patentCount ?? 0} patents
               </dd>
             </div>
           </dl>
-          {dossier.buildAudit.steps.length > 0 ? (
-            <ol className="mt-3 list-inside list-decimal space-y-1 text-[11px] text-slate-500">
-              {dossier.buildAudit.steps.map((s, i) => (
-                <li key={`${s.id}-${i}`}>
-                  <span className={s.ok === false ? "text-rose-400" : "text-slate-400"}>
-                    {s.label}
-                  </span>
-                  {s.durationMs != null ? ` · ${s.durationMs} ms` : ""}
-                  {s.detail ? (
-                    <span className="text-slate-600"> — {s.detail.slice(0, 120)}</span>
-                  ) : null}
-                </li>
-              ))}
-            </ol>
-          ) : null}
         </div>
       ) : null}
 
@@ -969,14 +1040,24 @@ export function LiveMoleculeDossier({ dossier }: { dossier: LiveDossier }) {
         <RegulatoryDisclaimer className="mt-2" />
         <p className="mt-2 text-sm leading-relaxed text-slate-500">{dossier.disclaimer}</p>
         <p className="mt-2 text-[11px] text-slate-700">
-          Generated {new Date(dossier.generatedAt).toLocaleString()} · Tier {dossier.tier} · live
-          APIs
+          Generated {new Date(dossier.generatedAt).toLocaleString()} · Tier {dossier.tier} ·
+          live APIs
           {ai.parsed ? " + Ollama" : " · evidence scaffold"}
-          {aiChip
-            ? ` · AI ${aiChip.model} in ${aiChip.responseTimeMs} ms`
-            : ""}
+          {aiChip ? ` · AI ${aiChip.model} in ${aiChip.responseTimeMs} ms` : ""}
           {dossier.modality ? ` · ${dossier.modality}` : ""}
         </p>
+        <div className="mt-4">
+          <Link href={routes.search()} className="text-sm text-teal-400 hover:underline">
+            ← Back to search
+          </Link>
+          <span className="mx-2 text-slate-700">·</span>
+          <Link
+            href={routes.packages()}
+            className="text-sm text-slate-400 hover:text-teal-300"
+          >
+            Browse process packages
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -78,30 +78,17 @@ const KIND_LABEL: Record<Row["kind"], string> = {
  */
 export function CriticalParametersBoard({ routes }: { routes: ProcessRoute[] }) {
   const rows = collect(routes);
-  if (!rows.length) {
-    return (
-      <div
-        id="critical-board"
-        className="scroll-mt-24 rounded-xl border border-dashed border-slate-800 bg-slate-900/30 p-4 text-sm text-slate-500"
-      >
-        <h2 className="text-lg font-semibold text-slate-300">Critical parameters board</h2>
-        <p className="mt-1 text-xs">
-          No CPP / IPC / CQA lines extracted yet. They appear when AI or curated routes list
-          controls (placeholders are filtered out).
-        </p>
-      </div>
-    );
-  }
+  // Empty board stays out of the way — recipe page stays clean
+  if (!rows.length) return null;
 
   return (
     <div
       id="critical-board"
       className="scroll-mt-24 rounded-xl border border-slate-800 bg-slate-900/40 p-4"
     >
-      <h2 className="text-lg font-semibold text-slate-100">Critical parameters board</h2>
+      <h2 className="text-lg font-semibold text-slate-100">Control points</h2>
       <p className="mt-1 text-xs text-slate-500">
-        Aggregated CPPs, IPCs, CQAs, and hold points across routes — scan for tech transfer; validate
-        on site.
+        CPPs, IPCs, CQAs, and holds from the recipe — validate on site.
       </p>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[36rem] text-left text-xs text-slate-300">

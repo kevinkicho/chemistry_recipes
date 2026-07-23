@@ -218,12 +218,13 @@ export function buildScaffoldDossier(evidence: CompoundEvidence): LiveDossier {
     descriptionTexts: desc,
     literature: evidence.literature,
     patents: evidence.patents,
+    annotations: evidence.annotations ?? [],
     synthesis: {
       available: false,
       parsed: false,
       overview:
         overviewParts.join(" ") ||
-        `${name}: public identity from free NIH / Europe PMC / OpenAlex sources.`,
+        `${name}: public identity from free multi-source APIs (PubChem, ChEMBL, openFDA, literature).`,
       applications,
       manufacturingSummary: mfg.slice(0, 4).join(" ") || undefined,
       // Only real GHS lines — never generic placeholder apparatus
@@ -250,6 +251,8 @@ export function buildScaffoldDossier(evidence: CompoundEvidence): LiveDossier {
       reasons: scored.reasons,
       processLitCount: scored.processLitCount,
       processPatentCount: scored.processPatentCount,
+      explainer: scored.explainer,
+      aiRecommendation: scored.aiRecommendation,
     },
     buildMode: "evidence-shell",
   };

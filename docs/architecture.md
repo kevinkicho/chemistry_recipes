@@ -1,4 +1,9 @@
-# Architecture
+# Architecture (overview)
+
+Short map of the system. For full engineering detail, start at:
+
+**→ [engineering/architecture.md](./engineering/architecture.md)**  
+**→ [engineering/README.md](./engineering/README.md)** (TOC)
 
 ## Stack
 
@@ -6,66 +11,46 @@
 |-------|--------|
 | App | Next.js 15 App Router (`web/`) |
 | Language | TypeScript |
-| UI | Tailwind CSS 4, client components where needed |
-| AI | Ollama Cloud (`https://ollama.com`) via server proxy |
-| Data | Free public APIs only + curated JSON examples |
-| Client cache | IndexedDB (dossiers + version snapshots) |
-| Workspace | `localStorage` projects |
+| UI | Tailwind CSS 4 |
+| AI | Ollama Cloud **or** local Ollama |
+| Data | Free public APIs + curated JSON examples / packages |
+| Client cache | IndexedDB (dossiers + snapshots) |
+| Workspace | `localStorage` projects (single-user) |
 
-## High-level data flow
+## Data flow (live dossier)
 
 ```
-Browser
-  │  EventSource ?model=&fastModel=
-  ▼
-GET /api/dossier/[cid]/stream
-  │
-  ├─► gatherCompoundEvidence (PubChem, PUG View, Europe PMC, OpenAlex, patents)
-  ├─► scoreCompoundEvidence
-  ├─► buildScaffoldDossier  ── partial SSE (shell UI)
-  ├─► synthesizeDossierFromEvidence (Ollama, gated) ── progress SSE
-  └─► enrich: modality, relatedEntities, contradictions, unitOpFills,
-              parameter framework, buildAudit ── complete SSE
+Browser ──SSE──► GET /api/dossier/[cid]/stream
+                    ├─ gather (multi free APIs)
+                    ├─ score evidence
+                    ├─ scaffold shell → partial
+                    ├─ Ollama (if canCall + score) → quality gate
+                    └─ enrich → complete → client IndexedDB
 ```
 
-## Key modules (`web/src`)
+Detail: [engineering/dossier-pipeline.md](./engineering/dossier-pipeline.md)
+
+## Key modules
 
 | Path | Role |
 |------|------|
-| `lib/dossier/pipeline.ts` | Orchestrates live build + progress |
-| `lib/dossier/gather.ts` | Multi-source free API harvest |
-| `lib/dossier/synthesize.ts` | Ollama prompts, parse, quality gate |
-| `lib/dossier/relatedEntities.ts` | Impurity / intermediate graph |
-| `lib/dossier/contradictions.ts` | Evidence tensions |
-| `lib/modality/templates.ts` | Unit-op templates by modality |
-| `lib/modality/biologicParameters.ts` | Educational parameter frameworks |
-| `lib/data/curatedPackages.ts` | ~140 educational packages |
-| `lib/data/examples.ts` | Tier-A JSON dossiers |
-| `lib/export/techTransfer.ts` | Tech-transfer + MES/LIMS JSON |
-| `lib/ai/serverEnv.ts` | Loads root `.env` safely on server |
-| `lib/workspace/projects.ts` | Local project library |
-| `app/api/ai/*` | Status, models list, chat proxy |
-| `app/api/dossier/[cid]/stream` | SSE progress stream |
+| `lib/dossier/pipeline.ts` | Live build orchestration |
+| `lib/dossier/gather.ts` | Multi-source harvest |
+| `lib/dossier/synthesize.ts` | Ollama + quality gate |
+| `lib/dossier/sourceCoverage.ts` | Coverage map model |
+| `lib/export/techTransfer.ts` | Tech-transfer v2 + MES/LIMS |
+| `lib/ai/*` | Config, server env, host allowlist |
+| `lib/idb/*` | Cache + snapshots + health |
+| `lib/sources/registry.ts` | Product API registry |
+| `app/api/ai/*` | Chat / models / status proxies |
+| `app/api/diagnostics` | Operator probes |
 
-## Provenance model
+## Design docs
 
-- **API chips** — real `ApiFetchTrace` HTTP captures (URL, status, preview, time).
-- **AI chips** — system/user prompt excerpts, model id, timing, data sources fed.
-- No mock HTTP traces.
+- [design/README.md](./design/README.md)  
+- [design/ux-live-dossier.md](./design/ux-live-dossier.md)  
 
-## Security notes
+## Security
 
-- API keys: repo-root `.env` (server) or browser localStorage (optional override).
-- Keys never written to disk by the app except via user’s own `.env`.
-- Ollama host restricted to `ollama.com` on proxy routes.
-- See [security.md](./security.md).
-
-## Curated content tiers
-
-| Tier | Meaning |
-|------|---------|
-| **A** | Full dual-view example dossier JSON |
-| **B** | Structured package + live PubChem path |
-| **C** | Identity / platform pointer |
-
-None of these are GMP-validated plant packages.
+- [security.md](./security.md)  
+- Host allowlist: cloud + local/LAN only ([engineering/ai-and-ollama.md](./engineering/ai-and-ollama.md))  

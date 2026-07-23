@@ -4,13 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ApiProgressOverlay } from "@/components/dossier/ApiProgressOverlay";
 import { LiveMoleculeDossier } from "@/components/dossier/LiveMoleculeDossier";
-import { ConfidenceBadge } from "@/components/ConfidenceBadge";
-import { TechTransferExport } from "@/components/TechTransferExport";
 import type { DossierProgressEvent } from "@/lib/dossier/progress";
 import type { LiveDossier } from "@/lib/dossier/types";
 import {
   deleteCachedDossierAndNotify,
-  formatCacheAge,
   getCachedDossier,
   putCachedDossierAndNotify,
 } from "@/lib/idb/dossierCache";
@@ -18,7 +15,6 @@ import { saveDossierSnapshot } from "@/lib/idb/dossierSnapshots";
 import { DossierSnapshots } from "@/components/DossierSnapshots";
 import { routes } from "@/lib/routes";
 import { pushHistory } from "@/lib/search-history";
-import { Tooltip } from "@/components/Tooltip";
 import { readAiConfig } from "@/lib/ai/config";
 
 type Phase = "checking-cache" | "loading" | "shell" | "ready" | "error";
@@ -224,14 +220,12 @@ export function DossierClientLoader({ cid }: { cid: number }) {
       <ApiProgressOverlay
         open={showOverlay}
         title={
-          phase === "error"
-            ? "Dossier build failed"
-            : `Building dossier · CID ${cid}`
+          phase === "error" ? "Recipe build failed" : "Preparing process recipe"
         }
         subtitle={
           phase === "error"
-            ? "Review the API log below, then retry."
-            : "Free public APIs (PubChem, Europe PMC, OpenAlex, patents) → evidence score → Ollama when warranted"
+            ? "Something went wrong. Retry when ready."
+            : `CID ${cid} · free public sources only`
         }
         events={events}
         elapsedMs={elapsedMs}
@@ -240,23 +234,20 @@ export function DossierClientLoader({ cid }: { cid: number }) {
       />
 
       {showShellProgress ? (
-        <div className="print:hidden sticky top-[var(--app-header-height)] z-40 border-b border-teal-500/20 bg-teal-950/90 px-4 py-2 text-xs text-teal-100 backdrop-blur">
-          <span className="font-medium">Evidence shell ready</span>
-          <span className="text-teal-300/80">
-            {" "}
-            · synthesizing dual-view routes… {Math.round(elapsedMs / 1000)}s
-          </span>
-          {events[events.length - 1]?.detail ? (
-            <span className="mt-0.5 block truncate text-[11px] text-teal-400/70">
-              {events[events.length - 1]?.detail}
+        <div className="print:hidden sticky top-[var(--app-header-height)] z-40 border-b border-teal-500/20 bg-teal-950/90 px-4 py-2.5 text-sm text-teal-50 backdrop-blur">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-teal-300" />
+            <span className="font-medium">Recipe card ready</span>
+            <span className="text-teal-200/80">
+              Cooking dual-view steps… {Math.round(elapsedMs / 1000)}s
             </span>
-          ) : null}
+          </div>
         </div>
       ) : null}
 
       {phase === "checking-cache" ? (
         <div className="w-full p-6 text-sm text-slate-500">
-          Checking local IndexedDB cache for CID {cid}…
+          Looking for a saved recipe for CID {cid}…
         </div>
       ) : null}
 
@@ -276,70 +267,38 @@ export function DossierClientLoader({ cid }: { cid: number }) {
 
       {(phase === "ready" || phase === "shell") && dossier ? (
         <>
-          <div className="print:hidden mx-auto flex w-full max-w-6xl flex-wrap items-center gap-2 px-4 pt-4 sm:px-6">
-            {fromCache && cachedAt ? (
-              <span className="rounded-full bg-slate-800 px-2.5 py-0.5 text-[11px] text-slate-400 ring-1 ring-slate-700">
-                IndexedDB cache · saved {formatCacheAge(cachedAt)}
-              </span>
-            ) : phase === "shell" ? (
-              <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] text-amber-200 ring-1 ring-amber-500/25">
-                Live shell · AI in progress
-              </span>
-            ) : (
-              <span className="rounded-full bg-teal-500/10 px-2.5 py-0.5 text-[11px] text-teal-300 ring-1 ring-teal-500/25">
-                Live fetch · saved to this browser
-              </span>
-            )}
-            <ConfidenceBadge
-              level={
-                dossier.evidenceScore?.confidence ||
-                dossier.synthesis.confidence
-              }
-              score={dossier.evidenceScore?.score}
-              reasons={dossier.evidenceScore?.reasons}
-            />
-            {dossier.buildMode ? (
-              <span className="rounded-full bg-slate-800/80 px-2 py-0.5 text-[10px] text-slate-500">
-                {dossier.buildMode}
-              </span>
-            ) : null}
-            <Tooltip content="Delete IndexedDB cache and re-run free APIs + Ollama">
-              <button
-                type="button"
-                onClick={hardRefresh}
-                className="rounded-md border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-xs font-medium text-slate-300 hover:border-teal-500/40 hover:text-teal-200"
-              >
-                Refresh live data
-              </button>
-            </Tooltip>
-            <TechTransferExport
-              source={{ kind: "live", dossier }}
-              compact
-            />
-          </div>
-          {phase === "ready" ? (
-            <div className="print:hidden mx-auto w-full max-w-6xl px-4 sm:px-6">
-              <DossierSnapshots
-                cid={cid}
-                refreshKey={snapshotKey}
-                onRestore={(d) => {
-                  setDossier(d);
-                  setFromCache(true);
-                  setCachedAt(d.snapshotSavedAt
-                    ? Date.parse(d.snapshotSavedAt)
-                    : Date.now());
-                  setPhase("ready");
-                  phaseRef.current = "ready";
-                }}
-              />
-            </div>
-          ) : null}
           {error && phase === "ready" ? (
-            <p className="print:hidden mx-auto max-w-6xl px-4 text-xs text-amber-200/90 sm:px-6">
+            <p className="print:hidden mx-auto max-w-6xl px-4 pt-4 text-xs text-amber-200/90 sm:px-6">
               {error}
             </p>
           ) : null}
-          <LiveMoleculeDossier dossier={dossier} />
+          <LiveMoleculeDossier
+            dossier={dossier}
+            chrome={{
+              fromCache,
+              cachedAt,
+              phase,
+              onRefresh: hardRefresh,
+              snapshots:
+                phase === "ready" ? (
+                  <DossierSnapshots
+                    cid={cid}
+                    refreshKey={snapshotKey}
+                    onRestore={(d) => {
+                      setDossier(d);
+                      setFromCache(true);
+                      setCachedAt(
+                        d.snapshotSavedAt
+                          ? Date.parse(d.snapshotSavedAt)
+                          : Date.now()
+                      );
+                      setPhase("ready");
+                      phaseRef.current = "ready";
+                    }}
+                  />
+                ) : null,
+            }}
+          />
         </>
       ) : null}
 

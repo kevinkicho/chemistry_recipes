@@ -41,10 +41,13 @@ export function useAiConfig(initialServerEnv?: ServerAiStatus | null) {
     setConfig(readAiConfig());
   }, []);
 
-  // Browser key only counts after hydration (localStorage available)
+  // Browser settings only count after hydration (localStorage available)
   const localConfigured = hydrated && isAiConfigured(config);
-  /** Ready if browser key is set, or server .env has OLLAMA_CLOUD_API_KEY */
-  const configured = localConfigured || Boolean(server?.envKeyConfigured);
+  /** Ready if browser configured, server .env key, or server local Ollama host */
+  const configured =
+    localConfigured ||
+    Boolean(server?.envKeyConfigured) ||
+    Boolean(server?.canCall);
 
   return {
     config,

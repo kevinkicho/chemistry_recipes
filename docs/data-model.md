@@ -59,6 +59,24 @@ See README / `lib/modality/biologicParameters.ts`:
 
 ## Live dossier extras
 
-- `evidenceScore`, `buildMode`, `buildAudit`  
+- `evidenceScore` (score, confidence, explainer, aiRecommendation)  
+- `buildMode`, `buildAudit`  
+- `annotations[]` (multi-source free APIs)  
 - `contradictions[]`, `unitOpFills[]`  
 - `relatedEntities[]`, `modality`  
+- `traces[]` (HTTP provenance for API chips)  
+
+## Export models
+
+- Tech-transfer pack v2 — `lib/export/techTransfer.ts`  
+- MES/LIMS flat rows — same module  
+- Compare dual pack — `/compare`  
+
+Detail: [engineering/tech-transfer-export.md](./engineering/tech-transfer-export.md)
+
+## Related docs
+
+- [README.md](./README.md) (full TOC)  
+- [engineering/dossier-pipeline.md](./engineering/dossier-pipeline.md)  
+- [design/ux-live-dossier.md](./design/ux-live-dossier.md)  
+

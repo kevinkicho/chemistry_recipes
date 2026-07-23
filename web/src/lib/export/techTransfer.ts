@@ -10,6 +10,7 @@ import type {
   RelatedEntity,
 } from "@/lib/types/process";
 import { DEFAULT_DOSSIER_DISCLAIMER } from "@/lib/dossier/types";
+import { buildSourceCoverage } from "@/lib/dossier/sourceCoverage";
 
 export const REGULATORY_DISCLAIMER =
   "NOT FOR REGULATORY DECISION SUPPORT. Not a GMP procedure, batch record, DMF, CTD module, " +
@@ -17,10 +18,24 @@ export const REGULATORY_DISCLAIMER =
   "and your own QMS before any manufacturing or clinical use. AI-generated text is labeled and may err.";
 
 export interface TechTransferPack {
-  schema: "chemistry-recipes.tech-transfer.v1";
+  /** Stable export schema — v2 adds validation checklist + source coverage */
+  schema: "chemistry-recipes.tech-transfer.v2";
   exportedAt: string;
   disclaimer: string;
   regulatoryNotice: string;
+  /** Pre-validation checklist for site QMS (not GMP claims) */
+  validationChecklist?: Array<{
+    id: string;
+    item: string;
+    status: "ok" | "gap" | "review";
+    note?: string;
+  }>;
+  sourceCoverage?: {
+    summary: string;
+    ok: number;
+    empty: number;
+    fail: number;
+  };
   entity: {
     name: string;
     cas?: string;
@@ -107,6 +122,13 @@ export interface TechTransferPack {
   modality?: string;
   literature?: Array<{ title: string; year?: string; url: string; doi?: string }>;
   patents?: Array<{ title: string; id?: string; url?: string }>;
+  annotations?: Array<{
+    source: string;
+    kind: string;
+    title: string;
+    summary?: string;
+    url?: string;
+  }>;
   sources?: Array<{ type: string; id: string; label?: string; url?: string }>;
   gaps?: string[];
   buildAudit?: unknown;
@@ -116,14 +138,94 @@ function routesFromLive(dossier: LiveDossier): ProcessRoute[] {
   return dossier.processRoutes || [];
 }
 
+function buildValidationChecklist(
+  dossier: LiveDossier
+): NonNullable<TechTransferPack["validationChecklist"]> {
+  const routes = dossier.processRoutes || [];
+  const steps = routes.flatMap((r) => r.steps || []);
+  const hasCpp = steps.some((s) => s.controls?.criticalParameters?.length);
+  const hasIpc = steps.some((s) => s.controls?.ipcMethods?.length);
+  const hasApparatus = steps.some((s) => s.apparatus?.length);
+  const hasBom = routes.some((r) => r.materials?.length);
+  const lit = dossier.literature?.length ?? 0;
+  const pats = dossier.patents?.length ?? 0;
+  const score = dossier.evidenceScore?.score ?? 0;
+
+  return [
+    {
+      id: "identity",
+      item: "Identity confirmed against primary registry (PubChem / ChEMBL / RxNorm)",
+      status: dossier.identity ? "ok" : "gap",
+      note: dossier.identity?.name,
+    },
+    {
+      id: "evidence-score",
+      item: "Evidence score reviewed (why AI ran or was skipped)",
+      status: score >= 30 ? "ok" : score > 0 ? "review" : "gap",
+      note: score ? `Score ${score}` : "No score",
+    },
+    {
+      id: "sources",
+      item: "Primary literature / patents linked for process claims",
+      status: lit + pats >= 3 ? "ok" : lit + pats > 0 ? "review" : "gap",
+      note: `${lit} lit · ${pats} patents`,
+    },
+    {
+      id: "bom",
+      item: "Bill of materials present for preferred route",
+      status: hasBom ? "ok" : "gap",
+    },
+    {
+      id: "steps",
+      item: "Process steps with dual-view content (not empty shell only)",
+      status: steps.length >= 2 ? "ok" : "gap",
+      note: `${steps.length} step(s)`,
+    },
+    {
+      id: "cpp-ipc",
+      item: "Critical parameters / IPC listed where available",
+      status: hasCpp || hasIpc ? "ok" : "review",
+      note: "Site must define validated CPPs/IPCs",
+    },
+    {
+      id: "apparatus",
+      item: "Equipment classes identified for scale-up discussion",
+      status: hasApparatus ? "ok" : "review",
+    },
+    {
+      id: "ehs",
+      item: "Hazards / EHS reviewed (GHS or highlights)",
+      status:
+        (dossier.hazards.hazardStatements?.length ||
+          dossier.synthesis.ehsHighlights?.length)
+          ? "ok"
+          : "gap",
+    },
+    {
+      id: "not-gmp",
+      item: "Confirmed: pack is educational scaffold — not site batch record",
+      status: "review",
+      note: "Mandatory site QMS validation",
+    },
+  ];
+}
+
 export function buildTechTransferFromLive(dossier: LiveDossier): TechTransferPack {
   const hit = dossier.identity;
   const routes = routesFromLive(dossier);
+  const coverage = buildSourceCoverage(dossier);
   return {
-    schema: "chemistry-recipes.tech-transfer.v1",
+    schema: "chemistry-recipes.tech-transfer.v2",
     exportedAt: new Date().toISOString(),
     disclaimer: dossier.disclaimer || DEFAULT_DOSSIER_DISCLAIMER,
     regulatoryNotice: REGULATORY_DISCLAIMER,
+    validationChecklist: buildValidationChecklist(dossier),
+    sourceCoverage: {
+      summary: coverage.summary,
+      ok: coverage.ok,
+      empty: coverage.empty,
+      fail: coverage.fail,
+    },
     entity: {
       name: hit?.name || `CID ${dossier.cid}`,
       cas: hit?.cas,
@@ -186,6 +288,13 @@ export function buildTechTransferFromLive(dossier: LiveDossier): TechTransferPac
       id: p.patentNumber || p.id,
       url: p.url,
     })),
+    annotations: (dossier.annotations ?? []).slice(0, 20).map((a) => ({
+      source: a.source,
+      kind: a.kind,
+      title: a.title,
+      summary: a.summary,
+      url: a.url,
+    })),
     sources: dossier.sourceRefs.slice(0, 40).map((s) => ({
       type: s.type,
       id: s.id,
@@ -199,10 +308,27 @@ export function buildTechTransferFromLive(dossier: LiveDossier): TechTransferPac
 
 export function buildTechTransferFromExample(dossier: MoleculeDossier): TechTransferPack {
   return {
-    schema: "chemistry-recipes.tech-transfer.v1",
+    schema: "chemistry-recipes.tech-transfer.v2",
     exportedAt: new Date().toISOString(),
     disclaimer: dossier.disclaimer || DEFAULT_DOSSIER_DISCLAIMER,
     regulatoryNotice: REGULATORY_DISCLAIMER,
+    validationChecklist: [
+      {
+        id: "curated",
+        item: "Curated Tier-A example — still not a site batch record",
+        status: "review",
+      },
+      {
+        id: "routes",
+        item: "Dual-view routes present",
+        status: dossier.routes?.length ? "ok" : "gap",
+      },
+      {
+        id: "not-gmp",
+        item: "Confirmed educational scaffold only",
+        status: "review",
+      },
+    ],
     entity: {
       name: dossier.identifiers.name,
       cas: dossier.identifiers.cas,

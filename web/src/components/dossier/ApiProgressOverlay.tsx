@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { DossierProgressEvent } from "@/lib/dossier/progress";
 import { formatMs } from "@/lib/dossier/progress";
 
@@ -15,35 +15,126 @@ export interface ApiProgressOverlayProps {
   onCancel?: () => void;
 }
 
-function statusIcon(type: DossierProgressEvent["type"], ok?: boolean): string {
-  if (type === "step_start" || type === "hello" || type === "log") return "…";
-  if (type === "complete") return "✓";
-  if (type === "error" || type === "step_error") return "!";
-  if (type === "step_done") return ok === false ? "!" : "✓";
-  return "·";
+/** Friendly recipe-step labels (hide API jargon from the default view). */
+const RECIPE_STEPS: Array<{
+  id: string;
+  title: string;
+  hint: string;
+}> = [
+  {
+    id: "gather",
+    title: "Gather ingredients",
+    hint: "Multi-API: PubChem, ChEMBL, openFDA, literature, patents…",
+  },
+  {
+    id: "score",
+    title: "Check the pantry",
+    hint: "How much multi-source process evidence we have",
+  },
+  {
+    id: "scaffold",
+    title: "Draft the recipe card",
+    hint: "Shell from public sources only",
+  },
+  {
+    id: "ollama",
+    title: "Cook dual-view routes",
+    hint: "Mechanism + manufacturing steps",
+  },
+];
+
+type StepState = "pending" | "active" | "done" | "error" | "skipped";
+
+function resolveStepStates(events: DossierProgressEvent[]): {
+  states: Record<string, StepState>;
+  currentId: string | null;
+  currentLabel: string | null;
+} {
+  const states: Record<string, StepState> = {};
+  for (const s of RECIPE_STEPS) states[s.id] = "pending";
+
+  let currentId: string | null = null;
+  let currentLabel: string | null = null;
+
+  for (const ev of events) {
+    const id = ev.stepId;
+    if (!id || !(id in states)) {
+      if (ev.type === "complete") {
+        for (const s of RECIPE_STEPS) {
+          if (states[s.id] === "active" || states[s.id] === "pending") {
+            // leave skipped only if never started; mark incomplete pending as done if complete
+          }
+        }
+      }
+      continue;
+    }
+
+    if (ev.type === "step_start") {
+      states[id] = "active";
+      currentId = id;
+      currentLabel = ev.label || null;
+    } else if (ev.type === "step_done") {
+      states[id] = ev.ok === false ? "error" : "done";
+      if (currentId === id) currentId = null;
+    } else if (ev.type === "step_error") {
+      states[id] = "error";
+      if (currentId === id) currentId = null;
+    } else if (ev.type === "log" && states[id] === "active") {
+      currentLabel = ev.label || currentLabel;
+    }
+  }
+
+  // If pipeline completed, pending never-started → skipped; active → done
+  const finished = events.some((e) => e.type === "complete");
+  if (finished) {
+    for (const s of RECIPE_STEPS) {
+      if (states[s.id] === "pending") states[s.id] = "skipped";
+      if (states[s.id] === "active") states[s.id] = "done";
+    }
+    currentId = null;
+  }
+
+  // Ollama skip often arrives as step_done with skip detail
+  const ollamaDone = events.find(
+    (e) => e.stepId === "ollama" && (e.type === "step_done" || e.type === "step_error")
+  );
+  if (ollamaDone?.detail && /skipped/i.test(ollamaDone.detail)) {
+    states.ollama = ollamaDone.ok === false ? "error" : "skipped";
+  }
+
+  return { states, currentId, currentLabel };
 }
 
-function statusColor(type: DossierProgressEvent["type"], ok?: boolean): string {
-  if (type === "step_start" || type === "hello" || type === "log") return "text-sky-300";
-  if (type === "complete") return "text-emerald-300";
-  if (type === "error" || type === "step_error" || ok === false) return "text-rose-300";
-  return "text-emerald-300";
+function stepIcon(state: StepState): string {
+  switch (state) {
+    case "done":
+      return "✓";
+    case "error":
+      return "!";
+    case "active":
+      return "→";
+    case "skipped":
+      return "–";
+    default:
+      return "";
+  }
 }
 
 /**
- * Full-screen freeze overlay while multi-API dossier transactions run.
- * Explains each call, elapsed time, status, and response previews in realtime.
+ * Simple recipe-style progress while the dossier is built.
+ * Technical HTTP details stay behind an optional toggle.
  */
 export function ApiProgressOverlay({
   open,
-  title = "Building live dossier",
+  title = "Preparing recipe",
   subtitle,
   events,
   elapsedMs,
   error,
   onCancel,
 }: ApiProgressOverlayProps) {
-  // Freeze page scroll / interaction under overlay
+  const [showLog, setShowLog] = useState(false);
+
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -53,41 +144,51 @@ export function ApiProgressOverlay({
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) setShowLog(false);
+  }, [open]);
+
+  const { states, currentId, currentLabel } = useMemo(
+    () => resolveStepStates(events),
+    [events]
+  );
+
   if (!open) return null;
 
   const latest = events[events.length - 1];
-
-  // Progress must be monotonic. Heartbeat `log` events (e.g. Ollama stream)
-  // often omit stepsDone — never treat missing as 0 or the bar resets mid-run.
-  let stepsTotal = 7;
+  let stepsTotal = RECIPE_STEPS.length;
   let stepsDone = 0;
   for (const ev of events) {
     if (typeof ev.stepsTotal === "number" && ev.stepsTotal > 0) {
-      stepsTotal = ev.stepsTotal;
+      stepsTotal = Math.min(ev.stepsTotal, RECIPE_STEPS.length) || RECIPE_STEPS.length;
     }
     if (typeof ev.stepsDone === "number" && ev.stepsDone > stepsDone) {
       stepsDone = ev.stepsDone;
     }
   }
-  // While a step is in flight, show fractional progress into the next slot
-  // without dropping the completed count.
-  const inFlight =
-    latest?.type === "step_start" || latest?.type === "log" || latest?.type === "hello";
-  const displayDone =
-    latest?.type === "complete"
-      ? stepsTotal
-      : inFlight && stepsDone < stepsTotal
-        ? stepsDone + 0.35
-        : stepsDone;
+  // Prefer counting recipe steps for display
+  const recipeDone = RECIPE_STEPS.filter(
+    (s) => states[s.id] === "done" || states[s.id] === "skipped"
+  ).length;
+  const recipeActive = RECIPE_STEPS.some((s) => states[s.id] === "active");
+  const displayDone = recipeActive
+    ? recipeDone + 0.4
+    : Math.max(recipeDone, Math.min(stepsDone, RECIPE_STEPS.length));
   const pct = Math.min(
     100,
-    Math.round((displayDone / Math.max(1, stepsTotal)) * 100)
+    Math.round((displayDone / RECIPE_STEPS.length) * 100)
   );
 
-  const running = inFlight && latest?.type !== "complete" && latest?.type !== "error";
+  const running =
+    !error &&
+    latest?.type !== "complete" &&
+    latest?.type !== "error" &&
+    (recipeActive || latest?.type === "hello" || latest?.type === "log");
 
-  // Reverse chronological for feed, keep step timeline chronological below
-  const feed = [...events].reverse();
+  const currentRecipe = RECIPE_STEPS.find((s) => s.id === currentId);
+  const headline =
+    currentRecipe?.title ||
+    (error ? "Something went wrong" : running ? "Working…" : "Almost ready");
 
   return (
     <div
@@ -95,12 +196,12 @@ export function ApiProgressOverlay({
       role="alertdialog"
       aria-modal="true"
       aria-busy={running}
-      aria-labelledby="api-progress-title"
+      aria-labelledby="recipe-progress-title"
     >
       <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-sm" aria-hidden />
 
-      <div className="relative z-[201] flex max-h-[min(92vh,44rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl shadow-black/60">
-        <header className="shrink-0 border-b border-slate-800 px-4 py-4 sm:px-5">
+      <div className="relative z-[201] flex w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl shadow-black/60">
+        <header className="shrink-0 border-b border-slate-800 px-5 py-5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
@@ -114,151 +215,155 @@ export function ApiProgressOverlay({
                   }`}
                 />
                 <h2
-                  id="api-progress-title"
-                  className="text-base font-semibold tracking-tight text-slate-50"
+                  id="recipe-progress-title"
+                  className="text-lg font-semibold tracking-tight text-slate-50"
                 >
                   {title}
                 </h2>
               </div>
-              {subtitle ? (
-                <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
-              ) : null}
+              <p className="mt-1.5 text-sm text-slate-400">
+                {subtitle || "Assembling a process recipe from free public sources"}
+              </p>
             </div>
             <div className="shrink-0 text-right">
-              <div className="font-mono text-lg tabular-nums text-teal-300">
+              <div className="font-mono text-base tabular-nums text-teal-300">
                 {formatMs(elapsedMs)}
               </div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-600">elapsed</div>
             </div>
           </div>
 
-          <div className="mt-3">
-            <div className="mb-1 flex justify-between text-[11px] text-slate-500">
-              <span>
-                Step {Math.min(stepsDone, stepsTotal)} / {stepsTotal}
-                {inFlight && stepsDone < stepsTotal ? " · in progress" : ""}
+          <div className="mt-4">
+            <div className="mb-1.5 flex justify-between text-[11px] text-slate-500">
+              <span className="truncate text-slate-300">
+                {error ? "Failed" : headline}
+                {currentLabel && running && !currentRecipe ? (
+                  <span className="text-slate-500"> · {currentLabel}</span>
+                ) : null}
               </span>
-              <span className="tabular-nums">{pct}%</span>
+              <span className="ml-2 shrink-0 tabular-nums">{pct}%</span>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-slate-800">
+            <div className="h-2 overflow-hidden rounded-full bg-slate-800">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-teal-600 to-sky-500 transition-all duration-500"
-                style={{ width: `${pct}%` }}
+                className="h-full rounded-full bg-gradient-to-r from-teal-600 to-emerald-500 transition-all duration-500"
+                style={{ width: `${error ? Math.max(pct, 8) : pct}%` }}
               />
             </div>
           </div>
-
-          {latest?.label ? (
-            <p className="mt-3 text-xs text-slate-400">
-              <span className="text-slate-600">Current: </span>
-              <span className="text-slate-200">{latest.label}</span>
-              {latest.detail ? (
-                <span className="mt-0.5 block text-slate-500 line-clamp-2">{latest.detail}</span>
-              ) : null}
-            </p>
-          ) : null}
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-4">
+        <div className="px-5 py-5">
           {error ? (
-            <div className="mb-3 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+            <div className="mb-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
               {error}
             </div>
           ) : null}
 
-          <ol className="space-y-2">
-            {feed.map((ev, i) => {
-              // Stable-ish key from content
-              const key = `${ev.type}-${ev.stepId ?? ""}-${ev.t}-${i}`;
+          {/* Simple numbered recipe steps */}
+          <ol className="space-y-0">
+            {RECIPE_STEPS.map((step, index) => {
+              const state = states[step.id] || "pending";
+              const isActive = state === "active";
+              const isDone = state === "done";
+              const isErr = state === "error";
+              const isSkip = state === "skipped";
+
               return (
-                <li
-                  key={key}
-                  className="rounded-xl border border-slate-800/90 bg-slate-900/50 px-3 py-2.5"
-                >
-                  <div className="flex items-start gap-2">
+                <li key={step.id} className="relative flex gap-3 pb-5 last:pb-0">
+                  {index < RECIPE_STEPS.length - 1 ? (
                     <span
-                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[11px] font-bold ${statusColor(
-                        ev.type,
-                        ev.ok
-                      )}`}
+                      className={`absolute left-[0.95rem] top-8 h-[calc(100%-1.25rem)] w-px ${
+                        isDone || isSkip
+                          ? "bg-teal-500/40"
+                          : isActive
+                            ? "bg-teal-500/20"
+                            : "bg-slate-800"
+                      }`}
+                      aria-hidden
+                    />
+                  ) : null}
+                  <span
+                    className={`relative z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ring-2 ring-offset-2 ring-offset-slate-950 ${
+                      isDone
+                        ? "bg-teal-500/20 text-teal-200 ring-teal-500/40"
+                        : isActive
+                          ? "animate-pulse bg-teal-500/25 text-teal-100 ring-teal-400/50"
+                          : isErr
+                            ? "bg-rose-500/20 text-rose-200 ring-rose-500/40"
+                            : isSkip
+                              ? "bg-slate-800 text-slate-500 ring-slate-700"
+                              : "bg-slate-900 text-slate-500 ring-slate-800"
+                    }`}
+                  >
+                    {stepIcon(state) || index + 1}
+                  </span>
+                  <div className="min-w-0 flex-1 pt-1">
+                    <div
+                      className={`text-sm font-medium ${
+                        isActive
+                          ? "text-teal-100"
+                          : isDone
+                            ? "text-slate-200"
+                            : isErr
+                              ? "text-rose-200"
+                              : "text-slate-500"
+                      }`}
                     >
-                      {statusIcon(ev.type, ev.ok)}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                        <span className="text-sm font-medium text-slate-100">
-                          {ev.label || ev.type}
+                      {step.title}
+                      {isSkip ? (
+                        <span className="ml-2 text-[10px] font-normal uppercase tracking-wide text-slate-600">
+                          skipped
                         </span>
-                        {ev.organization ? (
-                          <span className="text-[10px] text-slate-600">{ev.organization}</span>
-                        ) : null}
-                        <span className="ml-auto font-mono text-[10px] tabular-nums text-slate-600">
-                          +{formatMs(ev.t)}
-                          {ev.durationMs != null ? ` · ${formatMs(ev.durationMs)}` : ""}
+                      ) : null}
+                      {isActive ? (
+                        <span className="ml-2 text-[10px] font-normal uppercase tracking-wide text-teal-400/80">
+                          now
                         </span>
-                      </div>
-
-                      {ev.endpointUrl ? (
-                        <p className="mt-1 break-all font-mono text-[10px] leading-relaxed text-sky-400/80 [overflow-wrap:anywhere]">
-                          {ev.method ? `${ev.method} ` : ""}
-                          {ev.endpointUrl}
-                        </p>
-                      ) : null}
-
-                      <div className="mt-1 flex flex-wrap gap-1.5 text-[10px]">
-                        {ev.httpStatus != null ? (
-                          <span
-                            className={`rounded px-1.5 py-0.5 font-mono ring-1 ring-inset ${
-                              ev.ok === false || (ev.httpStatus >= 400)
-                                ? "bg-rose-500/10 text-rose-300 ring-rose-500/25"
-                                : "bg-slate-800 text-slate-400 ring-slate-700"
-                            }`}
-                          >
-                            HTTP {ev.httpStatus}
-                          </span>
-                        ) : null}
-                        {ev.hits != null ? (
-                          <span className="rounded bg-slate-800 px-1.5 py-0.5 text-slate-400 ring-1 ring-slate-700">
-                            {ev.hits} hit{ev.hits === 1 ? "" : "s"}
-                          </span>
-                        ) : null}
-                        {ev.type === "step_start" ? (
-                          <span className="rounded bg-sky-500/10 px-1.5 py-0.5 text-sky-300 ring-1 ring-sky-500/25">
-                            in flight
-                          </span>
-                        ) : null}
-                      </div>
-
-                      {ev.detail ? (
-                        <p className="mt-1.5 text-xs leading-relaxed text-slate-400">{ev.detail}</p>
-                      ) : null}
-
-                      {ev.responsePreview ? (
-                        <pre className="mt-2 max-h-24 overflow-auto rounded-lg border border-slate-800 bg-slate-950/80 p-2 font-mono text-[10px] leading-relaxed text-slate-500 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-                          {ev.responsePreview}
-                        </pre>
-                      ) : null}
-
-                      {ev.error ? (
-                        <p className="mt-1 text-xs text-rose-300">{ev.error}</p>
                       ) : null}
                     </div>
+                    <p className="mt-0.5 text-xs text-slate-500">{step.hint}</p>
                   </div>
                 </li>
               );
             })}
           </ol>
+
+          <div className="mt-4 border-t border-slate-800 pt-3">
+            <button
+              type="button"
+              onClick={() => setShowLog((v) => !v)}
+              className="text-[11px] text-slate-500 hover:text-slate-300"
+            >
+              {showLog ? "Hide technical log" : "Show technical log"}
+            </button>
+            {showLog ? (
+              <ul className="mt-2 max-h-36 space-y-1.5 overflow-y-auto text-[11px] text-slate-500">
+                {[...events].reverse().slice(0, 24).map((ev, i) => (
+                  <li
+                    key={`${ev.type}-${ev.t}-${i}`}
+                    className="rounded border border-slate-800/80 bg-slate-900/40 px-2 py-1.5"
+                  >
+                    <span className="text-slate-400">{ev.label || ev.type}</span>
+                    {ev.detail ? (
+                      <span className="mt-0.5 block line-clamp-1 text-slate-600">
+                        {ev.detail}
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
         </div>
 
-        <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-800 px-4 py-2.5 text-[11px] text-slate-600 sm:px-5">
-          <span>Screen frozen until free public APIs + Ollama finish. No mock data.</span>
+        <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-800 px-5 py-3 text-[11px] text-slate-600">
+          <span>Like a recipe card — free public sources only, no invented steps.</span>
           {onCancel && error ? (
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-md border border-slate-700 px-2 py-1 text-slate-300 hover:bg-slate-900"
+              className="rounded-md border border-slate-700 px-2.5 py-1 text-slate-300 hover:bg-slate-900"
             >
-              Dismiss
+              Retry
             </button>
           ) : null}
         </footer>

@@ -31,6 +31,8 @@ export const routes = {
       ? `/search?q=${encodeURIComponent(q.trim())}`
       : "/search",
   sources: () => "/sources",
+  /** Operator diagnostics: API probes, cache, evidence analytics */
+  diagnostics: () => "/diagnostics",
   /** Opens header AI settings modal via query flag */
   aiSettings: () => "/?ai=1",
   /** Free PubChem (NIH) live compound page */

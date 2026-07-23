@@ -27,6 +27,43 @@ function cleanLines(arr?: string[]): string[] | undefined {
   return out.length ? out : undefined;
 }
 
+const CONDITION_LABELS: Record<string, string> = {
+  temperatureC: "Temp",
+  pressure: "Pressure",
+  time: "Time",
+  ph: "pH",
+  atmosphere: "Atm",
+  agitation: "Agitation",
+  other: "Other",
+};
+
+function ConditionChips({
+  conditions,
+}: {
+  conditions: ProcessStep["conditions"];
+}) {
+  if (!conditions) return null;
+  const entries = Object.entries(conditions).filter(
+    ([, v]) => v && !isJunkLine(String(v))
+  );
+  if (!entries.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {entries.map(([k, v]) => (
+        <span
+          key={k}
+          className="inline-flex items-baseline gap-1 rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-1 text-[11px]"
+        >
+          <span className="font-medium text-slate-500">
+            {CONDITION_LABELS[k] || k}
+          </span>
+          <span className="text-slate-200">{v}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function StepCard({
   step,
   view,
@@ -42,9 +79,10 @@ function StepCard({
   const critical = cleanLines(step.controls?.criticalParameters);
   const ipc = cleanLines(step.controls?.ipcMethods);
   const cqa = cleanLines(step.controls?.cqaTargets);
-  const envNotes = step.environment?.notes && !isJunkLine(step.environment.notes)
-    ? step.environment.notes
-    : undefined;
+  const envNotes =
+    step.environment?.notes && !isJunkLine(step.environment.notes)
+      ? step.environment.notes
+      : undefined;
   const hasEnv =
     step.environment &&
     (step.environment.atmosphere ||
@@ -69,10 +107,10 @@ function StepCard({
   return (
     <article className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50">
       <header className="flex flex-wrap items-center gap-2 border-b border-slate-800 bg-slate-900/80 px-4 py-3">
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-500/20 text-xs font-bold text-teal-300">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-500/20 text-sm font-bold text-teal-300 ring-1 ring-teal-500/30">
           {step.order}
         </span>
-        <h4 className="font-semibold text-slate-100">{step.title}</h4>
+        <h4 className="text-base font-semibold text-slate-100">{step.title}</h4>
         {step.mechanismClass && showMech ? <Tag>{step.mechanismClass}</Tag> : null}
         {aiProvenance ? (
           <AiProvenance
@@ -82,6 +120,14 @@ function StepCard({
           />
         ) : null}
       </header>
+
+      {/* Conditions always visible as recipe chips when present */}
+      {step.conditions &&
+      Object.values(step.conditions).some((v) => v && !isJunkLine(String(v))) ? (
+        <div className="border-b border-slate-800/80 bg-slate-950/40 px-4 py-2.5">
+          <ConditionChips conditions={step.conditions} />
+        </div>
+      ) : null}
 
       <div
         className={`grid gap-0 ${
@@ -98,33 +144,23 @@ function StepCard({
           >
             {view === "dual" ? (
               <div className="text-[11px] font-semibold uppercase tracking-wider text-violet-400">
-                Mechanism / R&amp;D
+                Chemistry
               </div>
             ) : null}
             <p className="text-sm leading-relaxed text-slate-300">{step.description}</p>
             {mechNotes ? (
               <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 p-3">
-                <div className="mb-1 text-xs font-medium text-violet-300">Mechanism notes</div>
+                <div className="mb-1 text-xs font-medium text-violet-300">
+                  Why it works
+                </div>
                 <p className="text-sm leading-relaxed text-slate-300">{mechNotes}</p>
               </div>
             ) : null}
-            {step.conditions ? (
-              <dl className="grid grid-cols-2 gap-2 text-xs">
-                {Object.entries(step.conditions).map(([k, v]) =>
-                  v && !isJunkLine(String(v)) ? (
-                    <div key={k} className="rounded bg-slate-950/60 px-2 py-1.5">
-                      <dt className="capitalize text-slate-500">
-                        {k.replace(/([A-Z])/g, " $1")}
-                      </dt>
-                      <dd className="mt-0.5 text-slate-200">{v}</dd>
-                    </div>
-                  ) : null
-                )}
-              </dl>
-            ) : null}
             {step.materials && step.materials.length > 0 ? (
               <div>
-                <div className="mb-1 text-xs font-medium text-slate-500">Materials (step)</div>
+                <div className="mb-1 text-xs font-medium text-slate-500">
+                  This step uses
+                </div>
                 <p className="text-xs text-slate-400">
                   {step.materials.map((m) => m.name).join(" · ")}
                 </p>
@@ -137,7 +173,7 @@ function StepCard({
           <div className="space-y-3 p-4">
             {view === "dual" ? (
               <div className="text-[11px] font-semibold uppercase tracking-wider text-teal-400">
-                Manufacturing / plant
+                Plant
               </div>
             ) : null}
             {view === "manufacturing" ? (
@@ -145,22 +181,25 @@ function StepCard({
             ) : null}
             {!hasMfgBody && view === "dual" ? (
               <p className="text-xs leading-relaxed text-slate-500">
-                Plant apparatus, environment, and IPC/CQAs appear here when process evidence or AI
-                synthesis provides them — placeholders are omitted.
+                Plant details appear when evidence lists equipment, environment, or controls.
               </p>
             ) : null}
             {hasApparatus ? (
               <div>
-                <div className="mb-1.5 text-xs font-medium text-slate-500">Apparatus</div>
+                <div className="mb-1.5 text-xs font-medium text-slate-500">Equipment</div>
                 <ul className="space-y-1">
                   {step.apparatus!.map((a, i) => (
                     <li
                       key={i}
                       className="flex flex-wrap items-baseline gap-x-2 text-sm text-slate-300"
                     >
-                      <code className="text-xs text-teal-300/90">{a.equipmentClass}</code>
+                      <code className="rounded bg-slate-950/80 px-1.5 py-0.5 text-xs text-teal-300/90">
+                        {a.equipmentClass}
+                      </code>
                       {a.materialOfConstruction ? (
-                        <span className="text-xs text-slate-500">{a.materialOfConstruction}</span>
+                        <span className="text-xs text-slate-500">
+                          {a.materialOfConstruction}
+                        </span>
                       ) : null}
                       {a.notes && !isJunkLine(a.notes) ? (
                         <span className="text-xs text-slate-500">— {a.notes}</span>
@@ -174,13 +213,19 @@ function StepCard({
               <div className="space-y-1 rounded-lg border border-teal-500/20 bg-teal-500/5 p-3 text-sm">
                 <div className="mb-1 text-xs font-medium text-teal-300">Environment</div>
                 {step.environment!.atmosphere ? (
-                  <p className="text-slate-300">Atmosphere: {step.environment!.atmosphere}</p>
+                  <p className="text-slate-300">
+                    Atmosphere: {step.environment!.atmosphere}
+                  </p>
                 ) : null}
                 {step.environment!.containment ? (
-                  <p className="text-slate-300">Containment: {step.environment!.containment}</p>
+                  <p className="text-slate-300">
+                    Containment: {step.environment!.containment}
+                  </p>
                 ) : null}
                 {step.environment!.atexZone ? (
-                  <p className="text-slate-300">ATEX / zoning: {step.environment!.atexZone}</p>
+                  <p className="text-slate-300">
+                    Zoning: {step.environment!.atexZone}
+                  </p>
                 ) : null}
                 {step.environment!.utilities?.length ? (
                   <p className="text-xs text-slate-400">
@@ -191,38 +236,43 @@ function StepCard({
               </div>
             ) : null}
             {hasControls ? (
-              <div className="space-y-2 text-sm">
-                {critical?.length ? (
-                  <div>
-                    <div className="text-xs font-medium text-slate-500">Critical parameters</div>
-                    <p className="text-slate-300">{critical.join(" · ")}</p>
-                  </div>
-                ) : null}
-                {ipc?.length ? (
-                  <div>
-                    <div className="text-xs font-medium text-slate-500">IPC</div>
-                    <p className="text-slate-300">{ipc.join(" · ")}</p>
-                  </div>
-                ) : null}
-                {cqa?.length ? (
-                  <div>
-                    <div className="text-xs font-medium text-slate-500">CQA targets</div>
-                    <ul className="list-inside list-disc text-slate-300">
-                      {cqa.map((c) => (
-                        <li key={c}>{c}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
+              <div className="flex flex-wrap gap-2">
+                {critical?.map((c) => (
+                  <span
+                    key={c}
+                    className="rounded-full bg-rose-500/10 px-2 py-0.5 text-[11px] text-rose-200 ring-1 ring-rose-500/25"
+                  >
+                    CPP · {c}
+                  </span>
+                ))}
+                {ipc?.map((c) => (
+                  <span
+                    key={c}
+                    className="rounded-full bg-sky-500/10 px-2 py-0.5 text-[11px] text-sky-200 ring-1 ring-sky-500/25"
+                  >
+                    IPC · {c}
+                  </span>
+                ))}
+                {cqa?.map((c) => (
+                  <span
+                    key={c}
+                    className="rounded-full bg-teal-500/10 px-2 py-0.5 text-[11px] text-teal-200 ring-1 ring-teal-500/25"
+                  >
+                    CQA · {c}
+                  </span>
+                ))}
               </div>
+            ) : null}
+            {step.workup ? (
+              <p className="text-xs text-slate-400">
+                <span className="font-medium text-slate-500">Workup · </span>
+                {step.workup}
+              </p>
             ) : null}
             {step.scaleNotes && !isJunkLine(step.scaleNotes) ? (
               <p className="border-l-2 border-amber-500/40 pl-2 text-xs text-amber-200/80">
-                Scale-up: {step.scaleNotes}
+                Scale-up · {step.scaleNotes}
               </p>
-            ) : null}
-            {step.workup ? (
-              <p className="text-xs text-slate-400">Workup: {step.workup}</p>
             ) : null}
           </div>
         ) : null}
@@ -238,7 +288,6 @@ export function RoutePanel({
 }: {
   routes: ProcessRoute[];
   emptyMessage?: string;
-  /** When set, every AI-generated route/step shows an AI provenance chip */
   aiProvenance?: AiProvenanceRecord | null;
 }) {
   const [routeId, setRouteId] = useState(routes[0]?.id ?? "");
@@ -249,17 +298,17 @@ export function RoutePanel({
     return (
       <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/30 p-6 text-sm text-slate-500">
         {emptyMessage ||
-          "No process routes synthesized yet. Ensure Ollama Cloud is configured and public literature/manufacturing evidence exists for this compound."}
+          "No process recipe yet. Configure Ollama Cloud or wait for public process literature."}
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-2">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wider text-slate-500">
-            Process route
+            Recipe
             {aiProvenance ? (
               <AiProvenance
                 provenance={aiProvenance}
@@ -269,7 +318,7 @@ export function RoutePanel({
             ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
-            {routes.map((r) => (
+            {routes.map((r, i) => (
               <button
                 key={r.id}
                 type="button"
@@ -280,7 +329,12 @@ export function RoutePanel({
                     : "border-slate-700 bg-slate-900 text-slate-400 hover:border-slate-600"
                 }`}
               >
-                <div className="font-medium">{r.name}</div>
+                <div className="font-medium">
+                  {routes.length > 1 ? (
+                    <span className="mr-1.5 text-teal-500/80">{i + 1}.</span>
+                  ) : null}
+                  {r.name}
+                </div>
                 <div className="text-[11px] opacity-80">
                   {r.type} · {r.scaleClass}
                   {r.preference === 1 ? " · preferred" : ""}
@@ -289,21 +343,25 @@ export function RoutePanel({
             ))}
           </div>
         </div>
-        <ViewToggle value={view} onChange={setView} />
+        <ViewToggle value={view} onChange={setView} compact />
       </div>
 
       <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-900/40 p-4">
         <p className="text-sm leading-relaxed text-slate-300">{route.summary}</p>
         <div className="flex flex-wrap gap-2">
           <Tag>{route.type}</Tag>
-          <Tag>scale: {route.scaleClass}</Tag>
-          {route.overallYieldTypical ? <Tag>yield: {route.overallYieldTypical}</Tag> : null}
+          <Tag>{route.scaleClass} scale</Tag>
+          {route.overallYieldTypical ? (
+            <Tag>yield {route.overallYieldTypical}</Tag>
+          ) : null}
         </div>
-        {(route.advantages || route.disadvantages) && (
+        {(route.advantages?.length || route.disadvantages?.length) ? (
           <div className="grid gap-3 text-sm sm:grid-cols-2">
             {route.advantages && route.advantages.length > 0 ? (
               <div>
-                <div className="mb-1 text-xs font-medium text-emerald-400/90">Advantages</div>
+                <div className="mb-1 text-xs font-medium text-emerald-400/90">
+                  Why this path
+                </div>
                 <ul className="list-inside list-disc space-y-0.5 text-slate-400">
                   {route.advantages.map((a) => (
                     <li key={a}>{a}</li>
@@ -313,7 +371,9 @@ export function RoutePanel({
             ) : null}
             {route.disadvantages && route.disadvantages.length > 0 ? (
               <div>
-                <div className="mb-1 text-xs font-medium text-rose-400/90">Trade-offs</div>
+                <div className="mb-1 text-xs font-medium text-rose-400/90">
+                  Watch-outs
+                </div>
                 <ul className="list-inside list-disc space-y-0.5 text-slate-400">
                   {route.disadvantages.map((a) => (
                     <li key={a}>{a}</li>
@@ -322,12 +382,17 @@ export function RoutePanel({
               </div>
             ) : null}
           </div>
-        )}
+        ) : null}
       </div>
 
       {route.materials.length > 0 ? (
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-slate-200">Bill of materials</h3>
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-200">
+            <span className="text-teal-400/90">Ingredients</span>
+            <span className="text-[11px] font-normal text-slate-600">
+              bill of materials
+            </span>
+          </h3>
           <div className="overflow-x-auto rounded-xl border border-slate-800">
             <table className="min-w-full text-sm">
               <thead className="bg-slate-900 text-left text-xs uppercase tracking-wider text-slate-500">
@@ -335,15 +400,17 @@ export function RoutePanel({
                   <th className="px-3 py-2">Role</th>
                   <th className="px-3 py-2">Material</th>
                   <th className="px-3 py-2">CAS</th>
-                  <th className="px-3 py-2">Stoich</th>
+                  <th className="px-3 py-2">Amount</th>
                   <th className="px-3 py-2">Notes</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
                 {route.materials.map((m, i) => (
                   <tr key={i} className="bg-slate-950/40">
-                    <td className="whitespace-nowrap px-3 py-2 text-teal-300/90">{m.role}</td>
-                    <td className="px-3 py-2 text-slate-200">{m.name}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-xs text-teal-300/90">
+                      {m.role}
+                    </td>
+                    <td className="px-3 py-2 font-medium text-slate-200">{m.name}</td>
                     <td className="px-3 py-2 font-mono text-xs text-slate-500">
                       {m.cas ?? "—"}
                     </td>
@@ -360,7 +427,12 @@ export function RoutePanel({
       ) : null}
 
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-slate-200">Process steps</h3>
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-200">
+          <span className="text-teal-400/90">Method</span>
+          <span className="text-[11px] font-normal text-slate-600">
+            {route.steps.length} step{route.steps.length === 1 ? "" : "s"}
+          </span>
+        </h3>
         {route.steps
           .slice()
           .sort((a, b) => a.order - b.order)
@@ -374,9 +446,16 @@ export function RoutePanel({
           ))}
       </div>
 
+      {route.isolation ? (
+        <div className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-sm text-slate-400">
+          <span className="font-medium text-slate-300">Finish · </span>
+          {route.isolation}
+        </div>
+      ) : null}
+
       {route.scaleUp ? (
         <div className="space-y-2 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-          <h3 className="text-sm font-semibold text-amber-200">Scale-up envelope</h3>
+          <h3 className="text-sm font-semibold text-amber-200">Scale-up notes</h3>
           <dl className="grid gap-2 text-sm sm:grid-cols-2">
             {route.scaleUp.labToKilo ? (
               <div>
@@ -396,15 +475,9 @@ export function RoutePanel({
                 <dd className="text-slate-300">{route.scaleUp.pilotToCommercial}</dd>
               </div>
             ) : null}
-            {route.scaleUp.heatMassTransfer ? (
-              <div>
-                <dt className="text-xs text-amber-500/80">Heat / mass transfer</dt>
-                <dd className="text-slate-300">{route.scaleUp.heatMassTransfer}</dd>
-              </div>
-            ) : null}
             {route.scaleUp.safetyScaleUp ? (
               <div className="sm:col-span-2">
-                <dt className="text-xs text-amber-500/80">Process safety</dt>
+                <dt className="text-xs text-amber-500/80">Safety</dt>
                 <dd className="text-slate-300">{route.scaleUp.safetyScaleUp}</dd>
               </div>
             ) : null}
@@ -415,19 +488,12 @@ export function RoutePanel({
               </div>
             ) : null}
           </dl>
-          {route.scaleUp.wasteStreams ? (
+          {route.scaleUp.wasteStreams?.length ? (
             <p className="text-xs text-slate-400">
-              Waste streams: {route.scaleUp.wasteStreams.join(" · ")}
+              Waste: {route.scaleUp.wasteStreams.join(" · ")}
             </p>
           ) : null}
         </div>
-      ) : null}
-
-      {route.isolation ? (
-        <p className="text-sm text-slate-400">
-          <span className="font-medium text-slate-300">Isolation: </span>
-          {route.isolation}
-        </p>
       ) : null}
     </div>
   );

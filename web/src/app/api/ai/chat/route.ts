@@ -1,40 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
-import { OLLAMA_CLOUD_HOST } from "@/lib/ai/config";
+import {
+  isAllowedOllamaHost,
+  isLocalOllamaHost,
+  OLLAMA_CLOUD_HOST,
+} from "@/lib/ai/config";
 import { getServerAiEnv, resolveRequestApiKey } from "@/lib/ai/serverEnv";
 
 export const runtime = "nodejs";
 
 /**
- * Proxy chat to Ollama Cloud.
- * Auth: request Bearer key, else OLLAMA_CLOUD_API_KEY / OLLAMA_API_KEY from .env
+ * Proxy chat to Ollama Cloud or local Ollama.
+ * Cloud: Bearer key from request or OLLAMA_CLOUD_API_KEY / OLLAMA_API_KEY.
+ * Local: no key required (loopback / private LAN allowlist).
  * Docs: https://docs.ollama.com/cloud
  */
 export async function POST(req: NextRequest) {
   try {
-    const { apiKey, source } = resolveRequestApiKey(req.headers.get("authorization"));
-    if (!apiKey) {
-      return NextResponse.json(
-        {
-          error:
-            "No Ollama API key. Set OLLAMA_CLOUD_API_KEY in .env (dev) or add a key in Settings → AI.",
-        },
-        { status: 401 }
-      );
-    }
-
     const body = (await req.json()) as {
       host?: string;
       model?: string;
       messages?: Array<{ role: string; content: string }>;
       stream?: boolean;
+      provider?: string;
     };
 
     const env = getServerAiEnv();
     const host = (body.host || env.host || OLLAMA_CLOUD_HOST).replace(/\/$/, "");
-    if (!isAllowedHost(host)) {
+    if (!isAllowedOllamaHost(host)) {
       return NextResponse.json(
-        { error: "Host not allowed. Use https://ollama.com for Ollama Cloud." },
+        {
+          error:
+            "Host not allowed. Use https://ollama.com (Cloud) or a local/LAN Ollama host (e.g. http://127.0.0.1:11434).",
+        },
         { status: 400 }
+      );
+    }
+
+    const local = isLocalOllamaHost(host);
+    const { apiKey, source } = resolveRequestApiKey(req.headers.get("authorization"));
+    if (!local && !apiKey) {
+      return NextResponse.json(
+        {
+          error:
+            "No Ollama API key. Set OLLAMA_CLOUD_API_KEY in .env (dev) or add a key in Settings → AI. Local Ollama needs no key.",
+        },
+        { status: 401 }
       );
     }
 
@@ -47,12 +57,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (apiKey) {
+      headers.Authorization = `Bearer ${apiKey}`;
+    }
+
     const upstream = await fetch(`${host}/api/chat`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({
         model,
         messages,
@@ -75,16 +89,24 @@ export async function POST(req: NextRequest) {
         "error" in data &&
         typeof (data as { error: unknown }).error === "string"
           ? (data as { error: string }).error
-          : `Ollama Cloud error (HTTP ${upstream.status})`;
+          : `Ollama error (HTTP ${upstream.status})`;
       return NextResponse.json(
-        { error: err, raw: data, keySource: source },
+        {
+          error: err,
+          raw: data,
+          keySource: source,
+          hostMode: local ? "local" : "cloud",
+        },
         { status: upstream.status }
       );
     }
 
-    // Attach non-sensitive meta for debugging
     if (data && typeof data === "object") {
-      return NextResponse.json({ ...(data as object), keySource: source });
+      return NextResponse.json({
+        ...(data as object),
+        keySource: source ?? (local ? "local" : null),
+        hostMode: local ? "local" : "cloud",
+      });
     }
     return NextResponse.json(data);
   } catch (e) {
@@ -92,14 +114,5 @@ export async function POST(req: NextRequest) {
       { error: e instanceof Error ? e.message : "Proxy failed" },
       { status: 500 }
     );
-  }
-}
-
-function isAllowedHost(host: string): boolean {
-  try {
-    const u = new URL(host);
-    return u.protocol === "https:" && u.hostname === "ollama.com";
-  } catch {
-    return false;
   }
 }

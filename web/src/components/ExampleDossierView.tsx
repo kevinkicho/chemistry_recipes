@@ -146,9 +146,10 @@ export function ExampleDossierView({ d }: { d: MoleculeDossier }) {
           <BiologicParametersPanel parameterSet={paramSet} />
 
           <section id="routes" className="scroll-mt-24">
-            <h2 className="mb-4 text-lg font-semibold text-slate-100">
-              Routes &amp; process steps
-            </h2>
+            <h2 className="mb-1 text-lg font-semibold text-slate-100">Process recipe</h2>
+            <p className="mb-4 text-xs text-slate-500">
+              Ingredients, method steps, dual plant / chemistry view. Not a GMP batch record.
+            </p>
             <RoutePanel routes={d.routes} />
           </section>
 

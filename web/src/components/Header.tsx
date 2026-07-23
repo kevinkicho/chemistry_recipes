@@ -12,6 +12,7 @@ const links = [
   { href: routes.search(), label: "Search" },
   { href: routes.compare(), label: "Compare" },
   { href: routes.workspace(), label: "Workspace" },
+  { href: routes.diagnostics(), label: "Diagnostics" },
   { href: routes.sources(), label: "API sources" },
 ];
 

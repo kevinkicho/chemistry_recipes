@@ -20,7 +20,10 @@ import path from "path";
 import {
   DEFAULT_OLLAMA_CLOUD_FAST_MODEL,
   DEFAULT_OLLAMA_CLOUD_MODEL,
+  DEFAULT_OLLAMA_LOCAL_MODEL,
+  isLocalOllamaHost,
   OLLAMA_CLOUD_HOST,
+  type AiProvider,
 } from "@/lib/ai/config";
 
 export interface ServerAiEnv {
@@ -31,6 +34,9 @@ export interface ServerAiEnv {
   host: string;
   /** True when a non-empty key is present */
   hasKey: boolean;
+  /** Cloud key present OR local host (can call without Bearer) */
+  canCall: boolean;
+  provider: AiProvider;
   /** Where the key was resolved from (never includes the secret) */
   keySource: "process" | "env-file" | null;
   envFilePath?: string;
@@ -129,28 +135,35 @@ export function getServerAiEnv(): ServerAiEnv {
   const keyAlt = keyPrimary.value ? keyPrimary : readVar("OLLAMA_API_KEY");
   const apiKey = keyAlt.value;
 
+  const host = (
+    readVar("OLLAMA_CLOUD_HOST").value ||
+    readVar("OLLAMA_HOST").value ||
+    OLLAMA_CLOUD_HOST
+  ).replace(/\/$/, "");
+  const hostFinal = host || OLLAMA_CLOUD_HOST;
+  const local = isLocalOllamaHost(hostFinal);
+  const provider: AiProvider = local ? "ollama-local" : "ollama-cloud";
+
   const model =
     readVar("OLLAMA_CLOUD_MODEL").value ||
     readVar("OLLAMA_MODEL").value ||
-    DEFAULT_OLLAMA_CLOUD_MODEL;
+    (local ? DEFAULT_OLLAMA_LOCAL_MODEL : DEFAULT_OLLAMA_CLOUD_MODEL);
 
   const fastModel =
     readVar("OLLAMA_CLOUD_FAST_MODEL").value ||
     DEFAULT_OLLAMA_CLOUD_FAST_MODEL ||
     model;
 
-  const host = (
-    readVar("OLLAMA_CLOUD_HOST").value ||
-    readVar("OLLAMA_HOST").value ||
-    OLLAMA_CLOUD_HOST
-  ).replace(/\/$/, "");
+  const hasKey = Boolean(apiKey);
 
   return {
     apiKey,
-    model: model || DEFAULT_OLLAMA_CLOUD_MODEL,
+    model: model || (local ? DEFAULT_OLLAMA_LOCAL_MODEL : DEFAULT_OLLAMA_CLOUD_MODEL),
     fastModel: fastModel || model || DEFAULT_OLLAMA_CLOUD_MODEL,
-    host: host || OLLAMA_CLOUD_HOST,
-    hasKey: Boolean(apiKey),
+    host: hostFinal,
+    hasKey,
+    canCall: hasKey || local,
+    provider,
     keySource: apiKey ? keyAlt.source : null,
   };
 }

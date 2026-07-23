@@ -22,7 +22,7 @@ export interface CachedDossierRecord {
 }
 
 /** Bump when live dossier quality pipeline changes so stale junk scaffolds are discarded */
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 function canUseIdb(): boolean {
   return typeof window !== "undefined" && typeof indexedDB !== "undefined";
@@ -125,7 +125,7 @@ export async function deleteCachedDossier(cid: number): Promise<void> {
   }
 }
 
-/** List cached CIDs (for optional UI). */
+/** List cached CIDs (for optional UI / diagnostics). */
 export async function listCachedDossiers(): Promise<
   Array<{ cid: number; name?: string; savedAt: number }>
 > {
@@ -172,4 +172,127 @@ export async function putCachedDossierAndNotify(dossier: LiveDossier): Promise<v
 export async function deleteCachedDossierAndNotify(cid: number): Promise<void> {
   await deleteCachedDossier(cid);
   notifyDossierCacheChanged(cid);
+}
+
+export interface IdbHealthReport {
+  available: boolean;
+  schemaVersion: number;
+  dbName: string;
+  store: string;
+  openOk: boolean;
+  readOk: boolean;
+  writeOk: boolean;
+  dossierCount: number;
+  staleSchemaCount: number;
+  oldestSavedAt: number | null;
+  newestSavedAt: number | null;
+  error?: string;
+}
+
+/**
+ * Probe IndexedDB open/read/write and count current vs stale schema rows.
+ * Safe for diagnostics; uses a disposable probe key.
+ */
+export async function probeIdbHealth(): Promise<IdbHealthReport> {
+  const base: IdbHealthReport = {
+    available: canUseIdb(),
+    schemaVersion: SCHEMA_VERSION,
+    dbName: DB_NAME,
+    store: STORE,
+    openOk: false,
+    readOk: false,
+    writeOk: false,
+    dossierCount: 0,
+    staleSchemaCount: 0,
+    oldestSavedAt: null,
+    newestSavedAt: null,
+  };
+  if (!base.available) {
+    return { ...base, error: "IndexedDB not available in this browser" };
+  }
+
+  try {
+    const db = await openDb();
+    base.openOk = true;
+    try {
+      const txR = db.transaction(STORE, "readonly");
+      const all = await idbReq<CachedDossierRecord[]>(
+        txR.objectStore(STORE).getAll()
+      );
+      base.readOk = true;
+      const rows = all || [];
+      let oldest: number | null = null;
+      let newest: number | null = null;
+      let current = 0;
+      let stale = 0;
+      for (const r of rows) {
+        if (r.schemaVersion === SCHEMA_VERSION) {
+          current += 1;
+          if (oldest == null || r.savedAt < oldest) oldest = r.savedAt;
+          if (newest == null || r.savedAt > newest) newest = r.savedAt;
+        } else {
+          stale += 1;
+        }
+      }
+      base.dossierCount = current;
+      base.staleSchemaCount = stale;
+      base.oldestSavedAt = oldest;
+      base.newestSavedAt = newest;
+
+      // Write probe (then delete) to confirm quota / private-mode write path
+      const probeCid = -1;
+      const txW = db.transaction(STORE, "readwrite");
+      const store = txW.objectStore(STORE);
+      await idbReq(
+        store.put({
+          cid: probeCid,
+          dossier: { cid: probeCid } as LiveDossier,
+          savedAt: Date.now(),
+          name: "__probe__",
+          schemaVersion: SCHEMA_VERSION,
+        })
+      );
+      await idbReq(store.delete(probeCid));
+      await new Promise<void>((resolve, reject) => {
+        txW.oncomplete = () => resolve();
+        txW.onerror = () => reject(txW.error ?? new Error("probe tx failed"));
+        txW.onabort = () => reject(txW.error ?? new Error("probe tx aborted"));
+      });
+      base.writeOk = true;
+    } finally {
+      db.close();
+    }
+    return base;
+  } catch (e) {
+    return {
+      ...base,
+      error: e instanceof Error ? e.message : "IndexedDB probe failed",
+    };
+  }
+}
+
+/** Drop all dossier cache rows (user-initiated clear from diagnostics). */
+export async function clearAllDossierCache(): Promise<number> {
+  if (!canUseIdb()) return 0;
+  try {
+    const db = await openDb();
+    try {
+      const tx = db.transaction(STORE, "readwrite");
+      const store = tx.objectStore(STORE);
+      const all = await idbReq<CachedDossierRecord[]>(store.getAll());
+      const n = all?.length ?? 0;
+      await idbReq(store.clear());
+      await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error ?? new Error("clear failed"));
+        tx.onabort = () => reject(tx.error ?? new Error("clear aborted"));
+      });
+      notifyDossierCacheChanged();
+      return n;
+    } finally {
+      db.close();
+    }
+  } catch {
+    return 0;
+  }
 }

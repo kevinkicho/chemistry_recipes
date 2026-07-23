@@ -165,5 +165,26 @@ export function pubchemPropertyEndpoint(cid: number): string {
 export async function getPubChemCompound(
   cid: number
 ): Promise<{ hit: PubChemHit | null; traces: ApiFetchTrace[] }> {
-  return fetchPubChemProvenance(cid);
+  const base = await fetchPubChemProvenance(cid);
+  if (!base.hit) return base;
+
+  // Enrich with CAS RN (Registry Number) so live pages match curated identity rows
+  try {
+    const casUrl = `${PUG}/compound/cid/${cid}/xrefs/RN/JSON`;
+    const { data, trace } = await fetchJsonWithTrace<{
+      InformationList?: {
+        Information?: Array<{ CID?: number; RN?: string[] }>;
+      };
+    }>(casUrl, { next: { revalidate: 3600 } });
+    base.traces.push(trace);
+    const rns = data?.InformationList?.Information?.[0]?.RN ?? [];
+    // Prefer standard CAS form NNNNN-NN-N
+    const cas =
+      rns.find((r) => /^\d{2,7}-\d{2}-\d$/.test(r)) || rns[0] || undefined;
+    if (cas) base.hit = { ...base.hit, cas };
+  } catch {
+    /* optional enrichment */
+  }
+
+  return base;
 }

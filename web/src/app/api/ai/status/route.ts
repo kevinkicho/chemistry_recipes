@@ -13,11 +13,16 @@ export async function GET() {
   const env = getServerAiEnv();
   return NextResponse.json({
     envKeyConfigured: env.hasKey,
+    /** True when server can call Ollama (cloud key or local host) */
+    canCall: env.canCall,
+    provider: env.provider,
     envKeySource: env.hasKey
       ? env.keySource === "env-file"
         ? "OLLAMA_CLOUD_API_KEY (.env file)"
         : "OLLAMA_CLOUD_API_KEY (process.env)"
-      : null,
+      : env.provider === "ollama-local"
+        ? "local Ollama (no key)"
+        : null,
     model: env.model,
     fastModel: env.fastModel,
     host: env.host,

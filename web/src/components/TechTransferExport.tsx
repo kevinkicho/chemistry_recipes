@@ -45,7 +45,15 @@ export function TechTransferExport({
 
   function onTechTransferJson() {
     const p = pack();
-    downloadJson(`${nameBase()}-tech-transfer.json`, p);
+    downloadJson(`${nameBase()}-tech-transfer-v2.json`, p);
+    const gaps = p.validationChecklist?.filter((c) => c.status === "gap").length ?? 0;
+    const review = p.validationChecklist?.filter((c) => c.status === "review").length ?? 0;
+    if (gaps + review > 0) {
+      // Non-blocking awareness for operators
+      console.info(
+        `[tech-transfer] validation checklist: ${gaps} gap(s), ${review} review item(s)`
+      );
+    }
   }
 
   function onMesLimsJson() {

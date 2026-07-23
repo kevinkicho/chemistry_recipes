@@ -148,8 +148,17 @@ function buildEvidenceObject(ev: CompoundEvidence) {
       abstract: p.abstract?.slice(0, 500),
       url: p.url,
     })),
+    // Multi-source free public APIs beyond PubChem
+    externalAnnotations: (ev.annotations ?? []).slice(0, 16).map((a) => ({
+      source: a.source,
+      kind: a.kind,
+      title: a.title,
+      summary: a.summary?.slice(0, 400),
+      fields: a.fields,
+      url: a.url,
+    })),
     instruction:
-      "Produce dual-view process routes suitable for a plant-ready educational dossier. Omit empty plant fields rather than writing placeholders.",
+      "Produce dual-view process routes suitable for a plant-ready educational dossier. Use all free-public sources (not only PubChem). Omit empty plant fields rather than writing placeholders.",
   };
 }
 
@@ -186,6 +195,21 @@ export function buildAiDataFeedSources(ev: CompoundEvidence): AiDataFeedSource[]
         null,
         0
       ).slice(0, 800),
+    });
+  }
+
+  for (const a of (ev.annotations ?? []).slice(0, 12)) {
+    sources.push({
+      id: `ann:${a.source}:${a.title.slice(0, 40)}`,
+      name: a.source,
+      organization: a.organization,
+      role: `${a.kind} annotation`,
+      url: a.url,
+      endpointUrl: a.endpointUrl,
+      content: [a.title, a.summary, a.fields ? JSON.stringify(a.fields) : ""]
+        .filter(Boolean)
+        .join("\n")
+        .slice(0, 700),
     });
   }
 
@@ -300,22 +324,67 @@ function fieldsFromSynthesis(s: AiSynthesis): string[] {
 const JUNK_STEP =
   /this section provides information|major uses of this chemical|public manufacturing \/ use note|not specified in public excerpt|define ipc\/cqas|extracted from pubchem pug view/i;
 
-/** Drop TOC-boilerplate steps and empty routes after model parse. */
+/**
+ * Stronger dual-view quality bar: drop boilerplate, thin steps, and
+ * routes that never produce plant-relevant or chemistry-relevant body.
+ */
 export function qualityGateSynthesis(s: AiSynthesis): AiSynthesis {
   if (!s.parsed || !s.routes?.length) return s;
 
   const routes = s.routes
     .map((r) => {
-      const steps = r.steps.filter((step) => {
-        const blob = `${step.title} ${step.description}`;
-        if (JUNK_STEP.test(blob)) return false;
-        if (step.description.trim().length < 40 && !step.mechanismNotes) return false;
-        if (/^process route synthesis pending/i.test(step.title)) return false;
-        return true;
-      });
+      const steps = r.steps
+        .filter((step) => {
+          const blob = `${step.title} ${step.description}`;
+          if (JUNK_STEP.test(blob)) return false;
+          if (/^process route synthesis pending/i.test(step.title)) return false;
+          if (step.description.trim().length < 48) return false;
+          // Reject pure TOC / section-title steps
+          if (/^(uses?|description|methods? of manufacturing|overview)$/i.test(step.title.trim())) {
+            return false;
+          }
+          // Prefer steps that look like unit operations or real chemistry
+          const opLike =
+            /charge|react|quench|crystall|filter|dry|distill|extract|hydrog|ferment|isolat|work.?up|heat|cool|cataly|acylation|alkylat|hydrogen|purif|wash|centrifug|mill|blend|fill/i.test(
+              blob
+            );
+          const hasPlant =
+            Boolean(step.apparatus?.length) ||
+            Boolean(step.controls?.criticalParameters?.length) ||
+            Boolean(step.controls?.ipcMethods?.length) ||
+            Boolean(step.environment?.atmosphere || step.environment?.utilities?.length);
+          const hasChem = Boolean(step.mechanismClass || step.mechanismNotes);
+          if (!opLike && !hasPlant && !hasChem && step.description.length < 120) {
+            return false;
+          }
+          return true;
+        })
+        .map((step) => {
+          // Strip junk control lines
+          if (!step.controls) return step;
+          const scrub = (arr?: string[]) =>
+            arr?.filter(
+              (x) =>
+                x &&
+                !/not specified|define ipc|n\/a|placeholder|validate on site/i.test(x)
+            );
+          return {
+            ...step,
+            controls: {
+              ...step.controls,
+              ipcMethods: scrub(step.controls.ipcMethods),
+              criticalParameters: scrub(step.controls.criticalParameters),
+              cqaTargets: scrub(step.controls.cqaTargets),
+              holdPoints: scrub(step.controls.holdPoints),
+            },
+          };
+        });
+      // Require at least 2 real steps for a dual-view "route"
+      if (steps.length < 2) return null;
+      if (r.summary.trim().length < 28) return null;
       return { ...r, steps };
     })
-    .filter((r) => r.steps.length >= 1 && r.summary.trim().length > 20);
+    .filter(Boolean) as typeof s.routes;
 
   if (!routes.length) {
     return {
@@ -324,10 +393,10 @@ export function qualityGateSynthesis(s: AiSynthesis): AiSynthesis {
       routes: undefined,
       rawError:
         (s.rawError ? s.rawError + " · " : "") +
-        "Quality gate rejected routes (boilerplate or empty steps).",
+        "Quality gate rejected routes (thin, boilerplate, or non-process steps).",
       gaps: [
         ...(s.gaps || []),
-        "AI routes failed quality gate — showing evidence shell / literature leads",
+        "AI routes failed stronger dual-view quality gate — evidence shell / literature leads only",
       ],
     };
   }
@@ -633,10 +702,11 @@ function parseSynthesis(raw: unknown, model: string): AiSynthesis {
  */
 async function ollamaChatStream(
   host: string,
-  apiKey: string,
+  apiKey: string | null,
   model: string,
   messages: Array<{ role: string; content: string }>,
-  onProgress?: ProgressEmitter
+  onProgress?: ProgressEmitter,
+  orgLabel = "Ollama"
 ): Promise<{
   ok: boolean;
   content?: string;
@@ -646,12 +716,15 @@ async function ollamaChatStream(
 }> {
   const t0 = Date.now();
   try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (apiKey) {
+      headers.Authorization = `Bearer ${apiKey}`;
+    }
     const res = await fetch(`${host}/api/chat`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({
         model,
         stream: true,
@@ -663,7 +736,7 @@ async function ollamaChatStream(
 
     if (!res.ok) {
       const text = await res.text();
-      let err = `Ollama Cloud HTTP ${res.status}`;
+      let err = `${orgLabel} HTTP ${res.status}`;
       try {
         const j = JSON.parse(text) as { error?: string };
         if (j.error) err = j.error;
@@ -728,8 +801,8 @@ async function ollamaChatStream(
         onProgress({
           type: "log",
           stepId: "ollama",
-          label: "Ollama Cloud generating…",
-          organization: "Ollama Cloud",
+          label: `${orgLabel} generating…`,
+          organization: orgLabel,
           endpointUrl: `${host}/api/chat`,
           method: "POST",
           // Do not send stepsDone:0 — overlay merges progress from prior step events
@@ -786,7 +859,8 @@ async function ollamaChatStream(
 }
 
 /**
- * Call Ollama Cloud with evidence-only prompt. Uses .env key via getServerAiEnv.
+ * Call Ollama (Cloud or local) with evidence-only prompt.
+ * Cloud uses .env key; local loopback needs no key.
  * Always attaches AiProvenanceRecord when a call is attempted (for AI chips).
  */
 export async function synthesizeDossierFromEvidence(
@@ -800,15 +874,16 @@ export async function synthesizeDossierFromEvidence(
   } = {}
 ): Promise<AiSynthesis> {
   const env = getServerAiEnv();
-  if (!env.hasKey) {
+  if (!env.canCall) {
     return {
       available: false,
       rawError:
-        "Ollama Cloud not configured. Set OLLAMA_CLOUD_API_KEY in .env or Settings → AI.",
+        "Ollama not configured. Set OLLAMA_CLOUD_API_KEY for Cloud, or OLLAMA_HOST=http://127.0.0.1:11434 for local Ollama.",
     };
   }
 
   const host = (env.host || OLLAMA_CLOUD_HOST).replace(/\/$/, "");
+  const orgLabel = env.provider === "ollama-local" ? "Ollama local" : "Ollama Cloud";
   const primary = (opts.model || env.model).trim() || env.model;
   const fast = (opts.fastModel || env.fastModel || primary).trim() || primary;
   const model = opts.preferFastModel ? fast : primary;
@@ -823,26 +898,31 @@ export async function synthesizeDossierFromEvidence(
     type: "log",
     stepId: "ollama",
     label: "Ollama request prepared",
-    organization: "Ollama Cloud",
+    organization: orgLabel,
     endpointUrl,
     method: "POST",
-    detail: `Model ${model} · evidence ${evidenceBlock.length} chars · ${dataSources.length} feed source(s) · stream+JSON · timeout ${AI_TIMEOUT_MS / 1000}s · key from ${env.keySource || "env"}`,
+    detail: `Model ${model} · evidence ${evidenceBlock.length} chars · ${dataSources.length} feed source(s) · stream+JSON · timeout ${AI_TIMEOUT_MS / 1000}s · ${
+      env.provider === "ollama-local"
+        ? "local host (no key)"
+        : `key from ${env.keySource || "env"}`
+    }`,
   });
 
   const first = await ollamaChatStream(
     host,
-    env.apiKey,
+    env.apiKey || null,
     model,
     [
       { role: "system", content: SYSTEM },
       { role: "user", content: userContent },
     ],
-    onProgress
+    onProgress,
+    orgLabel
   );
 
   const finishedAt = new Date().toISOString();
   const baseProvenance: AiProvenanceRecord = {
-    provider: "ollama-cloud",
+    provider: env.provider,
     host,
     model,
     startedAt,

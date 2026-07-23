@@ -3,8 +3,8 @@ import Link from "next/link";
 import {
   curatedPackageCount,
   filterCuratedPackages,
+  getAllCuratedPackages,
   PACKAGE_CATALOG_DISCLAIMER,
-  packageHref,
 } from "@/lib/data/curatedPackages";
 import { MODALITY_OPTIONS, ROLE_OPTIONS } from "@/lib/data/hubCatalog";
 import { TierBadge } from "@/components/TierBadge";
@@ -39,6 +39,16 @@ export default async function PackagesPage({ searchParams }: Props) {
     depth: sp.depth,
   });
   const paramSets = listParameterSets();
+  const allPkgs = getAllCuratedPackages();
+  const modalityCounts = MODALITY_OPTIONS.map((m) => ({
+    ...m,
+    count: allPkgs.filter((p) => p.modality === m.value).length,
+  })).filter((m) => m.count > 0);
+  const tierCounts = {
+    A: allPkgs.filter((p) => p.tier === "A").length,
+    B: allPkgs.filter((p) => p.tier === "B").length,
+    C: allPkgs.filter((p) => p.tier === "C").length,
+  };
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
@@ -61,6 +71,35 @@ export default async function PackagesPage({ searchParams }: Props) {
           they are structured professional scaffolds for scouting and tech-transfer prep.
         </p>
       </div>
+
+      {/* Domain pack summary */}
+      <section className="mt-6 rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          Domain library
+        </h2>
+        <p className="mt-1 text-xs text-slate-500">
+          Tier A {tierCounts.A} deep · B {tierCounts.B} scaffold · C {tierCounts.C} pointer
+          {" · "}
+          {paramSets.length} modality parameter frameworks
+        </p>
+        <ul className="mt-3 flex flex-wrap gap-2">
+          {modalityCounts.map((m) => (
+            <li key={m.value}>
+              <Link
+                href={`/packages?modality=${encodeURIComponent(m.value)}`}
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] ring-1 ring-inset transition hover:bg-slate-800 ${
+                  sp.modality === m.value
+                    ? "bg-teal-500/15 text-teal-200 ring-teal-500/40"
+                    : "bg-slate-950/50 text-slate-400 ring-slate-700"
+                }`}
+              >
+                <span>{m.label}</span>
+                <span className="font-mono text-slate-500">{m.count}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <form
         method="get"
@@ -201,21 +240,52 @@ export default async function PackagesPage({ searchParams }: Props) {
         </h2>
         <p className="mt-2 max-w-2xl text-sm text-slate-500">
           Each package attaches one of these educational parameter sets. Literature-typical
-          values are teaching envelopes — site validation required.
+          values are teaching envelopes — site validation required. Open any package to see
+          the full dual-view unit-op + parameter scaffold.
         </p>
         <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {paramSets.map((s) => (
-            <li
-              key={s.id}
-              className="rounded-xl border border-slate-800 bg-slate-900/40 p-4"
-            >
-              <h3 className="text-sm font-semibold text-violet-200">{s.label}</h3>
-              <p className="mt-1 text-xs text-slate-500">{s.summary}</p>
-              <p className="mt-2 text-[11px] text-slate-600">
-                {s.parameters.length} parameters · modality {s.modality}
-              </p>
-            </li>
-          ))}
+          {paramSets.map((s) => {
+            const n = allPkgs.filter(
+              (p) => (p.parameterSetId || p.modality) === s.id || p.modality === s.modality
+            ).length;
+            const lit = s.parameters.filter((p) => p.fillStatus === "literature-typical")
+              .length;
+            const site = s.parameters.filter((p) => p.fillStatus === "site-fill-required")
+              .length;
+            return (
+              <li
+                key={s.id}
+                className="rounded-xl border border-slate-800 bg-slate-900/40 p-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-violet-200">{s.label}</h3>
+                  <Link
+                    href={`/packages?modality=${encodeURIComponent(s.modality)}`}
+                    className="text-[10px] text-teal-400/90 hover:underline"
+                  >
+                    {n} package{n === 1 ? "" : "s"} →
+                  </Link>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">{s.summary}</p>
+                <p className="mt-2 text-[11px] text-slate-600">
+                  {s.parameters.length} parameters · {lit} lit-typical · {site} site-fill
+                </p>
+                <ul className="mt-2 space-y-0.5 text-[10px] text-slate-600">
+                  {s.parameters.slice(0, 4).map((p) => (
+                    <li key={p.id} className="truncate">
+                      · {p.name}
+                      {p.literatureTypical ? (
+                        <span className="text-slate-700"> — {p.literatureTypical}</span>
+                      ) : null}
+                    </li>
+                  ))}
+                  {s.parameters.length > 4 ? (
+                    <li className="text-slate-700">+{s.parameters.length - 4} more</li>
+                  ) : null}
+                </ul>
+              </li>
+            );
+          })}
         </ul>
       </section>
 

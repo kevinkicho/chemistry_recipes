@@ -127,7 +127,7 @@ export async function buildLiveDossierWithProgress(
     label: "Harvest free public evidence",
     organization: "NIH · EMBL-EBI · OpenAlex · USPTO",
     detail:
-      "PubChem identity + PUG View · Europe PMC multi-query · OpenAlex · PatentsView / patent lit",
+      "PubChem + ChEMBL + MyChem + openFDA + RxNorm + KEGG + CompTox + DailyMed + Europe PMC + OpenAlex + Crossref + Semantic Scholar + patents",
     stepsDone,
     stepsTotal: STEPS_TOTAL,
   });
@@ -183,6 +183,8 @@ export async function buildLiveDossierWithProgress(
       reasons: scored.reasons,
       processLitCount: scored.processLitCount,
       processPatentCount: scored.processPatentCount,
+      explainer: scored.explainer,
+      aiRecommendation: scored.aiRecommendation,
     },
     buildMode: "evidence-shell",
   };
@@ -193,7 +195,7 @@ export async function buildLiveDossierWithProgress(
     ok: true,
     durationMs: Date.now() - tSc,
     evidenceScore: scored.score,
-    detail: `Score ${scored.score}/100 (${scored.confidence}) · ${dossier.literature.length} lit · ${dossier.patents.length} patents · processLit ${scored.processLitCount}`,
+    detail: `Score ${scored.score}/100 (${scored.confidence}) · ${dossier.literature.length} lit · ${dossier.patents.length} patents · ${dossier.annotations?.length || 0} multi-source · processLit ${scored.processLitCount}`,
     ...tickDone(),
   });
 
@@ -208,31 +210,33 @@ export async function buildLiveDossierWithProgress(
 
   // ── 7. Ollama dual-view synthesis (gated by evidence score) ──────
   const aiEnv = getServerAiEnv();
-  const runAi = aiEnv.hasKey && scored.shouldSynthesize;
+  const orgLabel =
+    aiEnv.provider === "ollama-local" ? "Ollama local" : "Ollama Cloud";
+  const runAi = aiEnv.canCall && scored.shouldSynthesize;
 
   if (!runAi) {
     emit({
       type: "step_done",
       stepId: "ollama",
       label: "Ollama synthesis skipped",
-      organization: "Ollama Cloud",
+      organization: orgLabel,
       ok: true,
-      detail: !aiEnv.hasKey
-        ? "No OLLAMA_CLOUD_API_KEY — evidence shell only"
+      detail: !aiEnv.canCall
+        ? "No Ollama Cloud key and host is not local — evidence shell only"
         : `Evidence score ${scored.score} below threshold — skipped heavy AI (literature leads kept)`,
       ...tickDone(),
     });
     dossier = {
       ...dossier,
-      buildMode: aiEnv.hasKey ? "ai-skipped-thin-evidence" : "evidence-shell",
+      buildMode: aiEnv.canCall ? "ai-skipped-thin-evidence" : "evidence-shell",
       synthesis: {
         ...dossier.synthesis,
-        available: aiEnv.hasKey,
+        available: aiEnv.canCall,
         confidence: scored.confidence,
         gaps: [
           ...(dossier.synthesis.gaps || []),
-          !aiEnv.hasKey
-            ? "Set OLLAMA_CLOUD_API_KEY for dual-view process synthesis"
+          !aiEnv.canCall
+            ? "Set OLLAMA_CLOUD_API_KEY or OLLAMA_HOST=http://127.0.0.1:11434 for dual-view synthesis"
             : "Thin process evidence — AI skipped to avoid low-quality invention",
         ],
       },
@@ -241,9 +245,9 @@ export async function buildLiveDossierWithProgress(
     emit({
       type: "step_start",
       stepId: "ollama",
-      label: "Ollama Cloud process synthesis (stream)",
-      organization: "Ollama Cloud",
-      endpointUrl: "https://ollama.com/api/chat",
+      label: `${orgLabel} process synthesis (stream)`,
+      organization: orgLabel,
+      endpointUrl: `${aiEnv.host}/api/chat`,
       method: "POST",
       detail: scored.preferFastModel
         ? `Draft/fast model path · score ${scored.score} · ~90s cap`
@@ -264,7 +268,7 @@ export async function buildLiveDossierWithProgress(
         {
           type: "editorial" as const,
           id: `ollama-synthesis:${cid}`,
-          label: "Ollama Cloud synthesis from public evidence",
+          label: `${orgLabel} synthesis from public evidence`,
           note: synthesis.model
             ? `Model ${synthesis.model} — not primary literature`
             : "AI synthesis — not primary literature",
@@ -334,9 +338,9 @@ export async function buildLiveDossierWithProgress(
     emit({
       type: synthesis.parsed ? "step_done" : "step_error",
       stepId: "ollama",
-      label: "Ollama Cloud synthesis",
-      organization: "Ollama Cloud",
-      endpointUrl: "https://ollama.com/api/chat",
+      label: `${orgLabel} synthesis`,
+      organization: orgLabel,
+      endpointUrl: `${aiEnv.host}/api/chat`,
       method: "POST",
       ok: Boolean(synthesis.parsed),
       durationMs: Date.now() - tAi,

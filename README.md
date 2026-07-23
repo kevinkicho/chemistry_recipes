@@ -2,12 +2,49 @@
 
 **Evidence-first process recipe hub** for pharmaceutical, clinical, and biotech manufacturing teams.
 
-Free public chemical APIs + optional [Ollama Cloud](https://docs.ollama.com/cloud) synthesis. Dual views (mechanism + manufacturing). Educational process packages. Tech-transfer exports.
+Free public chemical APIs + optional [Ollama Cloud](https://docs.ollama.com/cloud) or **local Ollama** synthesis. Dual views (mechanism + manufacturing). Educational process packages. Tech-transfer exports.
 
 > **Not GMP. Not regulatory decision support. Not a batch record or clinical protocol.**  
-> Literature-typical parameter envelopes are **teaching scaffolds only** — validate under your site QMS.
+> Literature-typical parameter envelopes are **teaching scaffolds only** — validate under your site QMS.  
+> **Not** a multi-user collaborative workspace — local-first only.
 
 **Repository:** [github.com/kevinkicho/chemistry_recipes](https://github.com/kevinkicho/chemistry_recipes)
+
+---
+
+## Documentation (start here)
+
+**Full table of contents:** [docs/README.md](docs/README.md)
+
+| Area | Entry point |
+|------|-------------|
+| **Getting started** | [docs/getting-started.md](docs/getting-started.md) |
+| **Product vision & law** | [docs/product-vision.md](docs/product-vision.md) |
+| **Design** | [docs/design/README.md](docs/design/README.md) |
+| **Engineering** | [docs/engineering/README.md](docs/engineering/README.md) |
+| **Security / secrets** | [docs/security.md](docs/security.md) |
+| **Data model** | [docs/data-model.md](docs/data-model.md) |
+| **API sources** | [docs/api-sources-manifest.md](docs/api-sources-manifest.md) |
+
+### Design docs
+
+| Doc | Description |
+|-----|-------------|
+| [Product design](docs/design/product-design.md) | Information architecture, tiers, personas |
+| [Live dossier UX](docs/design/ux-live-dossier.md) | Recipe-first layout, dual views, trust UI |
+| [Export & tech-transfer UX](docs/design/export-and-transfer.md) | Print, JSON packs, compare, checklist |
+
+### Engineering docs
+
+| Doc | Description |
+|-----|-------------|
+| [Architecture](docs/engineering/architecture.md) | Stack, modules, routes |
+| [Dossier pipeline](docs/engineering/dossier-pipeline.md) | Gather → score → shell → Ollama → enrich |
+| [Multi-source APIs](docs/engineering/multi-source-apis.md) | Wired free APIs, registry, probes |
+| [AI & Ollama](docs/engineering/ai-and-ollama.md) | Cloud + local hosts, proxies, quality gate |
+| [Client storage](docs/engineering/client-storage.md) | IndexedDB cache, snapshots, health |
+| [Tech-transfer export](docs/engineering/tech-transfer-export.md) | Schema v2, MES/LIMS, validation checklist |
+| [Testing](docs/engineering/testing.md) | Contract tests |
 
 ---
 
@@ -50,13 +87,15 @@ Free public chemical APIs + optional [Ollama Cloud](https://docs.ollama.com/clou
 
 | Area | What you get |
 |------|----------------|
-| **Live dossiers** | PubChem identity + PUG View, Europe PMC, OpenAlex, patents → scored evidence → optional Ollama dual-view routes |
-| **~140 packages** | Curated educational packages (`/packages`) by modality & role |
+| **Live dossiers** | Multi free APIs (PubChem, ChEMBL, openFDA, CompTox, DailyMed, Europe PMC, OpenAlex, Crossref, Semantic Scholar, patents, …) → evidence score → optional Ollama dual-view routes |
+| **Trust UI** | Evidence score explainer, source coverage map, transfer readiness checklist, API + AI provenance chips |
+| **~100+ packages** | Educational packages (`/packages`) by modality & role + parameter frameworks |
 | **Tier-A examples** | Deep dual-view dossiers (aspirin, sitagliptin, penicillin G, amoxicillin, …) |
 | **Parameters** | Modality frameworks (mAb, fermentation, peptide, gene therapy, …) with fill-status honesty |
-| **Compare / workspace** | Route compare, dual-monitor launcher, local projects (import/export JSON) |
-| **Export** | Print/PDF, tech-transfer JSON, MES/LIMS-style rows |
-| **Provenance** | Real HTTP API chips + AI prompt/data/model chips |
+| **Compare** | Side-by-side CIDs + dual tech-transfer export |
+| **Export** | Print/PDF, tech-transfer JSON **v2**, MES/LIMS-style rows |
+| **AI** | Ollama Cloud **or** local Ollama (no key on loopback) |
+| **Diagnostics** | Live API probes, Ollama readiness, IndexedDB health |
 
 ---
 
@@ -65,7 +104,7 @@ Free public chemical APIs + optional [Ollama Cloud](https://docs.ollama.com/clou
 ```bash
 git clone https://github.com/kevinkicho/chemistry_recipes.git
 cd chemistry_recipes
-cp .env.example .env   # add OLLAMA_CLOUD_API_KEY if you want AI synthesis
+cp .env.example .env   # OLLAMA_CLOUD_API_KEY and/or OLLAMA_HOST for local
 cd web
 npm install
 npm run dev
@@ -73,18 +112,22 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+Step-by-step and troubleshooting: **[docs/getting-started.md](docs/getting-started.md)**
+
 ### Environment (secrets stay local)
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
-| `OLLAMA_CLOUD_API_KEY` | For AI | Ollama Cloud API key |
-| `OLLAMA_CLOUD_MODEL` | No | Primary model default |
+| `OLLAMA_CLOUD_API_KEY` | For Cloud AI | Ollama Cloud API key |
+| `OLLAMA_HOST` | For local AI | e.g. `http://127.0.0.1:11434` |
+| `OLLAMA_CLOUD_MODEL` / `OLLAMA_MODEL` | No | Primary model default |
 | `OLLAMA_CLOUD_FAST_MODEL` | No | Thin-evidence draft model |
 | `PATENTSVIEW_API_KEY` | No | USPTO PatentsView |
 
-- Copy **`.env.example`** → **`.env`** at the **repo root** (gitignored).
-- Never commit `.env`, `*.pem`, private keys, or credential JSON.
-- Browser Settings → **AI** can override models (localStorage only).
+- Copy **`.env.example`** → **`.env`** at the **repo root** (gitignored).  
+- Never commit `.env`, `*.pem`, private keys, or credential JSON.  
+- Browser Settings → **AI**: Cloud or Local provider (localStorage only).  
+- Details: [docs/security.md](docs/security.md) · [docs/engineering/ai-and-ollama.md](docs/engineering/ai-and-ollama.md)
 
 ---
 
@@ -93,29 +136,32 @@ Open [http://localhost:3000](http://localhost:3000).
 | Path | Purpose |
 |------|---------|
 | `/` | Home + Tier-A examples |
-| `/packages` | ~140 educational process packages |
+| `/packages` | Educational process packages + domain library |
 | `/packages/[id]` | Package: unit ops + parameter framework |
 | `/catalog` | Faceted hub (examples + live pointers) |
 | `/search` | PubChem (name, CAS, SMILES, InChIKey, UNII, CID) |
-| `/workspace` | Local project library |
-| `/compare` | Launch two recipes (dual monitor) |
-| `/sources` | Free public API registry |
+| `/workspace` | Local project library (not multi-user collab) |
+| `/compare` | Side-by-side recipes + dual export |
+| `/diagnostics` | API probes, Ollama readiness, IndexedDB health |
+| `/sources` | Free public API registry (wired expand/collapse) |
 | `/compounds/pubchem/[cid]` | Live dossier stream |
 | `/examples/[id]` | Curated dual-view dossier |
-| Header **AI** | Ollama Cloud settings / model picker |
+| Header **AI** | Ollama Cloud or local settings / model picker |
 
 ---
 
 ## Live dossier pipeline
 
-1. **Harvest** — PubChem, PUG View, Europe PMC (process-ranked), OpenAlex, patents  
+1. **Harvest** — multi free APIs (not PubChem-only)  
 2. **Score** — evidence richness; gates AI  
 3. **Shell** — early UI (no fake IPC placeholders)  
 4. **Ollama** — dual-view routes when warranted; quality gate  
 5. **Enrich** — modality, related entities, contradictions, unit-op fill, parameters, build audit  
-6. **Export** — tech-transfer / MES-LIMS / print  
+6. **Export** — tech-transfer v2 / MES-LIMS / print  
 
 Caches in **IndexedDB**. **Refresh live data** or History ↻ rebuilds (schema versioned).
+
+Deep dive: [docs/engineering/dossier-pipeline.md](docs/engineering/dossier-pipeline.md)
 
 ---
 
@@ -128,7 +174,10 @@ npm run build         # production build
 npm test              # evidence + hub contract tests
 npm run test:evidence
 npm run test:hub
+npx tsc --noEmit      # TypeScript
 ```
+
+See [docs/engineering/testing.md](docs/engineering/testing.md).
 
 ---
 
@@ -141,6 +190,9 @@ npm run test:hub
 5. **Not** GMP, DMF, CTD, batch records, or clinical decision support  
 6. Literature-typical parameters are teaching envelopes — never site limits  
 7. Package catalog is educational structure, not validated plant packages  
+8. Local-first — **not** multi-tenant collaboration  
+
+Full vision: [docs/product-vision.md](docs/product-vision.md)
 
 ### Parameter fill status
 
@@ -153,24 +205,11 @@ npm run test:hub
 
 ---
 
-## Documentation
-
-| Doc | Contents |
-|-----|----------|
-| [docs/product-vision.md](docs/product-vision.md) | Positioning, personas, non-goals |
-| [docs/architecture.md](docs/architecture.md) | Stack, data flow, key modules |
-| [docs/getting-started.md](docs/getting-started.md) | Setup, env, troubleshooting |
-| [docs/data-model.md](docs/data-model.md) | Process / recipe types |
-| [docs/api-sources-manifest.md](docs/api-sources-manifest.md) | Free public API registry notes |
-| [docs/security.md](docs/security.md) | Secrets, .env, what is never committed |
-
----
-
 ## Stack
 
 - **Next.js 15** (App Router) + TypeScript + Tailwind CSS 4  
-- Free APIs: PubChem, Europe PMC, OpenAlex, PatentsView (optional key)  
-- Optional AI: Ollama Cloud (`ollama.com`)  
+- Free APIs: PubChem, ChEMBL, MyChem, openFDA, RxNorm, KEGG, CompTox, DailyMed, Europe PMC, OpenAlex, Crossref, Semantic Scholar, PatentsView (optional key)  
+- Optional AI: Ollama Cloud (`ollama.com`) or local Ollama  
 
 ---
 

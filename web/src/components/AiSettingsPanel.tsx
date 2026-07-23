@@ -6,9 +6,12 @@ import {
   DEFAULT_AI_CONFIG,
   DEFAULT_OLLAMA_CLOUD_FAST_MODEL,
   DEFAULT_OLLAMA_CLOUD_MODEL,
+  DEFAULT_OLLAMA_LOCAL_MODEL,
   maskApiKey,
   OLLAMA_CLOUD_HOST,
+  OLLAMA_LOCAL_HOST,
   type AiConfig,
+  type AiProvider,
 } from "@/lib/ai/config";
 import { listAiModels, testAiConnection } from "@/lib/ai/client";
 import { useAiConfig } from "@/hooks/useAiConfig";
@@ -16,8 +19,8 @@ import type { ServerAiStatus } from "@/lib/ai/client";
 import { EnvChecklist } from "@/components/EnvChecklist";
 
 /**
- * Shared Ollama Cloud settings form (modal or full page).
- * Model lists come from Ollama Cloud GET /api/tags via /api/ai/models.
+ * Shared Ollama settings form (Cloud or local).
+ * Model lists come from GET /api/tags via /api/ai/models.
  */
 export function AiSettingsPanel({
   initialServerEnv,
@@ -61,8 +64,16 @@ export function AiSettingsPanel({
     });
   }, [config, serverEnv, hydrated]);
 
+  const isLocalProvider =
+    draft.provider === "ollama-local" ||
+    (draft.host || "").includes("127.0.0.1") ||
+    (draft.host || "").includes("localhost");
+
   const canCallWithoutBrowserKey =
-    Boolean(draft.apiKey.trim()) || Boolean(serverEnv?.envKeyConfigured);
+    isLocalProvider ||
+    Boolean(draft.apiKey.trim()) ||
+    Boolean(serverEnv?.envKeyConfigured) ||
+    Boolean(serverEnv?.canCall);
 
   const update = useCallback((patch: Partial<AiConfig>) => {
     setDraft((d) => ({ ...d, ...patch }));
@@ -70,11 +81,44 @@ export function AiSettingsPanel({
     setError(null);
   }, []);
 
+  function setProvider(provider: AiProvider) {
+    if (provider === "ollama-local") {
+      update({
+        provider,
+        host: OLLAMA_LOCAL_HOST,
+        model:
+          draft.model === DEFAULT_OLLAMA_CLOUD_MODEL
+            ? DEFAULT_OLLAMA_LOCAL_MODEL
+            : draft.model || DEFAULT_OLLAMA_LOCAL_MODEL,
+        fastModel:
+          draft.fastModel === DEFAULT_OLLAMA_CLOUD_FAST_MODEL
+            ? DEFAULT_OLLAMA_LOCAL_MODEL
+            : draft.fastModel || DEFAULT_OLLAMA_LOCAL_MODEL,
+      });
+    } else {
+      update({
+        provider,
+        host: OLLAMA_CLOUD_HOST,
+        model: draft.model || DEFAULT_OLLAMA_CLOUD_MODEL,
+        fastModel: draft.fastModel || DEFAULT_OLLAMA_CLOUD_FAST_MODEL,
+      });
+    }
+    setModels([]);
+    setModelsLoaded(false);
+  }
+
   const loadModels = useCallback(
     async (opts?: { silent?: boolean; cfg?: AiConfig }) => {
       const cfg = opts?.cfg ?? draft;
+      const local =
+        cfg.provider === "ollama-local" ||
+        (cfg.host || "").includes("127.0.0.1") ||
+        (cfg.host || "").includes("localhost");
       const canCall =
-        Boolean(cfg.apiKey.trim()) || Boolean(serverEnv?.envKeyConfigured);
+        local ||
+        Boolean(cfg.apiKey.trim()) ||
+        Boolean(serverEnv?.envKeyConfigured) ||
+        Boolean(serverEnv?.canCall);
       if (!canCall) return;
       setLoadingModels(true);
       if (!opts?.silent) setError(null);
@@ -89,14 +133,15 @@ export function AiSettingsPanel({
       }
       setModels(result.models);
       if (!opts?.silent) {
+        const where = local ? "local Ollama" : "Ollama Cloud";
         setStatus(
           result.models.length
-            ? `Loaded ${result.models.length} model(s) from Ollama Cloud`
+            ? `Loaded ${result.models.length} model(s) from ${where}`
             : "Connected, but tags list was empty"
         );
       }
     },
-    [draft, serverEnv?.envKeyConfigured]
+    [draft, serverEnv?.envKeyConfigured, serverEnv?.canCall]
   );
 
   // Auto-fetch model list once when key is available (browser or .env)
@@ -126,17 +171,27 @@ export function AiSettingsPanel({
 
   function onSave(e: React.FormEvent) {
     e.preventDefault();
-    const model = draft.model.trim() || DEFAULT_OLLAMA_CLOUD_MODEL;
+    const provider: AiProvider =
+      draft.provider === "ollama-local" ? "ollama-local" : "ollama-cloud";
+    const defaultHost =
+      provider === "ollama-local" ? OLLAMA_LOCAL_HOST : OLLAMA_CLOUD_HOST;
+    const defaultModel =
+      provider === "ollama-local"
+        ? DEFAULT_OLLAMA_LOCAL_MODEL
+        : DEFAULT_OLLAMA_CLOUD_MODEL;
+    const model = draft.model.trim() || defaultModel;
     save({
       ...draft,
-      provider: "ollama-cloud",
-      host: draft.host.trim() || OLLAMA_CLOUD_HOST,
+      provider,
+      host: draft.host.trim() || defaultHost,
       model,
       fastModel: draft.fastModel.trim() || model,
       apiKey: draft.apiKey.trim(),
     });
     setStatus(
-      "Saved. Primary & fast models apply on the next dossier build (Refresh live data)."
+      provider === "ollama-local"
+        ? "Saved local Ollama. Ensure ollama serve is running; Refresh live data to re-synthesize."
+        : "Saved. Primary & fast models apply on the next dossier build (Refresh live data)."
     );
     setError(null);
   }
@@ -178,14 +233,15 @@ export function AiSettingsPanel({
           className="text-teal-400 hover:underline"
         >
           Ollama Cloud
-        </a>
-        . Dev:{" "}
-        <code className="text-slate-300">OLLAMA_CLOUD_API_KEY</code> in repo{" "}
+        </a>{" "}
+        or a{" "}
+        <strong className="font-medium text-slate-300">local Ollama</strong>{" "}
+        install (no API key). Dev Cloud:{" "}
+        <code className="text-slate-300">OLLAMA_CLOUD_API_KEY</code> in{" "}
         <code className="text-slate-300">.env</code>
-        {"; optional "}
-        <code className="text-slate-300">OLLAMA_CLOUD_MODEL</code> /{" "}
-        <code className="text-slate-300">OLLAMA_CLOUD_FAST_MODEL</code>. Browser
-        overrides below (localStorage only).
+        {"; local: "}
+        <code className="text-slate-300">OLLAMA_HOST=http://127.0.0.1:11434</code>
+        . Browser overrides below (localStorage only).
       </p>
 
       {serverEnv?.envKeyConfigured ? (
@@ -242,8 +298,7 @@ export function AiSettingsPanel({
           <>Checking configuration…</>
         ) : (
           <>
-            AI not ready — set <code className="text-slate-300">OLLAMA_CLOUD_API_KEY</code> in{" "}
-            <code className="text-slate-300">.env</code> or paste a key below.
+            AI not ready — choose Cloud (API key) or Local Ollama below, then enable.
           </>
         )}
       </div>
@@ -257,9 +312,59 @@ export function AiSettingsPanel({
             className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-teal-600 focus:ring-teal-500/40"
           />
           <span className="text-sm text-slate-200">
-            Enable AI features (uses your Ollama Cloud key when needed)
+            Enable AI features
           </span>
         </label>
+
+        <fieldset>
+          <legend className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Provider
+          </legend>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <label
+              className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 text-sm ${
+                !isLocalProvider
+                  ? "border-teal-500/40 bg-teal-500/10 text-teal-100"
+                  : "border-slate-700 bg-slate-900/40 text-slate-400"
+              }`}
+            >
+              <input
+                type="radio"
+                name={`${uid}-provider`}
+                checked={!isLocalProvider}
+                onChange={() => setProvider("ollama-cloud")}
+                className="mt-1"
+              />
+              <span>
+                <span className="font-medium text-slate-100">Ollama Cloud</span>
+                <span className="mt-0.5 block text-[11px] text-slate-500">
+                  Hosted · API key required
+                </span>
+              </span>
+            </label>
+            <label
+              className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 text-sm ${
+                isLocalProvider
+                  ? "border-teal-500/40 bg-teal-500/10 text-teal-100"
+                  : "border-slate-700 bg-slate-900/40 text-slate-400"
+              }`}
+            >
+              <input
+                type="radio"
+                name={`${uid}-provider`}
+                checked={isLocalProvider}
+                onChange={() => setProvider("ollama-local")}
+                className="mt-1"
+              />
+              <span>
+                <span className="font-medium text-slate-100">Local Ollama</span>
+                <span className="mt-0.5 block text-[11px] text-slate-500">
+                  Air-gapped · no key · ollama serve
+                </span>
+              </span>
+            </label>
+          </div>
+        </fieldset>
 
         <div>
           <label
@@ -272,12 +377,29 @@ export function AiSettingsPanel({
             id={`${uid}-host`}
             type="url"
             value={draft.host}
-            onChange={(e) => update({ host: e.target.value })}
+            onChange={(e) =>
+              update({
+                host: e.target.value,
+                provider:
+                  e.target.value.includes("127.0.0.1") ||
+                  e.target.value.includes("localhost")
+                    ? "ollama-local"
+                    : draft.provider,
+              })
+            }
             className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-teal-500/60 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
-            placeholder={OLLAMA_CLOUD_HOST}
+            placeholder={isLocalProvider ? OLLAMA_LOCAL_HOST : OLLAMA_CLOUD_HOST}
           />
+          {isLocalProvider ? (
+            <p className="mt-1 text-[11px] text-slate-600">
+              Default <code className="text-slate-500">{OLLAMA_LOCAL_HOST}</code>.
+              Pull a model first:{" "}
+              <code className="text-slate-500">ollama pull llama3.1</code>
+            </p>
+          ) : null}
         </div>
 
+        {!isLocalProvider ? (
         <div>
           <label
             htmlFor={`${uid}-key`}
@@ -320,6 +442,12 @@ export function AiSettingsPanel({
             </a>
           </p>
         </div>
+        ) : (
+          <p className="rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2 text-xs text-slate-500">
+            Local mode does not send an API key. The Next.js proxy only allows
+            loopback and private LAN hosts (SSRF-safe).
+          </p>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -446,12 +574,16 @@ export function AiSettingsPanel({
         {canCallWithoutBrowserKey ? (
           <p className="text-[11px] text-slate-500">
             {loadingModels
-              ? "Fetching models from Ollama Cloud…"
+              ? `Fetching models from ${isLocalProvider ? "local Ollama" : "Ollama Cloud"}…`
               : models.length > 0
                 ? `${models.length} model(s) from API · choose above or enter custom`
                 : modelsLoaded
-                  ? "No models returned — use Custom or check your key"
-                  : "Models load automatically when a key is available"}
+                  ? isLocalProvider
+                    ? "No models returned — run ollama pull <model> or use Custom"
+                    : "No models returned — use Custom or check your key"
+                  : isLocalProvider
+                    ? "Models load when local Ollama is reachable"
+                    : "Models load automatically when a key is available"}
           </p>
         ) : null}
 
@@ -509,15 +641,16 @@ export function AiSettingsPanel({
           </h2>
           <ul className="mt-2 list-inside list-disc space-y-1">
             <li>
-              Dossier synthesis uses <code className="text-slate-400">OLLAMA_CLOUD_API_KEY</code>{" "}
-              from <code className="text-slate-400">.env</code> on the server, plus the model you
-              pick here (passed on the build stream).
+              Live dossier synthesis runs on the Next.js server: Cloud needs{" "}
+              <code className="text-slate-400">OLLAMA_CLOUD_API_KEY</code>; local needs{" "}
+              <code className="text-slate-400">OLLAMA_HOST</code> pointing at Ollama (and a
+              pulled model).
             </li>
             <li>
               Primary model for full dual-view synthesis; fast model when evidence is thin.
             </li>
             <li>
-              Browser chat/test uses this form key or falls back to the server key.
+              Browser test/list models uses this form (local: no key; Cloud: key or .env).
             </li>
           </ul>
         </div>

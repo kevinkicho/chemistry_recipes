@@ -26,6 +26,9 @@ export interface AiChatResult {
 
 export interface ServerAiStatus {
   envKeyConfigured: boolean;
+  /** Server can call Ollama (cloud key or local host) */
+  canCall?: boolean;
+  provider?: "ollama-cloud" | "ollama-local";
   envKeySource: string | null;
   model: string;
   fastModel?: string;
@@ -64,16 +67,20 @@ export async function aiChat(
   const config = readAiConfig();
   const allowEnv = opts?.allowEnvFallback !== false;
 
-  if (!config.apiKey.trim() && !allowEnv) {
+  const isLocal =
+    config.provider === "ollama-local" ||
+    (config.host || "").includes("127.0.0.1") ||
+    (config.host || "").includes("localhost");
+
+  if (!config.apiKey.trim() && !allowEnv && !isLocal) {
     return {
       ok: false,
       error:
-        "AI is not configured. Open Settings → AI and add your Ollama Cloud API key.",
+        "AI is not configured. Open Settings → AI — Cloud needs a key; Local needs Ollama on your machine.",
     };
   }
 
-  // If user explicitly disabled AI and has no local key, respect that only when no env either
-  // (env is for development). Local enabled=false + no key → still try env for dev.
+  // If user explicitly disabled AI with a local browser key path
   if (!config.enabled && config.apiKey.trim() && !isAiConfigured(config)) {
     return {
       ok: false,
@@ -111,7 +118,7 @@ export async function aiChat(
 
     const content = data.message?.content;
     if (!content) {
-      return { ok: false, error: "Empty response from Ollama Cloud", raw: data };
+      return { ok: false, error: "Empty response from Ollama", raw: data };
     }
 
     return {
@@ -194,12 +201,18 @@ export async function testAiConnection(config?: AiConfig): Promise<{
   const listed = await listAiModels(cfg);
   if (listed.ok) {
     const n = listed.models.length;
+    const mode =
+      cfg.provider === "ollama-local" ||
+      (cfg.host || "").includes("127.0.0.1") ||
+      (cfg.host || "").includes("localhost")
+        ? "local Ollama"
+        : "Ollama Cloud";
     return {
       ok: true,
       message:
         n > 0
-          ? `Connected to Ollama Cloud · ${n} model(s) listed`
-          : "Connected to Ollama Cloud (no models returned in tags)",
+          ? `Connected to ${mode} · ${n} model(s) listed`
+          : `Connected to ${mode} (no models returned in tags)`,
     };
   }
 
