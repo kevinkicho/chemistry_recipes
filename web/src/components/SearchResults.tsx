@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { PubChemResultCard } from "@/components/SearchResultCards";
-import { resolveLocalHubCids } from "@/lib/data/hubIndex";
+import { searchPubChemInBrowser } from "@/lib/api/pubchemBrowser";
+import { resolveLocalSearchHits } from "@/lib/data/searchLocalIndex";
 
 type Hit = {
   cid: number;
@@ -14,13 +15,15 @@ type Hit = {
 };
 
 /**
- * Progressive search: instant hub cards, then live /api/search/pubchem enrichment.
- * Avoids SSR hanging on PubChem 503 retries from cloud egress.
+ * Search order (deployed App Hosting often gets PubChem 503 on server egress):
+ * 1) Instant local hub + package index
+ * 2) Browser → PubChem (user IP, usually works)
+ * 3) Server /api/search/pubchem (fallback)
  */
 export function SearchResults({ query }: { query: string }) {
   const q = query.trim();
   const [hits, setHits] = useState<Hit[]>(() =>
-    q ? resolveLocalHubCids(q, 10) : []
+    q ? resolveLocalSearchHits(q, 10) : []
   );
   const [loading, setLoading] = useState(Boolean(q));
   const [error, setError] = useState<string | null>(null);
@@ -35,71 +38,98 @@ export function SearchResults({ query }: { query: string }) {
       return;
     }
 
-    const local = resolveLocalHubCids(q, 10);
+    const local = resolveLocalSearchHits(q, 10);
     setHits(local);
     setLoading(true);
     setError(null);
     setNote(
       local.length
-        ? "Loading live PubChem details…"
-        : "Querying PubChem…"
+        ? "Searching PubChem from your browser…"
+        : "Searching PubChem…"
     );
 
     const ac = new AbortController();
-    const t = window.setTimeout(() => ac.abort(), 20000);
+    const t = window.setTimeout(() => ac.abort(), 25_000);
 
     void (async () => {
       try {
+        // 1) Browser-direct PubChem (avoids Cloud Run 503)
+        const browser = await searchPubChemInBrowser(q, 10, ac.signal);
+        if (browser.hits.length > 0) {
+          setHits(browser.hits);
+          setError(null);
+          setNote(null);
+          return;
+        }
+
+        // 2) Server API (hub fallbacks + server-side PUG)
         const res = await fetch(
           `/api/search/pubchem?q=${encodeURIComponent(q)}&limit=10`,
           { signal: ac.signal, cache: "no-store" }
         );
-        if (!res.ok) {
-          throw new Error(`Search API HTTP ${res.status}`);
+        if (res.ok) {
+          const data = (await res.json()) as {
+            hits?: Hit[];
+            failure?: string | null;
+            usedLocalFallback?: boolean;
+          };
+          const next = data.hits ?? [];
+          if (next.length > 0) {
+            setHits(next);
+            setError(null);
+            setNote(
+              data.usedLocalFallback
+                ? "Showing catalog matches (PubChem busy on server). Cards open live dossiers."
+                : null
+            );
+            return;
+          }
         }
-        const data = (await res.json()) as {
-          hits?: Hit[];
-          failure?: string | null;
-          usedLocalFallback?: boolean;
-          ok?: boolean;
-        };
-        const next = data.hits ?? [];
-        if (next.length > 0) {
-          setHits(next);
-          setError(null);
-          setNote(
-            data.usedLocalFallback
-              ? "Showing known hub matches (PubChem is busy on this host). Cards open live dossiers."
-              : null
-          );
-        } else if (local.length > 0) {
+
+        // 3) Keep local if we had any
+        if (local.length > 0) {
           setHits(local);
           setError(null);
           setNote(
-            data.failure
-              ? `PubChem busy (${data.failure}). Showing known hub matches — open a card for the live dossier.`
-              : "Showing known hub matches."
+            "PubChem did not return live hits — showing known catalog CIDs. Open a card for the dossier."
           );
-        } else if (data.failure) {
-          setError(
-            `PubChem is busy (${data.failure}). Try a CID (e.g. 2244) or retry in ~30s.`
-          );
-          setNote(null);
-        } else {
-          setError(null);
-          setNote(null);
-          setHits([]);
+          return;
         }
+
+        // Pure numeric CID always openable even if properties fail
+        if (/^\d+$/.test(q)) {
+          const cid = Number(q);
+          if (cid > 0) {
+            setHits([{ cid, name: `CID ${cid}` }]);
+            setError(null);
+            setNote("Opened as PubChem CID (name lookup was unavailable).");
+            return;
+          }
+        }
+
+        setHits([]);
+        setError(
+          browser.error && browser.error !== "No PubChem hits"
+            ? `Search issue: ${browser.error}. Try a CID (e.g. 2244) or a common drug name.`
+            : "No PubChem hits. Try another name, CAS, or CID (e.g. 2244)."
+        );
+        setNote(null);
       } catch (e) {
         if (e instanceof Error && e.name === "AbortError") {
           if (local.length) {
-            setNote("PubChem timed out — showing known hub matches.");
+            setHits(local);
+            setNote("Search timed out — showing known catalog matches.");
             setError(null);
+          } else if (/^\d+$/.test(q)) {
+            setHits([{ cid: Number(q), name: `CID ${q}` }]);
+            setError(null);
+            setNote("Timed out — use this CID card to open the live dossier.");
           } else {
             setError("Search timed out. Try a CID or retry shortly.");
           }
         } else if (local.length) {
-          setNote("Live search failed — showing known hub matches.");
+          setHits(local);
+          setNote("Live search failed — showing known catalog matches.");
           setError(null);
         } else {
           setError(e instanceof Error ? e.message : "Search failed");

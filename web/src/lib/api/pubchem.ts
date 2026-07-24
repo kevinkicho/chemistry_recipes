@@ -5,6 +5,7 @@ import {
   type ApiFetchTrace,
 } from "@/lib/api/trace";
 import { HUB_INDEX, resolveLocalHubCids } from "@/lib/data/hubIndex";
+import { resolveLocalSearchHits } from "@/lib/data/searchLocalIndex";
 
 const PUG = "https://pubchem.ncbi.nlm.nih.gov/rest/pug";
 
@@ -274,7 +275,8 @@ export async function searchPubChem(
 
     const traces: ApiFetchTrace[] = [];
     const nameHints = new Map<number, string>();
-    const local = resolveLocalHubCids(q, limit);
+    // Prefer broad catalog (hub + packages) over hub-only
+    const local = resolveLocalSearchHits(q, limit);
     for (const h of local) nameHints.set(h.cid, h.name);
 
     // ── Fast path: strong local match (aspirin, 2244, 50-78-2, …) ─────────
@@ -350,12 +352,13 @@ export async function searchPubChem(
       }
     }
 
-    // Soft local prefix matches if network failed
+    // Soft local prefix / package matches if network failed
     if (cids.length === 0 && local.length) {
-      cids = local.map((h) => h.cid);
-      hardFailed = false;
       return {
-        hits: hitsFromCids(cids, nameHints).slice(0, limit),
+        hits: hitsFromCids(
+          local.map((h) => h.cid),
+          nameHints
+        ).slice(0, limit),
         traces,
         usedLocalFallback: true,
       };
@@ -391,10 +394,15 @@ export async function searchPubChem(
       // Do not set failure — cards are usable; optional soft note via usedLocalFallback only for hub
     };
   } catch (e) {
-    const local = resolveLocalHubCids(query, limit);
+    const local = resolveLocalSearchHits(query, limit);
     if (local.length) {
       return {
-        hits: local,
+        hits: local.map((h) => ({
+          cid: h.cid,
+          name: h.name,
+          cas: h.cas,
+          formula: h.formula,
+        })),
         traces: [],
         usedLocalFallback: true,
       };
