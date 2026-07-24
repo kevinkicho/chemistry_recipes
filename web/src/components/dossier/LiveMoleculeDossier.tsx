@@ -39,6 +39,10 @@ import { ManagerBriefPanel } from "@/components/ManagerBriefPanel";
 import { OperatorJobAid } from "@/components/OperatorJobAid";
 import { LocalTextEnrich } from "@/components/LocalTextEnrich";
 import { ProcessFramingBanner } from "@/components/ProcessFramingBanner";
+import {
+  ManufacturingTextTable,
+  type MfgTextRow,
+} from "@/components/ManufacturingTextTable";
 import { applyLocalFactEnrichment } from "@/lib/dossier/enrichClientFacts";
 import { formatCacheAge } from "@/lib/idb/dossierCache";
 import { findHubByCid } from "@/lib/data/hubIndex";
@@ -129,46 +133,98 @@ export function LiveMoleculeDossier({
       ? dossier.manufacturingTexts.slice(0, 3).join(" ")
       : null);
 
-  /** Prefer PUG manufacturing; fall back so the panel is not empty on 503 captures */
-  const mfgPanelTexts = useMemo(() => {
-    const primary = dossier.manufacturingTexts ?? [];
-    if (primary.length > 0) return primary.slice(0, 24);
-    const fromDesc = (dossier.descriptionTexts ?? []).slice(0, 6);
-    const fromFacts = (dossier.processFacts?.facts ?? [])
-      .filter(
-        (f) =>
-          f.kind === "condition" ||
-          f.kind === "unit-op" ||
-          f.kind === "isolation" ||
-          f.kind === "workup" ||
-          f.kind === "scale-note"
-      )
-      .map((f) => {
-        const bits = [f.claim, f.value && f.unit ? `${f.value} ${f.unit}` : f.value, f.quote]
+  const pubchemMfgHref = `https://pubchem.ncbi.nlm.nih.gov/compound/${cid}#section=Use-and-Manufacturing`;
+
+  /** Structured rows for manufacturing table (sort / filter / click). */
+  const mfgTableRows = useMemo((): MfgTextRow[] => {
+    const rows: MfgTextRow[] = [];
+    let n = 0;
+    const push = (row: Omit<MfgTextRow, "id" | "chars">) => {
+      const text = row.text.trim();
+      if (!text || text.length < 12) return;
+      rows.push({
+        ...row,
+        text,
+        id: `mfg-${n++}`,
+        chars: text.length,
+      });
+    };
+
+    for (const t of dossier.manufacturingTexts ?? []) {
+      const isUse = /\buse\b|application|indication|consumer|industrial use/i.test(t);
+      push({
+        kind: isUse ? "use" : "manufacturing",
+        source: "PubChem PUG View",
+        text: t,
+        href: pubchemMfgHref,
+      });
+    }
+
+    // Fallbacks only when primary manufacturing is thin
+    if (rows.length < 3) {
+      for (const t of (dossier.descriptionTexts ?? []).slice(0, 8)) {
+        push({
+          kind: "description",
+          source: "PubChem description",
+          text: t,
+          href: `https://pubchem.ncbi.nlm.nih.gov/compound/${cid}`,
+        });
+      }
+      for (const f of dossier.processFacts?.facts ?? []) {
+        if (
+          !["condition", "unit-op", "isolation", "workup", "scale-note"].includes(
+            f.kind
+          )
+        ) {
+          continue;
+        }
+        const bits = [
+          f.claim,
+          f.value && f.unit ? `${f.value} ${f.unit}` : f.value,
+          f.quote,
+        ]
           .filter(Boolean)
           .join(" — ");
-        return bits ? `${f.sourceLabel}: ${bits}` : f.claim;
-      })
-      .filter(Boolean)
-      .slice(0, 10);
-    const fromLit = (dossier.literature ?? [])
-      .filter((h) =>
-        /synthes|manufactur|process|preparat|industrial|scale/i.test(
-          `${h.title} ${h.abstract || ""}`
-        )
-      )
-      .slice(0, 4)
-      .map(
-        (h) =>
-          `Literature: ${h.title}${h.abstract ? ` — ${h.abstract.slice(0, 180)}…` : ""}`
-      );
-    return [...fromDesc, ...fromFacts, ...fromLit].slice(0, 24);
+        push({
+          kind: "process-fact",
+          source: f.sourceLabel || "Process fact",
+          text: bits || f.claim,
+          href: f.sourceUrl,
+        });
+      }
+      for (const h of dossier.literature ?? []) {
+        if (
+          !/synthes|manufactur|process|preparat|industrial|scale/i.test(
+            `${h.title} ${h.abstract || ""}`
+          )
+        ) {
+          continue;
+        }
+        push({
+          kind: "literature",
+          source: [h.journal, h.year].filter(Boolean).join(" · ") || "Literature",
+          text: h.abstract
+            ? `${h.title} — ${h.abstract.slice(0, 280)}${h.abstract.length > 280 ? "…" : ""}`
+            : h.title,
+          href: h.url,
+        });
+      }
+    }
+
+    return rows.slice(0, 48);
   }, [
+    cid,
+    pubchemMfgHref,
     dossier.manufacturingTexts,
     dossier.descriptionTexts,
     dossier.processFacts,
     dossier.literature,
   ]);
+
+  const mfgPanelTexts = useMemo(
+    () => mfgTableRows.map((r) => r.text),
+    [mfgTableRows]
+  );
 
   const applications = ai.applications ?? [];
   const appsFromAi = Boolean(ai.parsed && applications.length > 0);
@@ -736,15 +792,15 @@ export function LiveMoleculeDossier({
             id="pubchem-manufacturing"
             title="Public manufacturing & use text"
             summary={
-              mfgPanelTexts.length
-                ? `${mfgPanelTexts.length} public excerpt(s)`
+              mfgTableRows.length
+                ? `${mfgTableRows.length} rows · sort / filter / search`
                 : "Awaiting PubChem / process-fact excerpts"
             }
             badge="API"
-            defaultOpen={mfgPanelTexts.length > 0}
-            forceOpenWhen={mfgPanelTexts.length > 0}
+            defaultOpen={mfgTableRows.length > 0}
+            forceOpenWhen={mfgTableRows.length > 0}
           >
-            <div className="mb-2">
+            <div className="mb-3">
               <ApiProvenance
                 pubchemCid={cid}
                 traces={
@@ -759,33 +815,10 @@ export function LiveMoleculeDossier({
                 label="API"
               />
             </div>
-            {mfgPanelTexts.length > 0 ? (
-              <ul className="max-h-80 space-y-2 overflow-y-auto">
-                {mfgPanelTexts.map((t, i) => (
-                  <li
-                    key={i}
-                    className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 text-sm leading-relaxed text-slate-400"
-                  >
-                    {t}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="space-y-2 text-sm text-slate-500">
-                <p>
-                  No PubChem Use &amp; Manufacturing excerpts in this capture (PUG View may
-                  have been rate-limited). Open the compound on NIH for full sections:
-                </p>
-                <a
-                  href={`https://pubchem.ncbi.nlm.nih.gov/compound/${cid}#section=Use-and-Manufacturing`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-block text-teal-400 hover:underline"
-                >
-                  PubChem · Use and Manufacturing →
-                </a>
-              </div>
-            )}
+            <ManufacturingTextTable
+              rows={mfgTableRows}
+              emptyHref={pubchemMfgHref}
+            />
           </CollapsibleSection>
 
           <CollapsibleSection
