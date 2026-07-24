@@ -24,9 +24,14 @@ export default async function SearchPage({ searchParams }: Props) {
       pubchemHits = result.hits;
       // Empty + hard failure (network / 429 / 5xx) — not PubChem 400/404 "no match"
       if (result.hits.length === 0 && result.failure) {
-        pubchemError = `PubChem temporarily unavailable (${result.failure}). Retry in a moment, or try a CID (e.g. 2244).`;
+        pubchemError = `PubChem is rate-limiting this host (${result.failure}). Wait ~30s and retry, or enter a CID (e.g. 2244 for aspirin).`;
       } else if (result.hits.length > 0 && result.failure) {
-        pubchemWarning = `Partial PubChem response (${result.failure}). Showing CID matches.`;
+        pubchemWarning = result.usedLocalFallback
+          ? `${result.failure} Results may use known hub CIDs until PubChem recovers.`
+          : result.failure;
+      } else if (result.hits.length > 0 && result.usedLocalFallback) {
+        pubchemWarning =
+          "PubChem was slow/busy — showing known hub CIDs. Open a result for the full live dossier.";
       }
     } catch (e) {
       const detail = e instanceof Error ? e.message : "unknown error";
