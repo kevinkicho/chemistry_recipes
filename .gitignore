@@ -86,6 +86,7 @@ Desktop.ini
 # ── Test / coverage ──────────────────────────────────────────────
 coverage/
 .nyc_output/
+web/diagnostics-output/
 
 # ── Vercel / deploy ──────────────────────────────────────────────
 .vercel
