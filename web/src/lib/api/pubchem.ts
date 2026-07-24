@@ -7,8 +7,6 @@ import {
 import { HUB_INDEX, resolveLocalHubCids } from "@/lib/data/hubIndex";
 
 const PUG = "https://pubchem.ncbi.nlm.nih.gov/rest/pug";
-const AUTOCOMPLETE =
-  "https://pubchem.ncbi.nlm.nih.gov/rest/autocomplete/compound";
 
 const PUBCHEM_HEADERS: HeadersInit = {
   Accept: "application/json",
