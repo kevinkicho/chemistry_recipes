@@ -129,6 +129,47 @@ export function LiveMoleculeDossier({
       ? dossier.manufacturingTexts.slice(0, 3).join(" ")
       : null);
 
+  /** Prefer PUG manufacturing; fall back so the panel is not empty on 503 captures */
+  const mfgPanelTexts = useMemo(() => {
+    const primary = dossier.manufacturingTexts ?? [];
+    if (primary.length > 0) return primary.slice(0, 24);
+    const fromDesc = (dossier.descriptionTexts ?? []).slice(0, 6);
+    const fromFacts = (dossier.processFacts?.facts ?? [])
+      .filter(
+        (f) =>
+          f.kind === "condition" ||
+          f.kind === "unit-op" ||
+          f.kind === "isolation" ||
+          f.kind === "workup" ||
+          f.kind === "scale-note"
+      )
+      .map((f) => {
+        const bits = [f.claim, f.value && f.unit ? `${f.value} ${f.unit}` : f.value, f.quote]
+          .filter(Boolean)
+          .join(" — ");
+        return bits ? `${f.sourceLabel}: ${bits}` : f.claim;
+      })
+      .filter(Boolean)
+      .slice(0, 10);
+    const fromLit = (dossier.literature ?? [])
+      .filter((h) =>
+        /synthes|manufactur|process|preparat|industrial|scale/i.test(
+          `${h.title} ${h.abstract || ""}`
+        )
+      )
+      .slice(0, 4)
+      .map(
+        (h) =>
+          `Literature: ${h.title}${h.abstract ? ` — ${h.abstract.slice(0, 180)}…` : ""}`
+      );
+    return [...fromDesc, ...fromFacts, ...fromLit].slice(0, 24);
+  }, [
+    dossier.manufacturingTexts,
+    dossier.descriptionTexts,
+    dossier.processFacts,
+    dossier.literature,
+  ]);
+
   const applications = ai.applications ?? [];
   const appsFromAi = Boolean(ai.parsed && applications.length > 0);
 
@@ -252,14 +293,37 @@ export function LiveMoleculeDossier({
       >
         <div
           id="structure"
-          className="scroll-mt-24 flex h-40 w-40 shrink-0 items-center justify-center rounded-xl bg-white p-3 shadow-lg shadow-black/30"
+          className="scroll-mt-24 flex h-40 w-40 shrink-0 flex-col items-center justify-center rounded-xl bg-white p-3 shadow-lg shadow-black/30"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={pubchemStructureUrl(cid, "large")}
-            alt={`Structure of ${name}`}
+            alt={`2D structure of ${name} (PubChem CID ${cid})`}
             className="max-h-full max-w-full object-contain"
+            loading="eager"
+            decoding="async"
+            onError={(e) => {
+              const el = e.currentTarget;
+              el.style.display = "none";
+              const fallback = el.nextElementSibling;
+              if (fallback instanceof HTMLElement) fallback.hidden = false;
+            }}
           />
+          <span
+            hidden
+            className="px-1 text-center text-[10px] font-medium leading-tight text-slate-600"
+          >
+            Structure image unavailable
+            <br />
+            <a
+              href={`https://pubchem.ncbi.nlm.nih.gov/compound/${cid}`}
+              className="text-teal-700 underline"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open PubChem CID {cid}
+            </a>
+          </span>
         </div>
 
         <div className="min-w-0 flex-1 space-y-3">
@@ -575,13 +639,14 @@ export function LiveMoleculeDossier({
             </section>
           ) : null}
 
-          {/* Secondary: trust / industry tooling (extra beyond curated mock) */}
+          {/* Secondary: trust / industry tooling — open when process evidence exists */}
           <CollapsibleSection
             id="industry-briefs"
             title="Industry briefs & accuracy tools"
             summary="Manager brief, operator job aid, process facts, local enrich"
             badge="extra"
-            defaultOpen={false}
+            defaultOpen
+            forceOpenWhen={(dossier.processFacts?.facts?.length ?? 0) > 0}
           >
             <div className="space-y-6">
               <EvidenceScoreExplainer dossier={dossier} />
@@ -597,13 +662,19 @@ export function LiveMoleculeDossier({
             </div>
           </CollapsibleSection>
 
-          {(dossier.annotations?.length ?? 0) > 0 ? (
-            <CollapsibleSection
-              id="multi-source"
-              title="Multi-source free APIs"
-              summary={`${dossier.annotations.length} annotations beyond PubChem identity`}
-              badge={String(dossier.annotations.length)}
-            >
+          <CollapsibleSection
+            id="multi-source"
+            title="Multi-source free APIs"
+            summary={
+              (dossier.annotations?.length ?? 0) > 0
+                ? `${dossier.annotations.length} annotations beyond PubChem identity`
+                : "No extra annotations in this capture"
+            }
+            badge={String(dossier.annotations?.length ?? 0)}
+            defaultOpen={(dossier.annotations?.length ?? 0) > 0}
+            forceOpenWhen={(dossier.annotations?.length ?? 0) > 0}
+          >
+            {(dossier.annotations?.length ?? 0) > 0 ? (
               <ul className="grid gap-2 sm:grid-cols-2">
                 {dossier.annotations.map((a, i) => (
                   <li
@@ -640,8 +711,13 @@ export function LiveMoleculeDossier({
                   </li>
                 ))}
               </ul>
-            </CollapsibleSection>
-          ) : null}
+            ) : (
+              <p className="text-sm text-slate-500">
+                No ChEMBL / openFDA / MyChem / related annotations were returned for this
+                capture. Identity still comes from PubChem CID {cid}.
+              </p>
+            )}
+          </CollapsibleSection>
 
           {dossier.contradictions && dossier.contradictions.length > 0 ? (
             <CollapsibleSection
@@ -649,6 +725,8 @@ export function LiveMoleculeDossier({
               title="Evidence tensions"
               summary="Public sources disagree — review both sides"
               badge={String(dossier.contradictions.length)}
+              defaultOpen
+              forceOpenWhen
             >
               <EvidenceContradictions items={dossier.contradictions} />
             </CollapsibleSection>
@@ -656,13 +734,15 @@ export function LiveMoleculeDossier({
 
           <CollapsibleSection
             id="pubchem-manufacturing"
-            title="Public manufacturing text"
+            title="Public manufacturing & use text"
             summary={
-              dossier.manufacturingTexts.length
-                ? `${dossier.manufacturingTexts.length} PubChem excerpt(s)`
-                : "No excerpts in this capture"
+              mfgPanelTexts.length
+                ? `${mfgPanelTexts.length} public excerpt(s)`
+                : "Awaiting PubChem / process-fact excerpts"
             }
             badge="API"
+            defaultOpen={mfgPanelTexts.length > 0}
+            forceOpenWhen={mfgPanelTexts.length > 0}
           >
             <div className="mb-2">
               <ApiProvenance
@@ -679,9 +759,9 @@ export function LiveMoleculeDossier({
                 label="API"
               />
             </div>
-            {dossier.manufacturingTexts.length > 0 ? (
-              <ul className="max-h-64 space-y-2 overflow-y-auto">
-                {dossier.manufacturingTexts.map((t, i) => (
+            {mfgPanelTexts.length > 0 ? (
+              <ul className="max-h-80 space-y-2 overflow-y-auto">
+                {mfgPanelTexts.map((t, i) => (
                   <li
                     key={i}
                     className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 text-sm leading-relaxed text-slate-400"
@@ -691,7 +771,20 @@ export function LiveMoleculeDossier({
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-slate-500">No use/manufacturing excerpts.</p>
+              <div className="space-y-2 text-sm text-slate-500">
+                <p>
+                  No PubChem Use &amp; Manufacturing excerpts in this capture (PUG View may
+                  have been rate-limited). Open the compound on NIH for full sections:
+                </p>
+                <a
+                  href={`https://pubchem.ncbi.nlm.nih.gov/compound/${cid}#section=Use-and-Manufacturing`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-block text-teal-400 hover:underline"
+                >
+                  PubChem · Use and Manufacturing →
+                </a>
+              </div>
             )}
           </CollapsibleSection>
 
@@ -704,6 +797,8 @@ export function LiveMoleculeDossier({
                 : "No hits"
             }
             badge="API"
+            defaultOpen={dossier.literature.length > 0}
+            forceOpenWhen={dossier.literature.length > 0}
           >
             <div className="mb-2">
               <ApiProvenance
@@ -762,6 +857,8 @@ export function LiveMoleculeDossier({
                 : "No hits"
             }
             badge="API"
+            defaultOpen={dossier.patents.length > 0}
+            forceOpenWhen={dossier.patents.length > 0}
           >
             <div className="mb-2">
               <ApiProvenance
@@ -825,13 +922,23 @@ export function LiveMoleculeDossier({
                 />
               )}
             </div>
-            {manufacturingSummary ? (
+            {manufacturingSummary || mfgPanelTexts[0] ? (
               <p className="mt-2 text-sm leading-relaxed text-slate-400">
-                {manufacturingSummary}
+                {manufacturingSummary || mfgPanelTexts[0]}
               </p>
             ) : (
               <p className="mt-2 text-sm text-slate-600">
-                No manufacturing summary in free evidence.
+                No manufacturing summary in free evidence yet. See Public manufacturing
+                panel and literature below, or open{" "}
+                <a
+                  href={`https://pubchem.ncbi.nlm.nih.gov/compound/${cid}#section=Use-and-Manufacturing`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-teal-400 hover:underline"
+                >
+                  PubChem Use &amp; Manufacturing
+                </a>
+                .
               </p>
             )}
           </div>

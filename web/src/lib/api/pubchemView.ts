@@ -8,6 +8,19 @@ import { fetchJsonWithTrace, type ApiFetchTrace } from "@/lib/api/trace";
 
 const PUG_VIEW = "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view";
 
+const PUG_VIEW_FETCH = {
+  cache: "no-store" as RequestCache,
+  timeoutMs: 10_000,
+  headers: {
+    Accept: "application/json",
+    "User-Agent": "ChemistryRecipes/1.2 (educational; process-recipe hub)",
+  },
+};
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 /** Headings we request (PubChem Compound TOC). */
 export const PUG_VIEW_HEADINGS = [
   "GHS Classification",
@@ -234,16 +247,24 @@ export async function fetchPubChemView(cid: number): Promise<PugViewResult> {
     "Use and Manufacturing",
     "Chemical and Physical Properties",
     "Safety and Hazards",
+    "Pharmacology and Biochemistry",
   ];
 
-  const results = await Promise.all(
-    headings.map(async (heading) => {
-      const url = `${PUG_VIEW}/data/compound/${cid}/JSON?heading=${encodeURIComponent(heading)}`;
-      return fetchJsonWithTrace<PugViewPayload>(url, {
-        next: { revalidate: 3600 },
-      });
-    })
-  );
+  async function fetchHeading(heading: string) {
+    const url = `${PUG_VIEW}/data/compound/${cid}/JSON?heading=${encodeURIComponent(heading)}`;
+    let last = await fetchJsonWithTrace<PugViewPayload>(url, PUG_VIEW_FETCH);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (last.trace.ok || last.trace.notFound || last.trace.httpStatus === 404) {
+        break;
+      }
+      // Retry transient 503/timeout from cloud egress
+      await sleep(600 * (attempt + 1) + Math.floor(Math.random() * 200));
+      last = await fetchJsonWithTrace<PugViewPayload>(url, PUG_VIEW_FETCH);
+    }
+    return last;
+  }
+
+  const results = await Promise.all(headings.map((h) => fetchHeading(h)));
 
   for (const { data, trace } of results) {
     traces.push(trace);
@@ -256,23 +277,27 @@ export async function fetchPubChemView(cid: number): Promise<PugViewResult> {
 
   // If targeted headings mostly failed, try full record once (capped use)
   const okCount = traces.filter((t) => t.ok).length;
-  if (okCount === 0) {
+  if (okCount < 2) {
     const url = `${PUG_VIEW}/data/compound/${cid}/JSON`;
-    const { data, trace } = await fetchJsonWithTrace<PugViewPayload>(url, {
-      next: { revalidate: 3600 },
-    });
-    traces.push(trace);
-    if (data?.Record) {
-      title = data.Record.RecordTitle || title;
+    let full = await fetchJsonWithTrace<PugViewPayload>(url, PUG_VIEW_FETCH);
+    if (!full.trace.ok) {
+      await sleep(800);
+      full = await fetchJsonWithTrace<PugViewPayload>(url, PUG_VIEW_FETCH);
+    }
+    traces.push(full.trace);
+    if (full.data?.Record) {
+      title = full.data.Record.RecordTitle || title;
       const blocks: PugViewTextBlock[] = [];
-      walkSections(data.Record.Section, [], blocks);
+      walkSections(full.data.Record.Section, [], blocks);
       // Cap blocks from full record to keep page/AI context sane
       allBlocks.push(...blocks.slice(0, 200));
     }
   }
 
   const hazards = classifyHazards(allBlocks);
-  const manufacturingTexts = filterByHeadingKeywords(allBlocks, [
+
+  // Broad manufacturing/use harvest — then fall back to any non-boilerplate under that TOC
+  let manufacturingTexts = filterByHeadingKeywords(allBlocks, [
     "use and manufacturing",
     "methods of manufacturing",
     "industry uses",
@@ -280,7 +305,24 @@ export async function fetchPubChemView(cid: number): Promise<PugViewResult> {
     "production",
     "preparation",
     "synthesis",
-  ]).slice(0, 40);
+    "formulations",
+    "consumption",
+    "sample use",
+    "use classification",
+  ]);
+  if (manufacturingTexts.length === 0) {
+    manufacturingTexts = unique(
+      allBlocks
+        .filter((b) =>
+          /use and manufacturing|methods of manufacturing|industry uses|formulations/i.test(
+            b.heading
+          )
+        )
+        .map((b) => b.text)
+        .filter((t) => !isTocBoilerplate(t) && t.length >= 24)
+    );
+  }
+  manufacturingTexts = manufacturingTexts.slice(0, 40);
 
   const descriptionTexts = filterByHeadingKeywords(allBlocks, [
     "record description",
@@ -288,6 +330,8 @@ export async function fetchPubChemView(cid: number): Promise<PugViewResult> {
     "pharmacology",
     "biochemistry",
     "drug indication",
+    "associated disorders",
+    "therapeutic uses",
   ]).slice(0, 20);
 
   const propertyTexts = filterByHeadingKeywords(allBlocks, [
@@ -299,6 +343,7 @@ export async function fetchPubChemView(cid: number): Promise<PugViewResult> {
     "solubility",
     "density",
     "logp",
+    "physical description",
   ]).slice(0, 40);
 
   return {

@@ -188,7 +188,20 @@ export function buildScaffoldDossier(evidence: CompoundEvidence): LiveDossier {
 
   const name = evidence.identity?.name || `CID ${evidence.cid}`;
   const desc = filterUsefulTexts(evidence.view?.descriptionTexts ?? []);
-  const mfg = filterUsefulTexts(evidence.view?.manufacturingTexts ?? []);
+  // Keep more manufacturing/use text on the dossier (UI panels + process facts)
+  let mfg = filterUsefulTexts(evidence.view?.manufacturingTexts ?? []);
+  if (mfg.length === 0 && evidence.view?.blocks?.length) {
+    // Last resort: any non-boilerplate block under Use and Manufacturing TOC path
+    mfg = filterUsefulTexts(
+      evidence.view.blocks
+        .filter((b) =>
+          /use and manufacturing|methods of manufacturing|industry uses|formulations/i.test(
+            b.heading
+          )
+        )
+        .map((b) => b.text)
+    );
+  }
   const props = filterUsefulTexts(evidence.view?.propertyTexts ?? []);
 
   const useSnippets = mfg

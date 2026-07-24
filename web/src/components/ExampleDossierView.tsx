@@ -38,15 +38,18 @@ export function ExampleDossierView({ d }: { d: MoleculeDossier }) {
       >
         <div
           id="structure"
-          className="scroll-mt-24 flex h-40 w-40 shrink-0 items-center justify-center rounded-xl bg-white p-3 shadow-lg shadow-black/30"
+          className="scroll-mt-24 flex h-40 w-40 shrink-0 flex-col items-center justify-center rounded-xl bg-white p-3 shadow-lg shadow-black/30"
         >
           {cid ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={pubchemStructureUrl(cid, "large")}
-              alt={`Structure of ${name}`}
-              className="max-h-full max-w-full object-contain"
-            />
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={pubchemStructureUrl(cid, "large")}
+                alt={`2D structure of ${name} (PubChem CID ${cid})`}
+                className="max-h-full max-w-full object-contain"
+                loading="eager"
+              />
+            </>
           ) : (
             <span className="text-sm text-slate-400">No structure</span>
           )}
