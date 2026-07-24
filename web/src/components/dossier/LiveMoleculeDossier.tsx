@@ -43,6 +43,7 @@ import {
   ManufacturingTextTable,
   type MfgTextRow,
 } from "@/components/ManufacturingTextTable";
+import { LiteratureTable } from "@/components/LiteratureTable";
 import { applyLocalFactEnrichment } from "@/lib/dossier/enrichClientFacts";
 import { formatCacheAge } from "@/lib/idb/dossierCache";
 import { findHubByCid } from "@/lib/data/hubIndex";
@@ -826,14 +827,14 @@ export function LiveMoleculeDossier({
             title="Literature"
             summary={
               dossier.literature.length
-                ? `${dossier.literature.length} process-ranked hits`
+                ? `${dossier.literature.length} hits · sort / filter / search`
                 : "No hits"
             }
             badge="API"
             defaultOpen={dossier.literature.length > 0}
             forceOpenWhen={dossier.literature.length > 0}
           >
-            <div className="mb-2">
+            <div className="mb-3">
               <ApiProvenance
                 traces={litTraces.length ? litTraces : traces}
                 sourceRefs={litRefs}
@@ -841,44 +842,7 @@ export function LiveMoleculeDossier({
                 label="API"
               />
             </div>
-            {dossier.literature.length === 0 ? (
-              <p className="text-sm text-slate-500">No literature hits.</p>
-            ) : (
-              <ul className="space-y-2">
-                {dossier.literature.slice(0, 10).map((h) => {
-                  const hay = `${h.title} ${h.abstract || ""}`;
-                  const processy =
-                    /synthes|manufactur|process|ferment|preparat|industrial|scale|product|biocatal/i.test(
-                      hay
-                    );
-                  return (
-                    <li
-                      key={h.id}
-                      className="rounded-xl border border-slate-800 bg-slate-900/40 px-3 py-2"
-                    >
-                      <div className="flex flex-wrap items-start gap-2">
-                        <a
-                          href={h.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sm font-medium text-teal-300 hover:underline"
-                        >
-                          {h.title}
-                        </a>
-                        {processy ? (
-                          <span className="rounded bg-teal-500/10 px-1.5 py-0.5 text-[10px] text-teal-300/90 ring-1 ring-teal-500/25">
-                            process
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="mt-0.5 text-xs text-slate-600">
-                        {[h.journal, h.year].filter(Boolean).join(" · ")}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+            <LiteratureTable hits={dossier.literature} />
           </CollapsibleSection>
 
           <CollapsibleSection
