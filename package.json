@@ -1,6 +1,8 @@
 {
   "name": "chemistry-recipes",
   "private": true,
+  "license": "MIT",
+  "author": "Grok 4.5 (xAI)",
   "description": "Plant-ready process intelligence for small-molecule production",
   "scripts": {
     "dev": "npm run dev --prefix web",

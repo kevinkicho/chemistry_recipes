@@ -218,6 +218,14 @@ Full vision: [docs/product-vision.md](docs/product-vision.md)
 
 ## License / use
 
+**MIT License** — see [LICENSE](./LICENSE).
+
+| | |
+|--|--|
+| **Copyright** | © 2026 Kevinkicho |
+| **Code authorship** | **Grok 4.5 (xAI)** wrote the application source code in this repository |
+| **License** | MIT — free to use, modify, and distribute with notice |
+
 Educational and professional **scaffold**. Validate every claim against primary public sources and your site quality system before any manufacturing or clinical use.
 
 No warranty. Not a medical device. Not prescribing information.
