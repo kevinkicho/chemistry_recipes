@@ -641,19 +641,86 @@ export function buildPublicProcessBrief(dossier: LiveDossier): PublicProcessBrie
 /** Operator shift-brief JSON (sourced sequence + gaps + EHS). */
 export function buildOperatorJobAidExport(dossier: LiveDossier) {
   const brief = buildPublicProcessBrief(dossier);
+  const pf = dossier.processFacts;
+  const route = dossier.processRoutes[0];
   return {
-    schema: "chemistry-recipes.operator-job-aid.v1" as const,
+    schema: "chemistry-recipes.operator-job-aid.v2" as const,
     exportedAt: new Date().toISOString(),
     disclaimer: brief.disclaimer,
-    framing: dossier.processFraming || dossier.processFacts?.framing,
-    accuracyScore: dossier.processFacts?.metrics?.accuracyScore,
+    framing: dossier.processFraming || pf?.framing,
+    accuracyScore: pf?.metrics?.accuracyScore,
     entity: brief.entity,
-    sequence: brief.preferredRoute,
+    routeName: route?.name,
+    routeSummary: route?.summary,
+    materials: (route?.materials || []).slice(0, 24).map((m) => ({
+      role: m.role,
+      name: m.name,
+      cas: m.cas,
+      stoich: m.stoich,
+      notes: m.notes,
+    })),
+    sequence: (route?.steps || []).slice(0, 16).map((s) => {
+      const facts = (s.factIds || [])
+        .map((id) => (pf?.facts || []).find((f) => f.id === id))
+        .filter(Boolean);
+      return {
+        order: s.order,
+        title: s.title,
+        description: s.description,
+        mechanismClass: s.mechanismClass,
+        conditions: s.conditions,
+        hasNumericConditions: Boolean(
+          s.conditions?.temperatureC ||
+            s.conditions?.time ||
+            s.conditions?.pressure ||
+            s.conditions?.ph
+        ),
+        materials: s.materials?.map((m) => m.name),
+        apparatus: s.apparatus?.map((a) => a.equipmentClass),
+        controls: s.controls,
+        sourceRefs: s.sourceRefs?.map((r) => ({
+          type: r.type,
+          label: r.label || r.id,
+          url: r.url,
+        })),
+        supportingFacts: facts.map((f) => ({
+          kind: f!.kind,
+          claim: f!.claim,
+          value: f!.value,
+          unit: f!.unit,
+          quote: f!.quote,
+          sourceLabel: f!.sourceLabel,
+          sourceUrl: f!.sourceUrl,
+        })),
+      };
+    }),
+    extractedConditions: (pf?.facts || [])
+      .filter((f) =>
+        ["condition", "unit-op", "isolation", "workup"].includes(f.kind)
+      )
+      .slice(0, 40)
+      .map((f) => ({
+        kind: f.kind,
+        claim: f.claim,
+        value: f.value,
+        unit: f.unit,
+        sourceLabel: f.sourceLabel,
+        sourceUrl: f.sourceUrl,
+      })),
     ehs: {
+      signalWord: dossier.hazards.signalWord,
       ghs: dossier.hazards.hazardStatements?.slice(0, 12),
-      processRisks: dossier.processFacts?.managerRisks || [],
+      precautions: dossier.hazards.precautionaryStatements?.slice(0, 8),
+      processRisks: pf?.managerRisks || [],
     },
     siteFillChecklist: brief.openGaps,
     sourcedFactCount: brief.sourcedFacts.length,
+    processFactMetrics: pf?.metrics
+      ? {
+          accuracyScore: pf.metrics.accuracyScore,
+          sourcedConditionCount: pf.metrics.sourcedConditionCount,
+          unitOpCount: pf.metrics.unitOpCount,
+        }
+      : undefined,
   };
 }
