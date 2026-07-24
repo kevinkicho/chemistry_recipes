@@ -83,23 +83,45 @@ export function slimTraces(traces: ApiFetchTrace[], maxBody = MAX_RESPONSE_CHARS
   return traces.map((t) => slimTrace(t, maxBody));
 }
 
+export type TraceFetchInit = RequestInit & {
+  next?: { revalidate?: number };
+  /** Abort if the request exceeds this many ms (helps when PubChem hangs/503s). */
+  timeoutMs?: number;
+};
+
 /**
  * Fetch and return body + full trace for provenance tables.
  * Only call for free public endpoints — never invent a trace.
  */
 export async function fetchWithTrace(
   url: string,
-  init?: RequestInit & { next?: { revalidate?: number } }
+  init?: TraceFetchInit
 ): Promise<{ text: string; data: unknown | null; trace: ApiFetchTrace }> {
   const method = (init?.method ?? "GET").toUpperCase();
   const fetchedAt = new Date().toISOString();
+  const { timeoutMs, signal: outerSignal, ...rest } = init ?? {};
+
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  if (timeoutMs != null && timeoutMs > 0) {
+    timer = setTimeout(() => controller.abort(), timeoutMs);
+  }
+  if (outerSignal) {
+    if (outerSignal.aborted) controller.abort();
+    else {
+      outerSignal.addEventListener("abort", () => controller.abort(), {
+        once: true,
+      });
+    }
+  }
 
   try {
     const res = await fetch(url, {
-      ...init,
+      ...rest,
+      signal: controller.signal,
       headers: {
         Accept: "application/json, text/plain, */*",
-        ...(init?.headers ?? {}),
+        ...(rest.headers ?? {}),
       },
     });
     const contentType = res.headers.get("content-type") ?? undefined;
@@ -134,6 +156,11 @@ export async function fetchWithTrace(
       },
     };
   } catch (e) {
+    const aborted =
+      (e instanceof Error && e.name === "AbortError") ||
+      (typeof DOMException !== "undefined" &&
+        e instanceof DOMException &&
+        e.name === "AbortError");
     return {
       text: "",
       data: null,
@@ -143,15 +170,21 @@ export async function fetchWithTrace(
         fetchedAt,
         responseBody: "",
         ok: false,
-        error: e instanceof Error ? e.message : "fetch failed",
+        error: aborted
+          ? `timeout after ${timeoutMs ?? "?"}ms`
+          : e instanceof Error
+            ? e.message
+            : "fetch failed",
       },
     };
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }
 
 export async function fetchJsonWithTrace<T>(
   url: string,
-  init?: RequestInit & { next?: { revalidate?: number } }
+  init?: TraceFetchInit
 ): Promise<{ data: T | null; trace: ApiFetchTrace }> {
   const { data, trace } = await fetchWithTrace(url, init);
   return { data: (data as T) ?? null, trace };
