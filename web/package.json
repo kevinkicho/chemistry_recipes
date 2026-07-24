@@ -17,25 +17,30 @@
     "test:plant-parity": "node scripts/test-plant-parity.mjs",
     "test:smoke": "node scripts/test-smoke-apis.mjs",
     "test:smoke:strict": "node scripts/test-smoke-apis.mjs --strict",
+    "status:deploy": "node scripts/status-deploy.mjs",
+    "status:deploy:json": "node scripts/status-deploy.mjs --json",
     "test:unit": "npm run test:evidence && npm run test:hub && npm run test:process-facts && npm run test:export-ai && npm run test:lib-modules && npm run test:tier-a && npm run test:ai-regression && npm run test:plant-parity",
     "test": "npm run test:unit",
     "test:coverage": "npm run test:unit && npm run test:smoke && npx tsc --noEmit && npx eslint src --max-warnings 0",
     "test:all": "npm run test:coverage && npm run build"
   },
   "dependencies": {
+    "firebase": "^12.16.0",
+    "firebase-admin": "^14.2.0",
+    "next": "15.5.21",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "next": "15.5.21"
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.5.21",
-    "@eslint/eslintrc": "^3"
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }

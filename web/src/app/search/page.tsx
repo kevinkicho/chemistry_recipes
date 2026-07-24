@@ -15,15 +15,20 @@ export default async function SearchPage({ searchParams }: Props) {
 
   let pubchemHits: PubChemHit[] = [];
   let pubchemError: string | null = null;
+  let pubchemWarning: string | null = null;
   if (query) {
     try {
       const result = await searchPubChem(query, 10);
       pubchemHits = result.hits;
-      if (result.hits.length === 0 && result.traces.some((t) => !t.ok)) {
-        pubchemError = "PubChem request failed. Try again shortly.";
+      // Empty + hard failure (network / 429 / 5xx) — not PubChem 400/404 "no match"
+      if (result.hits.length === 0 && result.failure) {
+        pubchemError = `PubChem temporarily unavailable (${result.failure}). Retry in a moment, or try a CID (e.g. 2244).`;
+      } else if (result.hits.length > 0 && result.failure) {
+        pubchemWarning = `Partial PubChem response (${result.failure}). Showing CID matches.`;
       }
-    } catch {
-      pubchemError = "PubChem request failed. Try again shortly.";
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : "unknown error";
+      pubchemError = `PubChem request failed (${detail}). Try again shortly, or open /api/search/pubchem?q=…`;
     }
   }
 
@@ -59,8 +64,14 @@ export default async function SearchPage({ searchParams }: Props) {
             PubChem results (NIH)
           </h2>
           {pubchemError && <p className="text-sm text-rose-400">{pubchemError}</p>}
+          {pubchemWarning && !pubchemError && (
+            <p className="mb-2 text-sm text-amber-300/90">{pubchemWarning}</p>
+          )}
           {!pubchemError && pubchemHits.length === 0 && (
-            <p className="text-sm text-slate-500">No PubChem hits for this query.</p>
+            <p className="text-sm text-slate-500">
+              No PubChem hits for this query. Try a different name, CAS RN, CID, InChIKey, or
+              SMILES.
+            </p>
           )}
           <ul className="grid gap-3 sm:grid-cols-2">
             {pubchemHits.map((hit) => (

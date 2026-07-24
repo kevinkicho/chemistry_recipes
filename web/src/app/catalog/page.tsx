@@ -39,6 +39,7 @@ export default async function CatalogPage({ searchParams }: Props) {
     kind: sp.kind,
   });
   const templates = listModalities();
+  // Teaching index only — not a top-nav live tool (see Info hub)
 
   function hrefWith(patch: Record<string, string | undefined>) {
     const params = new URLSearchParams();
@@ -59,16 +60,27 @@ export default async function CatalogPage({ searchParams }: Props) {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
+      <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+        <Link href={routes.info()} className="text-amber-300/90 hover:underline">
+          Info
+        </Link>
+        <span>/</span>
+        <span className="text-slate-400">Catalog</span>
+        <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200 ring-1 ring-amber-500/30">
+          For show
+        </span>
+      </div>
       <h1 className="text-3xl font-semibold tracking-tight text-slate-50">
-        Recipe catalog
+        Teaching recipe catalog
       </h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
-        Professional hub index: curated dual-view examples (Tier A) plus high-demand live
-        entities (Tier B via free APIs). Long-tail chemistry stays on{" "}
+        Index of curated dual-view examples (Tier A) plus high-demand live pointers. This page
+        is under <strong className="text-amber-100/80">Info</strong> (for show) — day-to-day work
+        starts at{" "}
         <Link href={routes.search()} className="text-teal-400 hover:underline">
-          Search
+          live Search
         </Link>
-        . Facet by modality and entity role for CMC / MSAT / formulation workflows.
+        .
       </p>
       <div className="mt-4">
         <RegulatoryDisclaimer compact />

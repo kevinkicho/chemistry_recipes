@@ -4,6 +4,11 @@ import { runPublicApiProbes, summarizeProbes } from "@/lib/diagnostics/probes";
 import { curatedPackageCount } from "@/lib/data/curatedPackages";
 import { getExampleCatalog } from "@/lib/data/examples";
 import { CHEMISTRY_API_SOURCES } from "@/lib/sources/registry";
+import {
+  getFirebaseAdminCredentialsPath,
+  getFirebaseProjectId,
+  isFirebaseWebConfigured,
+} from "@/lib/firebase/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,6 +53,18 @@ export async function GET(req: Request) {
       ollamaFastModel: env.fastModel,
       ollamaHost: env.host,
       patentsViewKeyConfigured: patentsKey,
+      firebaseWebConfigured: isFirebaseWebConfigured(),
+      firebaseProjectId: getFirebaseProjectId() || null,
+      firebaseAdminCredsConfigured: Boolean(getFirebaseAdminCredentialsPath()),
+    },
+    firebase: {
+      probeUrl: "/api/diagnostics/firebase",
+      note: "GET /api/diagnostics/firebase for Admin Auth/Firestore health (no secrets).",
+    },
+    deploy: {
+      probeUrl: "/api/diagnostics/deploy",
+      cli: "npm run status:deploy",
+      note: "Git tip + live App Hosting probe; full build/rollout via CLI with gcloud auth.",
     },
     probes,
     probeSummary,

@@ -40,9 +40,26 @@ OLLAMA_CLOUD_API_KEY=your_key_here
 
 # Optional USPTO PatentsView
 # PATENTSVIEW_API_KEY=
+
+# Firebase (Auth / Firestore / RTDB / Storage) — see .env.example
+# NEXT_PUBLIC_FIREBASE_API_KEY=…
+# NEXT_PUBLIC_FIREBASE_PROJECT_ID=chemistryrecipes
+# GOOGLE_APPLICATION_CREDENTIALS=./chemistryrecipes-firebase-adminsdk-….json
 ```
 
 Restart `npm run dev` after env changes.
+
+### Firebase
+
+| Product | Status |
+|---------|--------|
+| Auth (Google) | Header **Google sign-in** · enable provider in Console |
+| Firestore / RTDB / Storage | Client + Admin helpers in `web/src/lib/firebase/` |
+| Admin SDK | Gitignored `*firebase-adminsdk*.json` · probe `GET /api/diagnostics/firebase` |
+| App Hosting | `firebase.json` → `rootDir: "web"` · config `web/apphosting.yaml` |
+| Functions | `functions/` · deploy with Firebase CLI |
+
+Copy the service-account JSON to the repo root (already gitignored). Prefer `web/.env.local` for Next-visible `NEXT_PUBLIC_*` vars. Security notes: [security.md](./security.md).
 
 ### Browser AI settings
 

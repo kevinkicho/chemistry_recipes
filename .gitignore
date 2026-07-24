@@ -8,7 +8,11 @@
 .env.production
 .env.production.local
 .env*.local
+web/.env
+web/.env.local
+web/.env*.local
 !.env.example
+!web/.env.example
 
 # Private keys & certificates
 *.pem
@@ -33,6 +37,14 @@ credentials.json
 service-account*.json
 google-services.json
 auth.json
+
+# Firebase Admin SDK private keys (never commit)
+*firebase-adminsdk*.json
+*-firebase-adminsdk-*.json
+firebase-adminsdk*.json
+**/serviceAccountKey.json
+.firebase/admin/
+secrets/firebase/
 
 # Local npm auth (may contain tokens)
 .npmrc

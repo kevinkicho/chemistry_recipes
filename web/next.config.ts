@@ -22,11 +22,19 @@ const nextConfig: NextConfig = {
         hostname: "pubchem.ncbi.nlm.nih.gov",
         pathname: "/rest/pug/**",
       },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+        pathname: "/**",
+      },
     ],
   },
   async redirects() {
     return [
-      { source: "/catalog", destination: "/search", permanent: true },
+      // Legacy About → Info hub (curated / mock only)
+      { source: "/about", destination: "/info", permanent: true },
+      // Catalog is teaching index; keep path for Info deep-links (no longer top-nav)
+      // Old redirect to search removed so /catalog stays under "for show"
       { source: "/molecules/:slug*", destination: "/search", permanent: false },
       { source: "/molecule/cid/:cid", destination: "/compounds/pubchem/:cid", permanent: true },
       { source: "/molecule/:id", destination: "/search", permanent: false },

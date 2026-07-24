@@ -15,7 +15,49 @@ export interface ApiFetchTrace {
   contentType?: string;
   /** True when the call succeeded (2xx) */
   ok: boolean;
+  /**
+   * True when the remote API explicitly reported "no match" (e.g. PubChem PUG
+   * REST HTTP 404 + Fault Code PUGREST.NotFound). Not a transport outage —
+   * treat as empty result for search UX.
+   */
+  notFound?: boolean;
   error?: string;
+}
+
+/** Detect PubChem / common REST "empty result" payloads on non-2xx bodies. */
+export function isNotFoundPayload(data: unknown, httpStatus?: number): boolean {
+  // PUG REST: unknown compound / bad SMILES often 404 or 400 with Fault
+  if (httpStatus === 404) return true;
+  if (!data || typeof data !== "object") {
+    // Bare 400 without body still treated as empty by search layer
+    return false;
+  }
+  const fault = (data as { Fault?: { Code?: string; Message?: string } }).Fault;
+  if (!fault) {
+    if (httpStatus === 400) return true;
+    return false;
+  }
+  const code = String(fault.Code ?? "");
+  const msg = String(fault.Message ?? "").toLowerCase();
+  if (
+    code.includes("NotFound") ||
+    code.includes("PUGREST.NotFound") ||
+    code.includes("BadRequest") ||
+    code.includes("PUGREST.BadRequest")
+  ) {
+    return true;
+  }
+  if (
+    msg.includes("not found") ||
+    msg.includes("no cid") ||
+    msg.includes("no records") ||
+    msg.includes("unable to standardize") ||
+    msg.includes("invalid")
+  ) {
+    return true;
+  }
+  if (httpStatus === 400) return true;
+  return false;
 }
 
 /** Keep HTML / RSC payloads small; full response is re-fetchable via endpoint. */
@@ -63,13 +105,15 @@ export async function fetchWithTrace(
     const contentType = res.headers.get("content-type") ?? undefined;
     const text = await res.text();
     let data: unknown | null = null;
-    if (res.ok) {
+    // Parse JSON for both success and error bodies (PubChem Fault on 404, etc.)
+    if (text && (contentType?.includes("json") || text.trimStart().startsWith("{"))) {
       try {
         data = JSON.parse(text);
       } catch {
         data = null;
       }
     }
+    const notFound = !res.ok && isNotFoundPayload(data, res.status);
     return {
       text,
       data,
@@ -81,7 +125,12 @@ export async function fetchWithTrace(
         responseBody: truncateResponse(text),
         contentType,
         ok: res.ok,
-        error: res.ok ? undefined : `HTTP ${res.status}`,
+        notFound: notFound || undefined,
+        error: res.ok
+          ? undefined
+          : notFound
+            ? "Not found"
+            : `HTTP ${res.status}`,
       },
     };
   } catch (e) {

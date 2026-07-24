@@ -2,13 +2,13 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { HeaderHeightSync } from "@/components/HeaderHeightSync";
 import { AiStatusBadge } from "@/components/AiStatusBadge";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { getServerAiEnv } from "@/lib/ai/serverEnv";
 import { routes } from "@/lib/routes";
 
-const links = [
+/** Live product tools only — mock/curated content is under Info. */
+const liveLinks = [
   { href: routes.home(), label: "Home" },
-  { href: routes.catalog(), label: "Catalog" },
-  { href: routes.packages(), label: "Packages" },
   { href: routes.search(), label: "Search" },
   { href: routes.compare(), label: "Compare" },
   { href: routes.workspace(), label: "Workspace" },
@@ -50,7 +50,7 @@ export function Header() {
           </div>
         </Link>
         <nav className="flex flex-wrap items-center gap-1 sm:gap-2">
-          {links.map((l) => (
+          {liveLinks.map((l) => (
             <Link
               key={l.href}
               href={l.href}
@@ -59,6 +59,14 @@ export function Header() {
               {l.label}
             </Link>
           ))}
+          <Link
+            href={routes.info()}
+            className="rounded-md border border-amber-500/35 bg-amber-500/10 px-2.5 py-1.5 text-sm font-medium text-amber-100 transition-colors hover:bg-amber-500/20"
+            title="Curated demos, mock dossiers, and teaching data — not live search results"
+          >
+            Info
+          </Link>
+          <GoogleSignInButton />
           <Suspense
             fallback={
               <span className="rounded-md px-2.5 py-1.5 text-sm text-slate-500">

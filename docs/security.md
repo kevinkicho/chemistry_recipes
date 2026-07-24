@@ -7,8 +7,22 @@ The root [`.gitignore`](../.gitignore) excludes:
 - All `.env` variants (except `.env.example`)  
 - Private keys and certificates (`*.pem`, `*.key`, `id_rsa`, …)  
 - Credential JSON dumps  
+- **Firebase Admin SDK** service-account JSON (`*firebase-adminsdk*.json`)  
 - Local npm auth (`.npmrc`)  
 - `node_modules/`, `.next/`, build artifacts  
+
+## Firebase
+
+| Artifact | Safe to commit? | Notes |
+|----------|-----------------|--------|
+| `NEXT_PUBLIC_FIREBASE_*` in `.env` | No (`.env` ignored); values are public-by-design in client bundles | Restrict authorized domains in Console |
+| Admin SDK `*-firebase-adminsdk-*.json` | **Never** | Local path via `GOOGLE_APPLICATION_CREDENTIALS` |
+| Firestore / RTDB / Storage rules | Yes | Tighten before open access expires |
+| Google web API key | Client-visible | App Check + domain restrictions recommended |
+
+Local Admin probe (no secrets returned): `GET /api/diagnostics/firebase`.
+
+Code: `web/src/lib/firebase/*`, App Hosting root `web/` (`firebase.json` → `apphosting.rootDir`).
 
 ## Recommended practice
 

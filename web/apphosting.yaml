@@ -1,0 +1,34 @@
+# Firebase App Hosting — Next.js app root is `web/` (see firebase.json rootDir).
+# Docs: https://firebase.google.com/docs/app-hosting/configure
+
+runConfig:
+  minInstances: 0
+  # maxInstances: 100
+  # concurrency: 80
+  # cpu: 1
+  # memoryMiB: 512
+
+# Public Firebase web config can be set here or in the App Hosting console.
+# Secrets (Admin keys, Ollama) must use Secret Manager — never plain values for private keys.
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: chemistryrecipes
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: chemistryrecipes.firebaseapp.com
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: chemistryrecipes.firebasestorage.app
+    availability:
+      - BUILD
+      - RUNTIME
+  # Set remaining NEXT_PUBLIC_FIREBASE_* and OLLAMA_* via Console secrets or:
+  # firebase apphosting:secrets:set OLLAMA_CLOUD_API_KEY
+  # - variable: OLLAMA_CLOUD_API_KEY
+  #   secret: OLLAMA_CLOUD_API_KEY
+  #   availability:
+  #     - RUNTIME

@@ -1,6 +1,6 @@
 /**
  * Full curated dossier presentation (original plant-ready layout).
- * Used only for home-page examples — not for live PubChem search hits.
+ * Used only for curated Tier-A examples (Info hub) — not for live PubChem search hits.
  */
 
 import Link from "next/link";
@@ -30,8 +30,8 @@ export function ExampleDossierView({ d }: { d: MoleculeDossier }) {
           Home
         </Link>
         <span className="mx-1">/</span>
-        <Link href={routes.catalog()} className="hover:text-teal-400">
-          Catalog
+        <Link href={routes.info()} className="hover:text-amber-300/90">
+          Info
         </Link>
         <span className="mx-1">/</span>
         <span className="text-slate-400">{name}</span>
@@ -373,10 +373,10 @@ export function ExampleDossierView({ d }: { d: MoleculeDossier }) {
         ) : null}
         <div className="mt-4">
           <Link
-            href={routes.home()}
-            className="text-sm text-teal-400 hover:underline"
+            href={routes.info()}
+            className="text-sm text-amber-300/90 hover:underline"
           >
-            ← Back to examples
+            ← Back to Info (curated dossiers)
           </Link>
           {cid ? (
             <>
