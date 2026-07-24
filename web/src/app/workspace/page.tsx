@@ -116,9 +116,14 @@ export default function WorkspacePage() {
         Workspace
       </h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
-        Local-first project library for process teams. Pin live dossiers and curated
-        examples, add tech-transfer notes, export project JSON, and compare two pins.
-        Data stays in this browser (localStorage).
+        Local-first project library for process teams. Pin{" "}
+        <strong className="font-medium text-slate-300">live</strong> dossiers from Search,
+        add tech-transfer notes, export project JSON, and compare two pins. (Optional demo
+        pins from{" "}
+        <Link href={routes.info()} className="text-amber-300/90 hover:underline">
+          Info
+        </Link>{" "}
+        stay labeled as for-show.) Data stays in this browser (localStorage).
       </p>
       <div className="mt-4">
         <RegulatoryDisclaimer compact />
@@ -175,15 +180,15 @@ export default function WorkspacePage() {
         <section className="min-w-0">
           {!selected ? (
             <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-8 text-sm text-slate-500">
-              Select or create a project. Browse the{" "}
-              <Link href={routes.catalog()} className="text-teal-400 hover:underline">
-                catalog
-              </Link>{" "}
-              or{" "}
+              Select or create a project. Use{" "}
               <Link href={routes.search()} className="text-teal-400 hover:underline">
-                search
+                live Search
               </Link>{" "}
-              to pin recipes.
+              to pin real dossiers. Optional teaching demos are under{" "}
+              <Link href={routes.info()} className="text-amber-300/90 hover:underline">
+                Info
+              </Link>
+              .
             </div>
           ) : (
             <div className="space-y-4">

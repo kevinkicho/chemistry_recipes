@@ -41,14 +41,7 @@ function resolveInput(raw: string): Resolved | null {
       e.cas === t ||
       String(e.pubchemCid) === t
   );
-  if (hub?.kind === "example" && hub.exampleId) {
-    return {
-      kind: "example",
-      id: hub.exampleId,
-      label: hub.name,
-      href: routes.example(hub.exampleId),
-    };
-  }
+  // Prefer live PubChem CID over curated example so Compare stays on real builds
   if (hub?.pubchemCid) {
     return {
       kind: "cid",
@@ -57,12 +50,21 @@ function resolveInput(raw: string): Resolved | null {
       href: routes.pubchem(hub.pubchemCid),
     };
   }
+  // Explicit example id only (e.g. "aspirin" path) — demo content under Info
+  if (hub?.kind === "example" && hub.exampleId) {
+    return {
+      kind: "example",
+      id: hub.exampleId,
+      label: `${hub.name} (demo)`,
+      href: routes.example(hub.exampleId),
+    };
+  }
   const ex = getExampleById(t.toLowerCase());
   if (ex) {
     return {
       kind: "example",
       id: ex.id,
-      label: ex.identifiers.name,
+      label: `${ex.identifiers.name} (demo)`,
       href: routes.example(ex.id),
     };
   }
@@ -166,9 +168,14 @@ function CompareInner() {
         Compare recipes
       </h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
-        Side-by-side scouting for two entities.{" "}
-        <strong className="font-medium text-slate-300">Warm both</strong> streams
-        live builds into IndexedDB so dual export works without visiting each page.
+        Side-by-side scouting for two entities (prefer PubChem CIDs). Hub names resolve to{" "}
+        <strong className="font-medium text-slate-300">live CIDs</strong> when available —
+        curated mock dossiers stay under{" "}
+        <Link href={routes.info()} className="text-amber-300/90 hover:underline">
+          Info
+        </Link>
+        . <strong className="font-medium text-slate-300">Warm both</strong> streams live
+        builds into IndexedDB for dual export.
       </p>
       <div className="mt-4">
         <RegulatoryDisclaimer compact />

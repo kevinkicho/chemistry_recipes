@@ -17,6 +17,7 @@ import { CriticalParametersBoard } from "@/components/CriticalParametersBoard";
 import { EntityGraph } from "@/components/EntityGraph";
 import { BiologicParametersPanel } from "@/components/BiologicParametersPanel";
 import { getParameterSetForModality } from "@/lib/modality/biologicParameters";
+import { ForShowBanner, ForShowBreadcrumb } from "@/components/ForShowBanner";
 
 export function ExampleDossierView({ d }: { d: MoleculeDossier }) {
   const cid = d.identifiers.pubchemCid;
@@ -25,20 +26,8 @@ export function ExampleDossierView({ d }: { d: MoleculeDossier }) {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-      <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-        <Link href={routes.home()} className="hover:text-teal-400">
-          Home
-        </Link>
-        <span className="mx-1">/</span>
-        <Link href={routes.info()} className="hover:text-amber-300/90">
-          Info
-        </Link>
-        <span className="mx-1">/</span>
-        <span className="text-slate-400">{name}</span>
-        <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200 ring-1 ring-amber-500/30">
-          Example dossier
-        </span>
-      </div>
+      <ForShowBreadcrumb section="Examples" sectionHref={routes.info()} leaf={name} />
+      <ForShowBanner section="Tier-A mock dossier" />
       <div className="mb-6">
         <RegulatoryDisclaimer compact />
       </div>

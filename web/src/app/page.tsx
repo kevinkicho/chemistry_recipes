@@ -124,8 +124,8 @@ export default function HomePage() {
               body: "PubChem + multi-query literature + OpenAlex + patents. AI runs when process evidence is rich enough; confidence is labeled.",
             },
             {
-              title: "Info hub (demos)",
-              body: "Curated dual-view plant dossiers and package library — UI gold standard for teaching, isolated from live search.",
+              title: "Info hub (demos only)",
+              body: "All mock dossiers, packages, and teaching catalogs live under the amber Info tab — never mixed into Search.",
             },
             {
               title: "Provenance & export",

@@ -225,7 +225,7 @@ export function LiveMoleculeDossier({
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-      {/* Breadcrumb — same pattern as example dossiers */}
+      {/* Breadcrumb — live path only (mock catalog lives under Info) */}
       <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-slate-500">
         <Link href={routes.home()} className="hover:text-teal-400">
           Home
@@ -233,10 +233,6 @@ export function LiveMoleculeDossier({
         <span className="mx-1">/</span>
         <Link href={routes.search()} className="hover:text-teal-400">
           Search
-        </Link>
-        <span className="mx-1">/</span>
-        <Link href={routes.catalog()} className="hover:text-teal-400">
-          Catalog
         </Link>
         <span className="mx-1">/</span>
         <span className="text-slate-400">{name}</span>
@@ -418,14 +414,18 @@ export function LiveMoleculeDossier({
 
           {tierAHref ? (
             <p className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-xs text-amber-100/90">
-              <strong className="font-medium">Tier-A teaching baseline merged</strong>
+              <strong className="font-medium">Optional teaching baseline</strong>
               {" — "}
-              curated dual-view routes/BOM/apparatus for{" "}
+              a curated dual-view scaffold for{" "}
               <Link href={tierAHref} className="font-medium text-amber-200 hover:underline">
                 {hubTwin?.name || name}
               </Link>{" "}
-              are included below as labeled educational routes, alongside live multi-API
-              facts. Open the example page for the pure mock layout.
+              (under{" "}
+              <Link href={routes.info()} className="font-medium text-amber-200 hover:underline">
+                Info
+              </Link>
+              ) is merged below as labeled education-only routes, next to live multi-API
+              facts. Pure mock layout stays on the Info example page — not a search hit.
             </p>
           ) : null}
 
@@ -1160,10 +1160,10 @@ export function LiveMoleculeDossier({
           </Link>
           <span className="mx-2 text-slate-700">·</span>
           <Link
-            href={routes.packages()}
-            className="text-sm text-slate-400 hover:text-teal-300"
+            href={routes.info()}
+            className="text-sm text-amber-300/80 hover:text-amber-200"
           >
-            Browse process packages
+            Info · demos &amp; mock packages
           </Link>
         </div>
       </div>

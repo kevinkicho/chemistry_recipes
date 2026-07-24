@@ -9,6 +9,7 @@ import { HUB_INDEX } from "@/lib/data/hubIndex";
 import { CHEMISTRY_API_SOURCES } from "@/lib/sources/registry";
 import { listParameterSets } from "@/lib/modality/biologicParameters";
 import { routes } from "@/lib/routes";
+import { ForShowBanner } from "@/components/ForShowBanner";
 
 export const metadata: Metadata = {
   title: "Info · demos, curated dossiers & mock data",
@@ -52,7 +53,10 @@ export default function InfoPage() {
         live Search returns. Use the teal tools (Search, Workspace, Compare) for real
         multi-API builds. Not GMP or regulatory decision support.
       </p>
-      <div className="mt-4 flex flex-wrap gap-3">
+      <div className="mt-4">
+        <ForShowBanner section="Info hub" />
+      </div>
+      <div className="mt-2 flex flex-wrap gap-3">
         <Link
           href={routes.search()}
           className="rounded-lg bg-teal-600 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-500"

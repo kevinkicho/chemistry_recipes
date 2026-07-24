@@ -10,6 +10,7 @@ import { MODALITY_OPTIONS, ROLE_OPTIONS } from "@/lib/data/hubCatalog";
 import { TierBadge } from "@/components/TierBadge";
 import { routes } from "@/lib/routes";
 import { RegulatoryDisclaimer } from "@/components/RegulatoryDisclaimer";
+import { ForShowBanner, ForShowBreadcrumb } from "@/components/ForShowBanner";
 import { listParameterSets } from "@/lib/modality/biologicParameters";
 
 export const metadata: Metadata = {
@@ -52,18 +53,10 @@ export default async function PackagesPage({ searchParams }: Props) {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-      <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-        <Link href={routes.info()} className="text-amber-300/90 hover:underline">
-          Info
-        </Link>
-        <span>/</span>
-        <span className="text-slate-400">Packages</span>
-        <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200 ring-1 ring-amber-500/30">
-          For show
-        </span>
-      </div>
+      <ForShowBreadcrumb section="Packages" />
+      <ForShowBanner section="Packages" />
       <h1 className="text-3xl font-semibold tracking-tight text-slate-50">
-        Curated process packages
+        Educational process packages
       </h1>
       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-400">
         <strong className="text-slate-300">{allCount} educational packages</strong> spanning
@@ -365,9 +358,13 @@ export default async function PackagesPage({ searchParams }: Props) {
       </section>
 
       <p className="mt-8 text-xs text-slate-600">
-        Prefer faceted chemical catalog?{" "}
-        <Link href={routes.catalog()} className="text-teal-400 hover:underline">
-          Catalog
+        More demos:{" "}
+        <Link href={routes.catalog()} className="text-amber-300/90 hover:underline">
+          teaching catalog
+        </Link>
+        {" · "}
+        <Link href={routes.info()} className="text-amber-300/90 hover:underline">
+          Info hub
         </Link>
         {" · "}
         Live long-tail:{" "}

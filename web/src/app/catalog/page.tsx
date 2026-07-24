@@ -10,6 +10,7 @@ import {
 } from "@/lib/data/hubCatalog";
 import { routes } from "@/lib/routes";
 import { RegulatoryDisclaimer } from "@/components/RegulatoryDisclaimer";
+import { ForShowBanner, ForShowBreadcrumb } from "@/components/ForShowBanner";
 import { listModalities } from "@/lib/modality/templates";
 
 export const metadata: Metadata = {
@@ -60,16 +61,8 @@ export default async function CatalogPage({ searchParams }: Props) {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-      <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-        <Link href={routes.info()} className="text-amber-300/90 hover:underline">
-          Info
-        </Link>
-        <span>/</span>
-        <span className="text-slate-400">Catalog</span>
-        <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200 ring-1 ring-amber-500/30">
-          For show
-        </span>
-      </div>
+      <ForShowBreadcrumb section="Catalog" />
+      <ForShowBanner section="Catalog" />
       <h1 className="text-3xl font-semibold tracking-tight text-slate-50">
         Teaching recipe catalog
       </h1>

@@ -14,6 +14,7 @@ import { MODALITY_TEMPLATES } from "@/lib/modality/templates";
 import { routes } from "@/lib/routes";
 import { pubchemStructureUrl } from "@/lib/api/pubchem";
 import { getExampleById } from "@/lib/data/examples";
+import { ForShowBanner, ForShowBreadcrumb } from "@/components/ForShowBanner";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -38,14 +39,12 @@ export default async function PackageDetailPage({ params }: Props) {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-      <div className="mb-4 text-sm text-slate-500">
-        <Link href={routes.packages()} className="hover:text-teal-400">
-          Packages
-        </Link>
-        <span className="mx-2">/</span>
-        <span className="text-slate-400">{pkg.name}</span>
-      </div>
-
+      <ForShowBreadcrumb
+        section="Packages"
+        sectionHref={routes.packages()}
+        leaf={pkg.name}
+      />
+      <ForShowBanner section="Package detail" />
       <RegulatoryDisclaimer compact className="mb-6" />
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
