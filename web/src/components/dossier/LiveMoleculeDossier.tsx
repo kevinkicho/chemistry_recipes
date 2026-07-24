@@ -44,6 +44,7 @@ import {
   type MfgTextRow,
 } from "@/components/ManufacturingTextTable";
 import { LiteratureTable } from "@/components/LiteratureTable";
+import { PatentsTable } from "@/components/PatentsTable";
 import { applyLocalFactEnrichment } from "@/lib/dossier/enrichClientFacts";
 import { formatCacheAge } from "@/lib/idb/dossierCache";
 import { findHubByCid } from "@/lib/data/hubIndex";
@@ -850,14 +851,14 @@ export function LiveMoleculeDossier({
             title="Patents & process IP"
             summary={
               dossier.patents.length
-                ? `${dossier.patents.length} record(s)`
+                ? `${dossier.patents.length} hits · sort / filter / search`
                 : "No hits"
             }
             badge="API"
             defaultOpen={dossier.patents.length > 0}
             forceOpenWhen={dossier.patents.length > 0}
           >
-            <div className="mb-2">
+            <div className="mb-3">
               <ApiProvenance
                 pubchemCid={cid}
                 traces={
@@ -872,31 +873,7 @@ export function LiveMoleculeDossier({
                 label="API"
               />
             </div>
-            {dossier.patents.length > 0 ? (
-              <ul className="space-y-2">
-                {dossier.patents.slice(0, 8).map((p) => (
-                  <li
-                    key={p.id}
-                    className="rounded-xl border border-slate-800 bg-slate-900/40 px-3 py-2"
-                  >
-                    <a
-                      href={p.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-sm font-medium text-orange-200/90 hover:underline"
-                    >
-                      {p.title}
-                    </a>
-                    <div className="mt-0.5 font-mono text-xs text-slate-600">
-                      {p.patentNumber}
-                      {p.date ? ` · ${p.date}` : ""}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-slate-500">No patent hits.</p>
-            )}
+            <PatentsTable hits={dossier.patents} />
           </CollapsibleSection>
         </div>
 
