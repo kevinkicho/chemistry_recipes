@@ -1,6 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import {
+  EvidenceDataTableChrome,
+  evidenceFilterChipClass,
+} from "@/components/EvidenceDataTable";
 
 export type MfgTextKind =
   | "use"
@@ -173,61 +177,53 @@ export function ManufacturingTextTable({
     );
   }
 
+  const filterChips = (
+    <>
+      {(
+        [
+          "all",
+          "use",
+          "manufacturing",
+          "process-fact",
+          "literature",
+          "description",
+          "other",
+        ] as const
+      ).map((k) => {
+        const n = kindCounts.get(k) || 0;
+        if (k !== "all" && n === 0) return null;
+        const active = kindFilter === k;
+        return (
+          <button
+            key={k}
+            type="button"
+            onClick={() => setKindFilter(k)}
+            className={`rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset transition ${evidenceFilterChipClass(active, "teal")}`}
+          >
+            {k === "all" ? "All" : KIND_LABEL[k]}
+            <span className="ml-1 tabular-nums text-slate-500">{n}</span>
+          </button>
+        );
+      })}
+    </>
+  );
+
   return (
     <div className="space-y-3">
-      {/* Toolbar: search + filters */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-        <label className="relative min-w-[12rem] flex-1">
-          <span className="sr-only">Search excerpts</span>
-          <input
-            type="search"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search text, source…"
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-teal-500/50 focus:outline-none focus:ring-1 focus:ring-teal-500/40"
-          />
-        </label>
-        <div className="flex flex-wrap gap-1.5">
-          {(
-            [
-              "all",
-              "use",
-              "manufacturing",
-              "process-fact",
-              "literature",
-              "description",
-              "other",
-            ] as const
-          ).map((k) => {
-            const n = kindCounts.get(k) || 0;
-            if (k !== "all" && n === 0) return null;
-            const active = kindFilter === k;
-            return (
-              <button
-                key={k}
-                type="button"
-                onClick={() => setKindFilter(k)}
-                className={`rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset transition ${
-                  active
-                    ? "bg-teal-500/20 text-teal-100 ring-teal-400/40"
-                    : "bg-slate-900 text-slate-400 ring-slate-700 hover:text-slate-200"
-                }`}
-              >
-                {k === "all" ? "All" : KIND_LABEL[k]}
-                <span className="ml-1 tabular-nums text-slate-500">{n}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <p className="text-[11px] text-slate-600">
-        Showing{" "}
-        <span className="font-medium text-slate-400">{filtered.length}</span> of{" "}
-        {inputRows.length} · click a row to expand · open source when linked
-      </p>
-
-      <div className="max-h-[28rem] overflow-auto rounded-xl border border-slate-800">
+      <EvidenceDataTableChrome
+        search={q}
+        onSearch={setQ}
+        searchPlaceholder="Search text, source…"
+        filterChips={filterChips}
+        countLabel={
+          <>
+            Showing{" "}
+            <span className="font-medium text-slate-400">{filtered.length}</span> of{" "}
+            {inputRows.length} · click a row to expand · open source when linked
+          </>
+        }
+        accent="teal"
+      >
         <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
           <thead className="sticky top-0 z-10 bg-slate-900 text-[10px] uppercase tracking-wider text-slate-500">
             <tr className="border-b border-slate-800">
@@ -336,7 +332,7 @@ export function ManufacturingTextTable({
             ) : null}
           </tbody>
         </table>
-      </div>
+      </EvidenceDataTableChrome>
 
       {selected ? (
         <div className="rounded-xl border border-teal-500/25 bg-teal-500/5 p-3 text-sm text-slate-300">

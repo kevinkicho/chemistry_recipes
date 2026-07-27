@@ -7,7 +7,8 @@ The root [`.gitignore`](../.gitignore) excludes:
 - All `.env` variants (except `.env.example`)  
 - Private keys and certificates (`*.pem`, `*.key`, `id_rsa`, …)  
 - Credential JSON dumps  
-- **Firebase Admin SDK** service-account JSON (`*firebase-adminsdk*.json`)  
+- **Entire `secrets/**` tree** except [secrets/README.md](../secrets/README.md)  
+- **Firebase Admin SDK** service-account JSON (`*firebase-adminsdk*.json`) anywhere  
 - Local npm auth (`.npmrc`)  
 - `node_modules/`, `.next/`, build artifacts  
 
@@ -16,21 +17,41 @@ The root [`.gitignore`](../.gitignore) excludes:
 | Artifact | Safe to commit? | Notes |
 |----------|-----------------|--------|
 | `NEXT_PUBLIC_FIREBASE_*` in `.env` | No (`.env` ignored); values are public-by-design in client bundles | Restrict authorized domains in Console |
-| Admin SDK `*-firebase-adminsdk-*.json` | **Never** | Local path via `GOOGLE_APPLICATION_CREDENTIALS` |
-| Firestore / RTDB / Storage rules | Yes | Tighten before open access expires |
+| Admin SDK JSON | **Never** | Store under `secrets/firebase/` · set `GOOGLE_APPLICATION_CREDENTIALS` |
+| Firestore / RTDB / Storage rules | Yes | **Deny-by-default** (`allow … if false`) until client models need scopes |
 | Google web API key | Client-visible | App Check + domain restrictions recommended |
 
-Local Admin probe (no secrets returned): `GET /api/diagnostics/firebase`.
+### Admin SDK path (local)
+
+```env
+# repo root .env
+GOOGLE_APPLICATION_CREDENTIALS=./secrets/firebase/chemistryrecipes-firebase-adminsdk-XXXX.json
+FIREBASE_ADMIN_PROJECT_ID=chemistryrecipes
+
+# web/.env.local (cwd often web/)
+GOOGLE_APPLICATION_CREDENTIALS=../secrets/firebase/chemistryrecipes-firebase-adminsdk-XXXX.json
+```
+
+On **App Hosting / Cloud Run**, use Application Default Credentials or `firebase apphosting:secrets:set` — **do not** bake the JSON into the image.
+
+Local Admin probe (no private keys returned): `GET /api/diagnostics/firebase`.
 
 Code: `web/src/lib/firebase/*`, App Hosting root `web/` (`firebase.json` → `apphosting.rootDir`).
+
+### Auth readiness
+
+- **Google sign-in** UI exists (`GoogleSignInButton`); enable the provider in Firebase Console when ready.  
+- Client Firestore/RTDB/Storage are **not** open for product data yet — rules deny all; Admin SDK / Functions bypass rules.  
+- When enabling client paths, scope by `request.auth.uid` per collection.
 
 ## Recommended practice
 
 1. Copy `.env.example` → `.env` and fill secrets locally.  
-2. Use host secret stores for deploy (never bake keys into images).  
-3. Prefer server `.env` for dossier synthesis; browser keys are optional overrides (localStorage).  
-4. Rotate any key pasted into chat logs or screenshots.  
-5. Before `git add -A`, run `git status` and confirm no `.env` or key files appear.  
+2. Put service-account JSON only under `secrets/firebase/` (see [secrets/README.md](../secrets/README.md)).  
+3. Use host secret stores for deploy (never bake keys into images).  
+4. Prefer server `.env` for dossier synthesis; browser keys are optional overrides (localStorage).  
+5. Rotate any key pasted into chat logs or screenshots.  
+6. Before `git add -A`, run `git status` and confirm no `.env`, `secrets/**/*.json`, or `*adminsdk*` files appear.  
 
 ## What the app stores in the browser
 

@@ -56,6 +56,13 @@ Console: https://console.firebase.google.com/project/chemistryrecipes/apphosting
 | Live URL | HTTP 200, Chemistry Recipes HTML |
 | `rootDirectory` | `web` (matches monorepo Next app) |
 
+## Secrets on App Hosting
+
+- **Do not** commit or bake Admin SDK JSON into the image.  
+- Prefer Cloud Run / App Hosting **Application Default Credentials**.  
+- Optional secrets: `firebase apphosting:secrets:set …` and reference them from `apphosting.yaml`.  
+- Local dev only: `secrets/firebase/*-firebase-adminsdk-*.json` + `GOOGLE_APPLICATION_CREDENTIALS` (see [../security.md](../security.md)).
+
 ## Uncommitted local work
 
-App Hosting only builds **pushed** GitHub commits. Local Firebase wiring, About tab, PubChem fixes, etc. do not deploy until committed and pushed to `main` (or the connected branch).
+App Hosting only builds **pushed** GitHub commits. Local changes do not deploy until committed and pushed to `main` (or the connected branch).

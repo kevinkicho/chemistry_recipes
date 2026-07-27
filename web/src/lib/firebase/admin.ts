@@ -30,12 +30,17 @@ import {
 function resolveCredentialsPath(raw: string): string {
   if (path.isAbsolute(raw)) return raw;
   // next.config loads monorepo root .env; process.cwd() is usually web/
-  const fromCwd = path.resolve(process.cwd(), raw);
-  if (existsSync(fromCwd)) return fromCwd;
-  const fromRepoRoot = path.resolve(process.cwd(), "..", raw);
-  if (existsSync(fromRepoRoot)) return fromRepoRoot;
-  // raw may already be ./file relative to repo root when cwd is repo root
-  return fromCwd;
+  const candidates = [
+    path.resolve(process.cwd(), raw),
+    path.resolve(process.cwd(), "..", raw),
+    // Conventional local path after moving keys out of repo root
+    path.resolve(process.cwd(), "..", "secrets", "firebase", path.basename(raw)),
+    path.resolve(process.cwd(), "secrets", "firebase", path.basename(raw)),
+  ];
+  for (const c of candidates) {
+    if (existsSync(c)) return c;
+  }
+  return candidates[0]!;
 }
 
 function loadServiceAccount(filePath: string): ServiceAccount {

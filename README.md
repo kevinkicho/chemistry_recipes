@@ -124,8 +124,11 @@ Step-by-step and troubleshooting: **[docs/getting-started.md](docs/getting-start
 | `OLLAMA_CLOUD_MODEL` / `OLLAMA_MODEL` | No | Primary model default |
 | `OLLAMA_CLOUD_FAST_MODEL` | No | Thin-evidence draft model |
 | `PATENTSVIEW_API_KEY` | No | USPTO PatentsView |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Local Admin only | Path to service-account JSON under `secrets/firebase/` |
+| `NEXT_PUBLIC_FIREBASE_*` | For Auth/client | See `.env.example` |
 
 - Copy **`.env.example`** → **`.env`** at the **repo root** (gitignored).  
+- Put Firebase Admin JSON in **`secrets/firebase/`** (never commit; see [secrets/README.md](secrets/README.md)).  
 - Never commit `.env`, `*.pem`, private keys, or credential JSON.  
 - Browser Settings → **AI**: Cloud or Local provider (localStorage only).  
 - Details: [docs/security.md](docs/security.md) · [docs/engineering/ai-and-ollama.md](docs/engineering/ai-and-ollama.md)
@@ -136,18 +139,28 @@ Step-by-step and troubleshooting: **[docs/getting-started.md](docs/getting-start
 
 | Path | Purpose |
 |------|---------|
-| `/` | Home + Tier-A examples |
+| `/` | Home + live entry |
+| `/info` | **For-show / mock hub** — curated examples & packages (isolated from live nav) |
 | `/packages` | Educational process packages + domain library |
 | `/packages/[id]` | Package: unit ops + parameter framework |
 | `/catalog` | Faceted hub (examples + live pointers) |
-| `/search` | PubChem (name, CAS, SMILES, InChIKey, UNII, CID) |
+| `/search` | PubChem (browser-first; name, CAS, SMILES, InChIKey, UNII, CID) |
 | `/workspace` | Local project library (not multi-user collab) |
 | `/compare` | Side-by-side recipes + dual export |
-| `/diagnostics` | API probes, Ollama readiness, IndexedDB health |
+| `/diagnostics` | API probes, Ollama readiness, IndexedDB + Firebase health |
 | `/sources` | Free public API registry (wired expand/collapse) |
 | `/compounds/pubchem/[cid]` | Live dossier stream |
-| `/examples/[id]` | Curated dual-view dossier |
+| `/examples/[id]` | Curated dual-view dossier (also linked from Info) |
 | Header **AI** | Ollama Cloud or local settings / model picker |
+
+### Deploy (Firebase App Hosting)
+
+| Piece | Value |
+|-------|--------|
+| App root | **`web/`** (`firebase.json` → `apphosting.rootDir`) |
+| Config | `web/apphosting.yaml` |
+| Status CLI | `cd web && npm run status:deploy` |
+| Docs | [docs/engineering/deploy-status.md](docs/engineering/deploy-status.md) |
 
 ---
 

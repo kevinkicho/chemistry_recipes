@@ -6,6 +6,7 @@
 
 import { getPubChemCompound, type PubChemHit } from "@/lib/api/pubchem";
 import { fetchPubChemView } from "@/lib/api/pubchemView";
+import { findHubByCid } from "@/lib/data/hubIndex";
 import { searchEuropePmc, type LiteratureHit } from "@/lib/api/europePmc";
 import { searchOpenAlexProcess } from "@/lib/api/openAlex";
 import {
@@ -72,8 +73,36 @@ export async function gatherCompoundEvidence(
   traces.push(...identityResult.traces);
   traces.push(...viewResult.traces);
 
+  // When cloud egress gets PubChem 503, still proceed with hub/static identity
   if (!identity) {
-    fetchErrors.push("PubChem identity properties unavailable or missing.");
+    const hub = findHubByCid(cid);
+    if (hub) {
+      identity = {
+        cid,
+        name: hub.name,
+        cas: hub.cas,
+      };
+      fetchErrors.push(
+        "PubChem identity HTTP failed — using hub catalog identity for multi-API harvest."
+      );
+    } else {
+      identity = {
+        cid,
+        name: viewResult.title || `CID ${cid}`,
+      };
+      fetchErrors.push(
+        "PubChem identity properties unavailable — continuing with CID-only identity."
+      );
+    }
+  } else if (!identity.name || identity.name.startsWith("CID ")) {
+    const hub = findHubByCid(cid);
+    if (hub) {
+      identity = {
+        ...identity,
+        name: hub.name,
+        cas: identity.cas || hub.cas,
+      };
+    }
   }
 
   const name = identity?.name || viewResult.title || `CID ${cid}`;

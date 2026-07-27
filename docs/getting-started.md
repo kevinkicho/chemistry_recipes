@@ -44,7 +44,8 @@ OLLAMA_CLOUD_API_KEY=your_key_here
 # Firebase (Auth / Firestore / RTDB / Storage) — see .env.example
 # NEXT_PUBLIC_FIREBASE_API_KEY=…
 # NEXT_PUBLIC_FIREBASE_PROJECT_ID=chemistryrecipes
-# GOOGLE_APPLICATION_CREDENTIALS=./chemistryrecipes-firebase-adminsdk-….json
+# GOOGLE_APPLICATION_CREDENTIALS=./secrets/firebase/chemistryrecipes-firebase-adminsdk-….json
+# FIREBASE_ADMIN_PROJECT_ID=chemistryrecipes
 ```
 
 Restart `npm run dev` after env changes.
@@ -54,12 +55,16 @@ Restart `npm run dev` after env changes.
 | Product | Status |
 |---------|--------|
 | Auth (Google) | Header **Google sign-in** · enable provider in Console |
-| Firestore / RTDB / Storage | Client + Admin helpers in `web/src/lib/firebase/` |
-| Admin SDK | Gitignored `*firebase-adminsdk*.json` · probe `GET /api/diagnostics/firebase` |
-| App Hosting | `firebase.json` → `rootDir: "web"` · config `web/apphosting.yaml` |
+| Firestore / RTDB / Storage | Client + Admin helpers · **rules deny all** until product models need access |
+| Admin SDK | Place JSON under `secrets/firebase/` (gitignored) · probe `GET /api/diagnostics/firebase` |
+| App Hosting | `firebase.json` → `rootDir: "web"` · config `web/apphosting.yaml` · use ADC, not baked JSON |
 | Functions | `functions/` · deploy with Firebase CLI |
 
-Copy the service-account JSON to the repo root (already gitignored). Prefer `web/.env.local` for Next-visible `NEXT_PUBLIC_*` vars. Security notes: [security.md](./security.md).
+```text
+secrets/firebase/chemistryrecipes-firebase-adminsdk-….json   # never commit
+```
+
+Prefer `web/.env.local` for Next-visible `NEXT_PUBLIC_*` vars (and a relative Admin path `../secrets/firebase/...` when cwd is `web/`). Details: [secrets/README.md](../secrets/README.md) · [security.md](./security.md).
 
 ### Browser AI settings
 
@@ -73,13 +78,13 @@ Engineering detail: [engineering/ai-and-ollama.md](./engineering/ai-and-ollama.m
 
 ## First workflows
 
-1. **Packages** — `/packages`, filter by modality, open unit ops + parameters.  
-2. **Tier-A example** — home → Aspirin / Sitagliptin dual-view.  
-3. **Live build** — Search a name or CID → SSE progress → evidence score + coverage.  
+1. **Packages** — `/packages`, filter by modality, open unit ops + parameter frameworks.  
+2. **Info (for-show)** — `/info` · curated Tier-A examples, mock packages, and design demos only (isolated from live nav).  
+3. **Live build** — `/search` (browser-first PubChem when possible) → open a CID → SSE dossier → evidence score + coverage.  
 4. **Compare** — `/compare` with two CIDs (open each once for cache) → dual export.  
-5. **Diagnostics** — `/diagnostics` free-API probes + IndexedDB health.  
+5. **Diagnostics** — `/diagnostics` free-API probes + IndexedDB health + Firebase probe.  
 6. **Sources** — `/sources` wired vs planned free APIs.  
-7. **Workspace** — pin with **+ Project** (local only).
+7. **Workspace** — pin with **+ Project** (local only, not multi-user collab).
 
 ## Tests
 
@@ -91,6 +96,12 @@ npx tsc --noEmit
 
 See [engineering/testing.md](./engineering/testing.md).
 
+## Search & PubChem notes
+
+- **Browser-first search** prefers the user's network for PubChem PUG (Cloud Run egress often returns HTTP 503 to NIH).  
+- Server `/api/search/pubchem` remains a fallback; soft failures surface hub/package matches when possible.  
+- Live dossier gather continues multi-API harvest even if PubChem identity fails (hub catalog or CID-only name).  
+
 ## Troubleshooting
 
 | Symptom | Likely cause |
@@ -98,6 +109,8 @@ See [engineering/testing.md](./engineering/testing.md).
 | AI always skipped | No cloud key / local host, or low evidence score |
 | Host not allowed | AI host outside ollama.com / loopback / private LAN |
 | Empty models (local) | `ollama serve` not running or no model pulled |
+| Search “PubChem busy / 503” | NIH or Cloud egress; try again, use CID, or open a hub twin |
+| Admin Firebase probe fails | Missing `secrets/firebase/*.json` or wrong `GOOGLE_APPLICATION_CREDENTIALS` path |
 | Empty models (cloud) | Invalid key / network to ollama.com |
 | Stale dossier | **Refresh live data** (schema bump discards old cache) |
 | Patents thin | Optional `PATENTSVIEW_API_KEY` |

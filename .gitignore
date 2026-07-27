@@ -29,7 +29,10 @@ id_dsa
 id_ecdsa
 *.secret
 .secrets/
-secrets/
+
+# Secrets directory: track README only; ignore all credential files
+/secrets/**
+!/secrets/README.md
 
 # Credential / service-account dumps
 credentials.json
@@ -38,13 +41,12 @@ service-account*.json
 google-services.json
 auth.json
 
-# Firebase Admin SDK private keys (never commit)
+# Firebase Admin SDK private keys (never commit) — including accidental root copies
 *firebase-adminsdk*.json
 *-firebase-adminsdk-*.json
 firebase-adminsdk*.json
 **/serviceAccountKey.json
 .firebase/admin/
-secrets/firebase/
 
 # Local npm auth (may contain tokens)
 .npmrc
