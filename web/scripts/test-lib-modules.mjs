@@ -63,6 +63,7 @@ const critical = [
   "lib/dossier/densifyPass.ts",
   "lib/dossier/gatherResilience.ts",
   "lib/idb/procedureVault.ts",
+  "lib/dossier/aiEvidencePackage.ts",
   "components/ValidationChecklist.tsx",
   "components/SourceCoverageMap.tsx",
   "components/EvidenceScoreExplainer.tsx",
@@ -179,6 +180,17 @@ ok(
 ok("server evidence cache module", exists("lib/dossier/serverEvidenceCache.ts"));
 ok("densify pass module", exists("lib/dossier/densifyPass.ts"));
 ok("procedure vault module", exists("lib/idb/procedureVault.ts"));
+ok("AI evidence package module", exists("lib/dossier/aiEvidencePackage.ts"));
+ok(
+  "AI package prioritizes procedureExcerpts",
+  /procedureExcerpts|agenticBrief/.test(read("lib/dossier/aiEvidencePackage.ts"))
+);
+ok(
+  "AI package larger budget",
+  /MAX_EVIDENCE_CHARS_FULL\s*=\s*32_000|32000/.test(
+    read("lib/dossier/aiEvidencePackage.ts")
+  )
+);
 ok(
   "trace retries transient",
   /retries|isTransient|after \d+ attempts/.test(read("lib/api/trace.ts"))

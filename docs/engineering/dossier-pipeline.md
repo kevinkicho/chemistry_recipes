@@ -27,6 +27,17 @@ Live builds run on the server and stream progress to the browser over **SSE**.
 8. client IndexedDB put       dossier cache + procedure vault + snapshot
 ```
 
+## Agentic AI evidence package
+
+`lib/dossier/aiEvidencePackage.ts` builds a **budgeted** prompt feed (up to ~32k chars full model / ~16k fast):
+
+1. `processFacts.atoms` (numeric grounding)  
+2. `procedureExcerpts` (OA / patent / OrgSyn densify)  
+3. densified literature + patents  
+4. manufacturing / GHS / multi-API annotations  
+
+System prompt prioritizes structuring densified procedure text into dual-view routes; uncited numbers still stripped post-AI.
+
 ## Durability (breaking free-API ceilings)
 
 | Layer | Module | Role |

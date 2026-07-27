@@ -264,8 +264,8 @@ export async function buildLiveDossierWithProgress(
       endpointUrl: `${aiEnv.host}/api/chat`,
       method: "POST",
       detail: scored.preferFastModel
-        ? `Draft/fast model path · score ${scored.score} · ~90s cap`
-        : `Full model path · score ${scored.score} · ~90s cap`,
+        ? `Draft/fast model · score ${scored.score} · densified package · ~75s cap`
+        : `Full model · score ${scored.score} · high-value densified package (procedure+atoms) · ~120s cap`,
       stepsDone,
       stepsTotal: STEPS_TOTAL,
     });

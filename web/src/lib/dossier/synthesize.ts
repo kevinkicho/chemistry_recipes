@@ -29,20 +29,35 @@ import type { ProgressEmitter } from "@/lib/dossier/progress";
 import { previewText } from "@/lib/dossier/progress";
 import { parseRelatedEntities } from "@/lib/dossier/relatedEntities";
 import { parseAiContradictions } from "@/lib/dossier/contradictions";
+import {
+  buildEvidencePayload,
+  buildAiDataFeedSources,
+} from "@/lib/dossier/aiEvidencePackage";
 
-/** Keep cloud synthesis interactive but allow a full dual-view dossier */
-const AI_TIMEOUT_MS = 90_000;
-const MAX_EVIDENCE_CHARS = 14_000;
+/** Full dual-view synthesis — longer when evidence package is dense */
+const AI_TIMEOUT_MS = 120_000;
+const AI_TIMEOUT_FAST_MS = 75_000;
 
 const SYSTEM = `You are a senior process chemist assembling ACCURACY-FIRST dual-view plant dossiers for Chemistry Recipes (educational public-evidence guides for MSAT / process teams — NOT GMP SOPs).
 
-INPUT: free public evidence only, including structured processFacts[] (extracted atoms with source labels). PubChem, literature titles/abstracts, patent titles/abstracts, GHS, multi-API annotations.
+INPUT (free public only — densified multi-API harvest):
+- processFacts.atoms[] with source labels/quotes (PRIMARY grounding for numbers)
+- procedureExcerpts[] OA full-text / patent / OrgSyn / ORD windows (PRIMARY manufacturing narrative)
+- literature[] (may include fullTextExcerpt) and patents[] (may include procedureExcerpt)
+- manufacturingTexts, GHS hazards, externalAnnotations (identity / regulatory / pathway)
 
 OUTPUT: one JSON object (no markdown fences) with the schema below.
 
+AGENTIC PRIORITY:
+A. Structure the densest procedureExcerpts into ordered unit-op steps before inventing outline steps from titles alone.
+B. Attach every numeric condition only if it appears in processFacts.atoms or a procedure excerpt quote.
+C. When framing is process-recipe / productionBriefEligible=true, produce a coherent preferred route; when evidence-lead-pack, keep ONE conservative lead and fill gaps[].
+D. Maximize useful plant language (charge / react / quench / isolate / dry) that is still evidence-backed.
+E. externalAnnotations are context (UNII, ChEBI, labels) — never invent unit ops from identity-only hits.
+
 HARD RULES (accuracy):
 1. NEVER invent numeric temperatures, pressures, times, yields, stoichiometry, or CAS. If not in evidence or processFacts, OMIT the field entirely (no "not specified", "N/A", "typical plant", "define IPC").
-2. Every conditions.* value you emit MUST be copyable from processFacts or a quoted abstract/title snippet in the evidence package.
+2. Every conditions.* value you emit MUST be copyable from processFacts.atoms or a quoted procedureExcerpts / abstract snippet in the evidence package.
 3. NEVER invent IPC methods, CQA targets, or hold points. Prefer empty controls over fiction. You may list criticalParameters ONLY as qualitative risks stated in evidence (e.g. "exotherm on charge" if text says so).
 4. NEVER turn PubChem TOC boilerplate into process steps.
 5. Prefer ONE strong route when processFacts.productionBriefEligible is false or condition atoms are few. Use two routes only when patents/lit clearly disagree on path class.
@@ -53,6 +68,7 @@ HARD RULES (accuracy):
 10. contradictions[] when sources disagree — do NOT pick a winner.
 11. modality when clear: small-molecule|peptide|oligonucleotide|mab|formulation|fermentation|other.
 12. manufacturingSummary / overview: cite what public sources say; do not claim "commercial plant standard" without patent/paper support.
+13. materials[] BOM entries only when named in procedureExcerpts / atoms / annotations — never invent CAS.
 
 SCHEMA:
 {
@@ -96,237 +112,8 @@ SCHEMA:
   "disclaimer": string
 }`;
 
-function buildEvidenceObject(ev: CompoundEvidence) {
-  // Prefer process-looking papers first for the model
-  const litSorted = [...ev.literature].sort((a, b) => {
-    const score = (t: string, ab?: string) =>
-      /synthes|manufactur|process|ferment|preparat|industrial|scale/i.test(
-        `${t} ${ab || ""}`
-      )
-        ? 1
-        : 0;
-    return score(b.title, b.abstract) - score(a.title, a.abstract);
-  });
-
-  const pf = ev.processFacts;
-
-  return {
-    processFacts: pf
-      ? {
-          summary: pf.summary,
-          productionBriefEligible: pf.productionBriefEligible,
-          sourcedConditionCount: pf.sourcedConditionCount,
-          unitOpCount: pf.unitOpCount,
-          openGaps: pf.openGaps.slice(0, 8),
-          managerRisks: pf.managerRisks.slice(0, 8),
-          // Feed atoms the model must ground conditions on
-          atoms: pf.facts
-            .filter((f) => f.kind !== "open-gap")
-            .slice(0, 40)
-            .map((f) => ({
-              kind: f.kind,
-              claim: f.claim,
-              value: f.value,
-              unit: f.unit,
-              quote: f.quote,
-              sourceLabel: f.sourceLabel,
-              sourceId: f.sourceId,
-              provenance: f.provenance,
-            })),
-        }
-      : undefined,
-    identity: ev.identity
-      ? {
-          name: ev.identity.name,
-          formula: ev.identity.formula,
-          mw: ev.identity.molecularWeight,
-          iupac: ev.identity.iupacName,
-          cid: ev.cid,
-          smiles: ev.identity.smiles,
-        }
-      : { cid: ev.cid },
-    // Already filtered at PUG View; still cap length
-    manufacturingTexts: (ev.view?.manufacturingTexts ?? []).slice(0, 15),
-    descriptionTexts: (ev.view?.descriptionTexts ?? []).slice(0, 8),
-    propertyTexts: (ev.view?.propertyTexts ?? []).slice(0, 12),
-    hazards: ev.view?.hazards
-      ? {
-          signalWord: ev.view.hazards.signalWord,
-          hazardStatements: ev.view.hazards.hazardStatements.slice(0, 15),
-          precautionaryStatements: ev.view.hazards.precautionaryStatements.slice(
-            0,
-            8
-          ),
-        }
-      : null,
-    literature: litSorted.slice(0, 8).map((h) => ({
-      title: h.title,
-      year: h.year,
-      journal: h.journal,
-      abstract: h.abstract?.slice(0, 500),
-      url: h.url,
-    })),
-    patents: ev.patents.slice(0, 5).map((p) => ({
-      title: p.title,
-      number: p.patentNumber,
-      abstract: p.abstract?.slice(0, 500),
-      url: p.url,
-    })),
-    // Multi-source free public APIs beyond PubChem
-    externalAnnotations: (ev.annotations ?? []).slice(0, 16).map((a) => ({
-      source: a.source,
-      kind: a.kind,
-      title: a.title,
-      summary: a.summary?.slice(0, 400),
-      fields: a.fields,
-      url: a.url,
-    })),
-    instruction:
-      "Produce dual-view process routes suitable for a plant-ready educational dossier. Use all free-public sources (not only PubChem). Omit empty plant fields rather than writing placeholders.",
-  };
-}
-
-function buildEvidencePayload(ev: CompoundEvidence): string {
-  const raw = JSON.stringify(buildEvidenceObject(ev));
-  return raw.length > MAX_EVIDENCE_CHARS
-    ? raw.slice(0, MAX_EVIDENCE_CHARS) + "…[truncated]"
-    : raw;
-}
-
-/** Inventory of free-public feeds that compose the AI evidence package. */
-export function buildAiDataFeedSources(ev: CompoundEvidence): AiDataFeedSource[] {
-  const sources: AiDataFeedSource[] = [];
-  const cid = ev.cid;
-
-  if (ev.identity) {
-    sources.push({
-      id: `identity:${cid}`,
-      name: "PubChem PUG REST · identity",
-      organization: "NCBI / NIH",
-      role: "Compound identity & properties",
-      url: `https://pubchem.ncbi.nlm.nih.gov/compound/${cid}`,
-      endpointUrl: `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${cid}/property/.../JSON`,
-      content: JSON.stringify(
-        {
-          name: ev.identity.name,
-          formula: ev.identity.formula,
-          mw: ev.identity.molecularWeight,
-          iupac: ev.identity.iupacName,
-          smiles: ev.identity.smiles,
-          inchiKey: ev.identity.inchiKey,
-          cid,
-        },
-        null,
-        0
-      ).slice(0, 800),
-    });
-  }
-
-  for (const a of (ev.annotations ?? []).slice(0, 12)) {
-    sources.push({
-      id: `ann:${a.source}:${a.title.slice(0, 40)}`,
-      name: a.source,
-      organization: a.organization,
-      role: `${a.kind} annotation`,
-      url: a.url,
-      endpointUrl: a.endpointUrl,
-      content: [a.title, a.summary, a.fields ? JSON.stringify(a.fields) : ""]
-        .filter(Boolean)
-        .join("\n")
-        .slice(0, 700),
-    });
-  }
-
-  const mfg = (ev.view?.manufacturingTexts ?? []).slice(0, 12);
-  if (mfg.length) {
-    sources.push({
-      id: `mfg:${cid}`,
-      name: "PubChem PUG View · Use and Manufacturing",
-      organization: "NCBI / NIH",
-      role: "Manufacturing / use annotations",
-      url: `https://pubchem.ncbi.nlm.nih.gov/compound/${cid}#section=Use-and-Manufacturing`,
-      endpointUrl: `https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/${cid}/JSON?heading=Use+and+Manufacturing`,
-      content: mfg.join("\n---\n").slice(0, 1200),
-    });
-  }
-
-  const desc = (ev.view?.descriptionTexts ?? []).slice(0, 6);
-  if (desc.length) {
-    sources.push({
-      id: `desc:${cid}`,
-      name: "PubChem PUG View · description",
-      organization: "NCBI / NIH",
-      role: "Description / pharmacology text",
-      url: `https://pubchem.ncbi.nlm.nih.gov/compound/${cid}`,
-      endpointUrl: `https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/${cid}/JSON`,
-      content: desc.join("\n").slice(0, 800),
-    });
-  }
-
-  const props = (ev.view?.propertyTexts ?? []).slice(0, 10);
-  if (props.length) {
-    sources.push({
-      id: `props:${cid}`,
-      name: "PubChem PUG View · properties",
-      organization: "NCBI / NIH",
-      role: "Chemical / physical properties",
-      url: `https://pubchem.ncbi.nlm.nih.gov/compound/${cid}#section=Chemical-and-Physical-Properties`,
-      endpointUrl: `https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/${cid}/JSON?heading=Chemical+and+Physical+Properties`,
-      content: props.join("\n").slice(0, 800),
-    });
-  }
-
-  if (ev.view?.hazards) {
-    const h = ev.view.hazards;
-    sources.push({
-      id: `haz:${cid}`,
-      name: "PubChem PUG View · GHS / hazards",
-      organization: "NCBI / NIH",
-      role: "Hazard statements for EHS synthesis",
-      url: `https://pubchem.ncbi.nlm.nih.gov/compound/${cid}#section=Safety-and-Hazards`,
-      endpointUrl: `https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/${cid}/JSON?heading=GHS+Classification`,
-      content: JSON.stringify(
-        {
-          signalWord: h.signalWord,
-          hazardStatements: h.hazardStatements.slice(0, 12),
-        },
-        null,
-        0
-      ).slice(0, 1000),
-    });
-  }
-
-  for (const paper of ev.literature.slice(0, 6)) {
-    sources.push({
-      id: `lit:${paper.id}`,
-      name: paper.title.slice(0, 100),
-      organization: "Europe PMC / EMBL-EBI",
-      role: "Literature (title/abstract fed to model)",
-      url: paper.url,
-      endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
-      content: [paper.title, paper.year, paper.journal, paper.abstract?.slice(0, 350)]
-        .filter(Boolean)
-        .join("\n")
-        .slice(0, 700),
-    });
-  }
-
-  for (const p of ev.patents.slice(0, 4)) {
-    sources.push({
-      id: `pat:${p.id}`,
-      name: p.title.slice(0, 100),
-      organization: "USPTO PatentsView / Europe PMC",
-      role: "Patent / process IP (title/abstract fed to model)",
-      url: p.url,
-      content: [p.patentNumber, p.title, p.abstract?.slice(0, 350)]
-        .filter(Boolean)
-        .join("\n")
-        .slice(0, 700),
-    });
-  }
-
-  return sources;
-}
+// Evidence packaging lives in aiEvidencePackage.ts (budgeted multi-source feed).
+export { buildAiDataFeedSources } from "@/lib/dossier/aiEvidencePackage";
 
 function fieldsFromSynthesis(s: AiSynthesis): string[] {
   const fields: string[] = [];
@@ -757,7 +544,8 @@ async function ollamaChatStream(
   model: string,
   messages: Array<{ role: string; content: string }>,
   onProgress?: ProgressEmitter,
-  orgLabel = "Ollama"
+  orgLabel = "Ollama",
+  timeoutMs = AI_TIMEOUT_MS
 ): Promise<{
   ok: boolean;
   content?: string;
@@ -782,7 +570,7 @@ async function ollamaChatStream(
         format: "json",
         messages,
       }),
-      signal: AbortSignal.timeout(AI_TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
     });
 
     if (!res.ok) {
@@ -938,10 +726,20 @@ export async function synthesizeDossierFromEvidence(
   const primary = (opts.model || env.model).trim() || env.model;
   const fast = (opts.fastModel || env.fastModel || primary).trim() || primary;
   const model = opts.preferFastModel ? fast : primary;
-  const evidenceBlock = buildEvidencePayload(evidence);
+  const preferFast = Boolean(opts.preferFastModel);
+  const timeoutMs = preferFast ? AI_TIMEOUT_FAST_MS : AI_TIMEOUT_MS;
+  // Dense multi-source package for agentic value (procedure excerpts + atoms first)
+  const evidenceBlock = buildEvidencePayload(evidence, { preferFast });
   const dataSources = buildAiDataFeedSources(evidence);
+  const procN = evidence.procedureExcerpts?.length || 0;
+  const atomN =
+    evidence.processFacts?.facts?.filter((f) => f.kind !== "open-gap").length ||
+    0;
   const userContent =
-    `Synthesize the dossier JSON from this public evidence only:\n${evidenceBlock}`;
+    `Synthesize the dossier JSON from this densified free-public evidence only.\n` +
+    `Priority: (1) processFacts.atoms (2) procedureExcerpts (3) densified literature/patents (4) mfg/GHS/annotations.\n` +
+    `Package stats: ${evidenceBlock.length} chars · ${procN} procedure excerpt(s) · ${atomN} process atom(s) · ${dataSources.length} feed source(s).\n\n` +
+    evidenceBlock;
   const startedAt = new Date().toISOString();
   const endpointUrl = `${host}/api/chat`;
 
@@ -952,7 +750,7 @@ export async function synthesizeDossierFromEvidence(
     organization: orgLabel,
     endpointUrl,
     method: "POST",
-    detail: `Model ${model} · evidence ${evidenceBlock.length} chars · ${dataSources.length} feed source(s) · stream+JSON · timeout ${AI_TIMEOUT_MS / 1000}s · ${
+    detail: `Model ${model} · evidence ${evidenceBlock.length} chars · ${procN} procedure · ${atomN} atoms · ${dataSources.length} feeds · stream+JSON · timeout ${timeoutMs / 1000}s · ${
       env.provider === "ollama-local"
         ? "local host (no key)"
         : `key from ${env.keySource || "env"}`
@@ -968,7 +766,8 @@ export async function synthesizeDossierFromEvidence(
       { role: "user", content: userContent },
     ],
     onProgress,
-    orgLabel
+    orgLabel,
+    timeoutMs
   );
 
   const finishedAt = new Date().toISOString();

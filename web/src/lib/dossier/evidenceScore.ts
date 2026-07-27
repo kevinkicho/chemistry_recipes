@@ -102,24 +102,49 @@ export function scoreCompoundEvidence(ev: CompoundEvidence): EvidenceScore {
     score += 3;
   }
 
+  // Densified procedure windows (OA full text, patents, OrgSyn) — agentic signal
+  const proc = ev.procedureExcerpts || [];
+  const procChars = proc.reduce((n, p) => n + (p.chars || p.text.length), 0);
+  const oaLit = ev.literature.filter((h) => (h.fullTextExcerpt?.length || 0) >= 80);
+  const patProc = ev.patents.filter(
+    (p) => (p.procedureExcerpt?.length || 0) >= 80
+  );
+  score += Math.min(16, Math.floor(procChars / 400) + proc.length * 2);
+  score += Math.min(6, oaLit.length * 2);
+  score += Math.min(6, patProc.length * 2);
+  if (procChars >= 800 || proc.length >= 3) {
+    reasons.push(
+      `Procedure densify: ${proc.length} excerpt(s) · ~${procChars} chars · ${oaLit.length} OA · ${patProc.length} patent windows`
+    );
+  }
+
   score = Math.min(100, Math.round(score));
 
   const confidence: EvidenceConfidence =
     score >= 55 ? "high" : score >= 30 ? "medium" : "low";
 
-  // AI only when identity + (process lit/patents OR fact density OR rich mfg)
+  // AI only when identity + (process lit/patents OR fact density OR rich mfg OR densify)
   const shouldSynthesize =
     Boolean(ev.identity) &&
     (score >= AI_SCORE_THRESHOLD ||
       processLit.length > 0 ||
       processPatents.length > 0 ||
       condN >= 2 ||
+      procChars >= 600 ||
       (mfg.length >= 2 && unitN >= 1));
 
+  // Prefer full model when densify + facts support high-value agentic structure
+  const denseForFullModel =
+    bundle.productionBriefEligible ||
+    (condN >= 3 && unitN >= 2) ||
+    procChars >= 2000 ||
+    (proc.length >= 5 && processLit.length + processPatents.length >= 2);
+
   const preferFastModel =
-    score < 45 ||
-    !bundle.productionBriefEligible ||
-    processLit.length + processPatents.length < 2;
+    !denseForFullModel &&
+    (score < 45 ||
+      !bundle.productionBriefEligible ||
+      processLit.length + processPatents.length < 2);
 
   if (!shouldSynthesize) {
     reasons.push("Evidence below synthesis threshold — skip AI invention");
@@ -137,6 +162,7 @@ export function scoreCompoundEvidence(ev: CompoundEvidence): EvidenceScore {
       annSources.size ? ` (${[...annSources].slice(0, 6).join(", ")})` : ""
     }`,
     `Process literature: ${processLit.length} · process patents: ${processPatents.length}`,
+    `Procedure densify: ${proc.length} excerpts · ~${procChars} chars`,
     litSources.size
       ? `Literature APIs: ${[...litSources].join(", ")}`
       : "Literature APIs: none",
@@ -145,8 +171,8 @@ export function scoreCompoundEvidence(ev: CompoundEvidence): EvidenceScore {
   const aiRecommendation = !shouldSynthesize
     ? "AI synthesis not recommended — thin process-fact density (avoids invented plant conditions)."
     : preferFastModel
-      ? "AI may structure evidence on a draft model; uncited numbers will be stripped."
-      : "AI recommended to assemble dual-view from sourced process facts (full model).";
+      ? "AI may structure densified evidence on a draft model; uncited numbers will be stripped."
+      : "AI recommended (full model) — densified procedure excerpts + process facts support high-value dual-view structure.";
 
   return {
     score,
