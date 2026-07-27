@@ -3,7 +3,7 @@
  * Content from free APIs + optional Ollama; AI blocks keep provenance chips.
  */
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { AiProvenance } from "@/components/AiProvenance";
 import { ApiProvenance } from "@/components/ApiProvenance";
@@ -43,7 +43,10 @@ import { RecipeReadinessPanel } from "@/components/RecipeReadinessPanel";
 import { ManufacturingTextTable } from "@/components/ManufacturingTextTable";
 import { LiteratureTable } from "@/components/LiteratureTable";
 import { PatentsTable } from "@/components/PatentsTable";
-import { applyLocalFactEnrichment } from "@/lib/dossier/enrichClientFacts";
+import {
+  applyLocalFactEnrichment,
+  hydrateVaultIntoDossier,
+} from "@/lib/dossier/enrichClientFacts";
 import { formatCacheAge } from "@/lib/idb/dossierCache";
 import { findHubByCid } from "@/lib/data/hubIndex";
 import { DossierSectionTitle as SectionTitle } from "@/components/dossier/DossierSectionTitle";
@@ -71,10 +74,26 @@ export function LiveMoleculeDossier({
   chrome?: LiveDossierChrome;
 }) {
   const [enrichTick, setEnrichTick] = useState(0);
+  const [vaultDossier, setVaultDossier] = useState<LiveDossier | null>(null);
+
+  // Durable procedure vault hydrate (async IndexedDB)
+  useEffect(() => {
+    let cancelled = false;
+    void hydrateVaultIntoDossier(dossierIn).then((d) => {
+      if (!cancelled) setVaultDossier(d);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [dossierIn, enrichTick]);
+
   const dossier = useMemo(() => {
     void enrichTick;
+    if (vaultDossier && vaultDossier.cid === dossierIn.cid) {
+      return applyLocalFactEnrichment(vaultDossier);
+    }
     return applyLocalFactEnrichment(dossierIn);
-  }, [dossierIn, enrichTick]);
+  }, [dossierIn, enrichTick, vaultDossier]);
 
   const hit = dossier.identity;
   const cid = dossier.cid;

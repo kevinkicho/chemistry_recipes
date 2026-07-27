@@ -24,7 +24,7 @@ export interface CachedDossierRecord {
 /** Bump when live dossier quality pipeline changes so stale junk scaffolds are discarded */
 /** Bump when process-fact accuracy layer / strip rules change */
 /** Bump when shell fields / panel content shape changes so clients refetch. */
-const SCHEMA_VERSION = 10;
+const SCHEMA_VERSION = 11;
 
 function canUseIdb(): boolean {
   return typeof window !== "undefined" && typeof indexedDB !== "undefined";

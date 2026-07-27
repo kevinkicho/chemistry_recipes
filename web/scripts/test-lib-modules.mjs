@@ -59,6 +59,10 @@ const critical = [
   "lib/api/arxiv.ts",
   "lib/api/orgsyn.ts",
   "lib/api/usptoFullText.ts",
+  "lib/dossier/serverEvidenceCache.ts",
+  "lib/dossier/densifyPass.ts",
+  "lib/dossier/gatherResilience.ts",
+  "lib/idb/procedureVault.ts",
   "components/ValidationChecklist.tsx",
   "components/SourceCoverageMap.tsx",
   "components/EvidenceScoreExplainer.tsx",
@@ -165,6 +169,19 @@ ok(
 ok(
   "gather wires OrgSyn",
   /fetchOrgSynByName/.test(read("lib/dossier/gather.ts"))
+);
+ok(
+  "gather durable cache merge",
+  /mergeEvidencePreferDense|getCachedEvidence|runDensifyPass/.test(
+    read("lib/dossier/gather.ts")
+  )
+);
+ok("server evidence cache module", exists("lib/dossier/serverEvidenceCache.ts"));
+ok("densify pass module", exists("lib/dossier/densifyPass.ts"));
+ok("procedure vault module", exists("lib/idb/procedureVault.ts"));
+ok(
+  "trace retries transient",
+  /retries|isTransient|after \d+ attempts/.test(read("lib/api/trace.ts"))
 );
 
 const schemaCache = read("lib/idb/dossierCache.ts");

@@ -87,19 +87,40 @@ export type TraceFetchInit = RequestInit & {
   next?: { revalidate?: number };
   /** Abort if the request exceeds this many ms (helps when PubChem hangs/503s). */
   timeoutMs?: number;
+  /**
+   * Retries on transient failures (timeout, 429, 502, 503, 504, network).
+   * Default 2 (3 attempts total). Set 0 to disable.
+   */
+  retries?: number;
+  /** Base backoff ms (exponential + jitter). Default 450. */
+  retryBaseMs?: number;
 };
 
-/**
- * Fetch and return body + full trace for provenance tables.
- * Only call for free public endpoints — never invent a trace.
- */
-export async function fetchWithTrace(
+function isTransientHttp(status?: number): boolean {
+  return status === 429 || status === 502 || status === 503 || status === 504;
+}
+
+function isTransientTrace(trace: ApiFetchTrace): boolean {
+  if (trace.ok || trace.notFound) return false;
+  if (isTransientHttp(trace.httpStatus)) return true;
+  const err = (trace.error || "").toLowerCase();
+  return (
+    err.includes("timeout") ||
+    err.includes("fetch failed") ||
+    err.includes("network") ||
+    err.includes("econnreset") ||
+    err.includes("socket")
+  );
+}
+
+async function fetchWithTraceOnce(
   url: string,
   init?: TraceFetchInit
 ): Promise<{ text: string; data: unknown | null; trace: ApiFetchTrace }> {
   const method = (init?.method ?? "GET").toUpperCase();
   const fetchedAt = new Date().toISOString();
-  const { timeoutMs, signal: outerSignal, ...rest } = init ?? {};
+  const { timeoutMs, signal: outerSignal, retries: _r, retryBaseMs: _b, ...rest } =
+    init ?? {};
 
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -180,6 +201,39 @@ export async function fetchWithTrace(
   } finally {
     if (timer) clearTimeout(timer);
   }
+}
+
+/**
+ * Fetch and return body + full trace for provenance tables.
+ * Only call for free public endpoints — never invent a trace.
+ * Retries transient outages so multi-API gather stays durable.
+ */
+export async function fetchWithTrace(
+  url: string,
+  init?: TraceFetchInit
+): Promise<{ text: string; data: unknown | null; trace: ApiFetchTrace }> {
+  const retries = init?.retries ?? 2;
+  const baseMs = init?.retryBaseMs ?? 450;
+  let last = await fetchWithTraceOnce(url, init);
+
+  for (let i = 0; i < retries; i++) {
+    if (!isTransientTrace(last.trace)) break;
+    const delay = baseMs * Math.pow(2, i) + Math.floor(Math.random() * 150);
+    await new Promise((r) => setTimeout(r, delay));
+    last = await fetchWithTraceOnce(url, init);
+  }
+
+  // Annotate final error if we exhausted retries on transient faults
+  if (!last.trace.ok && isTransientTrace(last.trace) && retries > 0) {
+    last = {
+      ...last,
+      trace: {
+        ...last.trace,
+        error: `${last.trace.error || "failed"} (after ${retries + 1} attempts)`,
+      },
+    };
+  }
+  return last;
 }
 
 export async function fetchJsonWithTrace<T>(

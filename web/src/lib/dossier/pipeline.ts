@@ -135,7 +135,7 @@ export async function buildLiveDossierWithProgress(
     label: "Harvest free public evidence",
     organization: "NIH · EMBL-EBI · OpenAlex · USPTO",
     detail:
-      "PubChem + ChEMBL + MyChem + openFDA + RxNorm + KEGG + CompTox + DailyMed + Europe PMC + OpenAlex + Crossref + Semantic Scholar + patents",
+      "Multi-API harvest (soft-fail) + durable evidence cache + densify pass when thin · PubChem · EPMC/OA · PubMed · arXiv · OrgSyn · patents · UniChem/ChEBI/GSRS · ORD · Rhea/KEGG",
     stepsDone,
     stepsTotal: STEPS_TOTAL,
   });

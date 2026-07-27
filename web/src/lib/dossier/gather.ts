@@ -53,6 +53,21 @@ import type {
 } from "@/lib/dossier/types";
 import { scoreCompoundEvidence } from "@/lib/dossier/evidenceScore";
 import { extractProcessFacts } from "@/lib/dossier/processFacts";
+import {
+  getCachedEvidence,
+  putCachedEvidence,
+  mergeEvidencePreferDense,
+  pruneEvidenceCacheDisk,
+} from "@/lib/dossier/serverEvidenceCache";
+import {
+  needsDensifyPass,
+  runDensifyPass,
+} from "@/lib/dossier/densifyPass";
+
+/** Never let one free API reject abort the whole wave. */
+function soft<T>(p: Promise<T>, fallback: T): Promise<T> {
+  return p.catch(() => fallback);
+}
 
 function mergeLiterature(lists: LiteratureHit[][]): LiteratureHit[] {
   const map = new Map<string, LiteratureHit>();
@@ -70,7 +85,60 @@ function mergeLiterature(lists: LiteratureHit[][]): LiteratureHit[] {
   return [...map.values()];
 }
 
+/**
+ * Durable gather: live multi-API harvest + merge with server evidence cache +
+ * second densify pass when procedure text is thin. Survives flaky NIH/egress.
+ */
 export async function gatherCompoundEvidence(
+  cid: number,
+  opts?: { force?: boolean }
+): Promise<CompoundEvidence> {
+  const prior = opts?.force ? null : getCachedEvidence(cid);
+  let live: CompoundEvidence;
+  try {
+    live = await gatherCompoundEvidenceLive(cid);
+  } catch (e) {
+    if (prior) {
+      const msg = e instanceof Error ? e.message : "live gather failed";
+      return {
+        ...prior,
+        processFacts: prior.processFacts ?? extractProcessFacts(prior),
+        fetchErrors: [
+          ...(prior.fetchErrors || []),
+          `Live gather failed (${msg}) — serving durable server evidence cache.`,
+        ],
+      };
+    }
+    throw e;
+  }
+
+  let merged = mergeEvidencePreferDense(live, prior);
+  if (needsDensifyPass(merged)) {
+    try {
+      merged = await runDensifyPass(merged);
+    } catch (e) {
+      merged = {
+        ...merged,
+        fetchErrors: [
+          ...(merged.fetchErrors || []),
+          `densify-pass failed: ${e instanceof Error ? e.message : "error"}`,
+        ],
+      };
+    }
+  }
+
+  merged = {
+    ...merged,
+    processFacts: extractProcessFacts(merged),
+  };
+  putCachedEvidence(merged);
+  pruneEvidenceCacheDisk();
+  void scoreCompoundEvidence(merged);
+  return merged;
+}
+
+/** Live network harvest only (no cache merge). */
+export async function gatherCompoundEvidenceLive(
   cid: number
 ): Promise<CompoundEvidence> {
   const traces: ApiFetchTrace[] = [];
@@ -82,8 +150,33 @@ export async function gatherCompoundEvidence(
 
   // Wave 1: PubChem identity + view (still the CID anchor for this app route)
   const [identityResult, viewResult] = await Promise.all([
-    getPubChemCompound(cid),
-    fetchPubChemView(cid),
+    soft(getPubChemCompound(cid), {
+      hit: null,
+      traces: [
+        {
+          endpointUrl: `pubchem-identity:${cid}`,
+          method: "GET",
+          fetchedAt: new Date().toISOString(),
+          ok: false,
+          responseBody: "",
+          error: "identity fetch soft-failed",
+        },
+      ],
+    } as Awaited<ReturnType<typeof getPubChemCompound>>),
+    soft(fetchPubChemView(cid), {
+      cid,
+      blocks: [],
+      hazards: {
+        pictograms: [],
+        hazardStatements: [],
+        precautionaryStatements: [],
+        rawBlocks: [],
+      },
+      manufacturingTexts: [],
+      descriptionTexts: [],
+      propertyTexts: [],
+      traces: [],
+    }),
   ]);
 
   identity = identityResult.hit;
@@ -151,28 +244,117 @@ export async function gatherCompoundEvidence(
     gsrsResult,
     orgsynResult,
   ] = await Promise.all([
-    searchEuropePmc(name, { limit: 14 }),
-    searchOpenAlexProcess(name, { limit: 6 }),
-    searchCrossrefProcess(name, { limit: 6 }),
-    searchSemanticScholarProcess(name, { limit: 6 }),
-    searchPubMedProcess(name, { limit: 10 }),
-    searchArxivProcess(name, { limit: 6 }),
-    searchPatentsView(name, { limit: 10 }),
-    searchPatentLiterature(name, { limit: 8 }),
-    fetchChemblByName(name),
-    fetchMyChemByName(name),
-    fetchOpenFdaByName(name),
-    fetchRxNormByName(name),
-    fetchKeggByName(name),
-    fetchCompToxByName(name),
-    fetchDailyMedByName(name),
-    fetchPubchemPatentIds(cid, { limit: 40 }),
-    searchEuropePmcPatents(name, { limit: 8 }),
-    fetchRheaByName(name, { limit: 6 }),
-    fetchUnichemByPubchemCid(cid),
-    fetchChebiByName(name),
-    fetchGsrsByName(name),
-    fetchOrgSynByName(name),
+    soft(searchEuropePmc(name, { limit: 14 }), {
+      query: "",
+      hits: [],
+      traces: [],
+    }),
+    soft(searchOpenAlexProcess(name, { limit: 6 }), {
+      query: "",
+      hits: [],
+      traces: [],
+    }),
+    soft(searchCrossrefProcess(name, { limit: 6 }), {
+      query: "",
+      hits: [],
+      traces: [],
+    }),
+    soft(searchSemanticScholarProcess(name, { limit: 6 }), {
+      query: "",
+      hits: [],
+      traces: [],
+    }),
+    soft(searchPubMedProcess(name, { limit: 10 }), {
+      hits: [],
+      traces: [],
+      query: "",
+    }),
+    soft(searchArxivProcess(name, { limit: 6 }), {
+      hits: [],
+      traces: [],
+      query: "",
+      procedureTexts: [],
+    }),
+    soft(searchPatentsView(name, { limit: 10 }), {
+      query: "",
+      hits: [],
+      traces: [],
+      keyConfigured: false,
+    }),
+    soft(searchPatentLiterature(name, { limit: 8 }), {
+      query: "",
+      hits: [],
+      traces: [],
+      keyConfigured: false,
+    }),
+    soft(fetchChemblByName(name), {
+      molecule: null,
+      mechanisms: [],
+      traces: [],
+      query: "",
+    }),
+    soft(fetchMyChemByName(name), {
+      hit: null,
+      traces: [],
+      query: "",
+    }),
+    soft(fetchOpenFdaByName(name), {
+      hits: [],
+      traces: [],
+      query: "",
+    } as Awaited<ReturnType<typeof fetchOpenFdaByName>>),
+    soft(fetchRxNormByName(name), {
+      hit: null,
+      traces: [],
+      query: "",
+    }),
+    soft(fetchKeggByName(name), { hit: null, traces: [], query: "" }),
+    soft(fetchCompToxByName(name), {
+      hit: null,
+      traces: [],
+      query: "",
+    } as Awaited<ReturnType<typeof fetchCompToxByName>>),
+    soft(fetchDailyMedByName(name), {
+      hits: [],
+      traces: [],
+      query: "",
+    } as Awaited<ReturnType<typeof fetchDailyMedByName>>),
+    soft(fetchPubchemPatentIds(cid, { limit: 40 }), { ids: [], traces: [] }),
+    soft(searchEuropePmcPatents(name, { limit: 8 }), {
+      hits: [],
+      traces: [],
+      query: "",
+    }),
+    soft(fetchRheaByName(name, { limit: 6 }), {
+      hits: [],
+      annotations: [],
+      traces: [],
+      query: "",
+    }),
+    soft(fetchUnichemByPubchemCid(cid), {
+      xrefs: [],
+      annotations: [],
+      traces: [],
+    }),
+    soft(fetchChebiByName(name), {
+      hit: null,
+      annotations: [],
+      traces: [],
+      query: "",
+    }),
+    soft(fetchGsrsByName(name), {
+      hit: null,
+      annotations: [],
+      traces: [],
+      query: "",
+    }),
+    soft(fetchOrgSynByName(name), {
+      hits: [],
+      annotations: [],
+      procedureExcerpts: [],
+      traces: [],
+      query: "",
+    }),
   ]);
 
   traces.push(...litResult.traces);
@@ -207,9 +389,10 @@ export async function gatherCompoundEvidence(
     pubmedResult.hits,
     arxivResult.hits,
   ]).slice(0, 36);
-  const oaEnrich = await enrichLiteratureWithOaFullText(literature, {
-    maxArticles: 5,
-  });
+  const oaEnrich = await soft(
+    enrichLiteratureWithOaFullText(literature, { maxArticles: 5 }),
+    { hits: literature, traces: [] }
+  );
   literature = oaEnrich.hits;
   traces.push(...oaEnrich.traces);
 
@@ -229,10 +412,16 @@ export async function gatherCompoundEvidence(
     }
   }
   let patents = [...patentMap.values()].slice(0, 28);
-  const patentEnrich = await enrichPatentHitsWithEpmc(patents, { max: 5 });
+  const patentEnrich = await soft(
+    enrichPatentHitsWithEpmc(patents, { max: 5 }),
+    { hits: patents, traces: [] }
+  );
   patents = patentEnrich.hits;
   traces.push(...patentEnrich.traces);
-  const usptoEnrich = await densifyUsPatentsWithPubchem(patents, { max: 4 });
+  const usptoEnrich = await soft(
+    densifyUsPatentsWithPubchem(patents, { max: 4 }),
+    { hits: patents, traces: [] }
+  );
   patents = usptoEnrich.hits;
   traces.push(...usptoEnrich.traces);
 
@@ -585,11 +774,21 @@ export async function gatherCompoundEvidence(
   }
 
   // ORD — free reaction dataset browse + best-effort snippets
-  const ord = await fetchOrdContext({
-    name,
-    smiles: identity?.smiles,
-    cid,
-  });
+  const ord = await soft(
+    fetchOrdContext({
+      name,
+      smiles: identity?.smiles,
+      cid,
+    }),
+    {
+      annotations: [],
+      traces: [],
+      browseUrl: `https://open-reaction-database.org/client/browse?component=${encodeURIComponent(name)}`,
+      note: "ORD soft-fallback",
+      reactions: [],
+      procedureTexts: [],
+    }
+  );
   annotations.push(...ord.annotations);
   traces.push(...ord.traces);
   sourceRefs.push({

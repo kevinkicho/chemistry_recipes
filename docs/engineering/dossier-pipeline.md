@@ -9,8 +9,11 @@ Live builds run on the server and stream progress to the browser over **SSE**.
 ## Stages
 
 ```text
-1. gatherCompoundEvidence     multi-API harvest + traces
-   └─ extractProcessFacts     condition/unit-op atoms from titles/abstracts
+1. gatherCompoundEvidence     durable multi-API harvest
+   ├─ live wave (soft-fail per source; HTTP retries on 429/5xx/timeout)
+   ├─ merge with server evidence cache (memory + .cache/evidence)
+   ├─ densify pass if procedure text thin (OA full text, patents, OrgSyn)
+   └─ extractProcessFacts     condition/unit-op atoms from densified text
 2. scoreCompoundEvidence      0–100 score (weights process-fact density)
 3. buildScaffoldDossier       fact-enriched leads (no fake IPC)
 4. partial SSE                UI usable early
@@ -19,10 +22,20 @@ Live builds run on the server and stream progress to the browser over **SSE**.
    └─ stripUncitedRouteDetails  drop numeric conditions not aligned to facts
    └─ preferRoutesForEvidence   one route when thin; two when rich
 6. enrich                     modality, related entities, contradictions,
-                              unit-op fill, parameters, build audit
+                              unit-op fill, parameters, recipe readiness, audit
 7. complete SSE               full LiveDossier (+ processFacts)
-8. client IndexedDB put       cache + optional snapshot
+8. client IndexedDB put       dossier cache + procedure vault + snapshot
 ```
+
+## Durability (breaking free-API ceilings)
+
+| Layer | Module | Role |
+|-------|--------|------|
+| HTTP retries | `lib/api/trace.ts` | 429/502/503/504/timeout retries with backoff |
+| Soft gather | `gather.ts` `soft()` | One source failure never aborts the wave |
+| Server cache | `serverEvidenceCache.ts` | Merge denser prior evidence across rebuilds |
+| Densify pass | `densifyPass.ts` | Second pass when procedure chars/excerpts thin |
+| Client vault | `idb/procedureVault.ts` | Browser-durable procedure windows across sessions |
 
 ## Accuracy law
 
