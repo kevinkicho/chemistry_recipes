@@ -9,15 +9,16 @@ export default function HomePage() {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-teal-500/5 via-transparent to-slate-950" />
         <div className="relative w-full p-3 sm:p-4 sm:py-16">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400/90">
-            Live process recipe hub · free public evidence
+            Worker-first process scouting · free public evidence
           </p>
           <h1 className="mt-3 max-w-3xl text-4xl font-semibold tracking-tight text-slate-50 sm:text-5xl">
-            Production intelligence for chemical, medicinal &amp; biotech teams
+            Monday-morning packs for plant, MSAT &amp; process teams
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
-            Evidence-first dual-view recipes (mechanism + manufacturing) from free public APIs and
-            optional Ollama synthesis. Tech-transfer exports, route compare, and a local workspace —{" "}
-            <strong className="font-medium text-slate-300">not GMP or regulatory decision support</strong>.
+            EHS callouts, sourced steps, honest site gaps, and print-ready job aids from free public
+            APIs — plus paste public patent text when density is thin. Role views for operator,
+            chemist, MSAT, and manager.{" "}
+            <strong className="font-medium text-slate-300">Not GMP or regulatory decision support</strong>.
           </p>
           <div className="mt-8 max-w-xl">
             <SearchForm />
@@ -27,35 +28,61 @@ export default function HomePage() {
               href={routes.search()}
               className="rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-500"
             >
-              Live PubChem search
+              Live evidence scout
+            </Link>
+            <Link
+              href={routes.info()}
+              className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-100 hover:bg-amber-500/15"
+            >
+              Training packs (Info)
             </Link>
             <Link
               href={routes.workspace()}
               className="rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 hover:border-slate-600 hover:bg-slate-900"
             >
-              Workspace
+              Local workspace
             </Link>
             <Link
               href={routes.compare()}
               className="rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 hover:border-slate-600 hover:bg-slate-900"
             >
-              Compare routes
-            </Link>
-            <Link
-              href={routes.info()}
-              className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm font-medium text-amber-100 hover:bg-amber-500/15"
-            >
-              Info · demos &amp; mock data
+              Compare (tech transfer)
             </Link>
           </div>
         </div>
       </section>
 
       <section className="w-full border-b border-slate-800 p-3 sm:p-4 sm:py-10">
+        <div className="mb-4 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border border-teal-500/20 bg-teal-500/5 p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-300">
+              1 · Live scout
+            </p>
+            <p className="mt-1 text-sm text-slate-300">
+              Search a name/CID → Monday pack (EHS, steps, site must-fill) in under two minutes.
+            </p>
+          </div>
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-200">
+              2 · Densify
+            </p>
+            <p className="mt-1 text-sm text-slate-300">
+              Paste public patent Example text when free APIs are thin — densifies job aid &amp; facts.
+            </p>
+          </div>
+          <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-200">
+              3 · Site fill
+            </p>
+            <p className="mt-1 text-sm text-slate-300">
+              Leave blanks for your QMS (temp, IPC, equipment tag). Export open-gaps for meetings.
+            </p>
+          </div>
+        </div>
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-5 sm:p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.15em] text-teal-400/90">
-              Real · live APIs
+              Real · live APIs · worker roles
             </p>
             <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-50">
               What you use day-to-day

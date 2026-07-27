@@ -53,6 +53,8 @@ body {
   body {
     background: white !important;
     color: #0f172a !important;
+    font-size: 12pt !important;
+    line-height: 1.35 !important;
   }
   header,
   footer,
@@ -60,11 +62,13 @@ body {
   [aria-label="Search history"],
   [aria-label="Table of contents"],
   [data-toc-balance],
-  .app-tooltip {
+  .app-tooltip,
+  [data-worker-role] {
     display: none !important;
   }
   main {
     max-width: 100% !important;
+    padding: 0 !important;
   }
   a {
     color: #0f766e !important;
@@ -78,6 +82,32 @@ body {
   article {
     break-inside: avoid;
   }
+
+  /* Operator floor pack — large type, high contrast */
+  .monday-pack,
+  #operator-job-aid,
+  .operator-job-aid {
+    break-inside: avoid;
+  }
+  .monday-pack h2,
+  .operator-job-aid h2,
+  #operator-job-aid h2 {
+    font-size: 16pt !important;
+    color: #0f172a !important;
+  }
+  .monday-pack li,
+  .operator-job-aid li,
+  #operator-job-aid li,
+  .operator-job-aid p,
+  #operator-job-aid p {
+    font-size: 11pt !important;
+    color: #1e293b !important;
+  }
+  .operator-step-num {
+    font-size: 14pt !important;
+    font-weight: 700 !important;
+  }
+
   h1,
   h2,
   h3 {

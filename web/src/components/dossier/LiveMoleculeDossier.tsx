@@ -57,6 +57,16 @@ import {
 } from "@/components/dossier/propertyExtract";
 import { buildMfgTableRows } from "@/components/dossier/buildMfgTableRows";
 import { LiveDossierAside } from "@/components/dossier/LiveDossierAside";
+import { WorkerRoleBar } from "@/components/WorkerRoleBar";
+import { MondayMorningPack } from "@/components/MondayMorningPack";
+import { SiteFillPanel } from "@/components/SiteFillPanel";
+import { SiteGapsExport } from "@/components/SiteGapsExport";
+import { WorkPackPanel } from "@/components/WorkPackPanel";
+import {
+  readWorkerRole,
+  sectionVisible,
+  type WorkerRole,
+} from "@/lib/worker/roleMode";
 
 export type LiveDossierChrome = {
   fromCache?: boolean;
@@ -75,6 +85,18 @@ export function LiveMoleculeDossier({
 }) {
   const [enrichTick, setEnrichTick] = useState(0);
   const [vaultDossier, setVaultDossier] = useState<LiveDossier | null>(null);
+  const [workerRole, setWorkerRole] = useState<WorkerRole>("chemist");
+
+  useEffect(() => {
+    setWorkerRole(readWorkerRole());
+  }, []);
+
+  const show = (id: Parameters<typeof sectionVisible>[1]) =>
+    sectionVisible(workerRole, id);
+
+  const scrollTo = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   // Durable procedure vault hydrate (async IndexedDB)
   useEffect(() => {
@@ -474,61 +496,82 @@ export function LiveMoleculeDossier({
         </div>
       </div>
 
-      {/* Main + sidebar — same information architecture as curated ExampleDossierView */}
+      {/* Main + sidebar — role-aware layout for actual workers */}
       <div className="mt-10 grid gap-6 lg:grid-cols-3">
         <div className="space-y-8 lg:col-span-2">
-          <ProcessFramingBanner dossier={dossier} />
-          <RecipeReadinessPanel dossier={dossier} />
+          <WorkerRoleBar onChange={setWorkerRole} />
 
-          {/* Primary plant content (match mock/example order) */}
-          <CriticalParametersBoard routes={dossier.processRoutes} />
-
-          <section id="process-parameters" className="scroll-mt-24">
-            <SectionTitle>Educational parameters</SectionTitle>
-            <p className="mb-3 text-xs text-slate-500">
-              {paramSet.parameters.length} {modalityMeta?.label || modality} teaching
-              envelopes — literature-typical only, not site CQAs.
-            </p>
-            <BiologicParametersPanel
-              parameterSet={paramSet}
-              title={`${modalityMeta?.label || modality} parameters`}
+          {show("monday-pack") ? (
+            <MondayMorningPack
+              dossier={dossier}
+              onPrint={() => window.print()}
+              onScrollEnrich={() => scrollTo("local-text-enrich")}
+              onScrollAid={() => scrollTo("operator-job-aid")}
+              onScrollGaps={() => scrollTo("site-fill")}
             />
-          </section>
+          ) : null}
 
-          <section id="routes" className="scroll-mt-24">
-            <SectionTitle
-              ai={routesFromAi && aiChip ? aiChip : undefined}
-              field="Process recipe"
-            >
-              Process recipe
-            </SectionTitle>
-            <p className="mb-4 text-xs leading-relaxed text-slate-500">
-              Ingredients, method steps, dual plant / chemistry view — same structure as
-              curated examples. Numbers only when public facts support them
-              {routesFromAi
-                ? " (Ollama structures evidence; uncited values stripped)."
-                : " (evidence / fact-derived leads)."}{" "}
-              Not a GMP batch record.
-              {dossier.processFraming === "evidence-lead-pack" ? (
-                <span className="text-amber-200/80">
-                  {" "}
-                  Framed as evidence-lead pack until process-fact density rises.
-                </span>
-              ) : null}
-            </p>
-            <RoutePanel
-              routes={dossier.processRoutes}
-              aiProvenance={routesFromAi ? aiChip : null}
-              processFacts={dossier.processFacts?.facts}
-            />
-          </section>
+          {show("framing") ? <ProcessFramingBanner dossier={dossier} /> : null}
+          {show("readiness") ? <RecipeReadinessPanel dossier={dossier} /> : null}
 
-          <section id="route-compare" className="scroll-mt-24">
-            <SectionTitle>Route compare</SectionTitle>
-            <RouteCompare routes={dossier.processRoutes} />
-          </section>
+          {show("critical-params") ? (
+            <CriticalParametersBoard routes={dossier.processRoutes} />
+          ) : null}
 
-          {dossier.relatedEntities && dossier.relatedEntities.length > 0 ? (
+          {show("parameters") ? (
+            <section id="process-parameters" className="scroll-mt-24">
+              <SectionTitle>Educational parameters</SectionTitle>
+              <p className="mb-3 text-xs text-slate-500">
+                {paramSet.parameters.length} {modalityMeta?.label || modality} teaching
+                envelopes — literature-typical only, not site CQAs.
+              </p>
+              <BiologicParametersPanel
+                parameterSet={paramSet}
+                title={`${modalityMeta?.label || modality} parameters`}
+              />
+            </section>
+          ) : null}
+
+          {show("routes") ? (
+            <section id="routes" className="scroll-mt-24">
+              <SectionTitle
+                ai={routesFromAi && aiChip ? aiChip : undefined}
+                field="Process recipe"
+              >
+                Process recipe
+              </SectionTitle>
+              <p className="mb-4 text-xs leading-relaxed text-slate-500">
+                Ingredients, method steps, dual plant / chemistry view — same structure as
+                curated examples. Numbers only when public facts support them
+                {routesFromAi
+                  ? " (Ollama structures evidence; uncited values stripped)."
+                  : " (evidence / fact-derived leads)."}{" "}
+                Not a GMP batch record.
+                {dossier.processFraming === "evidence-lead-pack" ? (
+                  <span className="text-amber-200/80">
+                    {" "}
+                    Framed as evidence-lead pack until process-fact density rises.
+                  </span>
+                ) : null}
+              </p>
+              <RoutePanel
+                routes={dossier.processRoutes}
+                aiProvenance={routesFromAi ? aiChip : null}
+                processFacts={dossier.processFacts?.facts}
+              />
+            </section>
+          ) : null}
+
+          {show("route-compare") ? (
+            <section id="route-compare" className="scroll-mt-24">
+              <SectionTitle>Route compare</SectionTitle>
+              <RouteCompare routes={dossier.processRoutes} />
+            </section>
+          ) : null}
+
+          {show("related") &&
+          dossier.relatedEntities &&
+          dossier.relatedEntities.length > 0 ? (
             <section id="related-entities" className="scroll-mt-24">
               <SectionTitle
                 ai={
@@ -584,7 +627,9 @@ export function LiveMoleculeDossier({
             </section>
           ) : null}
 
-          {dossier.unitOpFills && dossier.unitOpFills.length > 0 ? (
+          {show("unit-ops") &&
+          dossier.unitOpFills &&
+          dossier.unitOpFills.length > 0 ? (
             <section id="unit-op-fill" className="scroll-mt-24">
               <SectionTitle>Modality unit ops</SectionTitle>
               <UnitOpFillPanel
@@ -594,29 +639,63 @@ export function LiveMoleculeDossier({
             </section>
           ) : null}
 
-          {/* Secondary: trust / industry tooling — open when process evidence exists */}
+          {/* Worker tools: briefs, enrich, site-fill — open by default when relevant */}
           <CollapsibleSection
             id="industry-briefs"
-            title="Industry briefs & accuracy tools"
-            summary="Manager brief, operator job aid, process facts, local enrich"
-            badge="extra"
+            title="Worker tools · briefs, enrich, site fill"
+            summary="Job aid, manager brief, local paste, site blanks, checklist"
+            badge="work"
             defaultOpen
-            forceOpenWhen={(dossier.processFacts?.facts?.length ?? 0) > 0}
+            forceOpenWhen={
+              workerRole === "operator" ||
+              workerRole === "msat" ||
+              workerRole === "manager" ||
+              (dossier.processFacts?.facts?.length ?? 0) > 0
+            }
           >
             <div className="space-y-6">
-              <EvidenceScoreExplainer dossier={dossier} />
-              <SourceCoverageMap dossier={dossier} />
-              <ManagerBriefPanel dossier={dossier} />
-              <OperatorJobAid dossier={dossier} />
-              <ProcessFactsPanel dossier={dossier} />
-              <LocalTextEnrich
-                cid={cid}
-                onSaved={() => setEnrichTick((n) => n + 1)}
-              />
-              <ValidationChecklist dossier={dossier} />
+              {show("score-coverage") ? (
+                <>
+                  <EvidenceScoreExplainer dossier={dossier} />
+                  <SourceCoverageMap dossier={dossier} />
+                </>
+              ) : null}
+              {show("manager-brief") ? (
+                <ManagerBriefPanel dossier={dossier} />
+              ) : null}
+              {show("operator-aid") ? (
+                <OperatorJobAid dossier={dossier} />
+              ) : null}
+              {show("process-facts") ? (
+                <ProcessFactsPanel dossier={dossier} />
+              ) : null}
+              {show("local-enrich") ? (
+                <LocalTextEnrich
+                  cid={cid}
+                  moleculeLabel={name}
+                  emphasize={
+                    dossier.productMode === "scout-dossier" ||
+                    dossier.processFraming === "evidence-lead-pack"
+                  }
+                  onSaved={() => setEnrichTick((n) => n + 1)}
+                />
+              ) : null}
+              {show("site-fill") ? (
+                <>
+                  <SiteFillPanel cid={cid} name={name} />
+                  <SiteGapsExport dossier={dossier} />
+                </>
+              ) : null}
+              {show("checklist") ? (
+                <ValidationChecklist dossier={dossier} />
+              ) : null}
+              {show("work-pack") ? (
+                <WorkPackPanel cid={cid} label={name} />
+              ) : null}
             </div>
           </CollapsibleSection>
 
+          {show("multi-source") ? (
           <CollapsibleSection
             id="multi-source"
             title="Multi-source free APIs"
@@ -673,8 +752,11 @@ export function LiveMoleculeDossier({
               </p>
             )}
           </CollapsibleSection>
+          ) : null}
 
-          {dossier.contradictions && dossier.contradictions.length > 0 ? (
+          {show("lit-patents-mfg") &&
+          dossier.contradictions &&
+          dossier.contradictions.length > 0 ? (
             <CollapsibleSection
               id="contradictions"
               title="Evidence tensions"
@@ -687,6 +769,8 @@ export function LiveMoleculeDossier({
             </CollapsibleSection>
           ) : null}
 
+          {show("lit-patents-mfg") ? (
+          <>
           <CollapsibleSection
             id="pubchem-manufacturing"
             title="Public manufacturing & use text"
@@ -772,31 +856,52 @@ export function LiveMoleculeDossier({
             </div>
             <PatentsTable hits={dossier.patents} />
           </CollapsibleSection>
+          </>
+          ) : null}
         </div>
 
-        <LiveDossierAside
-          dossier={dossier}
-          name={name}
-          cid={cid}
-          manufacturingSummary={manufacturingSummary}
-          mfgPanelLead={mfgPanelTexts[0]}
-          mfgFromAi={mfgFromAi}
-          environmentBaseline={environmentBaseline}
-          envFromAi={envFromAi}
-          apparatusCatalog={apparatusCatalog}
-          apparatusFromAi={apparatusFromAi}
-          ehs={ehs}
-          ehsFromAi={ehsFromAi}
-          plantProps={plantProps}
-          aiChip={aiChip}
-          aiAttempt={aiAttempt}
-          pugViewTraces={pugViewTraces}
-          pubchemTraces={pubchemTraces}
-          allTraces={traces}
-        />
+        {show("aside-full") ? (
+          <LiveDossierAside
+            dossier={dossier}
+            name={name}
+            cid={cid}
+            manufacturingSummary={manufacturingSummary}
+            mfgPanelLead={mfgPanelTexts[0]}
+            mfgFromAi={mfgFromAi}
+            environmentBaseline={environmentBaseline}
+            envFromAi={envFromAi}
+            apparatusCatalog={apparatusCatalog}
+            apparatusFromAi={apparatusFromAi}
+            ehs={ehs}
+            ehsFromAi={ehsFromAi}
+            plantProps={plantProps}
+            aiChip={aiChip}
+            aiAttempt={aiAttempt}
+            pugViewTraces={pugViewTraces}
+            pubchemTraces={pubchemTraces}
+            allTraces={traces}
+          />
+        ) : (
+          <aside className="space-y-4 print:hidden">
+            <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+              <h3 className="text-sm font-semibold text-teal-300">EHS highlights</h3>
+              {ehs.length ? (
+                <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-slate-300">
+                  {ehs.slice(0, 8).map((x) => (
+                    <li key={x}>{x}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-xs text-slate-600">
+                  No EHS highlights — check PubChem Safety before plant use.
+                </p>
+              )}
+            </div>
+          </aside>
+        )}
       </div>
 
-      <div className="mt-10">
+      <div className="mt-10 print:hidden">
         <DossierDiagnostics dossier={dossier} />
       </div>
 

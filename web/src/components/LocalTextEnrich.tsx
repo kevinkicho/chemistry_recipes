@@ -6,16 +6,23 @@ import {
   getUserSupplementsForCid,
   saveUserSupplement,
 } from "@/lib/idb/userSupplements";
+import { addWorkPackPaste } from "@/lib/workspace/workPacks";
 
 /**
  * Paste public patent/paper text (local only) to densify process facts.
+ * Primary worker path when recipe readiness is still scout.
  */
 export function LocalTextEnrich({
   cid,
+  moleculeLabel,
   onSaved,
+  emphasize,
 }: {
   cid: number;
+  moleculeLabel?: string;
   onSaved?: () => void;
+  /** Highlight as primary CTA (scout mode) */
+  emphasize?: boolean;
 }) {
   const [text, setText] = useState("");
   const [label, setLabel] = useState("Public patent example text");
@@ -36,6 +43,11 @@ export function LocalTextEnrich({
       setMsg("Paste at least ~40 characters of public text.");
       return;
     }
+    addWorkPackPaste(cid, {
+      label: label || "Public paste",
+      text: row.text,
+      moleculeLabel,
+    });
     setMsg(
       `Saved ${row.text.length.toLocaleString()} chars locally. Facts re-extract on this device only.`
     );
@@ -93,16 +105,25 @@ export function LocalTextEnrich({
   return (
     <div
       id="local-text-enrich"
-      className="print:hidden scroll-mt-24 rounded-xl border border-slate-800 bg-slate-900/50 p-4"
+      className={`print:hidden scroll-mt-24 rounded-xl p-4 ${
+        emphasize
+          ? "border-2 border-amber-500/40 bg-amber-500/10 ring-1 ring-amber-400/20"
+          : "border border-slate-800 bg-slate-900/50"
+      }`}
     >
       <h2 className="text-sm font-semibold text-slate-100">
-        Local full-text enrich
+        {emphasize ? "Primary path: densify with public procedure text" : "Local full-text enrich"}
       </h2>
       <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
         Paste or load <strong className="font-medium text-slate-400">public</strong>{" "}
         patent examples / paper experimental text (.txt / .md). Stored only in this
         browser — densifies process facts for recipe-draft mode without inventing
         plant limits. Not for confidential site SOPs.
+        {emphasize ? (
+          <span className="mt-1 block font-medium text-amber-100/90">
+            Free APIs alone are often thin — this is how workers get a useful job aid.
+          </span>
+        ) : null}
       </p>
       <label className="mt-3 block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
         Label

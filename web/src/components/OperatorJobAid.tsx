@@ -200,7 +200,7 @@ export function OperatorJobAid({ dossier }: { dossier: LiveDossier }) {
   return (
     <div
       id="operator-job-aid"
-      className="scroll-mt-24 rounded-xl border border-slate-800 bg-white/95 p-5 text-slate-900 shadow-sm print:border-slate-400 print:shadow-none"
+      className="operator-job-aid scroll-mt-24 rounded-xl border border-slate-800 bg-white/95 p-5 text-slate-900 shadow-sm print:border-slate-400 print:shadow-none"
     >
       <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-200 pb-3">
         <div>
