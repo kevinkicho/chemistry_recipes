@@ -43,6 +43,13 @@ import { fetchGsrsByName } from "@/lib/api/gsrs";
 import { searchPubMedProcess } from "@/lib/api/pubmed";
 import { searchArxivProcess } from "@/lib/api/arxiv";
 import { fetchOrgSynByName } from "@/lib/api/orgsyn";
+import { fetchReactomeByName } from "@/lib/api/reactome";
+import { fetchWikiPathwaysByName } from "@/lib/api/wikipathways";
+import { fetchPathwayCommonsByName } from "@/lib/api/pathwayCommons";
+import { fetchMassBankByName } from "@/lib/api/massbank";
+import { fetchDrugCentralByName } from "@/lib/api/drugCentral";
+import { fetchClinicalTrialsByName } from "@/lib/api/clinicalTrials";
+import { fetchPubchemClassifications } from "@/lib/api/pubchemClassifications";
 import { politeDelay } from "@/lib/api/rateLimit";
 import { slimTraces, type ApiFetchTrace } from "@/lib/api/trace";
 import type { SourceRef } from "@/lib/types/process";
@@ -243,6 +250,13 @@ export async function gatherCompoundEvidenceLive(
     chebiResult,
     gsrsResult,
     orgsynResult,
+    reactomeResult,
+    wikiPathResult,
+    pcResult,
+    massBankResult,
+    drugCentralResult,
+    ctResult,
+    pubchemClassResult,
   ] = await Promise.all([
     soft(searchEuropePmc(name, { limit: 14 }), {
       query: "",
@@ -355,6 +369,48 @@ export async function gatherCompoundEvidenceLive(
       traces: [],
       query: "",
     }),
+    soft(fetchReactomeByName(name, { limit: 5 }), {
+      hits: [],
+      annotations: [],
+      traces: [],
+      query: "",
+    }),
+    soft(fetchWikiPathwaysByName(name, { limit: 5 }), {
+      hits: [],
+      annotations: [],
+      traces: [],
+      query: "",
+    }),
+    soft(fetchPathwayCommonsByName(name, { limit: 5 }), {
+      hits: [],
+      annotations: [],
+      traces: [],
+      query: "",
+    }),
+    soft(fetchMassBankByName(name, { limit: 5 }), {
+      hits: [],
+      annotations: [],
+      traces: [],
+      query: "",
+    }),
+    soft(fetchDrugCentralByName(name), {
+      hit: null,
+      annotations: [],
+      traces: [],
+      query: "",
+    }),
+    soft(fetchClinicalTrialsByName(name, { limit: 5 }), {
+      hits: [],
+      annotations: [],
+      traces: [],
+      query: "",
+    }),
+    soft(fetchPubchemClassifications(cid), {
+      annotations: [],
+      texts: [],
+      procedureExcerpts: [],
+      traces: [],
+    }),
   ]);
 
   traces.push(...litResult.traces);
@@ -379,6 +435,13 @@ export async function gatherCompoundEvidenceLive(
   traces.push(...chebiResult.traces);
   traces.push(...gsrsResult.traces);
   traces.push(...orgsynResult.traces);
+  traces.push(...reactomeResult.traces);
+  traces.push(...wikiPathResult.traces);
+  traces.push(...pcResult.traces);
+  traces.push(...massBankResult.traces);
+  traces.push(...drugCentralResult.traces);
+  traces.push(...ctResult.traces);
+  traces.push(...pubchemClassResult.traces);
 
   // OA full-text densification (Europe PMC) for top process hits
   let literature = mergeLiterature([
@@ -531,6 +594,8 @@ export async function gatherCompoundEvidenceLive(
         f.route,
         f.indications?.slice(0, 200),
         f.description?.slice(0, 200),
+        f.dosageAdmin?.slice(0, 160),
+        f.howSupplied?.slice(0, 120),
       ]
         .filter(Boolean)
         .join(" · "),
@@ -543,6 +608,7 @@ export async function gatherCompoundEvidenceLive(
         ...(f.genericName ? { generic: f.genericName } : {}),
         ...(f.brandName ? { brand: f.brandName } : {}),
         ...(f.manufacturer ? { sponsor: f.manufacturer } : {}),
+        ...(f.dosageAdmin ? { dosageAdmin: f.dosageAdmin.slice(0, 200) } : {}),
       },
     });
   }
@@ -677,6 +743,79 @@ export async function gatherCompoundEvidenceLive(
       label: "arXiv process preprints",
       url: "https://arxiv.org/",
       note: arxivResult.query.slice(0, 140),
+    });
+  }
+
+  // Pathway / analytical / clinical / drug-card enrichment
+  annotations.push(...reactomeResult.annotations);
+  annotations.push(...wikiPathResult.annotations);
+  annotations.push(...pcResult.annotations);
+  annotations.push(...massBankResult.annotations);
+  annotations.push(...drugCentralResult.annotations);
+  annotations.push(...ctResult.annotations);
+  annotations.push(...pubchemClassResult.annotations);
+
+  if (reactomeResult.hits.length) {
+    sourceRefs.push({
+      type: "api",
+      id: `reactome:${cid}`,
+      label: "Reactome pathways",
+      url: `https://reactome.org/content/query?q=${encodeURIComponent(name)}`,
+      note: `${reactomeResult.hits.length} pathway/reaction hit(s)`,
+    });
+  }
+  if (wikiPathResult.hits.length) {
+    sourceRefs.push({
+      type: "api",
+      id: `wikipathways:${cid}`,
+      label: "WikiPathways",
+      url: "https://www.wikipathways.org/",
+      note: `${wikiPathResult.hits.length} pathway(s)`,
+    });
+  }
+  if (pcResult.hits.length) {
+    sourceRefs.push({
+      type: "api",
+      id: `pathway-commons:${cid}`,
+      label: "Pathway Commons",
+      url: "https://www.pathwaycommons.org/",
+      note: `${pcResult.hits.length} pathway hit(s)`,
+    });
+  }
+  if (massBankResult.hits.length) {
+    sourceRefs.push({
+      type: "api",
+      id: `massbank:${cid}`,
+      label: "MassBank spectra",
+      url: "https://massbank.eu/",
+      note: `${massBankResult.hits.length} MS record(s) · IPC helper`,
+    });
+  }
+  if (drugCentralResult.hit || drugCentralResult.annotations.length) {
+    sourceRefs.push({
+      type: "api",
+      id: `drugcentral:${cid}`,
+      label: "DrugCentral",
+      url: drugCentralResult.hit?.url || "https://drugcentral.org/",
+      note: "Drug card identity",
+    });
+  }
+  if (ctResult.hits.length) {
+    sourceRefs.push({
+      type: "api",
+      id: `clinicaltrials:${cid}`,
+      label: "ClinicalTrials.gov",
+      url: "https://clinicaltrials.gov/",
+      note: `${ctResult.hits.length} study(ies) · clinical scale context`,
+    });
+  }
+  if (pubchemClassResult.annotations.length) {
+    sourceRefs.push({
+      type: "api",
+      id: `pubchem-class:${cid}`,
+      label: "PubChem classification / MeSH",
+      url: `https://pubchem.ncbi.nlm.nih.gov/compound/${cid}#section=Classification`,
+      note: "Classification + MeSH + PubMed xrefs",
     });
   }
 
@@ -877,6 +1016,40 @@ export async function gatherCompoundEvidenceLive(
       });
     }
   }
+  // openFDA dosage / how-supplied / description as formulation densify
+  for (const f of openFdaResult.hits) {
+    for (const [kind, text] of [
+      ["dosage", f.dosageAdmin],
+      ["how-supplied", f.howSupplied],
+      ["description", f.description],
+      ["clinical-pharm", f.clinicalPharmacology],
+    ] as const) {
+      if (text && text.length >= 60) {
+        procedureExcerpts.push({
+          id: `openfda:${f.id}:${kind}`,
+          source: "other",
+          label: `openFDA ${kind} · ${f.brandName || f.genericName || name}`,
+          text,
+          url: f.url,
+          chars: text.length,
+        });
+      }
+    }
+  }
+  // PubChem classification text (use-class context)
+  for (const t of pubchemClassResult.texts) {
+    if (t.length >= 40) {
+      procedureExcerpts.push({
+        id: `pubchem-class:${cid}:${procedureExcerpts.length}`,
+        source: "other",
+        label: "PubChem classification headings",
+        text: t,
+        url: `https://pubchem.ncbi.nlm.nih.gov/compound/${cid}#section=Classification`,
+        chars: t.length,
+      });
+    }
+  }
+  procedureExcerpts.push(...pubchemClassResult.procedureExcerpts);
   for (const t of viewResult.manufacturingTexts.slice(0, 12)) {
     if (t.length >= 40) {
       procedureExcerpts.push({

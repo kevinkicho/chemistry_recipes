@@ -171,6 +171,25 @@ ok(
   "gather wires OrgSyn",
   /fetchOrgSynByName/.test(read("lib/dossier/gather.ts"))
 );
+ok("reactome client", exists("lib/api/reactome.ts"));
+ok("wikipathways client", exists("lib/api/wikipathways.ts"));
+ok("pathwayCommons client", exists("lib/api/pathwayCommons.ts"));
+ok("massbank client", exists("lib/api/massbank.ts"));
+ok("drugCentral client", exists("lib/api/drugCentral.ts"));
+ok("clinicalTrials client", exists("lib/api/clinicalTrials.ts"));
+ok("pubchem classifications client", exists("lib/api/pubchemClassifications.ts"));
+ok(
+  "gather wires Reactome",
+  /fetchReactomeByName/.test(read("lib/dossier/gather.ts"))
+);
+ok(
+  "gather wires MassBank",
+  /fetchMassBankByName/.test(read("lib/dossier/gather.ts"))
+);
+ok(
+  "gather wires ClinicalTrials",
+  /fetchClinicalTrialsByName/.test(read("lib/dossier/gather.ts"))
+);
 ok(
   "gather durable cache merge",
   /mergeEvidencePreferDense|getCachedEvidence|runDensifyPass/.test(
@@ -228,6 +247,9 @@ ok("SourcesRegistry wires rhea", /"rhea"/.test(sourcesReg));
 ok("SourcesRegistry wires unichem", /"unichem"/.test(sourcesReg));
 ok("SourcesRegistry wires pubmed", /"pubmed"/.test(sourcesReg));
 ok("SourcesRegistry wires orgsyn", /"orgsyn"/.test(sourcesReg));
+ok("SourcesRegistry wires reactome", /"reactome"/.test(sourcesReg));
+ok("SourcesRegistry wires massbank", /"massbank"/.test(sourcesReg));
+ok("SourcesRegistry wires clinicaltrials", /"clinicaltrials"/.test(sourcesReg));
 ok("SourcesRegistry recipe focus", /RECIPE_FOCUS_IDS|recipeFocus/.test(sourcesReg));
 
 // Probes include new APIs

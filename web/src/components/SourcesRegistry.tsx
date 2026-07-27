@@ -31,6 +31,13 @@ const WIRED_SOURCE_IDS = new Set([
   "arxiv",
   "orgsyn",
   "uspto-pubchem-patent",
+  "reactome",
+  "wikipathways",
+  "pathway-commons",
+  "massbank",
+  "drugcentral",
+  "clinicaltrials",
+  "pubchem-classification",
 ]);
 
 /** Sources that materially feed manufacturing recipe density (not just identity). */
@@ -45,6 +52,9 @@ const RECIPE_FOCUS_IDS = new Set([
   "ord",
   "kegg",
   "rhea",
+  "reactome",
+  "wikipathways",
+  "pathway-commons",
   "openalex",
   "crossref",
   "semantic-scholar",
@@ -52,9 +62,14 @@ const RECIPE_FOCUS_IDS = new Set([
   "arxiv",
   "orgsyn",
   "comptox",
+  "massbank",
   "unichem",
   "chebi",
   "gsrs",
+  "drugcentral",
+  "openfda",
+  "dailymed",
+  "pubchem-classification",
 ]);
 
 const PRIORITY_BLURB: Record<SourcePriority, string> = {

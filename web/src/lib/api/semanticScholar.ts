@@ -22,7 +22,7 @@ export async function searchSemanticScholarProcess(
   const q = `${name} synthesis OR manufacture OR preparation OR process chemistry`;
   const url =
     `${SS}/paper/search?query=${encodeURIComponent(q)}` +
-    `&limit=${limit}&fields=title,year,abstract,url,externalIds,venue,authors`;
+    `&limit=${limit}&fields=title,year,abstract,url,externalIds,venue,authors,isOpenAccess,openAccessPdf`;
 
   const { data, trace } = await fetchJsonWithTrace<{
     data?: Array<{
@@ -32,8 +32,10 @@ export async function searchSemanticScholarProcess(
       abstract?: string;
       url?: string;
       venue?: string;
-      externalIds?: { DOI?: string };
+      externalIds?: { DOI?: string; PubMed?: string; PubMedCentral?: string };
       authors?: Array<{ name?: string }>;
+      isOpenAccess?: boolean;
+      openAccessPdf?: { url?: string };
     }>;
     message?: string;
   }>(url, { next: { revalidate: 3600 } });
@@ -44,6 +46,10 @@ export async function searchSemanticScholarProcess(
 
   const hits: LiteratureHit[] = (data?.data ?? []).map((p, i) => {
     const doi = p.externalIds?.DOI;
+    const pmcid = p.externalIds?.PubMedCentral
+      ? `PMC${String(p.externalIds.PubMedCentral).replace(/^PMC/i, "")}`
+      : undefined;
+    const pmid = p.externalIds?.PubMed;
     return {
       id: `s2:${p.paperId || i}`,
       source: "SemanticScholar",
@@ -56,10 +62,14 @@ export async function searchSemanticScholarProcess(
       journal: p.venue,
       year: p.year != null ? String(p.year) : undefined,
       doi,
-      abstract: p.abstract?.slice(0, 1200),
+      pmid,
+      pmcid,
+      abstract: p.abstract?.slice(0, 1500),
+      isOpenAccess: Boolean(p.isOpenAccess || p.openAccessPdf?.url || pmcid),
       url: doi
         ? `https://doi.org/${doi}`
-        : p.url ||
+        : p.openAccessPdf?.url ||
+          p.url ||
           (p.paperId
             ? `https://www.semanticscholar.org/paper/${p.paperId}`
             : "https://www.semanticscholar.org/"),

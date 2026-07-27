@@ -32,6 +32,13 @@ Live dossiers are **not PubChem-only**. Identity, regulatory, pathway, literatur
 | `arxiv.ts` | arXiv Atom API | Process/catalysis preprints |
 | `orgsyn.ts` | Organic Syntheses | Classic prep HTML procedure extract |
 | `usptoFullText.ts` | PubChem patent JSON | US patent abstract densify |
+| `reactome.ts` | Reactome | Pathway / reaction maps |
+| `wikipathways.ts` | WikiPathways | Community pathways |
+| `pathwayCommons.ts` | Pathway Commons | Integrated pathway search |
+| `massbank.ts` | MassBank | MS spectra (IPC helper) |
+| `drugCentral.ts` | DrugCentral | Drug card identity |
+| `clinicalTrials.ts` | ClinicalTrials.gov | Clinical study metadata |
+| `pubchemClassifications.ts` | PubChem | Classification / MeSH / PubMed xrefs |
 
 Orchestration: `lib/dossier/gather.ts` (parallel fetches + `ApiFetchTrace[]` + `procedureExcerpts[]`).
 

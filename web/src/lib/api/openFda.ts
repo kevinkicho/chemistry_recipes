@@ -15,6 +15,12 @@ export interface OpenFdaLabelHit {
   manufacturer?: string;
   indications?: string;
   description?: string;
+  /** Dosage / administration language (formulation context) */
+  dosageAdmin?: string;
+  /** How supplied / packaging (plant-adjacent product form) */
+  howSupplied?: string;
+  /** Clinical pharmacology excerpt when present */
+  clinicalPharmacology?: string;
   dosageForm?: string;
   route?: string;
   url: string;
@@ -60,6 +66,9 @@ export async function fetchOpenFdaByName(
       };
       indications_and_usage?: string[];
       description?: string[];
+      dosage_and_administration?: string[];
+      how_supplied?: string[];
+      clinical_pharmacology?: string[];
     }>;
     error?: { message?: string };
   }>(labelUrl, { next: { revalidate: 3600 } });
@@ -75,6 +84,9 @@ export async function fetchOpenFdaByName(
       manufacturer: firstStr(r.openfda?.manufacturer_name),
       indications: firstStr(r.indications_and_usage),
       description: firstStr(r.description),
+      dosageAdmin: firstStr(r.dosage_and_administration),
+      howSupplied: firstStr(r.how_supplied),
+      clinicalPharmacology: firstStr(r.clinical_pharmacology),
       dosageForm: firstStr(r.openfda?.dosage_form),
       route: firstStr(r.openfda?.route),
       url: r.set_id

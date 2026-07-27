@@ -340,6 +340,36 @@ export const CHEMISTRY_API_SOURCES: ApiSource[] = [
     docsUrl: "https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest",
     category: "patents",
   },
+  {
+    id: "drugcentral",
+    name: "DrugCentral",
+    organization: "UNM / DrugCentral",
+    priority: "P2",
+    role: "Drug card identity / structure links (wired live gather)",
+    endpointUrl: "https://drugcentral.org/api/v1",
+    docsUrl: "https://drugcentral.org/",
+    category: "identity",
+  },
+  {
+    id: "clinicaltrials",
+    name: "ClinicalTrials.gov",
+    organization: "NLM (NIH)",
+    priority: "P2",
+    role: "Study metadata for clinical scale / formulation context (not synthesis)",
+    endpointUrl: "https://clinicaltrials.gov/api/v2",
+    docsUrl: "https://clinicaltrials.gov/data-api/about-api",
+    category: "regulatory",
+  },
+  {
+    id: "pubchem-classification",
+    name: "PubChem Classification / MeSH",
+    organization: "NCBI (NIH)",
+    priority: "P1",
+    role: "PharmAction / MeSH / PubMed xrefs for denser identity",
+    endpointUrl: "https://pubchem.ncbi.nlm.nih.gov/rest/pug",
+    docsUrl: "https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest",
+    category: "identity",
+  },
 ];
 
 export function sourcesByPriority(priority?: SourcePriority): ApiSource[] {
