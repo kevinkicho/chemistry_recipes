@@ -25,6 +25,13 @@ Live dossiers are **not PubChem-only**. Identity, regulatory, pathway, literatur
 | `patentsView.ts` | PatentsView | Process patents (optional key) |
 | `ord.ts` | ORD | Browse deep-link + best-effort reaction snippets |
 | `pubchemPatents.ts` | PubChem | Patent ID xrefs |
+| `unichem.ts` | UniChem | Cross-DB ID graph from PubChem CID |
+| `chebi.ts` | ChEBI / OLS4 | Ontology identity |
+| `gsrs.ts` | FDA GSRS | UNII / substance registration |
+| `pubmed.ts` | NCBI E-utilities | Process PubMed + abstracts + PMC OA densify |
+| `arxiv.ts` | arXiv Atom API | Process/catalysis preprints |
+| `orgsyn.ts` | Organic Syntheses | Classic prep HTML procedure extract |
+| `usptoFullText.ts` | PubChem patent JSON | US patent abstract densify |
 
 Orchestration: `lib/dossier/gather.ts` (parallel fetches + `ApiFetchTrace[]` + `procedureExcerpts[]`).
 

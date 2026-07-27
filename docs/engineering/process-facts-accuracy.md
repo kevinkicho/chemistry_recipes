@@ -75,8 +75,13 @@ UI: `RecipeReadinessPanel` — missing checklist with how-to-densify hints.
 |--------|--------|
 | Europe PMC OA fullTextXML | `europePmc.enrichLiteratureWithOaFullText` |
 | Europe PMC patents SRC:PAT | `patentFullText.ts` |
+| PubMed E-utilities + abstracts | `pubmed.ts` |
+| arXiv process preprints | `arxiv.ts` |
+| Organic Syntheses HTML preps | `orgsyn.ts` |
+| UniChem / ChEBI / GSRS IDs | `unichem.ts`, `chebi.ts`, `gsrs.ts` |
+| PubChem patent abstracts (US) | `usptoFullText.ts` |
 | PubChem manufacturing sections | `pubchemView` expanded headings |
-| ORD browse snippets | `ord.fetchOrdContext` |
+| ORD browse + bulk pointer | `ord.fetchOrdContext` |
 | KEGG reaction equations | `kegg.ts` |
 | Rhea equations | `rhea.ts` |
 | User paste / .txt upload | `LocalTextEnrich` → `user-supplement` facts |

@@ -225,6 +225,9 @@ export interface ProcedureExcerpt {
     | "pubchem-mfg"
     | "kegg-reaction"
     | "rhea"
+    | "orgsyn"
+    | "arxiv"
+    | "pubmed"
     | "user-supplement"
     | "other";
   label: string;

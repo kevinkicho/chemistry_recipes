@@ -308,6 +308,38 @@ export const CHEMISTRY_API_SOURCES: ApiSource[] = [
     docsUrl: "https://massbank.eu/MassBank-api",
     category: "supporting",
   },
+  {
+    id: "arxiv",
+    name: "arXiv",
+    organization: "Cornell University",
+    priority: "P1",
+    role: "Process / catalysis preprints (free full abstracts; OA)",
+    endpointUrl: "https://export.arxiv.org/api/query",
+    docsUrl: "https://info.arxiv.org/help/api/user-manual.html",
+    category: "literature",
+    notes: "Wired into live gather for process-chem densification.",
+  },
+  {
+    id: "orgsyn",
+    name: "Organic Syntheses",
+    organization: "Organic Syntheses, Inc.",
+    priority: "P1",
+    role: "Classic validated prep procedures (HTML extract; educational)",
+    endpointUrl: "https://www.orgsyn.org/",
+    docsUrl: "https://www.orgsyn.org/",
+    category: "literature",
+    notes: "No bulk API — live gather searches + extracts procedure HTML when matched.",
+  },
+  {
+    id: "uspto-pubchem-patent",
+    name: "PubChem patent records",
+    organization: "NCBI (NIH)",
+    priority: "P1",
+    role: "Patent abstract densification for US IDs (complements PatentsView)",
+    endpointUrl: "https://pubchem.ncbi.nlm.nih.gov/rest/pug/patent",
+    docsUrl: "https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest",
+    category: "patents",
+  },
 ];
 
 export function sourcesByPriority(priority?: SourcePriority): ApiSource[] {

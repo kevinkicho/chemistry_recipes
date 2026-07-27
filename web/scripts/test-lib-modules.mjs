@@ -52,6 +52,13 @@ const critical = [
   "lib/dossier/recipeReadiness.ts",
   "lib/api/rhea.ts",
   "lib/api/patentFullText.ts",
+  "lib/api/unichem.ts",
+  "lib/api/chebi.ts",
+  "lib/api/gsrs.ts",
+  "lib/api/pubmed.ts",
+  "lib/api/arxiv.ts",
+  "lib/api/orgsyn.ts",
+  "lib/api/usptoFullText.ts",
   "components/ValidationChecklist.tsx",
   "components/SourceCoverageMap.tsx",
   "components/EvidenceScoreExplainer.tsx",
@@ -132,6 +139,13 @@ ok(
 );
 ok("patent full text densify module", exists("lib/api/patentFullText.ts"));
 ok("rhea client module", exists("lib/api/rhea.ts"));
+ok("unichem client module", exists("lib/api/unichem.ts"));
+ok("chebi client module", exists("lib/api/chebi.ts"));
+ok("gsrs client module", exists("lib/api/gsrs.ts"));
+ok("pubmed client module", exists("lib/api/pubmed.ts"));
+ok("arxiv client module", exists("lib/api/arxiv.ts"));
+ok("orgsyn client module", exists("lib/api/orgsyn.ts"));
+ok("uspto fulltext densify module", exists("lib/api/usptoFullText.ts"));
 ok(
   "gather uses procedureExcerpts",
   /procedureExcerpts/.test(read("lib/dossier/gather.ts"))
@@ -139,6 +153,18 @@ ok(
 ok(
   "gather uses ORD fetchOrdContext",
   /fetchOrdContext/.test(read("lib/dossier/gather.ts"))
+);
+ok(
+  "gather wires UniChem",
+  /fetchUnichemByPubchemCid/.test(read("lib/dossier/gather.ts"))
+);
+ok(
+  "gather wires PubMed",
+  /searchPubMedProcess/.test(read("lib/dossier/gather.ts"))
+);
+ok(
+  "gather wires OrgSyn",
+  /fetchOrgSynByName/.test(read("lib/dossier/gather.ts"))
 );
 
 const schemaCache = read("lib/idb/dossierCache.ts");
@@ -170,6 +196,9 @@ ok("SourcesRegistry wires comptox", /"comptox"/.test(sourcesReg));
 ok("SourcesRegistry wires dailymed", /"dailymed"/.test(sourcesReg));
 ok("SourcesRegistry wires semantic-scholar", /"semantic-scholar"/.test(sourcesReg));
 ok("SourcesRegistry wires rhea", /"rhea"/.test(sourcesReg));
+ok("SourcesRegistry wires unichem", /"unichem"/.test(sourcesReg));
+ok("SourcesRegistry wires pubmed", /"pubmed"/.test(sourcesReg));
+ok("SourcesRegistry wires orgsyn", /"orgsyn"/.test(sourcesReg));
 ok("SourcesRegistry recipe focus", /RECIPE_FOCUS_IDS|recipeFocus/.test(sourcesReg));
 
 // Probes include new APIs

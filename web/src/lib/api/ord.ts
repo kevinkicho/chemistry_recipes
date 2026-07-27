@@ -33,6 +33,7 @@ export interface OrdBrowseResult {
 
 /**
  * Build ORD browse annotation + best-effort reaction context for a compound.
+ * Also probes docs / dataset index pages for offline-ingest pointers.
  */
 export async function fetchOrdContext(opts: {
   name: string;
@@ -41,6 +42,8 @@ export async function fetchOrdContext(opts: {
 }): Promise<OrdBrowseResult> {
   const q = encodeURIComponent(opts.smiles || opts.name);
   const browseUrl = `https://open-reaction-database.org/client/browse?component=${q}`;
+  const datasetUrl = "https://github.com/open-reaction-database/ord-data";
+  const docsUrl = "https://docs.open-reaction-database.org/";
   const reactions: OrdReactionHint[] = [];
   const procedureTexts: string[] = [];
   const traces: ApiFetchTrace[] = [];
@@ -90,6 +93,28 @@ export async function fetchOrdContext(opts: {
         procedureText: joined.slice(0, 2000),
       });
     }
+  }
+
+  // Docs index pointer (offline bulk path for future local index)
+  const docs = await fetchWithTrace(docsUrl, {
+    next: { revalidate: 86400 },
+    timeoutMs: 6_000,
+    headers: { Accept: "text/html" },
+  });
+  traces.push(docs.trace);
+  if (docs.trace.ok) {
+    reactions.push({
+      id: `ord-docs:${opts.cid || "x"}`,
+      summary:
+        "ORD bulk protobuf/JSON datasets available for offline reaction indexing (lab-scale, not plant SOP).",
+      url: datasetUrl,
+      procedureText:
+        `Open Reaction Database offline path: ${datasetUrl}. ` +
+        `Query component=${opts.smiles || opts.name}. Use bulk ingest for structured reagents/conditions/yields.`,
+    });
+    procedureTexts.push(
+      `ORD bulk dataset pointer for ${opts.name}${opts.smiles ? ` (SMILES ${opts.smiles})` : ""}. Structured organic reactions for ML/process scouting — download from ${datasetUrl}.`
+    );
   }
 
   const annotations: ExternalAnnotation[] = [

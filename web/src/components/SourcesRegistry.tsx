@@ -24,6 +24,13 @@ const WIRED_SOURCE_IDS = new Set([
   "semantic-scholar",
   "ord",
   "pubchem-patents",
+  "unichem",
+  "chebi",
+  "gsrs",
+  "pubmed",
+  "arxiv",
+  "orgsyn",
+  "uspto-pubchem-patent",
 ]);
 
 /** Sources that materially feed manufacturing recipe density (not just identity). */
@@ -34,13 +41,20 @@ const RECIPE_FOCUS_IDS = new Set([
   "europepmc-patents",
   "patentsview",
   "pubchem-patents",
+  "uspto-pubchem-patent",
   "ord",
   "kegg",
   "rhea",
   "openalex",
   "crossref",
   "semantic-scholar",
+  "pubmed",
+  "arxiv",
+  "orgsyn",
   "comptox",
+  "unichem",
+  "chebi",
+  "gsrs",
 ]);
 
 const PRIORITY_BLURB: Record<SourcePriority, string> = {

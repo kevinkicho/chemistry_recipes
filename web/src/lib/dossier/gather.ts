@@ -1,7 +1,7 @@
 /**
  * Multi-source free-public evidence gather for a PubChem CID.
- * PubChem is only one identity anchor — ChEMBL, MyChem, openFDA, RxNorm,
- * Crossref, KEGG, Europe PMC, OpenAlex, PatentsView also feed the dossier.
+ * Identity graph (UniChem/ChEBI/GSRS) + process literature (EPMC/PubMed/arXiv)
+ * + patents + OrgSyn + ORD + reaction DBs feed procedure density.
  */
 
 import { getPubChemCompound, type PubChemHit } from "@/lib/api/pubchem";
@@ -35,7 +35,14 @@ import {
   searchEuropePmcPatents,
   enrichPatentHitsWithEpmc,
 } from "@/lib/api/patentFullText";
+import { densifyUsPatentsWithPubchem } from "@/lib/api/usptoFullText";
 import { fetchRheaByName } from "@/lib/api/rhea";
+import { fetchUnichemByPubchemCid } from "@/lib/api/unichem";
+import { fetchChebiByName } from "@/lib/api/chebi";
+import { fetchGsrsByName } from "@/lib/api/gsrs";
+import { searchPubMedProcess } from "@/lib/api/pubmed";
+import { searchArxivProcess } from "@/lib/api/arxiv";
+import { fetchOrgSynByName } from "@/lib/api/orgsyn";
 import { politeDelay } from "@/lib/api/rateLimit";
 import { slimTraces, type ApiFetchTrace } from "@/lib/api/trace";
 import type { SourceRef } from "@/lib/types/process";
@@ -119,12 +126,14 @@ export async function gatherCompoundEvidence(
 
   await politeDelay(40);
 
-  // Wave 2: multi-source free public APIs (not PubChem)
+  // Wave 2: multi-source free public APIs (identity + process literature + patents)
   const [
     litResult,
     openAlexResult,
     crossrefResult,
     semanticResult,
+    pubmedResult,
+    arxivResult,
     pvResult,
     patentLitResult,
     chemblResult,
@@ -137,11 +146,17 @@ export async function gatherCompoundEvidence(
     pubchemPatentIds,
     epmcPatResult,
     rheaResult,
+    unichemResult,
+    chebiResult,
+    gsrsResult,
+    orgsynResult,
   ] = await Promise.all([
     searchEuropePmc(name, { limit: 14 }),
     searchOpenAlexProcess(name, { limit: 6 }),
     searchCrossrefProcess(name, { limit: 6 }),
     searchSemanticScholarProcess(name, { limit: 6 }),
+    searchPubMedProcess(name, { limit: 10 }),
+    searchArxivProcess(name, { limit: 6 }),
     searchPatentsView(name, { limit: 10 }),
     searchPatentLiterature(name, { limit: 8 }),
     fetchChemblByName(name),
@@ -154,12 +169,18 @@ export async function gatherCompoundEvidence(
     fetchPubchemPatentIds(cid, { limit: 40 }),
     searchEuropePmcPatents(name, { limit: 8 }),
     fetchRheaByName(name, { limit: 6 }),
+    fetchUnichemByPubchemCid(cid),
+    fetchChebiByName(name),
+    fetchGsrsByName(name),
+    fetchOrgSynByName(name),
   ]);
 
   traces.push(...litResult.traces);
   traces.push(...openAlexResult.traces);
   traces.push(...crossrefResult.traces);
   traces.push(...semanticResult.traces);
+  traces.push(...pubmedResult.traces);
+  traces.push(...arxivResult.traces);
   traces.push(...pvResult.traces);
   traces.push(...patentLitResult.traces);
   traces.push(...chemblResult.traces);
@@ -172,6 +193,10 @@ export async function gatherCompoundEvidence(
   traces.push(...pubchemPatentIds.traces);
   traces.push(...epmcPatResult.traces);
   traces.push(...rheaResult.traces);
+  traces.push(...unichemResult.traces);
+  traces.push(...chebiResult.traces);
+  traces.push(...gsrsResult.traces);
+  traces.push(...orgsynResult.traces);
 
   // OA full-text densification (Europe PMC) for top process hits
   let literature = mergeLiterature([
@@ -179,9 +204,11 @@ export async function gatherCompoundEvidence(
     openAlexResult.hits,
     crossrefResult.hits,
     semanticResult.hits,
-  ]).slice(0, 28);
+    pubmedResult.hits,
+    arxivResult.hits,
+  ]).slice(0, 36);
   const oaEnrich = await enrichLiteratureWithOaFullText(literature, {
-    maxArticles: 4,
+    maxArticles: 5,
   });
   literature = oaEnrich.hits;
   traces.push(...oaEnrich.traces);
@@ -201,10 +228,13 @@ export async function gatherCompoundEvidence(
       patentMap.set(p.id, p);
     }
   }
-  let patents = [...patentMap.values()].slice(0, 24);
+  let patents = [...patentMap.values()].slice(0, 28);
   const patentEnrich = await enrichPatentHitsWithEpmc(patents, { max: 5 });
   patents = patentEnrich.hits;
   traces.push(...patentEnrich.traces);
+  const usptoEnrich = await densifyUsPatentsWithPubchem(patents, { max: 4 });
+  patents = usptoEnrich.hits;
+  traces.push(...usptoEnrich.traces);
 
   // ── Map non-PubChem hits → annotations + sourceRefs ─────────────
   sourceRefs.push({
@@ -394,6 +424,73 @@ export async function gatherCompoundEvidence(
     });
   }
 
+  // Identity graph: UniChem / ChEBI / GSRS
+  annotations.push(...unichemResult.annotations);
+  if (unichemResult.xrefs.length) {
+    sourceRefs.push({
+      type: "api",
+      id: `unichem:${cid}`,
+      label: "UniChem cross-IDs",
+      url: `https://www.ebi.ac.uk/unichem/`,
+      note: `${unichemResult.xrefs.length} mapped source(s)`,
+    });
+  }
+  annotations.push(...chebiResult.annotations);
+  if (chebiResult.hit) {
+    sourceRefs.push({
+      type: "api",
+      id: `chebi:${chebiResult.hit.chebiId}`,
+      label: chebiResult.hit.chebiId,
+      url: chebiResult.hit.url,
+      note: "ChEBI ontology identity",
+    });
+  }
+  annotations.push(...gsrsResult.annotations);
+  if (gsrsResult.hit) {
+    sourceRefs.push({
+      type: "api",
+      id: `gsrs:${gsrsResult.hit.unii || gsrsResult.hit.uuid || cid}`,
+      label: gsrsResult.hit.unii
+        ? `GSRS UNII ${gsrsResult.hit.unii}`
+        : "GSRS substance",
+      url: gsrsResult.hit.url,
+      note: "FDA substance registration",
+    });
+  }
+
+  // Organic Syntheses classic preps
+  annotations.push(...orgsynResult.annotations);
+  if (orgsynResult.hits.length || orgsynResult.procedureExcerpts.length) {
+    sourceRefs.push({
+      type: "api",
+      id: `orgsyn:${cid}`,
+      label: "Organic Syntheses",
+      url: orgsynResult.hits[0]?.url || `https://www.orgsyn.org/search.aspx?q=${encodeURIComponent(name)}`,
+      note: orgsynResult.procedureExcerpts.length
+        ? "Classic prep procedure excerpt"
+        : "Classic prep search",
+    });
+  }
+
+  if (pubmedResult.hits.length) {
+    sourceRefs.push({
+      type: "api",
+      id: `pubmed:${cid}`,
+      label: "PubMed (E-utilities)",
+      url: "https://pubmed.ncbi.nlm.nih.gov/",
+      note: pubmedResult.query.slice(0, 140),
+    });
+  }
+  if (arxivResult.hits.length) {
+    sourceRefs.push({
+      type: "api",
+      id: `arxiv:${cid}`,
+      label: "arXiv process preprints",
+      url: "https://arxiv.org/",
+      note: arxivResult.query.slice(0, 140),
+    });
+  }
+
   if (comptoxResult.hit) {
     const c = comptoxResult.hit;
     annotations.push({
@@ -533,12 +630,51 @@ export async function gatherCompoundEvidence(
   for (const t of ord.procedureTexts) {
     if (t.length >= 40) {
       procedureExcerpts.push({
-        id: `ord-proc:${cid}`,
+        id: `ord-proc:${cid}:${procedureExcerpts.length}`,
         source: "ord",
-        label: "ORD browse snippet",
+        label: "ORD browse / bulk pointer",
         text: t,
         url: ord.browseUrl,
         chars: t.length,
+      });
+    }
+  }
+  // Organic Syntheses procedures
+  procedureExcerpts.push(...orgsynResult.procedureExcerpts);
+  // arXiv abstract windows
+  for (const t of arxivResult.procedureTexts) {
+    if (t.length >= 60) {
+      procedureExcerpts.push({
+        id: `arxiv-proc:${cid}:${procedureExcerpts.length}`,
+        source: "arxiv",
+        label: "arXiv process abstract window",
+        text: t,
+        url: "https://arxiv.org/",
+        chars: t.length,
+      });
+    }
+  }
+  for (const h of arxivResult.hits) {
+    if (h.fullTextExcerpt && h.fullTextExcerpt.length >= 80) {
+      procedureExcerpts.push({
+        id: `arxiv-ft:${h.id}`,
+        source: "arxiv",
+        label: h.title.slice(0, 100),
+        text: h.fullTextExcerpt,
+        url: h.url,
+        chars: h.fullTextExcerpt.length,
+      });
+    }
+  }
+  for (const h of pubmedResult.hits) {
+    if (h.fullTextExcerpt && h.fullTextExcerpt.length >= 80) {
+      procedureExcerpts.push({
+        id: `pubmed-ft:${h.id}`,
+        source: "pubmed",
+        label: h.title.slice(0, 100),
+        text: h.fullTextExcerpt,
+        url: h.url,
+        chars: h.fullTextExcerpt.length,
       });
     }
   }
@@ -632,6 +768,8 @@ export async function gatherCompoundEvidence(
       openAlexResult.query,
       crossrefResult.query,
       semanticResult.query,
+      pubmedResult.query,
+      arxivResult.query,
     ]
       .filter(Boolean)
       .join(" || "),
