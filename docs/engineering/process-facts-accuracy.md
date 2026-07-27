@@ -59,12 +59,34 @@ Single-route dossiers still get a plant scouting panel (BOM, equipment, conditio
 - `RoutePanel` — manufacturing default; sourced conditions tagged  
 - Export **Public process brief** — `chemistry-recipes.public-process-brief.v1`  
 
+## Product modes (`recipeReadiness.ts`)
+
+| Mode | When |
+|------|------|
+| `scout-dossier` | Default — evidence map + leads; AI may outline but not claim plant recipe |
+| `recipe-draft` | `process-recipe` framing + no blockers + enough procedure chars |
+| `teaching-package` | Curated Tier-A / packages (editorial) |
+
+UI: `RecipeReadinessPanel` — missing checklist with how-to-densify hints.
+
+## Procedure densification (free public)
+
+| Source | Module |
+|--------|--------|
+| Europe PMC OA fullTextXML | `europePmc.enrichLiteratureWithOaFullText` |
+| Europe PMC patents SRC:PAT | `patentFullText.ts` |
+| PubChem manufacturing sections | `pubchemView` expanded headings |
+| ORD browse snippets | `ord.fetchOrdContext` |
+| KEGG reaction equations | `kegg.ts` |
+| Rhea equations | `rhea.ts` |
+| User paste / .txt upload | `LocalTextEnrich` → `user-supplement` facts |
+
 ## What remains intentionally empty
 
 - Validated IPC methods  
 - Site CQAs / hold times  
 - Cleaning / campaign rules  
-- Full patent experimental sections (abstracts only unless user opens primary source)  
+- Full patent claims (unless user pastes public examples or OA text is available)  
 
 ## Related
 

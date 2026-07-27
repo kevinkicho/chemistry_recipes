@@ -200,6 +200,11 @@ export interface CompoundEvidence {
   patents: PatentHit[];
   /** ChEMBL, openFDA, RxNorm, KEGG, MyChem, Crossref, … */
   annotations: ExternalAnnotation[];
+  /**
+   * Long procedure-bearing excerpts (OA full text, patent windows, ORD snippets).
+   * Fed into processFacts + AI data package for denser recipe drafting.
+   */
+  procedureExcerpts?: ProcedureExcerpt[];
   literatureQuery?: string;
   patentsQuery?: string;
   patentsNote?: string;
@@ -208,6 +213,24 @@ export interface CompoundEvidence {
   fetchErrors: string[];
   /** Extracted process fact atoms (accuracy layer) */
   processFacts?: ProcessFactBundle;
+}
+
+/** Free-public procedure / methods window for process-fact densification */
+export interface ProcedureExcerpt {
+  id: string;
+  source:
+    | "europepmc-oa"
+    | "patent"
+    | "ord"
+    | "pubchem-mfg"
+    | "kegg-reaction"
+    | "rhea"
+    | "user-supplement"
+    | "other";
+  label: string;
+  text: string;
+  url?: string;
+  chars: number;
 }
 
 export interface EvidenceScoreSnapshot {
@@ -274,6 +297,10 @@ export interface LiveDossier {
   processFacts?: ProcessFactBundle;
   /** process-recipe vs evidence-lead-pack framing for UI */
   processFraming?: import("@/lib/dossier/processFacts").ProcessFraming;
+  /** Scout vs recipe-draft vs teaching-package product mode */
+  productMode?: import("@/lib/dossier/recipeReadiness").ProductMode;
+  /** Gaps that block a credible manufacturing recipe draft */
+  recipeReadiness?: import("@/lib/dossier/recipeReadiness").RecipeReadiness;
   /** How this dossier was produced */
   buildMode?: "ai" | "evidence-shell" | "ai-skipped-thin-evidence";
   /** Inferred production modality (small-molecule default) */

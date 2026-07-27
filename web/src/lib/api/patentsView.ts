@@ -16,6 +16,11 @@ export interface PatentHit {
   title: string;
   date?: string;
   abstract?: string;
+  /**
+   * Process/example window extracted from abstract or Europe PMC patent record.
+   * Not full claims — use Local enrich for full example text.
+   */
+  procedureExcerpt?: string;
   assignees?: string[];
   url: string;
 }

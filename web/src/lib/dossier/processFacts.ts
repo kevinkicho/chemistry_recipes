@@ -37,6 +37,7 @@ export type ProcessFactProvenance =
   | "annotation"
   | "user-supplement"
   | "editorial-gap";
+// note: ORD / KEGG / Rhea excerpts map to "annotation"
 
 /** How the UI should frame the process content */
 export type ProcessFraming = "process-recipe" | "evidence-lead-pack";
@@ -377,11 +378,24 @@ export function extractProcessFacts(
   const ghs = evidence.view?.hazards;
 
   for (const paper of lit) {
-    const score = scoreProcessRelevance(paper.title, paper.abstract);
-    if (score < 12 && !looksLikeProcessLiterature(paper.title, paper.abstract)) {
+    const score = scoreProcessRelevance(
+      paper.title,
+      [paper.abstract, paper.fullTextExcerpt].filter(Boolean).join(" ")
+    );
+    if (
+      score < 12 &&
+      !looksLikeProcessLiterature(paper.title, paper.abstract) &&
+      !paper.fullTextExcerpt
+    ) {
       continue;
     }
-    const body = [paper.title, paper.abstract].filter(Boolean).join(". ");
+    const body = [
+      paper.title,
+      paper.abstract,
+      paper.fullTextExcerpt,
+    ]
+      .filter(Boolean)
+      .join(". ");
     if (detectExampleRefs(body).length || conditionDensityScore(body) >= 24) {
       exampleDenseSources.push(trunc(paper.title, 60));
     }
@@ -392,7 +406,7 @@ export function extractProcessFacts(
         sourceId: paper.id,
         sourceLabel: trunc(paper.title, 80),
         sourceUrl: paper.url,
-        sourceScore: score,
+        sourceScore: score + (paper.fullTextExcerpt ? 12 : 0),
       },
       facts,
       seen
@@ -400,8 +414,16 @@ export function extractProcessFacts(
   }
 
   for (const p of patents) {
-    const score = scoreProcessRelevance(p.title, p.abstract) + 10;
-    const body = [p.title, p.abstract, p.patentNumber].filter(Boolean).join(". ");
+    const score =
+      scoreProcessRelevance(p.title, p.abstract || p.procedureExcerpt) + 10;
+    const body = [
+      p.title,
+      p.abstract,
+      p.procedureExcerpt,
+      p.patentNumber,
+    ]
+      .filter(Boolean)
+      .join(". ");
     if (detectExampleRefs(body).length || conditionDensityScore(body) >= 20) {
       exampleDenseSources.push(
         trunc(p.patentNumber || p.title || "Patent", 60)
@@ -425,7 +447,37 @@ export function extractProcessFacts(
           90
         ),
         sourceUrl: p.url,
-        sourceScore: score,
+        sourceScore: score + (p.procedureExcerpt ? 10 : 0),
+      },
+      facts,
+      seen
+    );
+  }
+
+  // Dedicated procedure excerpts (OA full text, ORD, KEGG, Rhea, densified mfg)
+  for (const pe of evidence.procedureExcerpts || []) {
+    if (!pe.text || pe.text.length < 40) continue;
+    const prov: ProcessFactProvenance =
+      pe.source === "patent"
+        ? "patent"
+        : pe.source === "europepmc-oa"
+          ? "literature"
+          : pe.source === "pubchem-mfg"
+            ? "pubchem-mfg"
+            : pe.source === "user-supplement"
+              ? "user-supplement"
+              : "annotation";
+    if (detectExampleRefs(pe.text).length || conditionDensityScore(pe.text) >= 20) {
+      exampleDenseSources.push(trunc(pe.label, 60));
+    }
+    extractFromText(
+      pe.text,
+      {
+        provenance: prov,
+        sourceId: pe.id,
+        sourceLabel: trunc(pe.label, 90),
+        sourceUrl: pe.url,
+        sourceScore: 40 + Math.min(30, conditionDensityScore(pe.text) / 3),
       },
       facts,
       seen
@@ -555,6 +607,11 @@ export function extractProcessFacts(
 
   const openGapCount = facts.filter((f) => f.kind === "open-gap").length;
 
+  const procedureChars = (evidence.procedureExcerpts || []).reduce(
+    (n, p) => n + (p.chars || p.text.length),
+    0
+  );
+
   const accuracyScore = Math.min(
     100,
     Math.round(
@@ -563,7 +620,8 @@ export function extractProcessFacts(
         isolationCount * 8 +
         exampleDense.length * 10 +
         patentConditionCount * 4 +
-        Math.min(15, userSupplementChars / 400)
+        Math.min(15, userSupplementChars / 400) +
+        Math.min(12, procedureChars / 500)
     )
   );
 
@@ -770,20 +828,46 @@ export function routesFromProcessFacts(
     });
   };
 
+  // Atom-first steps: group unit-ops into plant sequence when density allows
+  if (bundle.productionBriefEligible) {
+    const unitOps = bundle.facts.filter((f) => f.kind === "unit-op");
+    const seenOps = new Set<string>();
+    for (const u of unitOps.slice(0, 8)) {
+      const op = (u.value || u.unitOp || u.claim).toLowerCase();
+      if (seenOps.has(op)) continue;
+      seenOps.add(op);
+      attachFacts(
+        u.sourceId,
+        u.claim,
+        u.quote || u.claim,
+        u.provenance === "patent" ? "patent" : "literature",
+        u.sourceUrl
+      );
+    }
+  }
+
   for (const paper of processLit.slice(0, 5)) {
+    if (steps.some((s) => s.sourceRefs?.some((r) => r.id === paper.id))) continue;
     attachFacts(
       paper.id,
       paper.title,
-      (paper.abstract || "").trim(),
+      [paper.abstract, paper.fullTextExcerpt].filter(Boolean).join("\n").trim(),
       "literature",
       paper.url
     );
   }
   for (const p of processPatents.slice(0, 4)) {
+    if (
+      steps.some((s) =>
+        s.sourceRefs?.some((r) => r.id === p.id || r.id === p.patentNumber)
+      )
+    ) {
+      continue;
+    }
     attachFacts(
       p.id || p.patentNumber || `pat-${order}`,
       p.title || p.patentNumber || "Patent",
-      (p.abstract || "").trim(),
+      [p.abstract, p.procedureExcerpt].filter(Boolean).join("\n").trim(),
       "patent",
       p.url
     );

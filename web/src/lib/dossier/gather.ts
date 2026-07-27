@@ -7,7 +7,11 @@
 import { getPubChemCompound, type PubChemHit } from "@/lib/api/pubchem";
 import { fetchPubChemView } from "@/lib/api/pubchemView";
 import { findHubByCid } from "@/lib/data/hubIndex";
-import { searchEuropePmc, type LiteratureHit } from "@/lib/api/europePmc";
+import {
+  searchEuropePmc,
+  enrichLiteratureWithOaFullText,
+  type LiteratureHit,
+} from "@/lib/api/europePmc";
 import { searchOpenAlexProcess } from "@/lib/api/openAlex";
 import {
   searchPatentsView,
@@ -26,13 +30,19 @@ import {
   fetchPubchemPatentIds,
   patentHitsFromPubchemIds,
 } from "@/lib/api/pubchemPatents";
-import { buildOrdBrowseAnnotation } from "@/lib/api/ord";
+import { fetchOrdContext } from "@/lib/api/ord";
+import {
+  searchEuropePmcPatents,
+  enrichPatentHitsWithEpmc,
+} from "@/lib/api/patentFullText";
+import { fetchRheaByName } from "@/lib/api/rhea";
 import { politeDelay } from "@/lib/api/rateLimit";
 import { slimTraces, type ApiFetchTrace } from "@/lib/api/trace";
 import type { SourceRef } from "@/lib/types/process";
 import type {
   CompoundEvidence,
   ExternalAnnotation,
+  ProcedureExcerpt,
 } from "@/lib/dossier/types";
 import { scoreCompoundEvidence } from "@/lib/dossier/evidenceScore";
 import { extractProcessFacts } from "@/lib/dossier/processFacts";
@@ -125,8 +135,10 @@ export async function gatherCompoundEvidence(
     comptoxResult,
     dailyMedResult,
     pubchemPatentIds,
+    epmcPatResult,
+    rheaResult,
   ] = await Promise.all([
-    searchEuropePmc(name, { limit: 12 }),
+    searchEuropePmc(name, { limit: 14 }),
     searchOpenAlexProcess(name, { limit: 6 }),
     searchCrossrefProcess(name, { limit: 6 }),
     searchSemanticScholarProcess(name, { limit: 6 }),
@@ -140,6 +152,8 @@ export async function gatherCompoundEvidence(
     fetchCompToxByName(name),
     fetchDailyMedByName(name),
     fetchPubchemPatentIds(cid, { limit: 40 }),
+    searchEuropePmcPatents(name, { limit: 8 }),
+    fetchRheaByName(name, { limit: 6 }),
   ]);
 
   traces.push(...litResult.traces);
@@ -156,17 +170,28 @@ export async function gatherCompoundEvidence(
   traces.push(...comptoxResult.traces);
   traces.push(...dailyMedResult.traces);
   traces.push(...pubchemPatentIds.traces);
+  traces.push(...epmcPatResult.traces);
+  traces.push(...rheaResult.traces);
 
-  const literature = mergeLiterature([
+  // OA full-text densification (Europe PMC) for top process hits
+  let literature = mergeLiterature([
     litResult.hits,
     openAlexResult.hits,
     crossrefResult.hits,
     semanticResult.hits,
   ]).slice(0, 28);
+  const oaEnrich = await enrichLiteratureWithOaFullText(literature, {
+    maxArticles: 4,
+  });
+  literature = oaEnrich.hits;
+  traces.push(...oaEnrich.traces);
 
   const patentMap = new Map<string, (typeof pvResult.hits)[0]>();
   for (const p of pvResult.hits) patentMap.set(p.id, p);
   for (const p of patentLitResult.hits) {
+    if (!patentMap.has(p.id)) patentMap.set(p.id, p);
+  }
+  for (const p of epmcPatResult.hits) {
     if (!patentMap.has(p.id)) patentMap.set(p.id, p);
   }
   // PubChem patent xrefs (always free) fill IP coverage when PatentsView key is absent
@@ -176,7 +201,10 @@ export async function gatherCompoundEvidence(
       patentMap.set(p.id, p);
     }
   }
-  const patents = [...patentMap.values()].slice(0, 20);
+  let patents = [...patentMap.values()].slice(0, 24);
+  const patentEnrich = await enrichPatentHitsWithEpmc(patents, { max: 5 });
+  patents = patentEnrich.hits;
+  traces.push(...patentEnrich.traces);
 
   // ── Map non-PubChem hits → annotations + sourceRefs ─────────────
   sourceRefs.push({
@@ -327,6 +355,9 @@ export async function gatherCompoundEvidence(
         k.reactions.length
           ? `Reactions: ${k.reactions.slice(0, 6).join(", ")}`
           : null,
+        k.reactionEquations?.length
+          ? `Equations: ${k.reactionEquations.slice(0, 2).join("; ")}`
+          : null,
       ]
         .filter(Boolean)
         .join(" · "),
@@ -337,6 +368,9 @@ export async function gatherCompoundEvidence(
         ...(k.formula ? { formula: k.formula } : {}),
         pathways: String(k.pathways.length),
         reactions: String(k.reactions.length),
+        ...(k.reactionEquations?.length
+          ? { equations: k.reactionEquations.slice(0, 3).join(" | ") }
+          : {}),
       },
     });
     sourceRefs.push({
@@ -344,7 +378,19 @@ export async function gatherCompoundEvidence(
       id: `kegg:${k.id}`,
       label: `KEGG ${k.id}`,
       url: k.url,
-      note: "KEGG free REST compound / pathway API",
+      note: "KEGG free REST compound / reaction equations",
+    });
+  }
+
+  // Rhea enzyme reactions (biocatalytic context)
+  annotations.push(...rheaResult.annotations);
+  if (rheaResult.hits.length) {
+    sourceRefs.push({
+      type: "api",
+      id: `rhea:${cid}`,
+      label: "Rhea enzyme reactions",
+      url: `https://www.rhea-db.org/rhea?query=${encodeURIComponent(name)}`,
+      note: `${rheaResult.hits.length} curated reaction hit(s)`,
     });
   }
 
@@ -441,8 +487,8 @@ export async function gatherCompoundEvidence(
     });
   }
 
-  // ORD — free reaction dataset browse (lab-scale context, not plant SOP)
-  const ord = buildOrdBrowseAnnotation({
+  // ORD — free reaction dataset browse + best-effort snippets
+  const ord = await fetchOrdContext({
     name,
     smiles: identity?.smiles,
     cid,
@@ -457,11 +503,86 @@ export async function gatherCompoundEvidence(
     note: ord.note,
   });
 
+  // ── Procedure-bearing excerpts for process-fact / AI density ──
+  const procedureExcerpts: ProcedureExcerpt[] = [];
+  for (const h of literature) {
+    if (h.fullTextExcerpt && h.fullTextExcerpt.length >= 80) {
+      procedureExcerpts.push({
+        id: `oa:${h.id}`,
+        source: "europepmc-oa",
+        label: h.title.slice(0, 100),
+        text: h.fullTextExcerpt,
+        url: h.url,
+        chars: h.fullTextExcerpt.length,
+      });
+    }
+  }
+  for (const p of patents) {
+    const body = p.procedureExcerpt || p.abstract;
+    if (body && body.length >= 80) {
+      procedureExcerpts.push({
+        id: `pat-proc:${p.id}`,
+        source: "patent",
+        label: [p.patentNumber, p.title].filter(Boolean).join(" — ").slice(0, 100),
+        text: body,
+        url: p.url,
+        chars: body.length,
+      });
+    }
+  }
+  for (const t of ord.procedureTexts) {
+    if (t.length >= 40) {
+      procedureExcerpts.push({
+        id: `ord-proc:${cid}`,
+        source: "ord",
+        label: "ORD browse snippet",
+        text: t,
+        url: ord.browseUrl,
+        chars: t.length,
+      });
+    }
+  }
+  for (const t of viewResult.manufacturingTexts.slice(0, 12)) {
+    if (t.length >= 40) {
+      procedureExcerpts.push({
+        id: `mfg:${cid}:${procedureExcerpts.length}`,
+        source: "pubchem-mfg",
+        label: "PubChem manufacturing / use",
+        text: t,
+        url: `https://pubchem.ncbi.nlm.nih.gov/compound/${cid}#section=Use-and-Manufacturing`,
+        chars: t.length,
+      });
+    }
+  }
+  if (keggResult.hit?.reactionEquations?.length) {
+    const text = keggResult.hit.reactionEquations.join("\n");
+    procedureExcerpts.push({
+      id: `kegg-rn:${keggResult.hit.id}`,
+      source: "kegg-reaction",
+      label: `KEGG reactions ${keggResult.hit.id}`,
+      text,
+      url: keggResult.hit.url,
+      chars: text.length,
+    });
+  }
+  for (const r of rheaResult.hits) {
+    if (r.equation) {
+      procedureExcerpts.push({
+        id: `rhea:${r.rheaId}`,
+        source: "rhea",
+        label: r.rheaId,
+        text: r.equation,
+        url: r.url,
+        chars: r.equation.length,
+      });
+    }
+  }
+
   // Literature source notes
   sourceRefs.push({
     type: "api",
     id: `europepmc:${cid}`,
-    label: "Europe PMC",
+    label: "Europe PMC (+ OA full text when available)",
     url: "https://europepmc.org/",
     note: litResult.query.slice(0, 160),
   });
@@ -488,6 +609,15 @@ export async function gatherCompoundEvidence(
       note: semanticResult.query.slice(0, 120),
     });
   }
+  if (epmcPatResult.hits.length) {
+    sourceRefs.push({
+      type: "api",
+      id: `europepmc-pat:${cid}`,
+      label: "Europe PMC patents (SRC:PAT)",
+      url: "https://europepmc.org/",
+      note: epmcPatResult.query.slice(0, 140),
+    });
+  }
 
   const base: CompoundEvidence = {
     cid,
@@ -496,6 +626,7 @@ export async function gatherCompoundEvidence(
     literature,
     patents,
     annotations,
+    procedureExcerpts: procedureExcerpts.slice(0, 40),
     literatureQuery: [
       litResult.query,
       openAlexResult.query,
@@ -504,7 +635,9 @@ export async function gatherCompoundEvidence(
     ]
       .filter(Boolean)
       .join(" || "),
-    patentsQuery: pvResult.query || patentLitResult.query,
+    patentsQuery: [pvResult.query, patentLitResult.query, epmcPatResult.query]
+      .filter(Boolean)
+      .join(" || "),
     patentsNote: [pvResult.note, patentLitResult.note]
       .filter(Boolean)
       .join(" "),

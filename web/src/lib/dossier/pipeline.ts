@@ -18,6 +18,7 @@ import {
 } from "@/lib/dossier/processFacts";
 import { applyPlantDeliverables } from "@/lib/dossier/plantDeliverables";
 import { applyTierABaseline } from "@/lib/dossier/tierABaseline";
+import { withRecipeReadiness } from "@/lib/dossier/recipeReadiness";
 import type { LiveDossier } from "@/lib/dossier/types";
 import {
   createProgressClock,
@@ -452,11 +453,13 @@ export async function buildLiveDossierWithProgress(
   dossier = applyTierABaseline(dossier);
   // Re-apply plant deliverables so BOM/related merge stays consistent
   dossier = applyPlantDeliverables(dossier);
+  // Product mode: scout-dossier vs recipe-draft (+ missing checklist)
+  dossier = withRecipeReadiness(dossier);
 
   emit({
     type: "complete",
     label: "Dossier ready",
-    detail: `Total ${clock.elapsed()} ms · Tier ${dossier.tier} · mode ${dossier.buildMode} · routes ${dossier.processRoutes.length} · ${modality}`,
+    detail: `Total ${clock.elapsed()} ms · Tier ${dossier.tier} · mode ${dossier.buildMode} · product ${dossier.productMode || "scout"} · routes ${dossier.processRoutes.length} · ${modality}`,
     stepsDone: STEPS_TOTAL,
     stepsTotal: STEPS_TOTAL,
     evidenceScore: scored.score,

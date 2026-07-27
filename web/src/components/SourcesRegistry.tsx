@@ -12,15 +12,35 @@ const WIRED_SOURCE_IDS = new Set([
   "openfda",
   "rxnorm",
   "europepmc",
+  "europepmc-oa",
   "openalex",
   "crossref",
   "patentsview",
+  "europepmc-patents",
   "kegg",
+  "rhea",
   "comptox",
   "dailymed",
   "semantic-scholar",
   "ord",
   "pubchem-patents",
+]);
+
+/** Sources that materially feed manufacturing recipe density (not just identity). */
+const RECIPE_FOCUS_IDS = new Set([
+  "pubchem-pug-view",
+  "europepmc",
+  "europepmc-oa",
+  "europepmc-patents",
+  "patentsview",
+  "pubchem-patents",
+  "ord",
+  "kegg",
+  "rhea",
+  "openalex",
+  "crossref",
+  "semantic-scholar",
+  "comptox",
 ]);
 
 const PRIORITY_BLURB: Record<SourcePriority, string> = {
@@ -47,6 +67,7 @@ export function SourcesRegistry({ sources }: { sources: ApiSource[] }) {
   const [openIds, setOpenIds] = useState<Set<string>>(() => new Set());
   const [filter, setFilter] = useState("");
   const [wiredOnly, setWiredOnly] = useState(false);
+  const [recipeFocus, setRecipeFocus] = useState(false);
 
   const priorities = ["P0", "P1", "P2"] as const;
 
@@ -54,6 +75,7 @@ export function SourcesRegistry({ sources }: { sources: ApiSource[] }) {
     const q = filter.trim().toLowerCase();
     return sources.filter((s) => {
       if (wiredOnly && !WIRED_SOURCE_IDS.has(s.id)) return false;
+      if (recipeFocus && !RECIPE_FOCUS_IDS.has(s.id)) return false;
       if (!q) return true;
       const hay = [
         s.name,
@@ -69,7 +91,7 @@ export function SourcesRegistry({ sources }: { sources: ApiSource[] }) {
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [sources, filter, wiredOnly]);
+  }, [sources, filter, wiredOnly, recipeFocus]);
 
   function toggle(id: string) {
     setOpenIds((prev) => {
@@ -109,6 +131,15 @@ export function SourcesRegistry({ sources }: { sources: ApiSource[] }) {
             placeholder="Name, org, category, endpoint…"
             className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100"
           />
+        </label>
+        <label className="flex cursor-pointer items-center gap-2 pb-2 text-xs text-slate-400">
+          <input
+            type="checkbox"
+            checked={recipeFocus}
+            onChange={(e) => setRecipeFocus(e.target.checked)}
+            className="rounded border-slate-600"
+          />
+          Recipe-density sources
         </label>
         <label className="flex cursor-pointer items-center gap-2 pb-2 text-xs text-slate-400">
           <input

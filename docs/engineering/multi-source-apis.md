@@ -8,26 +8,37 @@ Live dossiers are **not PubChem-only**. Identity, regulatory, pathway, literatur
 
 | Client | Source | Typical use |
 |--------|--------|-------------|
-| `pubchem.ts` / `pubchemView.ts` | NCBI PubChem | Identity, structure, GHS, manufacturing text |
+| `pubchem.ts` / `pubchemView.ts` | NCBI PubChem | Identity, structure, GHS, **rich manufacturing** sections |
 | `chembl.ts` | EMBL-EBI ChEMBL | Molecule / phase / mechanism |
 | `mychem.ts` | BioThings MyChem | Aggregated annotations |
 | `openFda.ts` | openFDA | Drug labels / regulatory text |
 | `rxnorm.ts` | NLM RxNorm | Name normalization (RxCUI) |
-| `kegg.ts` | KEGG REST | Compound / pathway hints |
+| `kegg.ts` | KEGG REST | Compound / pathway + **reaction equations** |
+| `rhea.ts` | Rhea | Enzyme-catalyzed reaction equations |
 | `comptox.ts` | EPA CompTox | DTXSID / toxicology context |
 | `dailyMed.ts` | NLM DailyMed | SPL setids / labeling |
-| `europePmc.ts` | Europe PMC | Process literature |
+| `europePmc.ts` | Europe PMC | Process literature + **OA fullTextXML windows** |
+| `patentFullText.ts` | Europe PMC SRC:PAT | Patent abstracts / procedure windows |
 | `openAlex.ts` | OpenAlex | Scholarly works |
 | `crossref.ts` | Crossref | DOI metadata |
 | `semanticScholar.ts` | Semantic Scholar | Related papers |
 | `patentsView.ts` | PatentsView | Process patents (optional key) |
+| `ord.ts` | ORD | Browse deep-link + best-effort reaction snippets |
+| `pubchemPatents.ts` | PubChem | Patent ID xrefs |
 
-Orchestration: `lib/dossier/gather.ts` (parallel fetches + `ApiFetchTrace[]`).
+Orchestration: `lib/dossier/gather.ts` (parallel fetches + `ApiFetchTrace[]` + `procedureExcerpts[]`).
+
+## Recipe density path
+
+1. **Gather** builds `procedureExcerpts` from OA full text, patent windows, PubChem mfg, ORD, KEGG/Rhea.  
+2. **processFacts** extracts conditions / unit ops from abstracts **and** excerpts.  
+3. **recipeReadiness** scores scout vs **recipe-draft** and lists missing blockers.  
+4. UI: `RecipeReadinessPanel` + Local full-text enrich (.txt upload).
 
 ## Product registry
 
 `lib/sources/registry.ts` lists product-ranked sources for `/sources`.  
-`SourcesRegistry` marks **wired** IDs used in live gather (including `comptox`, `dailymed`, `semantic-scholar`).
+`SourcesRegistry` marks **wired** IDs and a **Recipe-density sources** filter.
 
 ## Coverage map
 

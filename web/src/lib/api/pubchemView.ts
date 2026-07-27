@@ -241,13 +241,19 @@ export async function fetchPubChemView(cid: number): Promise<PugViewResult> {
   const allBlocks: PugViewTextBlock[] = [];
   let title: string | undefined;
 
-  // Prefer targeted headings (smaller payloads) over full record
+  // Prefer targeted headings (smaller payloads) over full record.
+  // Extra process-relevant sections densify manufacturing recipe evidence.
   const headings = [
     "GHS Classification",
     "Use and Manufacturing",
     "Chemical and Physical Properties",
     "Safety and Hazards",
     "Pharmacology and Biochemistry",
+    "Drug and Medication Information",
+    "Associated Disorders and Diseases",
+    "Literature",
+    "Patents",
+    "Biomolecular Interactions and Pathways",
   ];
 
   async function fetchHeading(heading: string) {
@@ -322,7 +328,25 @@ export async function fetchPubChemView(cid: number): Promise<PugViewResult> {
         .filter((t) => !isTocBoilerplate(t) && t.length >= 24)
     );
   }
-  manufacturingTexts = manufacturingTexts.slice(0, 40);
+  // Also harvest long process-looking blocks outside strict mfg headings
+  const processyExtra = unique(
+    allBlocks
+      .filter((b) => {
+        if (isTocBoilerplate(b.text) || b.text.length < 40) return false;
+        return /synthes|manufactur|preparat|process for|industrial|hydrogenat|crystall|ferment|work.?up|isolation/i.test(
+          `${b.heading} ${b.name || ""} ${b.text}`
+        );
+      })
+      .map((b) => {
+        const name = (b.name || "").trim();
+        if (!name || /^description$/i.test(name)) return b.text;
+        return `${name}: ${b.text}`;
+      })
+  );
+  manufacturingTexts = unique([...manufacturingTexts, ...processyExtra]).slice(
+    0,
+    60
+  );
 
   const descriptionTexts = filterByHeadingKeywords(allBlocks, [
     "record description",

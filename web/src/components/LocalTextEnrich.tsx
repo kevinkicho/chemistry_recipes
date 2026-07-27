@@ -52,6 +52,44 @@ export function LocalTextEnrich({
     onSaved?.();
   }
 
+  function onFile(fileList: FileList | null) {
+    const file = fileList?.[0];
+    if (!file) return;
+    const name = file.name.toLowerCase();
+    if (name.endsWith(".pdf")) {
+      setMsg(
+        "PDF binary upload is not parsed in-browser yet — paste public text from the PDF, or save as .txt/.md and upload that."
+      );
+      return;
+    }
+    if (
+      !name.endsWith(".txt") &&
+      !name.endsWith(".md") &&
+      !name.endsWith(".csv") &&
+      !file.type.startsWith("text/")
+    ) {
+      setMsg("Use a public .txt / .md text file (or paste).");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const raw = String(reader.result || "");
+      if (raw.length < 40) {
+        setMsg("File too short — need ~40+ characters of public procedure text.");
+        return;
+      }
+      setText(raw.slice(0, 200_000));
+      if (!label || label === "Public patent example text") {
+        setLabel(`Public file: ${file.name}`);
+      }
+      setMsg(
+        `Loaded ${raw.length.toLocaleString()} chars from ${file.name}. Review, then Save & re-extract.`
+      );
+    };
+    reader.onerror = () => setMsg("Could not read file.");
+    reader.readAsText(file);
+  }
+
   return (
     <div
       id="local-text-enrich"
@@ -61,10 +99,10 @@ export function LocalTextEnrich({
         Local full-text enrich
       </h2>
       <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
-        Paste <strong className="font-medium text-slate-400">public</strong> patent
-        examples or paper experimental text. Stored only in this browser — improves
-        condition density without inventing plant limits. Not for confidential
-        site SOPs.
+        Paste or load <strong className="font-medium text-slate-400">public</strong>{" "}
+        patent examples / paper experimental text (.txt / .md). Stored only in this
+        browser — densifies process facts for recipe-draft mode without inventing
+        plant limits. Not for confidential site SOPs.
       </p>
       <label className="mt-3 block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
         Label
@@ -72,6 +110,15 @@ export function LocalTextEnrich({
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-sm text-slate-100"
+        />
+      </label>
+      <label className="mt-2 block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        Load public text file
+        <input
+          type="file"
+          accept=".txt,.md,.csv,text/plain,text/markdown"
+          className="mt-1 block w-full text-xs text-slate-400 file:mr-2 file:rounded-md file:border-0 file:bg-slate-800 file:px-2 file:py-1 file:text-xs file:text-slate-200"
+          onChange={(e) => onFile(e.target.files)}
         />
       </label>
       <label className="mt-2 block text-[10px] font-semibold uppercase tracking-wider text-slate-500">

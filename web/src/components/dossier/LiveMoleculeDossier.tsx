@@ -39,6 +39,7 @@ import { ManagerBriefPanel } from "@/components/ManagerBriefPanel";
 import { OperatorJobAid } from "@/components/OperatorJobAid";
 import { LocalTextEnrich } from "@/components/LocalTextEnrich";
 import { ProcessFramingBanner } from "@/components/ProcessFramingBanner";
+import { RecipeReadinessPanel } from "@/components/RecipeReadinessPanel";
 import { ManufacturingTextTable } from "@/components/ManufacturingTextTable";
 import { LiteratureTable } from "@/components/LiteratureTable";
 import { PatentsTable } from "@/components/PatentsTable";
@@ -458,6 +459,7 @@ export function LiveMoleculeDossier({
       <div className="mt-10 grid gap-6 lg:grid-cols-3">
         <div className="space-y-8 lg:col-span-2">
           <ProcessFramingBanner dossier={dossier} />
+          <RecipeReadinessPanel dossier={dossier} />
 
           {/* Primary plant content (match mock/example order) */}
           <CriticalParametersBoard routes={dossier.processRoutes} />

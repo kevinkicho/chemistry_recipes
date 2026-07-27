@@ -52,7 +52,7 @@ ok("extractFactsFromUserText exported", /export function extractFactsFromUserTex
 
 // Remaining free sources wired
 ok("gather uses PubChem patent xrefs", /fetchPubchemPatentIds|pubchemPatentIds/.test(gather));
-ok("gather uses ORD browse annotation", /buildOrdBrowseAnnotation/.test(gather));
+ok("gather uses ORD context", /fetchOrdContext|buildOrdBrowseAnnotation/.test(gather));
 
 // Export operator + public brief
 const exp = read("lib/export/techTransfer.ts");

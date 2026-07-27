@@ -14,6 +14,8 @@ export interface KeggCompound {
   formula?: string;
   pathways: Array<{ id: string; name: string }>;
   reactions: string[];
+  /** Equation strings from KEGG rn: entries when fetched */
+  reactionEquations?: string[];
   url: string;
 }
 
@@ -103,13 +105,37 @@ export async function fetchKeggByName(
     }
   }
 
+  const reactionIds = [...new Set(reactions)].slice(0, 12);
+
+  // Fetch a few reaction equations for process / pathway context
+  const reactionEquations: string[] = [];
+  for (const rid of reactionIds.slice(0, 4)) {
+    const rUrl = `${KEGG}/get/rn:${rid}`;
+    const rDetail = await fetchText(rUrl);
+    traces.push(rDetail.trace);
+    if (!rDetail.trace.ok || !rDetail.text) continue;
+    let equation: string | undefined;
+    let definition: string | undefined;
+    for (const raw of rDetail.text.split("\n")) {
+      if (raw.startsWith("EQUATION")) {
+        equation = raw.replace(/^EQUATION\s+/, "").trim();
+      }
+      if (raw.startsWith("DEFINITION")) {
+        definition = raw.replace(/^DEFINITION\s+/, "").trim();
+      }
+    }
+    const line = [rid, equation || definition].filter(Boolean).join(": ");
+    if (line.length > 4) reactionEquations.push(line);
+  }
+
   return {
     hit: {
       id,
       name: displayName,
       formula,
       pathways: pathways.slice(0, 8),
-      reactions: [...new Set(reactions)].slice(0, 12),
+      reactions: reactionIds,
+      reactionEquations,
       url: `https://www.kegg.jp/entry/${id}`,
     },
     traces,

@@ -48,6 +48,10 @@ const critical = [
   "components/OperatorJobAid.tsx",
   "components/LocalTextEnrich.tsx",
   "components/ProcessFramingBanner.tsx",
+  "components/RecipeReadinessPanel.tsx",
+  "lib/dossier/recipeReadiness.ts",
+  "lib/api/rhea.ts",
+  "lib/api/patentFullText.ts",
   "components/ValidationChecklist.tsx",
   "components/SourceCoverageMap.tsx",
   "components/EvidenceScoreExplainer.tsx",
@@ -120,6 +124,22 @@ ok("live dossier mounts ManagerBriefPanel", /ManagerBriefPanel/.test(liveDossier
 ok("live dossier mounts OperatorJobAid", /OperatorJobAid/.test(liveDossier));
 ok("live dossier mounts LocalTextEnrich", /LocalTextEnrich/.test(liveDossier));
 ok("live dossier mounts ProcessFramingBanner", /ProcessFramingBanner/.test(liveDossier));
+ok("live dossier mounts RecipeReadinessPanel", /RecipeReadinessPanel/.test(liveDossier));
+ok("recipe readiness module exists", exists("lib/dossier/recipeReadiness.ts"));
+ok(
+  "europePmc OA full text helper",
+  /enrichLiteratureWithOaFullText|fetchEuropePmcFullTextXml/.test(read("lib/api/europePmc.ts"))
+);
+ok("patent full text densify module", exists("lib/api/patentFullText.ts"));
+ok("rhea client module", exists("lib/api/rhea.ts"));
+ok(
+  "gather uses procedureExcerpts",
+  /procedureExcerpts/.test(read("lib/dossier/gather.ts"))
+);
+ok(
+  "gather uses ORD fetchOrdContext",
+  /fetchOrdContext/.test(read("lib/dossier/gather.ts"))
+);
 
 const schemaCache = read("lib/idb/dossierCache.ts");
 ok("IndexedDB schema version >= 9", /SCHEMA_VERSION\s*=\s*([9]|\d{2,})/.test(schemaCache));
@@ -149,6 +169,8 @@ const sourcesReg = read("components/SourcesRegistry.tsx");
 ok("SourcesRegistry wires comptox", /"comptox"/.test(sourcesReg));
 ok("SourcesRegistry wires dailymed", /"dailymed"/.test(sourcesReg));
 ok("SourcesRegistry wires semantic-scholar", /"semantic-scholar"/.test(sourcesReg));
+ok("SourcesRegistry wires rhea", /"rhea"/.test(sourcesReg));
+ok("SourcesRegistry recipe focus", /RECIPE_FOCUS_IDS|recipeFocus/.test(sourcesReg));
 
 // Probes include new APIs
 const probes = read("lib/diagnostics/probes.ts");
