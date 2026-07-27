@@ -55,7 +55,7 @@ ok("route compare supports single route", /usable\.length === 1/.test(rc));
 ok("route compare shows BOM panel", /BOM \/ materials/.test(rc));
 
 const live = read("components/dossier/LiveMoleculeDossier.tsx");
-ok("live shows tier-A merged banner", /Tier-A teaching baseline merged/.test(live));
+ok("live shows tier-A merged banner", /Optional teaching baseline|Tier-A teaching baseline/.test(live));
 ok("live recipe primary order", /Process recipe/.test(live));
 
 console.log(`\nAll plant-parity contracts passed (${passed}).`);

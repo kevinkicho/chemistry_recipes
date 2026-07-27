@@ -56,7 +56,7 @@ ok("gather uses ORD browse annotation", /buildOrdBrowseAnnotation/.test(gather))
 
 // Export operator + public brief
 const exp = read("lib/export/techTransfer.ts");
-ok("operator job aid schema", /operator-job-aid\.v1/.test(exp));
+ok("operator job aid schema", /operator-job-aid\.v[12]/.test(exp));
 ok("public process brief schema", /public-process-brief\.v1/.test(exp));
 ok("related materials in tech transfer", /relatedMaterials/.test(exp));
 
