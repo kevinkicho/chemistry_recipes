@@ -15,6 +15,7 @@ Implementation notes for the Chemistry Recipes Next.js app (`web/`).
 | [Client storage](./client-storage.md) | IndexedDB, snapshots, health probe |
 | [Tech-transfer export](./tech-transfer-export.md) | Schema v2, MES/LIMS, checklist |
 | [Testing](./testing.md) | `npm test` contracts |
+| [Test specification](./test-spec.md) | REQ matrix: lifecycle, prompt QC, API wiring, accuracy |
 
 ## Related
 

@@ -40,6 +40,7 @@ Evidence-first process recipe hub (not GMP / not regulatory decision support).
 | [Client storage](./engineering/client-storage.md) | IndexedDB cache, snapshots, health |
 | [Tech-transfer export](./engineering/tech-transfer-export.md) | Schema v2, MES/LIMS rows, validation checklist |
 | [Testing](./engineering/testing.md) | Unit contracts, API smoke, coverage commands |
+| [Test specification](./engineering/test-spec.md) | REQ matrix: lifecycle, prompt QC, resilience, API wiring |
 
 ### Reference (data & sources)
 
