@@ -119,8 +119,16 @@ async function fetchWithTraceOnce(
 ): Promise<{ text: string; data: unknown | null; trace: ApiFetchTrace }> {
   const method = (init?.method ?? "GET").toUpperCase();
   const fetchedAt = new Date().toISOString();
-  const { timeoutMs, signal: outerSignal, retries: _r, retryBaseMs: _b, ...rest } =
-    init ?? {};
+  const timeoutMs = init?.timeoutMs;
+  const outerSignal = init?.signal;
+  // Build fetch init without wrapper-only options
+  const rest: RequestInit & { next?: { revalidate?: number } } = {
+    ...(init ?? {}),
+  };
+  delete (rest as TraceFetchInit).timeoutMs;
+  delete (rest as TraceFetchInit).retries;
+  delete (rest as TraceFetchInit).retryBaseMs;
+  delete (rest as { signal?: AbortSignal }).signal;
 
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;

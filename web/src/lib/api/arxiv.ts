@@ -9,7 +9,6 @@ import { extractProcessWindowsFromFullText } from "@/lib/api/europePmc";
 import { rankLiteratureByProcessRelevance } from "@/lib/literature/rank";
 import { politeDelay } from "@/lib/api/rateLimit";
 
-const ARXIV_API = "http://export.arxiv.org/api/query";
 // Prefer https when available
 const ARXIV_API_HTTPS = "https://export.arxiv.org/api/query";
 

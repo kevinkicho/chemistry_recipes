@@ -4,7 +4,7 @@ import {
   fetchJsonWithTrace,
   type ApiFetchTrace,
 } from "@/lib/api/trace";
-import { HUB_INDEX, resolveLocalHubCids } from "@/lib/data/hubIndex";
+import { HUB_INDEX } from "@/lib/data/hubIndex";
 import { resolveLocalSearchHits } from "@/lib/data/searchLocalIndex";
 
 const PUG = "https://pubchem.ncbi.nlm.nih.gov/rest/pug";

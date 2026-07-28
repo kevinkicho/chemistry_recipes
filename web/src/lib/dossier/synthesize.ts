@@ -8,7 +8,6 @@ import { getServerAiEnv } from "@/lib/ai/serverEnv";
 import { OLLAMA_CLOUD_HOST } from "@/lib/ai/config";
 import type { CompoundEvidence } from "@/lib/dossier/types";
 import type {
-  AiDataFeedSource,
   AiProvenanceRecord,
   AiSynthesis,
   SynthesizedRoute,

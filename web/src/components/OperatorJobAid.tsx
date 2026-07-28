@@ -172,7 +172,7 @@ export function OperatorJobAid({ dossier }: { dossier: LiveDossier }) {
   const pf = dossier.processFacts;
   const framing = dossier.processFraming || pf?.framing || "evidence-lead-pack";
   const route = dossier.processRoutes[0];
-  const allFacts = pf?.facts || [];
+  const allFacts = useMemo(() => pf?.facts || [], [pf?.facts]);
   const hazards = (dossier.hazards.hazardStatements || []).slice(0, 10);
   const precautions = (dossier.hazards.precautionaryStatements || []).slice(0, 6);
   const gaps = pf?.openGaps?.slice(0, 10) || [];
