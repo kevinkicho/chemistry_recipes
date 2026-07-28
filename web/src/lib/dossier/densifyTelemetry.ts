@@ -9,7 +9,12 @@ const MAX = 40;
 export interface DensifyRunRecord {
   id: string;
   at: string;
-  kind: "batch-json" | "batch-stream" | "single" | "agent-neighbor";
+  kind:
+    | "batch-json"
+    | "batch-stream"
+    | "single"
+    | "agent-neighbor"
+    | "campaign-server";
   cids: number[];
   concurrency?: number;
   ok: number;

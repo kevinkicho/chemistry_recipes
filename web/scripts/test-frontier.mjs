@@ -146,6 +146,9 @@ const campApi = read("app/api/ai/campaign/route.ts");
 ok("campaign API densify + answer", /buildOneCidForBatch/.test(campApi) && /answerCampaignQuestion/.test(campApi));
 ok("campaign API max 8", /MAX_CIDS\s*=\s*8/.test(campApi));
 ok("CampaignAgentPanel server mode", /useServer|\/api\/ai\/campaign/.test(read("components/frontier/CampaignAgentPanel.tsx")));
+ok("CampaignAgentPanel force densify", /force/.test(read("components/frontier/CampaignAgentPanel.tsx")));
+ok("CampaignAgentPanel preflight", /campaignStatuses|healthMsg/.test(read("components/frontier/CampaignAgentPanel.tsx")));
+ok("telemetry campaign-server kind", /campaign-server/.test(read("lib/dossier/densifyTelemetry.ts")));
 ok(
   "densifyQuality atlas after knowledge",
   /withProcessKnowledge/.test(pipe) &&

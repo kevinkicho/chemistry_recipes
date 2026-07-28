@@ -53,7 +53,11 @@ Export: process-knowledge JSON from the Evidence science panel.
 | **Edge evidence compare** | Side-by-side network edge evidence + linked condition quotes |
 | **Edge-pair experiments** | Auto research questions from contrasting / thin network edges |
 | **Campaign agent** | Multi-CID Q&A over merged cache (`campaign-agent.v1`) |
-| **Densify telemetry** | Local concurrency / ok-fail / duration history for batch runs |
+| **`POST /api/ai/campaign`** | Server densify up to 8 CIDs then quote-bound campaign answer (force optional) |
+| **Campaign package preflight** | Cached/thin CID status before ask; force re-gather checkbox |
+| **Paste ideal delta** | After local procedure paste: Ideal score and process-fact before→after |
+| **Densify quality audit** | Procedure chars, OA/patent windows, atlas obs, hypotheses on build audit |
+| **Densify telemetry** | Local concurrency / ok-fail / duration history (incl. campaign-server) |
 | **Knowledge fingerprint** | Skip process-knowledge rebuild when densify inputs unchanged |
 | **Batch cache skip** | Warm IndexedDB hits skip server rebuild (12h, force override) |
 | **Transient retries** | Per-CID exponential backoff on timeout/5xx during batch densify |

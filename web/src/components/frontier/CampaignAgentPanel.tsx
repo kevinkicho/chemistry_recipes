@@ -7,6 +7,12 @@ import {
   subscribeCampaigns,
 } from "@/lib/workspace/campaigns";
 import { runCampaignAgent } from "@/lib/frontier/campaignAgent";
+import {
+  campaignStatuses,
+  type CampaignCidStatus,
+} from "@/lib/frontier/campaignKnowledge";
+import { recordDensifyRun } from "@/lib/dossier/densifyTelemetry";
+import { batchDensifyCids } from "@/lib/dossier/batchClient";
 
 /**
  * Campaign-level quote-bound Q&A over merged multi-CID caches.
@@ -22,6 +28,9 @@ export function CampaignAgentPanel() {
   const [steps, setSteps] = useState<string[]>([]);
   const [exps, setExps] = useState<string[]>([]);
   const [useServer, setUseServer] = useState(false);
+  const [force, setForce] = useState(false);
+  const [health, setHealth] = useState<CampaignCidStatus[] | null>(null);
+  const [healthMsg, setHealthMsg] = useState<string | null>(null);
 
   const reload = useCallback(() => {
     const rows = listCampaigns();
@@ -34,6 +43,35 @@ export function CampaignAgentPanel() {
     return subscribeCampaigns(reload);
   }, [reload]);
 
+  // Preflight: how dense is the local campaign package?
+  useEffect(() => {
+    const camp = campaigns.find((c) => c.id === selected);
+    if (!camp) {
+      setHealth(null);
+      setHealthMsg(null);
+      return;
+    }
+    let cancelled = false;
+    void campaignStatuses(camp.cids, camp.labels).then((statuses) => {
+      if (cancelled) return;
+      setHealth(statuses);
+      const cached = statuses.filter((s) => s.cached).length;
+      const obs = statuses.reduce((n, s) => n + (s.observationCount || 0), 0);
+      const thin = statuses.filter(
+        (s) => s.cached && (s.observationCount || 0) < 2
+      ).length;
+      const missing = statuses.filter((s) => !s.cached).length;
+      setHealthMsg(
+        `Local package: ${cached}/${camp.cids.length} cached · ${obs} atlas obs` +
+          (missing ? ` · ${missing} not densified` : "") +
+          (thin ? ` · ${thin} thin` : "")
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selected, campaigns]);
+
   async function run() {
     const camp = campaigns.find((c) => c.id === selected);
     if (!camp || q.trim().length < 4) return;
@@ -41,8 +79,10 @@ export function CampaignAgentPanel() {
     setOut(null);
     setSteps([]);
     setExps([]);
+    const t0 = Date.now();
     try {
       let res: Awaited<ReturnType<typeof runCampaignAgent>>;
+      let densify: Array<{ cid: number; ok: boolean; error?: string }> | undefined;
       if (useServer) {
         const r = await fetch("/api/ai/campaign", {
           method: "POST",
@@ -52,13 +92,29 @@ export function CampaignAgentPanel() {
             question: q,
             name: camp.name,
             concurrency: 2,
+            force,
           }),
         });
         const data = (await r.json()) as Awaited<
           ReturnType<typeof runCampaignAgent>
-        > & { error?: string };
+        > & {
+          error?: string;
+          densify?: Array<{ cid: number; ok: boolean; error?: string }>;
+        };
         if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
         res = data;
+        densify = data.densify;
+        const ok = densify?.filter((d) => d.ok).length ?? 0;
+        const fail = densify?.filter((d) => !d.ok).length ?? 0;
+        recordDensifyRun({
+          kind: "campaign-server",
+          cids: camp.cids,
+          concurrency: 2,
+          ok,
+          fail,
+          durationMs: Date.now() - t0,
+          detail: force ? "force densify + campaign answer" : "campaign densify + answer",
+        });
       } else {
         res = await runCampaignAgent(camp, q);
       }
@@ -68,23 +124,79 @@ export function CampaignAgentPanel() {
           .slice(0, 5)
           .map((e) => `${e.priority}: ${e.question}`)
       );
+      const densifyLine =
+        densify && densify.length
+          ? `densify ${densify.filter((d) => d.ok).length}/${densify.length}${
+              densify.some((d) => !d.ok)
+                ? ` · fail: ${densify
+                    .filter((d) => !d.ok)
+                    .map((d) => d.cid)
+                    .join(",")}`
+                : ""
+            }`
+          : null;
       setOut(
         [
-          useServer ? "mode: server densify + merge" : "mode: local IndexedDB cache",
+          useServer
+            ? `mode: server densify + merge${force ? " (force)" : ""}`
+            : "mode: local IndexedDB cache",
+          densifyLine,
           res.answer.insufficientEvidence
             ? "⚠ insufficient free-public evidence"
             : "✓ campaign-grounded",
           `cached ${res.metrics.cachedCount}/${res.metrics.requestedCount} · obs ${res.metrics.totalObservations} · edges ${res.metrics.networkEdges}`,
           "",
           res.answer.answer,
-        ].join("\n")
+        ]
+          .filter(Boolean)
+          .join("\n")
       );
+      // Warm local IndexedDB from server batch (uses evidence cache when possible)
+      // so preflight + local-mode re-asks see densified packages.
+      if (useServer && densify?.some((d) => d.ok)) {
+        const warmCids = densify.filter((d) => d.ok).map((d) => d.cid);
+        setSteps((prev) => [
+          ...prev,
+          `[densify] Warming local cache for ${warmCids.length} CID(s)…`,
+        ]);
+        try {
+          await batchDensifyCids(warmCids, {
+            cacheLocal: true,
+            concurrency: 2,
+            force: false,
+            includeDossiers: false,
+          });
+          const statuses = await campaignStatuses(camp.cids, camp.labels);
+          setHealth(statuses);
+          const cached = statuses.filter((s) => s.cached).length;
+          const obs = statuses.reduce(
+            (n, s) => n + (s.observationCount || 0),
+            0
+          );
+          setHealthMsg(
+            `Local package: ${cached}/${camp.cids.length} cached · ${obs} atlas obs (warmed after server)`
+          );
+          setSteps((prev) => [
+            ...prev,
+            `[densify] Local cache warm complete · ${cached}/${camp.cids.length}`,
+          ]);
+        } catch {
+          setSteps((prev) => [
+            ...prev,
+            "[densify] Local cache warm skipped (answer still valid from server package)",
+          ]);
+        }
+      }
     } catch (e) {
       setOut(e instanceof Error ? e.message : "Campaign agent failed");
     } finally {
       setBusy(false);
     }
   }
+
+  const camp = campaigns.find((c) => c.id === selected);
+  const missingCids =
+    health?.filter((s) => !s.cached).map((s) => s.cid) || [];
 
   return (
     <div
@@ -98,8 +210,8 @@ export function CampaignAgentPanel() {
         Multi-CID science agent
       </h2>
       <p className="mt-1 text-[11px] text-slate-500">
-        Answers only from cached campaign densify (merged atlas + network). No plant
-        invention. Stream densify first if cache is empty.
+        Answers only from campaign densify (merged atlas + network). No plant
+        invention. Stream densify first if local cache is empty, or use server mode.
       </p>
 
       <label className="mt-3 block text-[10px] font-semibold uppercase text-slate-500">
@@ -118,6 +230,39 @@ export function CampaignAgentPanel() {
         </select>
       </label>
 
+      {healthMsg ? (
+        <p
+          className={`mt-2 text-[11px] ${
+            missingCids.length || (health && health.every((s) => !s.cached))
+              ? "text-amber-200/90"
+              : "text-slate-400"
+          }`}
+          role="status"
+        >
+          {healthMsg}
+          {missingCids.length > 0 && !useServer ? (
+            <span className="block text-[10px] text-amber-200/70">
+              Tip: enable server densify, or stream densify missing CIDs in Campaign
+              graph ({missingCids.slice(0, 6).join(", ")}
+              {missingCids.length > 6 ? "…" : ""}).
+            </span>
+          ) : null}
+        </p>
+      ) : null}
+
+      {health && health.length > 0 ? (
+        <ul className="mt-2 max-h-24 space-y-0.5 overflow-y-auto font-mono text-[10px] text-slate-600">
+          {health.map((s) => (
+            <li key={s.cid}>
+              CID {s.cid}
+              {s.name ? ` ${s.name.slice(0, 24)}` : ""} ·{" "}
+              {s.cached ? `obs ${s.observationCount ?? 0}` : "not cached"} · ideal{" "}
+              {s.idealScore ?? "—"}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
       <textarea
         value={q}
         onChange={(e) => setQ(e.target.value)}
@@ -132,14 +277,33 @@ export function CampaignAgentPanel() {
         />
         Server densify CIDs then answer (slower, fresher free-public data)
       </label>
+      {useServer ? (
+        <label className="mt-1 flex items-center gap-2 text-[11px] text-slate-400">
+          <input
+            type="checkbox"
+            checked={force}
+            onChange={(e) => setForce(e.target.checked)}
+          />
+          Force re-gather (skip server evidence cache)
+        </label>
+      ) : null}
       <button
         type="button"
         disabled={busy || !selected || q.trim().length < 4}
         onClick={() => void run()}
         className="mt-2 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 disabled:opacity-40"
       >
-        {busy ? "Running…" : "Ask campaign package"}
+        {busy
+          ? useServer
+            ? "Densifying + answering…"
+            : "Running…"
+          : "Ask campaign package"}
       </button>
+      {camp && !useServer && missingCids.length === camp.cids.length ? (
+        <p className="mt-1 text-[10px] text-amber-200/80">
+          No local densify yet — answer will refuse until you densify.
+        </p>
+      ) : null}
 
       {steps.length > 0 ? (
         <ol className="mt-2 list-decimal space-y-0.5 pl-4 text-[10px] text-slate-500">
