@@ -7,6 +7,7 @@ import type { LiveDossier } from "@/lib/dossier/types";
 import type { ProcessKnowledgePackage, EvidenceAnswer } from "@/lib/frontier/types";
 import { buildProcessKnowledgePackage } from "@/lib/frontier/buildKnowledge";
 import { answerFromEvidencePackage } from "@/lib/frontier/evidenceQa";
+import { prioritizedNeighborCids } from "@/lib/frontier/neighborDensifyGraph";
 
 export interface ScienceAgentStep {
   id: string;
@@ -82,17 +83,22 @@ RULES:
 6. Not GMP advice. Not legal/IP advice.`;
 
 /**
- * Suggest neighbor CIDs to densify from network (exclude center).
+ * Suggest neighbor CIDs to densify — impurities / intermediates first
+ * when dossier related-entities are available via optional graph helper.
  */
 export function suggestNeighborCids(
   pack: ProcessKnowledgePackage,
-  max = 3
+  max = 3,
+  prioritized?: number[]
 ): number[] {
   const center = pack.cid;
+  const fromPriority = (prioritized || []).filter(
+    (c) => c > 0 && c !== center
+  );
   const fromNet = (pack.reactionNetwork?.campaignCids || []).filter(
     (c) => c > 0 && c !== center
   );
-  return [...new Set(fromNet)].slice(0, max);
+  return [...new Set([...fromPriority, ...fromNet])].slice(0, max);
 }
 
 /**
@@ -181,7 +187,11 @@ export async function runScienceAgentWithTools(
     );
 
   if (wantNeighbors && opts?.densifyCid) {
-    const targets = suggestNeighborCids(knowledge, opts.maxNeighbors ?? 2);
+    const targets = suggestNeighborCids(
+      knowledge,
+      opts.maxNeighbors ?? 2,
+      prioritizedNeighborCids(dossier, opts.maxNeighbors ?? 4)
+    );
     for (const ncid of targets) {
       const tD = Date.now();
       steps.push({

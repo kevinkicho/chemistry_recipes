@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { LiveDossier } from "@/lib/dossier/types";
 import { buildReactionNetwork } from "@/lib/frontier/reactionNetwork";
 import { buildConditionAtlas } from "@/lib/frontier/conditionAtlas";
+import { buildNeighborDensifyGraph } from "@/lib/frontier/neighborDensifyGraph";
 import { routes } from "@/lib/routes";
 import {
   addCidToCampaign,
@@ -11,10 +12,11 @@ import {
   listCampaigns,
 } from "@/lib/workspace/campaigns";
 import { NetworkEdgeComparePanel } from "@/components/frontier/NetworkEdgeComparePanel";
+import { streamBatchDensifyCids } from "@/lib/dossier/batchClient";
 import { useState } from "react";
 
 /**
- * Multi-CID process network + campaign hooks.
+ * Multi-CID process network + impurity densify queue + campaign hooks.
  */
 export function ReactionNetworkPanel({ dossier }: { dossier: LiveDossier }) {
   const atlas =
@@ -22,7 +24,10 @@ export function ReactionNetworkPanel({ dossier }: { dossier: LiveDossier }) {
   const net =
     dossier.processKnowledge?.reactionNetwork ||
     buildReactionNetwork(dossier, atlas);
+  const neighborGraph = buildNeighborDensifyGraph(dossier, net);
   const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [log, setLog] = useState<string[]>([]);
 
   function saveCampaign() {
     const name = `${net.centerName} network`;
@@ -35,6 +40,35 @@ export function ReactionNetworkPanel({ dossier }: { dossier: LiveDossier }) {
       ),
     });
     setMsg(`Campaign saved: ${camp.name} (${camp.cids.length} CIDs)`);
+  }
+
+  function saveImpurityCampaign() {
+    const cids =
+      neighborGraph.impurityCids.length > 0
+        ? [dossier.cid, ...neighborGraph.impurityCids, ...neighborGraph.intermediateCids]
+        : neighborGraph.campaignCids;
+    const unique = [...new Set(cids)].slice(0, 40);
+    if (unique.length < 2) {
+      setMsg("Need related impurity/intermediate PubChem CIDs first.");
+      return;
+    }
+    const labels: Record<string, string> = {
+      [String(dossier.cid)]: neighborGraph.centerName,
+    };
+    for (const t of neighborGraph.queue) {
+      labels[String(t.cid)] = `${t.label} (${t.role})`;
+    }
+    const camp = createCampaign(
+      `${neighborGraph.centerName} impurity/related`,
+      unique,
+      {
+        description: neighborGraph.summary,
+        labels,
+      }
+    );
+    setMsg(
+      `Impurity/related campaign: ${camp.name} · ${camp.cids.length} CIDs (${neighborGraph.impurityCids.length} impurity)`
+    );
   }
 
   function addToLatest() {
@@ -51,6 +85,49 @@ export function ReactionNetworkPanel({ dossier }: { dossier: LiveDossier }) {
     setMsg(c ? `Added CID ${dossier.cid} to “${c.name}”` : "Could not update campaign");
   }
 
+  async function densifyNeighborQueue() {
+    const cids = neighborGraph.queue.map((t) => t.cid).slice(0, 8);
+    if (!cids.length) {
+      setMsg("No related CIDs with PubChem IDs to densify.");
+      return;
+    }
+    setBusy(true);
+    setLog([]);
+    setMsg(`Densifying impurity/related queue: ${cids.join(", ")}`);
+    try {
+      await streamBatchDensifyCids(cids, {
+        includeDossiers: true,
+        cacheLocal: true,
+        concurrency: 2,
+        retries: 2,
+        onProgress: (m) => setMsg(m),
+        onEvent: (ev) => {
+          if (ev.type === "cid_complete" && ev.cid != null) {
+            const role =
+              neighborGraph.queue.find((t) => t.cid === ev.cid)?.role || "?";
+            setLog((prev) =>
+              [
+                ...prev,
+                `CID ${ev.cid} (${role}): ${
+                  ev.ok ? "ok" : ev.error || "fail"
+                } · obs ${ev.summary?.observationCount ?? "—"} · ideal ${
+                  ev.summary?.idealScore ?? "—"
+                }`,
+              ].slice(-20)
+            );
+          }
+        },
+      });
+      setMsg(
+        `Neighbor densify done · ${cids.length} targeted · impurities first. Open Workspace for campaign brief.`
+      );
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Neighbor densify failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div
       id="reaction-network"
@@ -64,6 +141,7 @@ export function ReactionNetworkPanel({ dossier }: { dossier: LiveDossier }) {
       </h2>
       <p className="mt-1 text-[11px] text-slate-500">{net.disclaimer}</p>
       <p className="mt-2 text-xs text-slate-300">{net.summary}</p>
+      <p className="mt-1 text-[11px] text-amber-100/80">{neighborGraph.summary}</p>
 
       <div className="mt-3 flex flex-wrap gap-2">
         <button
@@ -72,6 +150,23 @@ export function ReactionNetworkPanel({ dossier }: { dossier: LiveDossier }) {
           className="rounded-lg bg-sky-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-sky-500"
         >
           Save as science campaign
+        </button>
+        <button
+          type="button"
+          onClick={saveImpurityCampaign}
+          className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-100"
+        >
+          Impurity/related campaign
+        </button>
+        <button
+          type="button"
+          disabled={busy || neighborGraph.queue.length === 0}
+          onClick={() => void densifyNeighborQueue()}
+          className="rounded-lg bg-amber-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-amber-500 disabled:opacity-40"
+        >
+          {busy
+            ? "Densifying neighbors…"
+            : `Densify impurities/related (${neighborGraph.queue.length})`}
         </button>
         <button
           type="button"
@@ -88,6 +183,35 @@ export function ReactionNetworkPanel({ dossier }: { dossier: LiveDossier }) {
         </Link>
       </div>
       {msg ? <p className="mt-2 text-[11px] text-teal-300/90">{msg}</p> : null}
+      {log.length > 0 ? (
+        <ul className="mt-2 max-h-24 space-y-0.5 overflow-y-auto font-mono text-[10px] text-slate-500">
+          {log.map((l, i) => (
+            <li key={i}>{l}</li>
+          ))}
+        </ul>
+      ) : null}
+
+      {neighborGraph.queue.length > 0 ? (
+        <div className="mt-3">
+          <h3 className="text-[10px] font-semibold uppercase text-amber-200/80">
+            Densify queue (impurity first)
+          </h3>
+          <ul className="mt-1 max-h-28 space-y-0.5 overflow-y-auto font-mono text-[10px] text-slate-500">
+            {neighborGraph.queue.slice(0, 12).map((t) => (
+              <li key={t.cid}>
+                <Link
+                  href={routes.pubchem(t.cid)}
+                  className="text-sky-300 hover:underline"
+                >
+                  CID {t.cid}
+                </Link>{" "}
+                {t.label.slice(0, 28)} · <span className="text-amber-200/70">{t.role}</span>{" "}
+                · p={t.priority}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <div>

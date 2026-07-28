@@ -313,6 +313,66 @@ ok(
   )
 );
 ok(
+  "neighborDensifyGraph module",
+  existsSync(join(root, "src/lib/frontier/neighborDensifyGraph.ts"))
+);
+ok(
+  "buildNeighborDensifyGraph",
+  /export function buildNeighborDensifyGraph/.test(
+    read("lib/frontier/neighborDensifyGraph.ts")
+  )
+);
+ok(
+  "impurity-first priority",
+  /impurity:\s*100/.test(read("lib/frontier/neighborDensifyGraph.ts"))
+);
+ok(
+  "science agent uses prioritized neighbors",
+  /prioritizedNeighborCids/.test(read("lib/frontier/scienceAgent.ts"))
+);
+ok(
+  "ReactionNetwork densify neighbors",
+  /densifyNeighborQueue|Impurity\/related campaign/.test(
+    read("components/frontier/ReactionNetworkPanel.tsx")
+  )
+);
+ok(
+  "campaignIdealRollup module",
+  existsSync(join(root, "src/lib/frontier/campaignIdealRollup.ts"))
+);
+ok(
+  "buildCampaignIdealRollup",
+  /export function buildCampaignIdealRollup/.test(
+    read("lib/frontier/campaignIdealRollup.ts")
+  )
+);
+ok(
+  "CampaignBrief ideal rollup",
+  /buildCampaignIdealRollup|meanScore|systemicGaps/.test(
+    read("components/frontier/CampaignBriefPanel.tsx")
+  )
+);
+ok(
+  "export idealRollup",
+  /idealRollup/.test(read("lib/frontier/campaignExport.ts"))
+);
+ok(
+  "ordCampaignBridge module",
+  existsSync(join(root, "src/lib/frontier/ordCampaignBridge.ts"))
+);
+ok(
+  "createCampaignFromOrdSnippets",
+  /export function createCampaignFromOrdSnippets/.test(
+    read("lib/frontier/ordCampaignBridge.ts")
+  )
+);
+ok(
+  "OrdBulkPanel campaign bridge",
+  /Spin ORD|attachOrdSnippetToCid|createCampaignFromOrdSnippets/.test(
+    read("components/OrdBulkPanel.tsx")
+  )
+);
+ok(
   "densifyQuality atlas after knowledge",
   /withProcessKnowledge/.test(pipe) &&
     /conditionObservations/.test(pipe) &&

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   ORD_BULK,
   clearOrdBulkSnippets,
@@ -8,9 +9,17 @@ import {
   ordBrowseUrl,
   saveOrdBulkSnippet,
 } from "@/lib/api/ordBulk";
+import {
+  analyzeOrdSnippet,
+  attachOrdSnippetToCid,
+  createCampaignFromOrdSnippets,
+  ordBridgeInventory,
+} from "@/lib/frontier/ordCampaignBridge";
+import { routes } from "@/lib/routes";
 
 /**
  * ORD offline bulk hooks — deep links + local snippet index (user-controlled).
+ * Bridges to densify paste + science campaigns.
  */
 export function OrdBulkPanel({
   name,
@@ -27,6 +36,7 @@ export function OrdBulkPanel({
   const [tick, setTick] = useState(0);
   const rows = listOrdBulkSnippets(name);
   void tick;
+  const inv = ordBridgeInventory();
 
   return (
     <div
@@ -35,6 +45,7 @@ export function OrdBulkPanel({
     >
       <h2 className="text-sm font-semibold text-slate-100">ORD offline / bulk hooks</h2>
       <p className="mt-1 text-[11px] text-slate-500">{ORD_BULK.note}</p>
+      <p className="mt-1 text-[10px] text-slate-600">{inv.summary}</p>
       <div className="mt-2 flex flex-wrap gap-2 text-xs">
         <a
           href={ordBrowseUrl(component)}
@@ -85,13 +96,70 @@ export function OrdBulkPanel({
               return;
             }
             setText("");
-            setMsg(`Saved ORD snippet (${row.chars} chars) locally.`);
+            const a = analyzeOrdSnippet(row);
+            setMsg(
+              `Saved ORD snippet (${row.chars} chars) · procedure score ${a.procedureScore}` +
+                (a.attachCids.length
+                  ? ` · linked CIDs ${a.attachCids.slice(0, 4).join(",")}`
+                  : "")
+            );
             setTick((n) => n + 1);
           }}
           className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-white"
         >
           Save local ORD snippet
         </button>
+        {cid ? (
+          <button
+            type="button"
+            onClick={() => {
+              const latest = listOrdBulkSnippets(name)[0];
+              if (!latest) {
+                setMsg("Save an ORD snippet first, then attach to this CID.");
+                return;
+              }
+              const res = attachOrdSnippetToCid(cid, latest);
+              setMsg(
+                res.ok
+                  ? `Attached ORD text to CID ${cid} (${res.chars} chars) — re-extract process facts (paste wizard path).`
+                  : res.error || "Attach failed"
+              );
+              setTick((n) => n + 1);
+            }}
+            className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-500"
+          >
+            Attach latest ORD → this CID densify
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => {
+            const camp = createCampaignFromOrdSnippets({
+              centerCid: cid,
+              centerLabel: name,
+              snippets: listOrdBulkSnippets(),
+            });
+            if (!camp) {
+              setMsg(
+                "Need ORD snippets with CID/hub molecule mentions, or a dossier CID."
+              );
+              return;
+            }
+            setMsg(
+              `ORD science campaign “${camp.name}” · ${camp.cids.length} CID(s). Open Workspace to densify.`
+            );
+            setTick((n) => n + 1);
+          }}
+          className="rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-100"
+        >
+          Spin ORD → science campaign
+        </button>
+        <Link
+          href={routes.workspace()}
+          className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-violet-300 hover:border-violet-500/40"
+        >
+          Workspace →
+        </Link>
         <button
           type="button"
           onClick={() => {
@@ -105,16 +173,26 @@ export function OrdBulkPanel({
         </button>
       </div>
       {cid ? (
-        <p className="mt-1 text-[10px] text-slate-600">CID {cid} · snippets: {rows.length}</p>
+        <p className="mt-1 text-[10px] text-slate-600">
+          CID {cid} · snippets for name: {rows.length} · global CIDs linked:{" "}
+          {inv.uniqueCids.length}
+        </p>
       ) : null}
       {msg ? <p className="mt-1 text-[11px] text-teal-300/90">{msg}</p> : null}
       {rows.length > 0 ? (
         <ul className="mt-2 max-h-28 space-y-1 overflow-y-auto text-[11px] text-slate-500">
-          {rows.slice(0, 6).map((r) => (
-            <li key={r.id} className="truncate">
-              {r.chars} chars · {r.savedAt.slice(0, 10)} · {r.text.slice(0, 80)}…
-            </li>
-          ))}
+          {rows.slice(0, 6).map((r) => {
+            const a = analyzeOrdSnippet(r);
+            return (
+              <li key={r.id} className="truncate">
+                {r.chars} chars · score {a.procedureScore}
+                {a.attachCids.length
+                  ? ` · CIDs ${a.attachCids.slice(0, 3).join(",")}`
+                  : ""}{" "}
+                · {r.text.slice(0, 60)}…
+              </li>
+            );
+          })}
         </ul>
       ) : null}
     </div>

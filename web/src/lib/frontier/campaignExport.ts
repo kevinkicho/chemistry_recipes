@@ -14,6 +14,8 @@ import type { CampaignScientificBrief } from "@/lib/frontier/campaignBrief";
 import { buildCampaignScientificBrief } from "@/lib/frontier/campaignBrief";
 import type { CampaignRouteHypothesesPackage } from "@/lib/frontier/campaignRouteHypotheses";
 import { buildCampaignRouteHypotheses } from "@/lib/frontier/campaignRouteHypotheses";
+import type { CampaignIdealRollup } from "@/lib/frontier/campaignIdealRollup";
+import { buildCampaignIdealRollup } from "@/lib/frontier/campaignIdealRollup";
 
 export const CAMPAIGN_KNOWLEDGE_SCHEMA =
   "chemistry-recipes.campaign-knowledge.v1" as const;
@@ -59,6 +61,8 @@ export interface CampaignKnowledgeExport {
   scientificBrief?: CampaignScientificBrief;
   /** Shared multi-CID route / unit-op hypotheses */
   routeHypotheses?: CampaignRouteHypothesesPackage;
+  /** Ideal-page parity rollup across densified CIDs */
+  idealRollup?: CampaignIdealRollup;
 }
 
 const DISCLAIMER =
@@ -93,6 +97,12 @@ export async function buildCampaignKnowledgeExport(
   const routeHypotheses = includeBrief
     ? buildCampaignRouteHypotheses(merged.dossiers, {
         campaignName: campaign.name,
+      })
+    : undefined;
+  const idealRollup = includeBrief
+    ? buildCampaignIdealRollup(merged.dossiers, {
+        campaignName: campaign.name,
+        requestedCount: campaign.cids.length,
       })
     : undefined;
 
@@ -132,6 +142,7 @@ export async function buildCampaignKnowledgeExport(
       : undefined,
     scientificBrief,
     routeHypotheses,
+    idealRollup,
   };
 }
 

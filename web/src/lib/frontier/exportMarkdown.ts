@@ -11,6 +11,7 @@ import type { CampaignRouteHypothesesPackage } from "@/lib/frontier/campaignRout
 import type { LiteratureDepthReport } from "@/lib/frontier/literatureDepth";
 import { buildLiteratureDepthReport } from "@/lib/frontier/literatureDepth";
 import { buildProcessKnowledgePackage } from "@/lib/frontier/buildKnowledge";
+import type { CampaignIdealRollup } from "@/lib/frontier/campaignIdealRollup";
 
 function h(level: number, text: string): string {
   return `${"#".repeat(level)} ${text}\n`;
@@ -269,6 +270,10 @@ export function formatCampaignKnowledgeMarkdown(
     parts.push(formatCampaignRoutesMarkdown(data.routeHypotheses));
   }
 
+  if (data.idealRollup) {
+    parts.push(formatCampaignIdealRollupMarkdown(data.idealRollup));
+  }
+
   if (data.agentRun) {
     parts.push(h(2, "Agent run"));
     parts.push(`**Q:** ${data.agentRun.question}\n`);
@@ -301,6 +306,53 @@ export function formatLiveDossierScienceMarkdown(dossier: LiveDossier): string {
     dossier.processKnowledge || buildProcessKnowledgePackage(dossier);
   const lit = buildLiteratureDepthReport(dossier);
   return formatProcessKnowledgeMarkdown(pack, { literatureDepth: lit });
+}
+
+export function formatCampaignIdealRollupMarkdown(
+  rollup: CampaignIdealRollup
+): string {
+  const parts: string[] = [];
+  parts.push(
+    h(1, `Campaign ideal rollup · ${rollup.campaignName || "campaign"}`)
+  );
+  parts.push(`> ${rollup.disclaimer}\n`);
+  parts.push(`${rollup.summary}\n`);
+  parts.push(h(2, "Scores"));
+  parts.push(
+    bullets([
+      `Mean: **${rollup.meanScore}/100**`,
+      `Min / max: ${rollup.minScore} / ${rollup.maxScore}`,
+      `Densified: ${rollup.densifiedCount}/${rollup.requestedCount}`,
+    ])
+  );
+  parts.push(h(2, "Per-CID ideal (weak first)"));
+  parts.push(
+    bullets(
+      rollup.rows.map(
+        (r) =>
+          `CID **${r.cid}** ${r.name || ""} · **${r.score}/100** · filled ${r.filledCount}/${r.totalCount}` +
+          (r.weakSections[0]
+            ? ` · weak: ${r.weakSections.map((w) => w.label).join(", ")}`
+            : "")
+      )
+    )
+  );
+  parts.push(h(2, "Section heatmap (weakest mean first)"));
+  parts.push(
+    bullets(
+      rollup.sections.map(
+        (s) =>
+          `**${s.label}** · mean ${s.meanDepth}/100 · weak CIDs: ${
+            s.weakCids.join(", ") || "—"
+          }`
+      )
+    )
+  );
+  if (rollup.systemicGaps.length) {
+    parts.push(h(2, "Systemic gaps"));
+    parts.push(bullets(rollup.systemicGaps));
+  }
+  return parts.join("\n");
 }
 
 export function downloadMarkdown(filename: string, markdown: string): void {

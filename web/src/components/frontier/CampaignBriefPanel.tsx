@@ -15,12 +15,20 @@ import {
   buildCampaignRouteHypotheses,
   type CampaignRouteHypothesesPackage,
 } from "@/lib/frontier/campaignRouteHypotheses";
+import {
+  buildCampaignIdealRollup,
+  type CampaignIdealRollup,
+} from "@/lib/frontier/campaignIdealRollup";
 import { downloadJson } from "@/lib/export/techTransfer";
 import {
   downloadMarkdown,
   formatCampaignBriefMarkdown,
+  formatCampaignIdealRollupMarkdown,
   formatCampaignRoutesMarkdown,
 } from "@/lib/frontier/exportMarkdown";
+import { streamBatchDensifyCids } from "@/lib/dossier/batchClient";
+import Link from "next/link";
+import { routes } from "@/lib/routes";
 
 /**
  * Multi-CID scientific brief: condition landscape, cross-CID conflicts, experiments.
@@ -29,9 +37,9 @@ export function CampaignBriefPanel() {
   const [campaigns, setCampaigns] = useState<ScienceCampaign[]>([]);
   const [selected, setSelected] = useState("");
   const [brief, setBrief] = useState<CampaignScientificBrief | null>(null);
-  const [routes, setRoutes] = useState<CampaignRouteHypothesesPackage | null>(
-    null
-  );
+  const [routePack, setRoutePack] =
+    useState<CampaignRouteHypothesesPackage | null>(null);
+  const [ideal, setIdeal] = useState<CampaignIdealRollup | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -60,13 +68,19 @@ export function CampaignBriefPanel() {
       const r = buildCampaignRouteHypotheses(merged.dossiers, {
         campaignName: camp.name,
       });
+      const roll = buildCampaignIdealRollup(merged.dossiers, {
+        campaignName: camp.name,
+        requestedCount: camp.cids.length,
+      });
       setBrief(b);
-      setRoutes(r);
-      setStatus(`${b.summary} · ${r.summary}`);
+      setRoutePack(r);
+      setIdeal(roll);
+      setStatus(`${b.summary} · ${r.summary} · ${roll.summary}`);
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Brief failed");
       setBrief(null);
-      setRoutes(null);
+      setRoutePack(null);
+      setIdeal(null);
     } finally {
       setBusy(false);
     }
@@ -76,7 +90,8 @@ export function CampaignBriefPanel() {
     const camp = campaigns.find((c) => c.id === selected);
     if (!camp) {
       setBrief(null);
-      setRoutes(null);
+      setRoutePack(null);
+      setIdeal(null);
       return;
     }
     void loadBrief(camp);
@@ -89,9 +104,9 @@ export function CampaignBriefPanel() {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .slice(0, 40)}.json`,
-      { brief, routeHypotheses: routes }
+      { brief, routeHypotheses: routePack, idealRollup: ideal }
     );
-    setStatus("Exported campaign-brief.v1 (+ routes)");
+    setStatus("Exported campaign-brief.v1 (+ routes + ideal rollup)");
   }
 
   function exportMarkdownNotebook() {
@@ -101,11 +116,37 @@ export function CampaignBriefPanel() {
       .replace(/[^a-z0-9]+/g, "-")
       .slice(0, 40);
     let md = formatCampaignBriefMarkdown(brief);
-    if (routes) {
-      md += "\n---\n\n" + formatCampaignRoutesMarkdown(routes);
+    if (routePack) {
+      md += "\n---\n\n" + formatCampaignRoutesMarkdown(routePack);
+    }
+    if (ideal) {
+      md += "\n---\n\n" + formatCampaignIdealRollupMarkdown(ideal);
     }
     downloadMarkdown(`campaign-brief-${slug}.md`, md);
-    setStatus("Exported notebook Markdown (brief + routes)");
+    setStatus("Exported notebook Markdown (brief + routes + ideal)");
+  }
+
+  async function densifyWeakIdeal() {
+    if (!ideal?.densifyPriorityCids.length) return;
+    const cids = ideal.densifyPriorityCids.slice(0, 8);
+    setBusy(true);
+    setStatus(`Densifying weak-ideal CIDs: ${cids.join(", ")}`);
+    try {
+      await streamBatchDensifyCids(cids, {
+        includeDossiers: true,
+        cacheLocal: true,
+        concurrency: 2,
+        force: true,
+        retries: 2,
+        onProgress: (m) => setStatus(m),
+      });
+      const camp = campaigns.find((c) => c.id === selected);
+      if (camp) await loadBrief(camp);
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "Ideal densify failed");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -168,6 +209,16 @@ export function CampaignBriefPanel() {
         >
           Export notebook Markdown
         </button>
+        {ideal && ideal.densifyPriorityCids.length > 0 ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void densifyWeakIdeal()}
+            className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-100 disabled:opacity-40"
+          >
+            Densify weak-ideal CIDs ({Math.min(8, ideal.densifyPriorityCids.length)})
+          </button>
+        ) : null}
       </div>
 
       {status ? (
@@ -272,14 +323,14 @@ export function CampaignBriefPanel() {
             </div>
           ) : null}
 
-          {routes && routes.sharedSteps.some((s) => s.n >= 2) ? (
+          {routePack && routePack.sharedSteps.some((s) => s.n >= 2) ? (
             <div>
               <h3 className="text-[10px] font-semibold uppercase text-slate-500">
                 Shared multi-CID route steps
               </h3>
-              <p className="mt-0.5 text-[10px] text-slate-600">{routes.summary}</p>
+              <p className="mt-0.5 text-[10px] text-slate-600">{routePack.summary}</p>
               <ul className="mt-1 max-h-24 space-y-0.5 overflow-y-auto font-mono text-[10px] text-slate-500">
-                {routes.sharedSteps
+                {routePack.sharedSteps
                   .filter((s) => s.n >= 2)
                   .slice(0, 12)
                   .map((s) => (
@@ -288,6 +339,59 @@ export function CampaignBriefPanel() {
                     </li>
                   ))}
               </ul>
+            </div>
+          ) : null}
+
+          {ideal ? (
+            <div>
+              <h3 className="text-[10px] font-semibold uppercase text-amber-200/80">
+                Ideal page rollup (Tier-A goal)
+              </h3>
+              <p className="mt-0.5 text-[11px] text-slate-400">{ideal.summary}</p>
+              <dl className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
+                <div className="rounded border border-slate-800 px-2 py-1">
+                  <dt className="text-slate-600">Mean ideal</dt>
+                  <dd className="font-mono text-amber-100">
+                    {ideal.meanScore}/100
+                  </dd>
+                </div>
+                <div className="rounded border border-slate-800 px-2 py-1">
+                  <dt className="text-slate-600">Min / max</dt>
+                  <dd className="font-mono text-slate-200">
+                    {ideal.minScore} / {ideal.maxScore}
+                  </dd>
+                </div>
+                <div className="rounded border border-slate-800 px-2 py-1">
+                  <dt className="text-slate-600">Systemic gaps</dt>
+                  <dd className="font-mono text-slate-200">
+                    {ideal.systemicGaps.length}
+                  </dd>
+                </div>
+              </dl>
+              <ul className="mt-2 max-h-28 space-y-0.5 overflow-y-auto font-mono text-[10px] text-slate-500">
+                {ideal.rows.slice(0, 10).map((r) => (
+                  <li key={r.cid}>
+                    <Link
+                      href={routes.pubchem(r.cid)}
+                      className="text-indigo-300 hover:underline"
+                    >
+                      CID {r.cid}
+                    </Link>{" "}
+                    {r.name?.slice(0, 16) || ""} · ideal {r.score}
+                    {r.weakSections[0]
+                      ? ` · weak ${r.weakSections[0].label}`
+                      : ""}
+                  </li>
+                ))}
+              </ul>
+              {ideal.systemicGaps.length > 0 ? (
+                <ul className="mt-1 space-y-0.5 text-[10px] text-amber-200/70">
+                  {ideal.systemicGaps.slice(0, 4).map((g) => (
+                    <li key={g}>· {g}</li>
+                  ))}
+                </ul>
+              ) : null}
+              <p className="mt-1 text-[10px] text-slate-600">{ideal.disclaimer}</p>
             </div>
           ) : null}
 

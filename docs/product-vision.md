@@ -73,6 +73,9 @@ Export: process-knowledge JSON from the Evidence science panel.
 | **Campaign route hypotheses** | Shared multi-CID unit-op / step patterns with kill criteria |
 | **Problem → campaign** | Spin local science campaign from problem-first / unit-op hub hits |
 | **Notebook Markdown export** | Brief + atlas + routes + process-knowledge as `.md` for agents/notebooks |
+| **Neighbor densify graph** | Impurity-first related-entity densify queue + impurity campaigns |
+| **ORD → campaign bridge** | Local ORD snippets → densify paste + spin multi-CID science campaign |
+| **Campaign ideal rollup** | Mean/min/max Ideal score + section heatmap + weak-CID densify |
 
 ## User journeys
 
