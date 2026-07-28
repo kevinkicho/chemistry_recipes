@@ -3,7 +3,7 @@
  * Content from free APIs + optional Ollama; AI blocks keep provenance chips.
  */
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { AiProvenance } from "@/components/AiProvenance";
 import { ApiProvenance } from "@/components/ApiProvenance";
@@ -105,6 +105,12 @@ export function LiveMoleculeDossier({
   const [enrichTick, setEnrichTick] = useState(0);
   const [vaultDossier, setVaultDossier] = useState<LiveDossier | null>(null);
   const [workerRole, setWorkerRole] = useState<WorkerRole>("chemist");
+  const [pasteDeltaMsg, setPasteDeltaMsg] = useState<string | null>(null);
+  const pendingPasteDelta = useRef<{
+    ideal: number;
+    facts: number;
+    chars: number;
+  } | null>(null);
 
   useEffect(() => {
     setWorkerRole(readWorkerRole());
@@ -155,6 +161,23 @@ export function LiveMoleculeDossier({
     // Rebuild process-knowledge only when densify fingerprint changes
     return ensureDossierKnowledge(base);
   }, [dossierIn, enrichTick, vaultDossier]);
+
+  // After paste re-extract, report Ideal score / fact count delta
+  useEffect(() => {
+    const pending = pendingPasteDelta.current;
+    if (!pending) return;
+    pendingPasteDelta.current = null;
+    const afterIdeal = dossier.idealParity?.score ?? 0;
+    const afterFacts =
+      dossier.processFacts?.facts?.filter((f) => f.kind !== "open-gap").length ??
+      0;
+    const dIdeal = afterIdeal - pending.ideal;
+    const dFacts = afterFacts - pending.facts;
+    const sign = (n: number) => (n > 0 ? `+${n}` : String(n));
+    setPasteDeltaMsg(
+      `Paste densify · ${pending.chars.toLocaleString()} chars → Ideal ${pending.ideal}→${afterIdeal} (${sign(dIdeal)}) · process facts ${pending.facts}→${afterFacts} (${sign(dFacts)}). Not GMP.`
+    );
+  }, [dossier, enrichTick]);
 
   const hit = dossier.identity;
   const cid = dossier.cid;
@@ -882,15 +905,58 @@ export function LiveMoleculeDossier({
               ) : null}
               <PdfWorkerPack dossier={dossier} onRegenerate={onRegenerate} />
               {show("local-enrich") ? (
-                <LocalTextEnrich
-                  cid={cid}
-                  moleculeLabel={name}
-                  emphasize={
-                    dossier.productMode === "scout-dossier" ||
-                    dossier.processFraming === "evidence-lead-pack"
-                  }
-                  onSaved={() => setEnrichTick((n) => n + 1)}
-                />
+                <>
+                  <LocalTextEnrich
+                    cid={cid}
+                    moleculeLabel={name}
+                    idealScoreBefore={dossier.idealParity?.score}
+                    processFactCountBefore={
+                      dossier.processFacts?.facts?.filter(
+                        (f) => f.kind !== "open-gap"
+                      ).length
+                    }
+                    emphasize={
+                      dossier.productMode === "scout-dossier" ||
+                      dossier.processFraming === "evidence-lead-pack"
+                    }
+                    onSaved={(info) => {
+                      if (info) {
+                        pendingPasteDelta.current = {
+                          ideal: info.idealScoreBefore ?? 0,
+                          facts: info.processFactCountBefore ?? 0,
+                          chars: info.chars,
+                        };
+                      } else {
+                        pendingPasteDelta.current = null;
+                        setPasteDeltaMsg(null);
+                      }
+                      setEnrichTick((n) => n + 1);
+                    }}
+                  />
+                  {pasteDeltaMsg ? (
+                    <p
+                      className="rounded-lg border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-[11px] text-teal-100/90"
+                      role="status"
+                    >
+                      {pasteDeltaMsg}{" "}
+                      <button
+                        type="button"
+                        className="underline"
+                        onClick={() => scrollTo("ideal-page-parity")}
+                      >
+                        Ideal gaps
+                      </button>
+                      {" · "}
+                      <button
+                        type="button"
+                        className="underline"
+                        onClick={() => scrollTo("condition-atlas")}
+                      >
+                        Condition atlas
+                      </button>
+                    </p>
+                  ) : null}
+                </>
               ) : null}
               {workerRole !== "operator" ? (
                 <>
@@ -1174,6 +1240,12 @@ export function LiveMoleculeDossier({
                   {dossier.buildAudit.densifyQuality.patentWindows} patent windows ·{" "}
                   {dossier.buildAudit.densifyQuality.processFactConditions} conditions ·{" "}
                   {dossier.buildAudit.densifyQuality.unitOpFacts} unit ops
+                  {dossier.buildAudit.densifyQuality.conditionObservations != null
+                    ? ` · atlas ${dossier.buildAudit.densifyQuality.conditionObservations} obs`
+                    : ""}
+                  {dossier.buildAudit.densifyQuality.knowledgeHypotheses != null
+                    ? ` · ${dossier.buildAudit.densifyQuality.knowledgeHypotheses} hypotheses`
+                    : ""}
                   {dossier.groundingReport
                     ? ` · grounding: ${dossier.groundingReport.summary}`
                     : ""}

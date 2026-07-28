@@ -122,14 +122,34 @@ function mergeAtlases(atlases: ConditionAtlas[]): ConditionDistribution[] {
 }
 
 /**
- * Merge networks + atlases for all cached campaign dossiers.
+ * Merge networks + atlases from in-memory dossiers (server or client).
+ * Does not touch IndexedDB.
  */
-export async function buildMergedCampaignKnowledge(
-  cids: number[],
+export function mergeLiveDossiersToCampaignKnowledge(
+  dossiers: LiveDossier[],
+  requestedCids?: number[],
   labels?: Record<string, string>
-): Promise<MergedCampaignKnowledge> {
-  const dossiers = await loadCampaignDossiers(cids);
-  const statuses = await campaignStatuses(cids, labels);
+): MergedCampaignKnowledge {
+  const cids =
+    requestedCids && requestedCids.length
+      ? requestedCids
+      : dossiers.map((d) => d.cid);
+  const byCid = new Map(dossiers.map((d) => [d.cid, d]));
+
+  const statuses: CampaignCidStatus[] = cids.map((cid) => {
+    const d = byCid.get(cid);
+    const pack = d?.processKnowledge || (d ? buildProcessKnowledgePackage(d) : null);
+    return {
+      cid,
+      label: labels?.[String(cid)],
+      cached: Boolean(d),
+      name: d?.identity?.name || labels?.[String(cid)],
+      evidenceScore: d?.evidenceScore?.score,
+      idealScore: d?.idealParity?.score,
+      observationCount: pack?.metrics.observationCount,
+      procedureChars: pack?.metrics.procedureChars,
+    };
+  });
 
   const networks = dossiers.map((d) => {
     const pack = d.processKnowledge || buildProcessKnowledgePackage(d);
@@ -149,7 +169,7 @@ export async function buildMergedCampaignKnowledge(
           nodes: [],
           edges: [],
           campaignCids: cids,
-          summary: "No cached dossiers — run batch densify first",
+          summary: "No dossiers — densify first",
           disclaimer: "—",
         };
 
@@ -161,8 +181,8 @@ export async function buildMergedCampaignKnowledge(
 
   const summary =
     dossiers.length === 0
-      ? `0/${cids.length} CIDs cached — batch densify to build campaign graph`
-      : `Campaign: ${dossiers.length}/${cids.length} cached · ${network.nodes.length} nodes · ${network.edges.length} edges · ${totalObservations} condition obs`;
+      ? `0/${cids.length} CIDs available — densify to build campaign graph`
+      : `Campaign: ${dossiers.length}/${cids.length} · ${network.nodes.length} nodes · ${network.edges.length} edges · ${totalObservations} condition obs`;
 
   return {
     cids,
@@ -174,4 +194,15 @@ export async function buildMergedCampaignKnowledge(
     summary,
     dossiers,
   };
+}
+
+/**
+ * Merge networks + atlases for all cached campaign dossiers (IndexedDB).
+ */
+export async function buildMergedCampaignKnowledge(
+  cids: number[],
+  labels?: Record<string, string>
+): Promise<MergedCampaignKnowledge> {
+  const dossiers = await loadCampaignDossiers(cids);
+  return mergeLiveDossiersToCampaignKnowledge(dossiers, cids, labels);
 }

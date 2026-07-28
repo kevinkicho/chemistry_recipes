@@ -283,6 +283,9 @@ export interface DossierBuildAudit {
     processFactConditions: number;
     unitOpFacts: number;
     softFailHints?: string[];
+    /** From process-knowledge package when attached */
+    conditionObservations?: number;
+    knowledgeHypotheses?: number;
   };
 }
 

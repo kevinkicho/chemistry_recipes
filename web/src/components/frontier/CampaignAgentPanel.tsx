@@ -21,6 +21,7 @@ export function CampaignAgentPanel() {
   const [out, setOut] = useState<string | null>(null);
   const [steps, setSteps] = useState<string[]>([]);
   const [exps, setExps] = useState<string[]>([]);
+  const [useServer, setUseServer] = useState(false);
 
   const reload = useCallback(() => {
     const rows = listCampaigns();
@@ -41,7 +42,26 @@ export function CampaignAgentPanel() {
     setSteps([]);
     setExps([]);
     try {
-      const res = await runCampaignAgent(camp, q);
+      let res: Awaited<ReturnType<typeof runCampaignAgent>>;
+      if (useServer) {
+        const r = await fetch("/api/ai/campaign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cids: camp.cids,
+            question: q,
+            name: camp.name,
+            concurrency: 2,
+          }),
+        });
+        const data = (await r.json()) as Awaited<
+          ReturnType<typeof runCampaignAgent>
+        > & { error?: string };
+        if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+        res = data;
+      } else {
+        res = await runCampaignAgent(camp, q);
+      }
       setSteps(res.steps.map((s) => `[${s.role}] ${s.detail}`));
       setExps(
         res.nextExperiments
@@ -50,6 +70,7 @@ export function CampaignAgentPanel() {
       );
       setOut(
         [
+          useServer ? "mode: server densify + merge" : "mode: local IndexedDB cache",
           res.answer.insufficientEvidence
             ? "⚠ insufficient free-public evidence"
             : "✓ campaign-grounded",
@@ -103,6 +124,14 @@ export function CampaignAgentPanel() {
         rows={2}
         className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100"
       />
+      <label className="mt-2 flex items-center gap-2 text-[11px] text-slate-400">
+        <input
+          type="checkbox"
+          checked={useServer}
+          onChange={(e) => setUseServer(e.target.checked)}
+        />
+        Server densify CIDs then answer (slower, fresher free-public data)
+      </label>
       <button
         type="button"
         disabled={busy || !selected || q.trim().length < 4}

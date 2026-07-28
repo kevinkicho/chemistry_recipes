@@ -15,7 +15,7 @@ import { suggestEdgePairs, compareNetworkEdges } from "@/lib/frontier/edgeCompar
 
 export interface CampaignAgentStep {
   id: string;
-  role: "retrieve" | "merge" | "cite" | "refuse" | "edge";
+  role: "retrieve" | "merge" | "cite" | "refuse" | "edge" | "densify";
   detail: string;
 }
 
@@ -77,7 +77,7 @@ function findQuotes(
       const hay = `${o.quote} ${o.raw} ${o.sourceLabel}`.toLowerCase();
       if (tokens.some((t) => t.length >= 3 && hay.includes(t))) {
         cites.push({
-          label: `CID? ${o.sourceLabel}`,
+          label: o.sourceLabel,
           url: o.sourceUrl,
           quote: o.quote.slice(0, 160),
         });
@@ -101,32 +101,30 @@ function findQuotes(
   return cites.slice(0, 8);
 }
 
+function metricsOf(
+  merged: MergedCampaignKnowledge,
+  requestedCount: number
+): CampaignAgentResult["metrics"] {
+  return {
+    cachedCount: merged.cachedCount,
+    requestedCount,
+    totalObservations: merged.totalObservations,
+    networkNodes: merged.network.nodes.length,
+    networkEdges: merged.network.edges.length,
+  };
+}
+
 /**
- * Answer a scientist question against cached campaign knowledge only.
+ * Core answer logic over already-merged campaign knowledge (server/client).
  */
-export async function runCampaignAgent(
-  campaign: ScienceCampaign,
-  question: string
-): Promise<CampaignAgentResult> {
-  const steps: CampaignAgentStep[] = [];
+export function answerCampaignQuestion(
+  merged: MergedCampaignKnowledge,
+  meta: { campaignId: string; campaignName: string; requestedCount: number },
+  question: string,
+  priorSteps: CampaignAgentStep[] = []
+): CampaignAgentResult {
+  const steps = [...priorSteps];
   const q = question.trim();
-
-  steps.push({
-    id: "s1",
-    role: "retrieve",
-    detail: `Campaign “${campaign.name}” · ${campaign.cids.length} CID(s)`,
-  });
-
-  const merged = await buildMergedCampaignKnowledge(
-    campaign.cids,
-    campaign.labels
-  );
-  steps.push({
-    id: "s2",
-    role: "merge",
-    detail: merged.summary,
-  });
-
   const edgeExps = buildEdgePairExperiments(
     merged.network,
     merged.dossiers,
@@ -143,14 +141,14 @@ export async function runCampaignAgent(
   if (merged.cachedCount === 0) {
     return {
       schema: "chemistry-recipes.campaign-agent.v1",
-      campaignId: campaign.id,
-      campaignName: campaign.name,
+      campaignId: meta.campaignId,
+      campaignName: meta.campaignName,
       question: q,
       answer: {
         id: `camp:${Date.now()}`,
         question: q,
         answer:
-          "Insufficient free-public evidence: no campaign CIDs are cached yet. Run stream densify on the campaign, then re-ask.",
+          "Insufficient free-public evidence: no campaign CIDs densified yet. Run stream densify, then re-ask.",
         grounded: false,
         citations: [],
         insufficientEvidence: true,
@@ -160,7 +158,7 @@ export async function runCampaignAgent(
         {
           id: "s3",
           role: "refuse",
-          detail: "Zero cached dossiers — refused to invent",
+          detail: "Zero dossiers — refused to invent",
         },
       ],
       nextExperiments: [
@@ -168,18 +166,12 @@ export async function runCampaignAgent(
           id: "exp:camp:densify",
           question: "Stream densify all campaign CIDs from free-public APIs",
           rationale: "Campaign agent has no package to ground answers",
-          gap: "Empty cache",
+          gap: "Empty densify",
           priority: "high",
         },
         ...edgeExps,
       ],
-      metrics: {
-        cachedCount: 0,
-        requestedCount: campaign.cids.length,
-        totalObservations: 0,
-        networkNodes: 0,
-        networkEdges: 0,
-      },
+      metrics: metricsOf(merged, meta.requestedCount),
     };
   }
 
@@ -192,7 +184,6 @@ export async function runCampaignAgent(
   const hasHit = tokens.some((t) => blob.includes(t));
   const citations = findQuotes(merged, tokens);
 
-  // Edge-focused questions
   if (/edge|relation|impurit|starting|network|compare/i.test(q)) {
     const pairs = suggestEdgePairs(merged.network, 3);
     if (pairs[0]) {
@@ -210,8 +201,8 @@ export async function runCampaignAgent(
         });
         return {
           schema: "chemistry-recipes.campaign-agent.v1",
-          campaignId: campaign.id,
-          campaignName: campaign.name,
+          campaignId: meta.campaignId,
+          campaignName: meta.campaignName,
           question: q,
           answer: {
             id: `camp:edge:${Date.now()}`,
@@ -231,19 +222,12 @@ export async function runCampaignAgent(
           },
           steps,
           nextExperiments: edgeExps,
-          metrics: {
-            cachedCount: merged.cachedCount,
-            requestedCount: campaign.cids.length,
-            totalObservations: merged.totalObservations,
-            networkNodes: merged.network.nodes.length,
-            networkEdges: merged.network.edges.length,
-          },
+          metrics: metricsOf(merged, meta.requestedCount),
         };
       }
     }
   }
 
-  // Condition atlas summary
   if (/temp|condition|atlas|°c|pressure|solvent/i.test(q)) {
     const lines = merged.atlasByKind.map((d) => `• ${d.summary}`);
     if (lines.length) {
@@ -254,26 +238,20 @@ export async function runCampaignAgent(
       });
       return {
         schema: "chemistry-recipes.campaign-agent.v1",
-        campaignId: campaign.id,
-        campaignName: campaign.name,
+        campaignId: meta.campaignId,
+        campaignName: meta.campaignName,
         question: q,
         answer: {
           id: `camp:atlas:${Date.now()}`,
           question: q,
-          answer: `Campaign-merged condition space (${merged.totalObservations} obs across ${merged.cachedCount} cached CID(s)):\n${lines.join("\n")}`,
+          answer: `Campaign-merged condition space (${merged.totalObservations} obs across ${merged.cachedCount} CID(s)):\n${lines.join("\n")}`,
           grounded: true,
           citations: findQuotes(merged, ["°c", "temp", "solvent", ...tokens]),
           insufficientEvidence: merged.totalObservations < 2,
         },
         steps,
         nextExperiments: edgeExps,
-        metrics: {
-          cachedCount: merged.cachedCount,
-          requestedCount: campaign.cids.length,
-          totalObservations: merged.totalObservations,
-          networkNodes: merged.network.nodes.length,
-          networkEdges: merged.network.edges.length,
-        },
+        metrics: metricsOf(merged, meta.requestedCount),
       };
     }
   }
@@ -286,14 +264,14 @@ export async function runCampaignAgent(
     });
     return {
       schema: "chemistry-recipes.campaign-agent.v1",
-      campaignId: campaign.id,
-      campaignName: campaign.name,
+      campaignId: meta.campaignId,
+      campaignName: meta.campaignName,
       question: q,
       answer: {
         id: `camp:${Date.now()}`,
         question: q,
         answer:
-          "Insufficient free-public evidence in the cached campaign package for this question. Densify more CIDs, paste public procedure text, or narrow the question to temperatures, edges, impurities, or network relations.",
+          "Insufficient free-public evidence in the campaign package for this question. Densify more CIDs, paste public procedure text, or narrow to temperatures, edges, impurities, or network relations.",
         grounded: false,
         citations: [],
         insufficientEvidence: true,
@@ -309,13 +287,7 @@ export async function runCampaignAgent(
           priority: "high",
         },
       ],
-      metrics: {
-        cachedCount: merged.cachedCount,
-        requestedCount: campaign.cids.length,
-        totalObservations: merged.totalObservations,
-        networkNodes: merged.network.nodes.length,
-        networkEdges: merged.network.edges.length,
-      },
+      metrics: metricsOf(merged, meta.requestedCount),
     };
   }
 
@@ -331,30 +303,61 @@ export async function runCampaignAgent(
 
   return {
     schema: "chemistry-recipes.campaign-agent.v1",
-    campaignId: campaign.id,
-    campaignName: campaign.name,
+    campaignId: meta.campaignId,
+    campaignName: meta.campaignName,
     question: q,
     answer: {
       id: `camp:${Date.now()}`,
       question: q,
-      answer: `Campaign retrieval (not complete scientific answer):\n${quoteLines.join("\n")}\n\nCached ${merged.cachedCount}/${campaign.cids.length} CIDs · ${merged.totalObservations} condition obs. Validate against primary sources.`,
+      answer: `Campaign retrieval (not complete scientific answer):\n${quoteLines.join("\n")}\n\n${merged.cachedCount}/${meta.requestedCount} CIDs · ${merged.totalObservations} condition obs. Validate against primary sources.`,
       grounded: true,
       citations,
       insufficientEvidence: citations.length < 2,
     },
     steps,
     nextExperiments: edgeExps,
-    metrics: {
-      cachedCount: merged.cachedCount,
-      requestedCount: campaign.cids.length,
-      totalObservations: merged.totalObservations,
-      networkNodes: merged.network.nodes.length,
-      networkEdges: merged.network.edges.length,
-    },
+    metrics: metricsOf(merged, meta.requestedCount),
   };
 }
 
-/** Prefetch export (ensures packages exist) — used by UI before agent if needed */
+/**
+ * Client path: load IndexedDB campaign caches then answer.
+ */
+export async function runCampaignAgent(
+  campaign: ScienceCampaign,
+  question: string
+): Promise<CampaignAgentResult> {
+  const steps: CampaignAgentStep[] = [
+    {
+      id: "s1",
+      role: "retrieve",
+      detail: `Campaign “${campaign.name}” · ${campaign.cids.length} CID(s)`,
+    },
+  ];
+
+  const merged = await buildMergedCampaignKnowledge(
+    campaign.cids,
+    campaign.labels
+  );
+  steps.push({
+    id: "s2",
+    role: "merge",
+    detail: merged.summary,
+  });
+
+  return answerCampaignQuestion(
+    merged,
+    {
+      campaignId: campaign.id,
+      campaignName: campaign.name,
+      requestedCount: campaign.cids.length,
+    },
+    question,
+    steps
+  );
+}
+
+/** Prefetch export (ensures packages exist) */
 export async function ensureCampaignExport(campaign: ScienceCampaign) {
   return buildCampaignKnowledgeExport(campaign);
 }

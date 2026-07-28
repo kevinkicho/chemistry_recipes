@@ -454,6 +454,7 @@ export async function buildLiveDossierWithProgress(
       processFactConditions: pfBundle?.sourcedConditionCount ?? 0,
       unitOpFacts: pfBundle?.unitOpCount ?? 0,
       softFailHints: softFails.length ? softFails : undefined,
+      // conditionObservations / knowledgeHypotheses filled after withProcessKnowledge
     },
   };
 
@@ -493,6 +494,25 @@ export async function buildLiveDossierWithProgress(
   dossier = withIdealPageParity(dossier);
   // Frontier process-knowledge: condition atlas, hypotheses, experiments
   dossier = withProcessKnowledge(dossier);
+
+  // Attach atlas/hypothesis counts now that process-knowledge exists
+  if (dossier.buildAudit?.densifyQuality && dossier.processKnowledge) {
+    dossier = {
+      ...dossier,
+      buildAudit: {
+        ...dossier.buildAudit,
+        densifyQuality: {
+          ...dossier.buildAudit.densifyQuality,
+          conditionObservations:
+            dossier.processKnowledge.metrics.observationCount,
+          knowledgeHypotheses: dossier.processKnowledge.metrics.hypothesisCount,
+        },
+        // duration includes knowledge attach
+        durationMs: clock.elapsed(),
+        finishedAt: new Date().toISOString(),
+      },
+    };
+  }
 
   emit({
     type: "complete",

@@ -26,12 +26,21 @@ export function LocalTextEnrich({
   moleculeLabel,
   onSaved,
   emphasize,
+  idealScoreBefore,
+  processFactCountBefore,
 }: {
   cid: number;
   moleculeLabel?: string;
-  onSaved?: () => void;
+  onSaved?: (info?: {
+    chars: number;
+    idealScoreBefore?: number;
+    processFactCountBefore?: number;
+  }) => void;
   /** Highlight as primary CTA (scout mode) */
   emphasize?: boolean;
+  /** Ideal page score before this paste (for delta feedback) */
+  idealScoreBefore?: number;
+  processFactCountBefore?: number;
 }) {
   const [step, setStep] = useState<WizardStep>(1);
   const [sourceKind, setSourceKind] = useState<(typeof SOURCE_PRESETS)[number]["id"]>("patent");
@@ -61,12 +70,16 @@ export function LocalTextEnrich({
       moleculeLabel,
     });
     setMsg(
-      `Saved ${row.text.length.toLocaleString()} chars locally (${sourceKind}). Facts re-extract now — check Ideal score / condition atlas for densify lift (still not GMP).`
+      `Saved ${row.text.length.toLocaleString()} chars locally (${sourceKind}). Re-extracting facts… Ideal was ${idealScoreBefore ?? "—"}/100 · facts ${processFactCountBefore ?? "—"}.`
     );
     setText("");
     setStep(1);
     reload();
-    onSaved?.();
+    onSaved?.({
+      chars: row.text.length,
+      idealScoreBefore,
+      processFactCountBefore,
+    });
   }
 
   function applySourcePreset(id: (typeof SOURCE_PRESETS)[number]["id"]) {

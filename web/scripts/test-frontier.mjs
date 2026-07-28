@@ -132,8 +132,29 @@ ok("edge compare shows auto experiments", /Auto experiments from edge pairs/.tes
 
 ok("campaignAgent module", existsSync(join(root, "src/lib/frontier/campaignAgent.ts")));
 ok("runCampaignAgent", /export async function runCampaignAgent/.test(read("lib/frontier/campaignAgent.ts")));
+ok("answerCampaignQuestion", /export function answerCampaignQuestion/.test(read("lib/frontier/campaignAgent.ts")));
 ok("CampaignAgentPanel", existsSync(join(root, "src/components/frontier/CampaignAgentPanel.tsx")));
 ok("workspace mounts CampaignAgentPanel", /CampaignAgentPanel/.test(read("app/workspace/page.tsx")));
+ok(
+  "mergeLiveDossiersToCampaignKnowledge",
+  /export function mergeLiveDossiersToCampaignKnowledge/.test(
+    read("lib/frontier/campaignKnowledge.ts")
+  )
+);
+ok("campaign API route", existsSync(join(root, "src/app/api/ai/campaign/route.ts")));
+const campApi = read("app/api/ai/campaign/route.ts");
+ok("campaign API densify + answer", /buildOneCidForBatch/.test(campApi) && /answerCampaignQuestion/.test(campApi));
+ok("campaign API max 8", /MAX_CIDS\s*=\s*8/.test(campApi));
+ok("CampaignAgentPanel server mode", /useServer|\/api\/ai\/campaign/.test(read("components/frontier/CampaignAgentPanel.tsx")));
+ok(
+  "densifyQuality atlas after knowledge",
+  /withProcessKnowledge/.test(pipe) &&
+    /conditionObservations/.test(pipe) &&
+    pipe.indexOf("withProcessKnowledge") < pipe.lastIndexOf("conditionObservations")
+);
+ok("types densifyQuality atlas fields", /conditionObservations\?/.test(types) && /knowledgeHypotheses\?/.test(types));
+ok("paste ideal delta", /pendingPasteDelta|pasteDeltaMsg|idealScoreBefore/.test(live));
+ok("LocalTextEnrich ideal before", /idealScoreBefore/.test(read("components/LocalTextEnrich.tsx")));
 
 ok("densifyTelemetry module", existsSync(join(root, "src/lib/dossier/densifyTelemetry.ts")));
 ok("recordDensifyRun", /export function recordDensifyRun/.test(read("lib/dossier/densifyTelemetry.ts")));
