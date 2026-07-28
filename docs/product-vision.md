@@ -69,6 +69,10 @@ Export: process-knowledge JSON from the Evidence science panel.
 | **Campaign scientific brief** | Depth score, per-CID condition spans, cross-CID range conflicts, research experiments |
 | **Auto-ask after queue densify** | Campaign agent densifies thin CIDs then answers the open question |
 | **Deeper atlas extractors** | Concentration, molar-ratio, expanded solvents/atmosphere from free-public text |
+| **Literature densify depth** | Rank OA/patent windows by procedure richness; atlas prefers high-score text |
+| **Campaign route hypotheses** | Shared multi-CID unit-op / step patterns with kill criteria |
+| **Problem → campaign** | Spin local science campaign from problem-first / unit-op hub hits |
+| **Notebook Markdown export** | Brief + atlas + routes + process-knowledge as `.md` for agents/notebooks |
 
 ## User journeys
 

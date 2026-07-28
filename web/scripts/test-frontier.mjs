@@ -247,6 +247,72 @@ ok(
     /molar-ratio/.test(read("lib/frontier/conditionAtlas.ts"))
 );
 ok(
+  "literatureDepth module",
+  existsSync(join(root, "src/lib/frontier/literatureDepth.ts"))
+);
+ok(
+  "buildLiteratureDepthReport",
+  /export function buildLiteratureDepthReport/.test(
+    read("lib/frontier/literatureDepth.ts")
+  )
+);
+ok(
+  "atlas ranks procedure windows",
+  /rankDossierTextWindows/.test(read("lib/frontier/conditionAtlas.ts"))
+);
+ok(
+  "process-knowledge literatureDepthScore",
+  /literatureDepthScore/.test(read("lib/frontier/buildKnowledge.ts"))
+);
+ok(
+  "campaignRouteHypotheses module",
+  existsSync(join(root, "src/lib/frontier/campaignRouteHypotheses.ts"))
+);
+ok(
+  "buildCampaignRouteHypotheses",
+  /export function buildCampaignRouteHypotheses/.test(
+    read("lib/frontier/campaignRouteHypotheses.ts")
+  )
+);
+ok(
+  "exportMarkdown module",
+  existsSync(join(root, "src/lib/frontier/exportMarkdown.ts"))
+);
+ok(
+  "formatCampaignBriefMarkdown",
+  /export function formatCampaignBriefMarkdown/.test(
+    read("lib/frontier/exportMarkdown.ts")
+  )
+);
+ok(
+  "problemCampaign module",
+  existsSync(join(root, "src/lib/search/problemCampaign.ts"))
+);
+ok(
+  "createCampaignFromProblemHits",
+  /export function createCampaignFromProblemHits/.test(
+    read("lib/search/problemCampaign.ts")
+  )
+);
+ok(
+  "ProblemFirstSearch spin campaign",
+  /Spin science campaign|createCampaignFromProblemHits/.test(
+    read("components/ProblemFirstSearch.tsx")
+  )
+);
+ok(
+  "EvidenceScience notebook markdown",
+  /formatProcessKnowledgeMarkdown|notebook Markdown/.test(
+    read("components/frontier/EvidenceSciencePanel.tsx")
+  )
+);
+ok(
+  "CampaignBrief routes + markdown",
+  /buildCampaignRouteHypotheses|formatCampaignBriefMarkdown/.test(
+    read("components/frontier/CampaignBriefPanel.tsx")
+  )
+);
+ok(
   "densifyQuality atlas after knowledge",
   /withProcessKnowledge/.test(pipe) &&
     /conditionObservations/.test(pipe) &&

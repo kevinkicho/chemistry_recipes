@@ -15,6 +15,7 @@ import {
 import type { ProcessKnowledgePackage } from "@/lib/frontier/types";
 import { buildReactionNetwork } from "@/lib/frontier/reactionNetwork";
 import { mergeEdgeExperiments } from "@/lib/frontier/edgeExperiments";
+import { buildLiteratureDepthReport } from "@/lib/frontier/literatureDepth";
 
 const DISCLAIMER =
   "Process-knowledge package from free-public evidence only. " +
@@ -56,6 +57,7 @@ export function buildProcessKnowledgePackage(
     reactionNetwork,
     [dossier]
   );
+  const litDepth = buildLiteratureDepthReport(dossier);
 
   return {
     schema: "chemistry-recipes.process-knowledge.v1",
@@ -78,6 +80,8 @@ export function buildProcessKnowledgePackage(
       processFactConditions: dossier.processFacts?.sourcedConditionCount ?? 0,
       networkNodes: reactionNetwork.nodes.length,
       networkEdges: reactionNetwork.edges.length,
+      literatureDepthScore: litDepth.depthScore,
+      procedureRichWindows: litDepth.procedureRichWindows,
     },
   };
 }

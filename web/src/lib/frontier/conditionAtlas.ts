@@ -23,6 +23,7 @@ import {
   normalizeTime,
   parseNumericSpan,
 } from "@/lib/frontier/unitNormalize";
+import { rankDossierTextWindows } from "@/lib/frontier/literatureDepth";
 
 const DISCLAIMER =
   "Condition atlas from free-public text only. Distributions are not plant setpoints, " +
@@ -341,45 +342,23 @@ function extractFromWindow(
 function windowsFromDossier(d: LiveDossier): TextWindow[] {
   const windows: TextWindow[] = [];
 
-  for (const t of d.manufacturingTexts || []) {
-    if (t.length < 20) continue;
+  // Prefer procedure-rich OA / patent / mfg windows (literature densify depth)
+  for (const w of rankDossierTextWindows(d)) {
+    const sourceKind =
+      w.kind === "mfg"
+        ? "pubchem-mfg"
+        : w.kind === "literature"
+          ? "literature"
+          : w.kind === "patent"
+            ? "patent"
+            : "other";
     windows.push({
-      text: t,
-      sourceKind: "pubchem-mfg",
-      sourceId: `pubchem-mfg:${d.cid}`,
-      sourceLabel: "PubChem Use & Manufacturing",
-      sourceUrl: `https://pubchem.ncbi.nlm.nih.gov/compound/${d.cid}#section=Use-and-Manufacturing`,
-      documentTitle: d.identity?.name,
-    });
-  }
-
-  for (const h of d.literature || []) {
-    const blob = [h.title, h.abstract, h.fullTextExcerpt]
-      .filter(Boolean)
-      .join("\n");
-    if (blob.length < 20) continue;
-    windows.push({
-      text: blob,
-      sourceKind: "literature",
-      sourceId: h.id || h.doi || h.pmid || h.title,
-      sourceLabel: h.title?.slice(0, 80) || "Literature",
-      sourceUrl: h.url,
-      documentTitle: h.title,
-    });
-  }
-
-  for (const p of d.patents || []) {
-    const blob = [p.title, p.abstract, p.procedureExcerpt]
-      .filter(Boolean)
-      .join("\n");
-    if (blob.length < 20) continue;
-    windows.push({
-      text: blob,
-      sourceKind: "patent",
-      sourceId: p.id || p.patentNumber,
-      sourceLabel: p.patentNumber || p.title?.slice(0, 80) || "Patent",
-      sourceUrl: p.url,
-      documentTitle: p.title,
+      text: w.text,
+      sourceKind,
+      sourceId: w.sourceId,
+      sourceLabel: w.label,
+      sourceUrl: w.url,
+      documentTitle: w.label,
     });
   }
 

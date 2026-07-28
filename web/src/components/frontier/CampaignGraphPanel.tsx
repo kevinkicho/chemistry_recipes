@@ -17,6 +17,10 @@ import {
   buildCampaignKnowledgeExport,
   downloadCampaignKnowledge,
 } from "@/lib/frontier/campaignExport";
+import {
+  downloadMarkdown,
+  formatCampaignKnowledgeMarkdown,
+} from "@/lib/frontier/exportMarkdown";
 import { streamBatchDensifyCids } from "@/lib/dossier/batchClient";
 import { NetworkEdgeComparePanel } from "@/components/frontier/NetworkEdgeComparePanel";
 import { routes } from "@/lib/routes";
@@ -72,6 +76,28 @@ export function CampaignGraphPanel() {
       );
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Export failed");
+    }
+  }
+
+  async function exportCampaignMarkdown() {
+    const camp = campaigns.find((c) => c.id === selected);
+    if (!camp) return;
+    setStatus("Building notebook Markdown…");
+    try {
+      const data = await buildCampaignKnowledgeExport(camp);
+      const md = formatCampaignKnowledgeMarkdown(data);
+      downloadMarkdown(
+        `campaign-knowledge-${camp.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .slice(0, 40)}.md`,
+        md
+      );
+      setStatus(
+        `Exported notebook Markdown · brief + routes + atlas · ${data.metrics.packageCount} packages`
+      );
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "Markdown export failed");
     }
   }
 
@@ -196,6 +222,14 @@ export function CampaignGraphPanel() {
           className="rounded-lg border border-teal-500/40 bg-teal-950/40 px-2.5 py-1 text-[11px] font-medium text-teal-100 disabled:opacity-40"
         >
           Export campaign-knowledge.v1
+        </button>
+        <button
+          type="button"
+          disabled={!selected || (merged?.cachedCount ?? 0) === 0}
+          onClick={() => void exportCampaignMarkdown()}
+          className="rounded-lg border border-teal-500/40 bg-teal-950/40 px-2.5 py-1 text-[11px] font-medium text-teal-100 disabled:opacity-40"
+        >
+          Export notebook Markdown
         </button>
       </div>
 

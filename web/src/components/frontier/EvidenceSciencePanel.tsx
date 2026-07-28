@@ -5,6 +5,11 @@ import type { LiveDossier } from "@/lib/dossier/types";
 import { buildProcessKnowledgePackage } from "@/lib/frontier/buildKnowledge";
 import { answerFromEvidencePackage } from "@/lib/frontier/evidenceQa";
 import { downloadProcessKnowledge } from "@/lib/frontier/exportKnowledge";
+import { buildLiteratureDepthReport } from "@/lib/frontier/literatureDepth";
+import {
+  downloadMarkdown,
+  formatProcessKnowledgeMarkdown,
+} from "@/lib/frontier/exportMarkdown";
 
 /**
  * Seed Q&A, free-form evidence query, next experiments, knowledge export.
@@ -12,6 +17,10 @@ import { downloadProcessKnowledge } from "@/lib/frontier/exportKnowledge";
 export function EvidenceSciencePanel({ dossier }: { dossier: LiveDossier }) {
   const pack = useMemo(
     () => dossier.processKnowledge || buildProcessKnowledgePackage(dossier),
+    [dossier]
+  );
+  const litDepth = useMemo(
+    () => buildLiteratureDepthReport(dossier),
     [dossier]
   );
   const [q, setQ] = useState("");
@@ -47,16 +56,32 @@ export function EvidenceSciencePanel({ dossier }: { dossier: LiveDossier }) {
             valid result. Export feeds agents and notebooks.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => downloadProcessKnowledge(dossier, pack)}
-          className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500"
-        >
-          Export process-knowledge.v1
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => downloadProcessKnowledge(dossier, pack)}
+            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500"
+          >
+            Export process-knowledge.v1
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              downloadMarkdown(
+                `process-knowledge-${dossier.cid}.md`,
+                formatProcessKnowledgeMarkdown(pack, {
+                  literatureDepth: litDepth,
+                })
+              )
+            }
+            className="rounded-lg border border-emerald-500/40 bg-emerald-950/40 px-3 py-1.5 text-xs font-medium text-emerald-100"
+          >
+            Export notebook Markdown
+          </button>
+        </div>
       </div>
 
-      <dl className="mt-3 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
+      <dl className="mt-3 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-5">
         <div className="rounded border border-slate-800 bg-slate-950/40 px-2 py-1.5">
           <dt className="text-slate-600">Observations</dt>
           <dd className="font-mono text-slate-200">
@@ -72,6 +97,12 @@ export function EvidenceSciencePanel({ dossier }: { dossier: LiveDossier }) {
         <div className="rounded border border-slate-800 bg-slate-950/40 px-2 py-1.5">
           <dt className="text-slate-600">Conflicts</dt>
           <dd className="font-mono text-slate-200">{pack.metrics.conflictCount}</dd>
+        </div>
+        <div className="rounded border border-slate-800 bg-slate-950/40 px-2 py-1.5">
+          <dt className="text-slate-600">Lit depth</dt>
+          <dd className="font-mono text-emerald-100/90">
+            {pack.metrics.literatureDepthScore ?? litDepth.depthScore}/100
+          </dd>
         </div>
         <div className="rounded border border-slate-800 bg-slate-950/40 px-2 py-1.5">
           <dt className="text-slate-600">Procedure chars</dt>

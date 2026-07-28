@@ -286,6 +286,9 @@ export interface DossierBuildAudit {
     /** From process-knowledge package when attached */
     conditionObservations?: number;
     knowledgeHypotheses?: number;
+    /** Procedure-rich OA/patent window depth 0–100 */
+    literatureDepthScore?: number;
+    procedureRichWindows?: number;
   };
 }
 

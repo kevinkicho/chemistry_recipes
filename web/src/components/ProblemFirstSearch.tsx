@@ -6,6 +6,10 @@ import {
   PROBLEM_SEARCH_HINTS,
   searchProblemFirst,
 } from "@/lib/search/problemFirst";
+import {
+  cidsFromProblemHits,
+  createCampaignFromProblemHits,
+} from "@/lib/search/problemCampaign";
 import { routes } from "@/lib/routes";
 
 /**
@@ -13,7 +17,24 @@ import { routes } from "@/lib/routes";
  */
 export function ProblemFirstSearch() {
   const [q, setQ] = useState("");
+  const [campMsg, setCampMsg] = useState<string | null>(null);
   const hits = useMemo(() => searchProblemFirst(q, 12), [q]);
+  const { cids } = useMemo(() => cidsFromProblemHits(hits), [hits]);
+
+  function spinCampaign() {
+    if (!q.trim() || !cids.length) {
+      setCampMsg("Need hub hits with PubChem CIDs to spin a campaign.");
+      return;
+    }
+    const camp = createCampaignFromProblemHits(q, hits);
+    if (!camp) {
+      setCampMsg("Could not create campaign from these hits.");
+      return;
+    }
+    setCampMsg(
+      `Created science campaign “${camp.name}” · ${camp.cids.length} CID(s). Open Workspace to densify & brief.`
+    );
+  }
 
   return (
     <div
@@ -28,12 +49,16 @@ export function ProblemFirstSearch() {
       </h2>
       <p className="mt-1 text-xs text-slate-500">
         Rank training packages + hub molecules by unit op or problem language (e.g.
-        crystallization, mAb capture). Molecule name search still works below.
+        crystallization, mAb capture). Spin a multi-CID science campaign from live
+        hub hits. Molecule name search still works below.
       </p>
       <input
         type="search"
         value={q}
-        onChange={(e) => setQ(e.target.value)}
+        onChange={(e) => {
+          setQ(e.target.value);
+          setCampMsg(null);
+        }}
         placeholder="e.g. hydrogenation · workup · gene therapy downstream"
         className="mt-3 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600"
       />
@@ -42,13 +67,38 @@ export function ProblemFirstSearch() {
           <button
             key={h}
             type="button"
-            onClick={() => setQ(h)}
+            onClick={() => {
+              setQ(h);
+              setCampMsg(null);
+            }}
             className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-400 ring-1 ring-slate-700 hover:text-sky-200"
           >
             {h}
           </button>
         ))}
       </div>
+      {q.trim() && cids.length > 0 ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={spinCampaign}
+            className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-500"
+          >
+            Spin science campaign ({cids.length} CIDs)
+          </button>
+          <Link
+            href={routes.workspace()}
+            className="text-[11px] text-violet-300/90 hover:underline"
+          >
+            Open Workspace →
+          </Link>
+        </div>
+      ) : null}
+      {campMsg ? (
+        <p className="mt-2 text-[11px] text-violet-200/90" role="status">
+          {campMsg}
+        </p>
+      ) : null}
       {q.trim() ? (
         <ul className="mt-3 max-h-64 space-y-1.5 overflow-y-auto">
           {hits.length === 0 ? (

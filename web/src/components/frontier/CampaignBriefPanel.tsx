@@ -11,7 +11,16 @@ import {
   buildCampaignScientificBrief,
   type CampaignScientificBrief,
 } from "@/lib/frontier/campaignBrief";
+import {
+  buildCampaignRouteHypotheses,
+  type CampaignRouteHypothesesPackage,
+} from "@/lib/frontier/campaignRouteHypotheses";
 import { downloadJson } from "@/lib/export/techTransfer";
+import {
+  downloadMarkdown,
+  formatCampaignBriefMarkdown,
+  formatCampaignRoutesMarkdown,
+} from "@/lib/frontier/exportMarkdown";
 
 /**
  * Multi-CID scientific brief: condition landscape, cross-CID conflicts, experiments.
@@ -20,6 +29,9 @@ export function CampaignBriefPanel() {
   const [campaigns, setCampaigns] = useState<ScienceCampaign[]>([]);
   const [selected, setSelected] = useState("");
   const [brief, setBrief] = useState<CampaignScientificBrief | null>(null);
+  const [routes, setRoutes] = useState<CampaignRouteHypothesesPackage | null>(
+    null
+  );
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -45,11 +57,16 @@ export function CampaignBriefPanel() {
       const b = buildCampaignScientificBrief(merged, {
         campaignName: camp.name,
       });
+      const r = buildCampaignRouteHypotheses(merged.dossiers, {
+        campaignName: camp.name,
+      });
       setBrief(b);
-      setStatus(b.summary);
+      setRoutes(r);
+      setStatus(`${b.summary} · ${r.summary}`);
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Brief failed");
       setBrief(null);
+      setRoutes(null);
     } finally {
       setBusy(false);
     }
@@ -59,6 +76,7 @@ export function CampaignBriefPanel() {
     const camp = campaigns.find((c) => c.id === selected);
     if (!camp) {
       setBrief(null);
+      setRoutes(null);
       return;
     }
     void loadBrief(camp);
@@ -71,9 +89,23 @@ export function CampaignBriefPanel() {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .slice(0, 40)}.json`,
-      brief
+      { brief, routeHypotheses: routes }
     );
-    setStatus("Exported campaign-brief.v1");
+    setStatus("Exported campaign-brief.v1 (+ routes)");
+  }
+
+  function exportMarkdownNotebook() {
+    if (!brief) return;
+    const slug = (brief.campaignName || "campaign")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .slice(0, 40);
+    let md = formatCampaignBriefMarkdown(brief);
+    if (routes) {
+      md += "\n---\n\n" + formatCampaignRoutesMarkdown(routes);
+    }
+    downloadMarkdown(`campaign-brief-${slug}.md`, md);
+    setStatus("Exported notebook Markdown (brief + routes)");
   }
 
   return (
@@ -127,6 +159,14 @@ export function CampaignBriefPanel() {
           className="rounded-lg border border-indigo-500/40 bg-indigo-950/40 px-2.5 py-1 text-[11px] text-indigo-100 disabled:opacity-40"
         >
           Export campaign-brief.v1
+        </button>
+        <button
+          type="button"
+          disabled={!brief}
+          onClick={exportMarkdownNotebook}
+          className="rounded-lg border border-indigo-500/40 bg-indigo-950/40 px-2.5 py-1 text-[11px] text-indigo-100 disabled:opacity-40"
+        >
+          Export notebook Markdown
         </button>
       </div>
 
@@ -228,6 +268,25 @@ export function CampaignBriefPanel() {
                 {brief.openGaps.map((g) => (
                   <li key={g}>· {g}</li>
                 ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {routes && routes.sharedSteps.some((s) => s.n >= 2) ? (
+            <div>
+              <h3 className="text-[10px] font-semibold uppercase text-slate-500">
+                Shared multi-CID route steps
+              </h3>
+              <p className="mt-0.5 text-[10px] text-slate-600">{routes.summary}</p>
+              <ul className="mt-1 max-h-24 space-y-0.5 overflow-y-auto font-mono text-[10px] text-slate-500">
+                {routes.sharedSteps
+                  .filter((s) => s.n >= 2)
+                  .slice(0, 12)
+                  .map((s) => (
+                    <li key={s.key}>
+                      {s.label} · {s.n} CIDs ({s.cids.join(", ")})
+                    </li>
+                  ))}
               </ul>
             </div>
           ) : null}

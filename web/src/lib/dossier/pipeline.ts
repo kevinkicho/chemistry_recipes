@@ -495,7 +495,7 @@ export async function buildLiveDossierWithProgress(
   // Frontier process-knowledge: condition atlas, hypotheses, experiments
   dossier = withProcessKnowledge(dossier);
 
-  // Attach atlas/hypothesis counts now that process-knowledge exists
+  // Attach atlas/hypothesis/literature-depth counts now that process-knowledge exists
   if (dossier.buildAudit?.densifyQuality && dossier.processKnowledge) {
     dossier = {
       ...dossier,
@@ -506,6 +506,10 @@ export async function buildLiveDossierWithProgress(
           conditionObservations:
             dossier.processKnowledge.metrics.observationCount,
           knowledgeHypotheses: dossier.processKnowledge.metrics.hypothesisCount,
+          literatureDepthScore:
+            dossier.processKnowledge.metrics.literatureDepthScore,
+          procedureRichWindows:
+            dossier.processKnowledge.metrics.procedureRichWindows,
         },
         // duration includes knowledge attach
         durationMs: clock.elapsed(),

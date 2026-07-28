@@ -181,5 +181,8 @@ export interface ProcessKnowledgePackage {
     processFactConditions: number;
     networkNodes?: number;
     networkEdges?: number;
+    /** Procedure-rich literature/patent window depth 0–100 */
+    literatureDepthScore?: number;
+    procedureRichWindows?: number;
   };
 }

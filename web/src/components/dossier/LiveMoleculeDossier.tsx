@@ -1246,6 +1246,14 @@ export function LiveMoleculeDossier({
                   {dossier.buildAudit.densifyQuality.knowledgeHypotheses != null
                     ? ` · ${dossier.buildAudit.densifyQuality.knowledgeHypotheses} hypotheses`
                     : ""}
+                  {dossier.buildAudit.densifyQuality.literatureDepthScore !=
+                  null
+                    ? ` · lit depth ${dossier.buildAudit.densifyQuality.literatureDepthScore}/100`
+                    : ""}
+                  {dossier.buildAudit.densifyQuality.procedureRichWindows !=
+                  null
+                    ? ` · ${dossier.buildAudit.densifyQuality.procedureRichWindows} rich windows`
+                    : ""}
                   {dossier.groundingReport
                     ? ` · grounding: ${dossier.groundingReport.summary}`
                     : ""}
