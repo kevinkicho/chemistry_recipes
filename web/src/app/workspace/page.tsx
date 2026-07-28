@@ -19,6 +19,8 @@ import { downloadJson, slugifyName } from "@/lib/export/techTransfer";
 import { BatchDensifyPanel } from "@/components/frontier/BatchDensifyPanel";
 import { CampaignGraphPanel } from "@/components/frontier/CampaignGraphPanel";
 import { CampaignAgentPanel } from "@/components/frontier/CampaignAgentPanel";
+import { CampaignBriefPanel } from "@/components/frontier/CampaignBriefPanel";
+import { WorkspaceScienceIndexPanel } from "@/components/frontier/WorkspaceScienceIndexPanel";
 import { DensifyTelemetryPanel } from "@/components/frontier/DensifyTelemetryPanel";
 import {
   listCampaigns,
@@ -192,7 +194,9 @@ export default function WorkspacePage() {
             Save as science campaign.
           </p>
         )}
+        <WorkspaceScienceIndexPanel />
         <CampaignGraphPanel />
+        <CampaignBriefPanel />
         <CampaignAgentPanel />
         <BatchDensifyPanel />
         <DensifyTelemetryPanel />

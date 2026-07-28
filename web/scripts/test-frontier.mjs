@@ -186,6 +186,67 @@ ok(
   )
 );
 ok(
+  "campaignBrief module",
+  existsSync(join(root, "src/lib/frontier/campaignBrief.ts"))
+);
+ok(
+  "buildCampaignScientificBrief",
+  /export function buildCampaignScientificBrief/.test(
+    read("lib/frontier/campaignBrief.ts")
+  )
+);
+ok(
+  "campaign-brief.v1 schema",
+  /campaign-brief\.v1/.test(read("lib/frontier/campaignBrief.ts"))
+);
+ok(
+  "workspaceScienceIndex module",
+  existsSync(join(root, "src/lib/frontier/workspaceScienceIndex.ts"))
+);
+ok(
+  "buildWorkspaceScienceIndex",
+  /export async function buildWorkspaceScienceIndex/.test(
+    read("lib/frontier/workspaceScienceIndex.ts")
+  )
+);
+ok(
+  "WorkspaceScienceIndexPanel",
+  existsSync(join(root, "src/components/frontier/WorkspaceScienceIndexPanel.tsx"))
+);
+ok(
+  "CampaignBriefPanel",
+  existsSync(join(root, "src/components/frontier/CampaignBriefPanel.tsx"))
+);
+ok(
+  "workspace mounts science index + brief",
+  /WorkspaceScienceIndexPanel/.test(read("app/workspace/page.tsx")) &&
+    /CampaignBriefPanel/.test(read("app/workspace/page.tsx"))
+);
+ok(
+  "auto-ask after densify queue",
+  /autoAskAfterQueue|Auto-ask question after queue/.test(
+    read("components/frontier/CampaignAgentPanel.tsx")
+  )
+);
+ok(
+  "agent uses scientific brief",
+  /buildCampaignScientificBrief/.test(read("lib/frontier/campaignAgent.ts"))
+);
+ok(
+  "export includes scientificBrief",
+  /scientificBrief/.test(read("lib/frontier/campaignExport.ts"))
+);
+ok(
+  "atlas concentration kind",
+  /concentration/.test(read("lib/frontier/types.ts")) &&
+    /concentration/.test(read("lib/frontier/conditionAtlas.ts"))
+);
+ok(
+  "atlas molar-ratio kind",
+  /molar-ratio/.test(read("lib/frontier/types.ts")) &&
+    /molar-ratio/.test(read("lib/frontier/conditionAtlas.ts"))
+);
+ok(
   "densifyQuality atlas after knowledge",
   /withProcessKnowledge/.test(pipe) &&
     /conditionObservations/.test(pipe) &&

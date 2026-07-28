@@ -218,8 +218,70 @@ function extractFromWindow(
     }, out.length);
   }
 
+  // Concentration: 0.5 M, 100 mM, 10 wt%, 5 v/v %
+  const concRe =
+    /(\d+(?:\.\d+)?\s*(?:–|-|to)\s*\d+(?:\.\d+)?|\d+(?:\.\d+)?)\s*(mM|M|mol\s*\/?\s*L|wt\s*%|w\/w\s*%|v\/v\s*%|g\s*\/?\s*L)\b/gi;
+  while ((m = concRe.exec(t))) {
+    const raw = m[0];
+    const { low, high } = parseRange(m[1] || raw);
+    const unit = (m[2] || "").replace(/\s+/g, "");
+    pushObs(
+      out,
+      {
+        kind: "concentration",
+        raw,
+        valueLow: low,
+        valueHigh: high,
+        unit,
+        quote: contextSlice(t, m.index, raw.length),
+        sourceKind: w.sourceKind,
+        sourceId: w.sourceId,
+        sourceLabel: w.sourceLabel,
+        sourceUrl: w.sourceUrl,
+        documentTitle: w.documentTitle,
+      },
+      out.length
+    );
+  }
+
+  // Molar ratios: 1:1, 2:1 molar ratio, substrate:reagent 3:1
+  const ratioRe =
+    /\b(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)(?:\s*(?:molar\s+)?ratio)?\b/gi;
+  let ratioCount = 0;
+  while ((m = ratioRe.exec(t)) && ratioCount < 8) {
+    const raw = m[0];
+    // Skip clock-like false positives (hours:minutes without chemistry context nearby)
+    const ctx = contextSlice(t, m.index, raw.length).toLowerCase();
+    if (
+      !/ratio|molar|equiv|substrate|reagent|feed|stoich|mol\b/.test(ctx) &&
+      Number(m[1]) > 24
+    ) {
+      continue;
+    }
+    ratioCount += 1;
+    const a = Number(m[1]);
+    const b = Number(m[2]);
+    pushObs(
+      out,
+      {
+        kind: "molar-ratio",
+        raw,
+        valueLow: Number.isFinite(a) && b ? a / b : a,
+        valueHigh: Number.isFinite(a) && b ? a / b : a,
+        unit: "ratio",
+        quote: contextSlice(t, m.index, raw.length),
+        sourceKind: w.sourceKind,
+        sourceId: w.sourceId,
+        sourceLabel: w.sourceLabel,
+        sourceUrl: w.sourceUrl,
+        documentTitle: w.documentTitle,
+      },
+      out.length
+    );
+  }
+
   const atmRe =
-    /\b(under\s+)?(N2|nitrogen|argon|H2|hydrogen|air|inert atmosphere)\b/gi;
+    /\b(under\s+)?(N2|N₂|nitrogen|argon|Ar\b|H2|H₂|hydrogen|air|CO2|CO₂|O2|O₂|inert atmosphere|vacuum|N2\/H2|forming gas)\b/gi;
   while ((m = atmRe.exec(t))) {
     const raw = m[0];
     pushObs(out, {
@@ -236,7 +298,7 @@ function extractFromWindow(
 
   // Solvents (lightweight lexicon — observation, not plant choice)
   const solventRe =
-    /\b(water|ethanol|methanol|isopropanol|IPA|acetone|acetonitrile|MeCN|DCM|dichloromethane|chloroform|toluene|hexane|heptane|EtOAc|ethyl acetate|THF|DMF|DMSO|dioxane|acetic acid)\b/gi;
+    /\b(water|ethanol|methanol|isopropanol|IPA|acetone|acetonitrile|MeCN|DCM|dichloromethane|chloroform|toluene|hexane|heptane|EtOAc|ethyl acetate|THF|DMF|DMSO|dioxane|acetic acid|MTBE|2-MeTHF|NMP|DMAc|pyridine|xylene|benzene|diethyl ether|Et2O)\b/gi;
   const seenSol = new Set<string>();
   while ((m = solventRe.exec(t))) {
     const name = m[1]!;

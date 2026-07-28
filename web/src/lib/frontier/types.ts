@@ -11,6 +11,8 @@ export type ConditionKind =
   | "ph"
   | "equiv"
   | "yield"
+  | "concentration"
+  | "molar-ratio"
   | "atmosphere"
   | "solvent"
   | "catalyst"

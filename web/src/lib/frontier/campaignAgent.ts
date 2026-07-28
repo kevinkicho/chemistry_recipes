@@ -10,6 +10,7 @@ import {
 } from "@/lib/frontier/campaignKnowledge";
 import { buildCampaignKnowledgeExport } from "@/lib/frontier/campaignExport";
 import { buildEdgePairExperiments } from "@/lib/frontier/edgeExperiments";
+import { buildCampaignScientificBrief } from "@/lib/frontier/campaignBrief";
 import type { EvidenceAnswer, NextExperiment } from "@/lib/frontier/types";
 import { suggestEdgePairs, compareNetworkEdges } from "@/lib/frontier/edgeCompare";
 
@@ -228,14 +229,37 @@ export function answerCampaignQuestion(
     }
   }
 
-  if (/temp|condition|atlas|°c|pressure|solvent/i.test(q)) {
+  if (
+    /temp|condition|atlas|°c|pressure|solvent|brief|landscape|conflict|yield|concentrat/i.test(
+      q
+    )
+  ) {
+    const brief = buildCampaignScientificBrief(merged, {
+      campaignName: meta.campaignName,
+    });
     const lines = merged.atlasByKind.map((d) => `• ${d.summary}`);
-    if (lines.length) {
+    if (lines.length || brief.crossCidConflicts.length) {
       steps.push({
         id: "s3",
         role: "cite",
-        detail: "Answered from campaign-merged condition atlas",
+        detail: `Answered from campaign atlas + scientific brief (depth ${brief.depthScore})`,
       });
+      const conflictLines = brief.crossCidConflicts
+        .slice(0, 4)
+        .map(
+          (c) =>
+            `• CONFLICT ${c.kind}: CID ${c.cidA} ${c.rangeA} vs CID ${c.cidB} ${c.rangeB}`
+        );
+      const spanLines = brief.crossCidSpans
+        .slice(0, 6)
+        .map(
+          (s) =>
+            `• CID ${s.cid} ${s.kind}: ${
+              s.min != null && s.max != null
+                ? `${s.min}–${s.max}${s.unit ? ` ${s.unit}` : ""}`
+                : "—"
+            } (n=${s.n})`
+        );
       return {
         schema: "chemistry-recipes.campaign-agent.v1",
         campaignId: meta.campaignId,
@@ -244,13 +268,35 @@ export function answerCampaignQuestion(
         answer: {
           id: `camp:atlas:${Date.now()}`,
           question: q,
-          answer: `Campaign-merged condition space (${merged.totalObservations} obs across ${merged.cachedCount} CID(s)):\n${lines.join("\n")}`,
+          answer: [
+            `Campaign scientific brief · depth ${brief.depthScore}/100 · ${merged.totalObservations} obs · ${merged.cachedCount} CID(s)`,
+            lines.length ? `Condition landscape:\n${lines.join("\n")}` : null,
+            spanLines.length
+              ? `Per-CID spans:\n${spanLines.join("\n")}`
+              : null,
+            conflictLines.length
+              ? `Cross-CID conflicts:\n${conflictLines.join("\n")}`
+              : null,
+            brief.openGaps[0] ? `Gap: ${brief.openGaps[0]}` : null,
+            "Validate against primary sources. Not GMP.",
+          ]
+            .filter(Boolean)
+            .join("\n\n"),
           grounded: true,
-          citations: findQuotes(merged, ["°c", "temp", "solvent", ...tokens]),
+          citations: findQuotes(merged, [
+            "°c",
+            "temp",
+            "solvent",
+            "yield",
+            ...tokens,
+          ]),
           insufficientEvidence: merged.totalObservations < 2,
         },
         steps,
-        nextExperiments: edgeExps,
+        nextExperiments: [
+          ...brief.topExperiments.slice(0, 4),
+          ...edgeExps,
+        ].slice(0, 10),
         metrics: metricsOf(merged, meta.requestedCount),
       };
     }

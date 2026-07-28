@@ -64,7 +64,11 @@ Export: process-knowledge JSON from the Evidence science panel.
 | **Knowledge fingerprint** | Skip process-knowledge rebuild when densify inputs unchanged |
 | **Batch cache skip** | Warm IndexedDB hits skip server rebuild (12h, force override) |
 | **Transient retries** | Per-CID exponential backoff on timeout/5xx during batch densify |
-| **Local-first science agent** | Answer from in-page package without full server pipeline when possible | 
+| **Local-first science agent** | Answer from in-page package without full server pipeline when possible |
+| **Workspace science index** | Cross-campaign densify inventory, condition-kind histogram, global thin queue |
+| **Campaign scientific brief** | Depth score, per-CID condition spans, cross-CID range conflicts, research experiments |
+| **Auto-ask after queue densify** | Campaign agent densifies thin CIDs then answers the open question |
+| **Deeper atlas extractors** | Concentration, molar-ratio, expanded solvents/atmosphere from free-public text |
 
 ## User journeys
 

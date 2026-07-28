@@ -44,6 +44,7 @@ export function CampaignAgentPanel() {
   const [healthMsg, setHealthMsg] = useState<string | null>(null);
   const [lastAgent, setLastAgent] = useState<CampaignAgentResult | null>(null);
   const [exportMsg, setExportMsg] = useState<string | null>(null);
+  const [autoAskAfterQueue, setAutoAskAfterQueue] = useState(true);
 
   const reload = useCallback(() => {
     const rows = listCampaigns();
@@ -101,6 +102,7 @@ export function CampaignAgentPanel() {
     if (!camp || !queueCids.length) return;
     setBusy(true);
     setOut(null);
+    setLastAgent(null);
     setSteps([`[densify] Auto-queue thin/missing: ${queueCids.join(", ")}`]);
     const beforeIdeal = new Map(
       (health || []).map((s) => [s.cid, s.idealScore ?? 0] as const)
@@ -137,6 +139,37 @@ export function CampaignAgentPanel() {
       setOut(
         `Thin/missing queue densify · ${res.ok}ok/${res.fail}fail · ${Math.round(res.durationMs / 1000)}s · not GMP`
       );
+
+      // Next-slice: auto-ask campaign package after queue densify fills cache
+      if (autoAskAfterQueue && res.ok > 0 && q.trim().length >= 4) {
+        setSteps((prev) => [
+          ...prev,
+          "[retrieve] Auto-ask after densify queue…",
+        ]);
+        const agentRes = await runCampaignAgent(camp, q);
+        setLastAgent(agentRes);
+        setSteps((prev) => [
+          ...prev,
+          ...agentRes.steps.map((s) => `[${s.role}] ${s.detail}`),
+        ]);
+        setExps(
+          agentRes.nextExperiments
+            .slice(0, 5)
+            .map((e) => `${e.priority}: ${e.question}`)
+        );
+        setOut(
+          [
+            `mode: densify queue → auto-ask`,
+            `densify ${res.ok}ok/${res.fail}fail`,
+            agentRes.answer.insufficientEvidence
+              ? "⚠ insufficient free-public evidence"
+              : "✓ campaign-grounded",
+            `cached ${agentRes.metrics.cachedCount}/${agentRes.metrics.requestedCount} · obs ${agentRes.metrics.totalObservations}`,
+            "",
+            agentRes.answer.answer,
+          ].join("\n")
+        );
+      }
     } catch (e) {
       setOut(e instanceof Error ? e.message : "Queue densify failed");
     } finally {
@@ -362,14 +395,28 @@ export function CampaignAgentPanel() {
       ) : null}
 
       {queueCids.length > 0 ? (
-        <button
-          type="button"
-          disabled={busy || !selected}
-          onClick={() => void densifyQueue()}
-          className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-100 hover:bg-amber-500/20 disabled:opacity-40"
-        >
-          {busy ? "Densifying queue…" : `Densify thin/missing (${queueCids.length})`}
-        </button>
+        <div className="mt-2 space-y-1">
+          <button
+            type="button"
+            disabled={busy || !selected}
+            onClick={() => void densifyQueue()}
+            className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-100 hover:bg-amber-500/20 disabled:opacity-40"
+          >
+            {busy
+              ? autoAskAfterQueue
+                ? "Densify + auto-ask…"
+                : "Densifying queue…"
+              : `Densify thin/missing (${queueCids.length})`}
+          </button>
+          <label className="flex items-center gap-2 text-[11px] text-slate-400">
+            <input
+              type="checkbox"
+              checked={autoAskAfterQueue}
+              onChange={(e) => setAutoAskAfterQueue(e.target.checked)}
+            />
+            Auto-ask question after queue densify completes
+          </label>
+        </div>
       ) : null}
 
       <textarea

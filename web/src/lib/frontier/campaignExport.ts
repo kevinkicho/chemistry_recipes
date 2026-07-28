@@ -10,6 +10,8 @@ import {
 import { buildProcessKnowledgePackage } from "@/lib/frontier/buildKnowledge";
 import type { ProcessKnowledgePackage } from "@/lib/frontier/types";
 import type { CampaignAgentResult } from "@/lib/frontier/campaignAgent";
+import type { CampaignScientificBrief } from "@/lib/frontier/campaignBrief";
+import { buildCampaignScientificBrief } from "@/lib/frontier/campaignBrief";
 
 export const CAMPAIGN_KNOWLEDGE_SCHEMA =
   "chemistry-recipes.campaign-knowledge.v1" as const;
@@ -51,6 +53,8 @@ export interface CampaignKnowledgeExport {
     nextExperiments: CampaignAgentResult["nextExperiments"];
     metrics: CampaignAgentResult["metrics"];
   };
+  /** Multi-CID scientific brief (depth, cross-CID conflicts) */
+  scientificBrief?: CampaignScientificBrief;
 }
 
 const DISCLAIMER =
@@ -64,7 +68,7 @@ const DISCLAIMER =
  */
 export async function buildCampaignKnowledgeExport(
   campaign: ScienceCampaign,
-  opts?: { agentResult?: CampaignAgentResult }
+  opts?: { agentResult?: CampaignAgentResult; includeBrief?: boolean }
 ): Promise<CampaignKnowledgeExport> {
   const merged = await buildMergedCampaignKnowledge(
     campaign.cids,
@@ -78,6 +82,11 @@ export async function buildCampaignKnowledgeExport(
   });
 
   const agent = opts?.agentResult;
+  const includeBrief = opts?.includeBrief !== false;
+  const scientificBrief = includeBrief
+    ? buildCampaignScientificBrief(merged, { campaignName: campaign.name })
+    : undefined;
+
   return {
     schema: CAMPAIGN_KNOWLEDGE_SCHEMA,
     exportedAt: new Date().toISOString(),
@@ -112,6 +121,7 @@ export async function buildCampaignKnowledgeExport(
           metrics: agent.metrics,
         }
       : undefined,
+    scientificBrief,
   };
 }
 
