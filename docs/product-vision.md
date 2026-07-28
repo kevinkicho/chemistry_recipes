@@ -17,6 +17,47 @@
 5. **No regulatory decision support.** Not a substitute for FDA/EMA filings, DMF, or batch record approval.  
 6. **No invented site limits.** Literature-typical parameters are teaching envelopes only.  
 7. **Local-first.** IndexedDB + local projects; no collab multi-user backend.  
+8. **Curated Tier-A is the ideal-page depth goal.** Live free-API dossiers chase the same dual-view inventory (recipe, BOM, apparatus, environment, EHS, related entities) that Example dossiers already show — via densify, grounded AI, and labeled Tier-A teaching merges — never by inventing plant numbers to fake polish.  
+9. **Frontier science = process knowledge, not cosmetic dossiers.** Condition-space atlases, competing route hypotheses with kill criteria, evidence-only Q&A, and next-experiment suggestions are first-class — exported as `process-knowledge.v1` for agents and notebooks.
+
+## Ideal page (north star)
+
+The **curated Example dossier** (`ExampleDossierView` + `web/src/data/molecules/*.json`) is the product’s **ideal page**: complete dual-view process recipe, manufacturing narrative, plant environment, apparatus catalog, EHS, related materials, control points.
+
+Live builds measure progress with **`idealParity`** (0–100) against that inventory. Hub CIDs may promote **Tier-A teaching** routes when live leads are thin (always labeled editorial).
+
+## Frontier process knowledge
+
+Live dossiers also attach **`processKnowledge`** (`chemistry-recipes.process-knowledge.v1`):
+
+- **Condition atlas** — distributions of T/t/P/… from free-public quotes (conflicts flagged)  
+- **Route hypotheses** — competing public sequences with evidence scores and kill criteria  
+- **Scientific conflicts** + **next experiments** (research questions, not plant setpoints)  
+- **Seed Q&A** grounded only in the densified package (`insufficientEvidence` allowed)  
+
+Export: process-knowledge JSON from the Evidence science panel.
+
+### Frontier v2 surfaces
+
+| Surface | Purpose |
+|---------|---------|
+| **Unit-normalized atlas** | °C / h / bar base units for fair conflict detection |
+| **Reaction network** | Multi-CID nodes/edges from related entities + route materials |
+| **Science campaigns** | Local CID sets (workspace) for batch densify |
+| **`POST /api/dossier/batch`** | Sequential densify up to 12 CIDs |
+| **`POST /api/ai/science`** | Quote-bound agent loop (retrieve ± densify neighbors ± optional Ollama over package only) |
+| **`GET|POST /api/dossier/batch/stream`** | SSE progress per CID during multi-CID densify |
+| **Campaign graph panel** | Merge networks + atlases from IndexedDB; stream densify missing CIDs |
+| **`campaign-knowledge.v1` export** | Multi-CID packages + merged network/atlas for agents |
+| **Parallel batch densify** | Concurrency 1–4 (`mapPool`) on JSON + SSE batch endpoints |
+| **Edge evidence compare** | Side-by-side network edge evidence + linked condition quotes |
+| **Edge-pair experiments** | Auto research questions from contrasting / thin network edges |
+| **Campaign agent** | Multi-CID Q&A over merged cache (`campaign-agent.v1`) |
+| **Densify telemetry** | Local concurrency / ok-fail / duration history for batch runs |
+| **Knowledge fingerprint** | Skip process-knowledge rebuild when densify inputs unchanged |
+| **Batch cache skip** | Warm IndexedDB hits skip server rebuild (12h, force override) |
+| **Transient retries** | Per-CID exponential backoff on timeout/5xx during batch densify |
+| **Local-first science agent** | Answer from in-page package without full server pipeline when possible | 
 
 ## User journeys
 

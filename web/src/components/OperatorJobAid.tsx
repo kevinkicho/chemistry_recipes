@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
+import { ContentProvenance } from "@/components/ContentProvenance";
 import type { LiveDossier } from "@/lib/dossier/types";
 import type { ProcessFact } from "@/lib/dossier/processFacts";
 import type { ProcessStep, SourceRef } from "@/lib/types/process";
+import { slimTraces } from "@/lib/api/trace";
 
 type StepEvidence = {
   step: ProcessStep;
@@ -168,7 +170,13 @@ const KIND_BADGE: Record<
  * Shift-brief style one-pager for operators / supervisors.
  * Surfaces real public evidence per step — does not invent plant numbers.
  */
-export function OperatorJobAid({ dossier }: { dossier: LiveDossier }) {
+export function OperatorJobAid({
+  dossier,
+  onRegenerate,
+}: {
+  dossier: LiveDossier;
+  onRegenerate?: () => void;
+}) {
   const pf = dossier.processFacts;
   const framing = dossier.processFraming || pf?.framing || "evidence-lead-pack";
   const route = dossier.processRoutes[0];
@@ -204,9 +212,21 @@ export function OperatorJobAid({ dossier }: { dossier: LiveDossier }) {
     >
       <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-200 pb-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-            Operator / supervisor job aid
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              Operator / supervisor job aid
+            </p>
+            <ContentProvenance
+              title="Operator job aid"
+              field="Operator job aid"
+              pubchemCid={dossier.cid}
+              traces={slimTraces(dossier.traces || [])}
+              sourceRefs={dossier.sourceRefs}
+              ai={dossier.synthesis.provenance}
+              showAi={Boolean(dossier.synthesis.provenance)}
+              onRegenerate={onRegenerate}
+            />
+          </div>
           <h2 className="text-lg font-semibold text-slate-900">
             {dossier.identity?.name || `CID ${dossier.cid}`}
           </h2>

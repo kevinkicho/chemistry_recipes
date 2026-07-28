@@ -564,6 +564,8 @@ function Field({
   );
 }
 
+const API_PAGE_CHARS = 2800;
+
 function ResponseBlock({
   body,
   contentType,
@@ -574,6 +576,7 @@ function ResponseBlock({
   compact?: boolean;
 }) {
   const [expanded, setExpanded] = useState(!compact);
+  const [page, setPage] = useState(1);
   if (!body) {
     return (
       <span className="text-slate-600">
@@ -584,7 +587,18 @@ function ResponseBlock({
 
   const formatted = formatResponseBody(body);
   const isLong = formatted.length > 320;
-  const show = !isLong || expanded ? formatted : `${formatted.slice(0, 320)}…`;
+  const pages = Math.max(1, Math.ceil(formatted.length / API_PAGE_CHARS));
+  const safePage = Math.min(page, pages);
+  const pageSlice = formatted.slice(
+    (safePage - 1) * API_PAGE_CHARS,
+    safePage * API_PAGE_CHARS
+  );
+  const show =
+    !isLong || expanded
+      ? pages > 1
+        ? pageSlice
+        : formatted
+      : `${formatted.slice(0, 320)}…`;
 
   return (
     <div className="min-w-0 space-y-1.5">
@@ -598,12 +612,38 @@ function ResponseBlock({
         {isLong && (
           <button
             type="button"
-            onClick={() => setExpanded((v) => !v)}
+            onClick={() => {
+              setExpanded((v) => !v);
+              setPage(1);
+            }}
             className="text-teal-500/90 hover:underline"
           >
             {expanded ? "Collapse" : "Expand full response"}
           </button>
         )}
+        {expanded && pages > 1 ? (
+          <span className="inline-flex items-center gap-1">
+            <button
+              type="button"
+              disabled={safePage <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="rounded border border-slate-700 px-1.5 py-0.5 text-slate-400 enabled:hover:text-teal-300 disabled:opacity-40"
+            >
+              Prev
+            </button>
+            <span className="font-mono tabular-nums">
+              p.{safePage}/{pages}
+            </span>
+            <button
+              type="button"
+              disabled={safePage >= pages}
+              onClick={() => setPage((p) => Math.min(pages, p + 1))}
+              className="rounded border border-slate-700 px-1.5 py-0.5 text-slate-400 enabled:hover:text-teal-300 disabled:opacity-40"
+            >
+              Next
+            </button>
+          </span>
+        ) : null}
       </div>
       <pre
         className={`overflow-x-auto rounded-lg border border-slate-800 bg-slate-950/90 p-2.5 font-mono text-[11px] leading-relaxed text-slate-300 whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${

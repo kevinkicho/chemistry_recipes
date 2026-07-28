@@ -1,6 +1,9 @@
 /**
  * Merge curated Tier-A teaching content into live dossiers for hub CIDs.
- * Labeled as educational baseline — never claimed as live API evidence.
+ *
+ * Product goal: curated ExampleDossierView is the *ideal depth* we chase.
+ * When live preferred routes are thin, promote labeled Tier-A teaching routes
+ * so the page approaches that ideal without claiming free-API extraction.
  */
 
 import { getExampleById } from "@/lib/data/examples";
@@ -8,17 +11,26 @@ import { findHubByCid } from "@/lib/data/hubIndex";
 import type { LiveDossier } from "@/lib/dossier/types";
 import type { ProcessRoute, RelatedEntity, SourceRef } from "@/lib/types/process";
 import { mergeRelatedEntities } from "@/lib/dossier/relatedEntities";
+import { isPreferredRouteThin } from "@/lib/dossier/idealPage";
 
 const TIER_A_REF: SourceRef = {
   type: "editorial",
   id: "tier-a-teaching-baseline",
   label: "Tier-A curated teaching baseline",
-  note: "Educational dual-view package — not live free-API extraction; not GMP",
+  note: "Educational dual-view package — ideal-page depth target; not live free-API extraction; not GMP",
 };
+
+function isTeachingRoute(r: ProcessRoute): boolean {
+  return (
+    r.id.startsWith("tier-a-") ||
+    /tier-a teaching/i.test(r.name || "") ||
+    (r.sourceRefs || []).some((x) => x.id?.includes("tier-a"))
+  );
+}
 
 /**
  * When this CID has a curated example, add teaching routes + related entities
- * so the live page approaches mock depth while keeping live multi-API facts.
+ * so the live page approaches curated ideal depth while keeping multi-API facts.
  */
 export function applyTierABaseline(dossier: LiveDossier): LiveDossier {
   const hub = findHubByCid(dossier.cid);
@@ -27,24 +39,43 @@ export function applyTierABaseline(dossier: LiveDossier): LiveDossier {
   if (!ex) return dossier;
 
   const liveRoutes = dossier.processRoutes || [];
+  const thinLive = isPreferredRouteThin({
+    ...dossier,
+    processRoutes: liveRoutes.filter((r) => !isTeachingRoute(r)),
+  });
+
   const curatedRoutes: ProcessRoute[] = (ex.routes || []).map((r, i) => ({
     ...r,
     id: `tier-a-${r.id || i}`,
     name: `${r.name} (Tier-A teaching)`,
-    preference: 100 + i, // sort after live preferred
+    // When live is thin, promote teaching toward preferred (ideal-page goal).
+    // When live is dense, keep teaching as secondary reference.
+    preference: thinLive ? 1 + i : 100 + i,
     sourceRefs: [...(r.sourceRefs || []), TIER_A_REF],
-    summary: `${r.summary} [Tier-A educational baseline — verify against live evidence above.]`,
+    summary: `${r.summary} [Tier-A educational baseline — ideal-page depth target; verify against live free-API evidence.]`,
     steps: (r.steps || []).map((s) => ({
       ...s,
       sourceRefs: [...(s.sourceRefs || []), TIER_A_REF],
     })),
   }));
 
-  // Prefer live routes first; append curated teaching routes
+  // Demote thin live leads so teaching can sit first when promoted
+  const adjustedLive: ProcessRoute[] = liveRoutes.map((r, i) => {
+    if (isTeachingRoute(r)) return r;
+    if (!thinLive) return r;
+    return {
+      ...r,
+      preference: Math.max(r.preference || 10, 20 + i),
+      name: /live|evidence|lead/i.test(r.name)
+        ? r.name
+        : `${r.name} (live evidence lead)`,
+    };
+  });
+
   const byId = new Map<string, ProcessRoute>();
-  for (const r of liveRoutes) byId.set(r.id, r);
+  for (const r of adjustedLive) byId.set(r.id, r);
   for (const r of curatedRoutes) {
-    if (!byId.has(r.id)) byId.set(r.id, r);
+    byId.set(r.id, r);
   }
   const processRoutes = [...byId.values()].sort(
     (a, b) => (a.preference || 99) - (b.preference || 99)
@@ -54,7 +85,7 @@ export function applyTierABaseline(dossier: LiveDossier): LiveDossier {
     ...e,
     notes: e.notes
       ? `${e.notes} (Tier-A teaching)`
-      : "From Tier-A curated teaching package",
+      : "From Tier-A curated teaching package (ideal-page target)",
   }));
 
   const relatedEntities = mergeRelatedEntities(
@@ -62,52 +93,68 @@ export function applyTierABaseline(dossier: LiveDossier): LiveDossier {
     curatedRelated
   );
 
-  // Fill empty plant cards from curated when live still empty
+  // Fill plant cards from curated when live still empty OR only thin placeholder
+  const liveApparatus = dossier.synthesis.apparatusCatalog || [];
   const apparatusCatalog =
-    dossier.synthesis.apparatusCatalog?.length
-      ? dossier.synthesis.apparatusCatalog
+    liveApparatus.length >= 3
+      ? liveApparatus
       : (ex.apparatusCatalog || []).map((a) => ({
           ...a,
           notes: a.notes
-            ? `${a.notes} (Tier-A teaching)`
-            : "Tier-A teaching apparatus class",
+            ? `${a.notes} (Tier-A teaching · ideal-page target)`
+            : "Tier-A teaching apparatus class · ideal-page target",
         }));
 
   const environmentBaseline =
-    dossier.synthesis.environmentBaseline ||
-    (ex.environmentBaseline
-      ? {
-          ...ex.environmentBaseline,
-          notes: [
-            ex.environmentBaseline.notes,
-            "Tier-A teaching environment baseline — confirm with live evidence / site QMS",
-          ]
-            .filter(Boolean)
-            .join(" · "),
-        }
-      : undefined);
+    dossier.synthesis.environmentBaseline?.atmosphere ||
+    dossier.synthesis.environmentBaseline?.utilities?.length
+      ? dossier.synthesis.environmentBaseline
+      : ex.environmentBaseline
+        ? {
+            ...ex.environmentBaseline,
+            notes: [
+              ex.environmentBaseline.notes,
+              "Tier-A teaching environment baseline (ideal-page target) — confirm with live evidence / site QMS",
+            ]
+              .filter(Boolean)
+              .join(" · "),
+          }
+        : dossier.synthesis.environmentBaseline;
 
+  const liveEhs = dossier.synthesis.ehsHighlights || [];
   const ehsHighlights =
-    dossier.synthesis.ehsHighlights?.length
-      ? dossier.synthesis.ehsHighlights
-      : (ex.ehsHighlights || []).map((e) => `${e} (Tier-A teaching)`);
+    liveEhs.length >= 2
+      ? liveEhs
+      : (ex.ehsHighlights || []).map(
+          (e) => `${e} (Tier-A teaching · ideal-page target)`
+        );
 
   const manufacturingSummary =
-    dossier.synthesis.manufacturingSummary ||
-    (ex.manufacturingSummary
-      ? `${ex.manufacturingSummary} [Tier-A teaching narrative — live multi-API facts may refine this.]`
-      : undefined);
+    (dossier.synthesis.manufacturingSummary &&
+      dossier.synthesis.manufacturingSummary.length >= 80)
+      ? dossier.synthesis.manufacturingSummary
+      : ex.manufacturingSummary
+        ? `${ex.manufacturingSummary} [Tier-A teaching narrative — ideal-page depth target; live multi-API facts may refine this.]`
+        : dossier.synthesis.manufacturingSummary;
 
   const overview =
-    dossier.synthesis.overview ||
-    (ex.overview
-      ? `${ex.overview} [Live build: multi-API evidence + process facts apply on this page.]`
-      : undefined);
+    (dossier.synthesis.overview && dossier.synthesis.overview.length >= 100)
+      ? dossier.synthesis.overview
+      : ex.overview
+        ? `${ex.overview} [Ideal-page target from Tier-A; live multi-API evidence + process facts also apply.]`
+        : dossier.synthesis.overview;
 
   const applications =
     dossier.synthesis.applications?.length
       ? dossier.synthesis.applications
       : ex.applications;
+
+  const gaps = [
+    ...(dossier.synthesis.gaps || []),
+    thinLive
+      ? `Live preferred route was thin — Tier-A teaching route promoted toward curated ideal-page depth for “${ex.id}” (labeled editorial, not free-API extraction).`
+      : `Tier-A teaching baseline “${ex.id}” merged as secondary ideal-page reference — labeled editorial, not free-API extraction.`,
+  ].filter((g, i, a) => a.indexOf(g) === i);
 
   return {
     ...dossier,
@@ -127,17 +174,14 @@ export function applyTierABaseline(dossier: LiveDossier): LiveDossier {
       ehsHighlights: ehsHighlights?.length
         ? ehsHighlights
         : dossier.synthesis.ehsHighlights,
-      gaps: [
-        ...(dossier.synthesis.gaps || []),
-        `Tier-A teaching baseline “${ex.id}” merged for plant depth — labeled editorial, not free-API extraction.`,
-      ].filter((g, i, a) => a.indexOf(g) === i),
+      gaps,
     },
     sourceRefs: [
       ...dossier.sourceRefs,
       {
         ...TIER_A_REF,
         id: `tier-a:${ex.id}`,
-        label: `Tier-A example · ${ex.identifiers.name}`,
+        label: `Tier-A ideal-page twin · ${ex.identifiers.name}`,
         url: undefined,
       },
     ],

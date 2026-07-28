@@ -137,7 +137,8 @@ Automated (offline):
 Manual / live (when Ollama configured):
 
 1. Build aspirin or sitagliptin live CID with Cloud/local key.  
-2. Open AI provenance chip — evidence char count, procedure/atom counts.  
+2. Open AI provenance chip — full system/user prompts (paginated), data fed, sources, Regenerate, evidence char counts.  
+3. Every major content block shows API + AI chips via `ContentProvenance` where traces/AI exist.  
 3. Confirm route conditions either match processFacts or are absent.  
 4. Confirm gaps[] lists site CPPs / full patent examples when thin.  
 5. Manager brief + operator job aid do not claim GMP validation.

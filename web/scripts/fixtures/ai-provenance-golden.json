@@ -1,0 +1,41 @@
+{
+  "schema": "chemistry-recipes.ai-provenance-fixture.v1",
+  "note": "Golden shape for AI provenance regression — not a live model call",
+  "provenance": {
+    "provider": "ollama-cloud",
+    "host": "https://ollama.com",
+    "model": "fixture-model",
+    "startedAt": "2026-01-01T00:00:00.000Z",
+    "finishedAt": "2026-01-01T00:00:02.000Z",
+    "responseTimeMs": 2000,
+    "systemPrompt": "SYSTEM: never invent numeric plant limits.",
+    "userPrompt": "USER: structure evidence for CID 2244.\n\nEVIDENCE:\n{\"identity\":\"aspirin\"}",
+    "dataFed": "{\"cid\":2244,\"processFacts\":{\"atoms\":[]},\"procedureExcerpts\":[]}",
+    "dataSources": [
+      {
+        "id": "pubchem:2244",
+        "name": "PubChem",
+        "organization": "NIH",
+        "role": "identity",
+        "url": "https://pubchem.ncbi.nlm.nih.gov/compound/2244",
+        "content": "Aspirin · CID 2244"
+      }
+    ],
+    "responsePreview": "{\"overview\":\"Educational scaffold only.\"}",
+    "responseChars": 42,
+    "parsed": true,
+    "fieldsGenerated": ["overview", "routes"],
+    "endpointUrl": "https://ollama.com/api/chat",
+    "method": "POST",
+    "keySource": "env"
+  },
+  "requiredKeys": [
+    "systemPrompt",
+    "userPrompt",
+    "dataFed",
+    "dataSources",
+    "model",
+    "responseTimeMs",
+    "responsePreview"
+  ]
+}

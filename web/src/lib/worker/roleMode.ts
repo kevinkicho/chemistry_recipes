@@ -121,14 +121,13 @@ const ALL: DossierSectionId[] = [
 ];
 
 const ROLE_SECTIONS: Record<WorkerRole, DossierSectionId[]> = {
+  /** Floor-first: one-scroll path — pack, job aid, site blanks, shift pack */
   operator: [
     "monday-pack",
-    "framing",
     "operator-aid",
-    "local-enrich",
     "site-fill",
-    "checklist",
     "work-pack",
+    "local-enrich",
   ],
   chemist: [
     "monday-pack",

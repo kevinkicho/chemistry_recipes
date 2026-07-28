@@ -16,6 +16,16 @@ import {
 import { routes } from "@/lib/routes";
 import { RegulatoryDisclaimer } from "@/components/RegulatoryDisclaimer";
 import { downloadJson, slugifyName } from "@/lib/export/techTransfer";
+import { BatchDensifyPanel } from "@/components/frontier/BatchDensifyPanel";
+import { CampaignGraphPanel } from "@/components/frontier/CampaignGraphPanel";
+import { CampaignAgentPanel } from "@/components/frontier/CampaignAgentPanel";
+import { DensifyTelemetryPanel } from "@/components/frontier/DensifyTelemetryPanel";
+import {
+  listCampaigns,
+  deleteCampaign,
+  type ScienceCampaign,
+  subscribeCampaigns,
+} from "@/lib/workspace/campaigns";
 
 export default function WorkspacePage() {
   const [projects, setProjects] = useState<WorkspaceProject[]>([]);
@@ -24,6 +34,7 @@ export default function WorkspacePage() {
   const [compareB, setCompareB] = useState<string | null>(null);
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
+  const [campaigns, setCampaigns] = useState<ScienceCampaign[]>([]);
 
   useEffect(() => {
     const load = () => {
@@ -33,6 +44,12 @@ export default function WorkspacePage() {
     };
     load();
     return subscribeProjects(load);
+  }, []);
+
+  useEffect(() => {
+    const load = () => setCampaigns(listCampaigns());
+    load();
+    return subscribeCampaigns(load);
   }, []);
 
   const selected = projects.find((p) => p.id === selectedId) || null;
@@ -128,6 +145,58 @@ export default function WorkspacePage() {
       <div className="mt-4">
         <RegulatoryDisclaimer compact />
       </div>
+
+      <section className="mt-8 space-y-4">
+        <h2 className="text-lg font-semibold text-slate-100">
+          Science campaigns (multi-CID)
+        </h2>
+        <p className="text-xs text-slate-500">
+          Campaigns are local CID sets for batch densify and network study — create them from
+          a live dossier&apos;s reaction network panel.
+        </p>
+        {campaigns.length > 0 ? (
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {campaigns.map((c) => (
+              <li
+                key={c.id}
+                className="rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2 text-sm"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <div className="font-medium text-slate-100">{c.name}</div>
+                    <div className="font-mono text-[11px] text-slate-500">
+                      {c.cids.join(", ")}
+                    </div>
+                    {c.lastBatch ? (
+                      <div className="mt-1 text-[10px] text-slate-600">
+                        Last batch: {c.lastBatch.ok} ok / {c.lastBatch.fail} fail
+                      </div>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm(`Delete campaign “${c.name}”?`)) deleteCampaign(c.id);
+                    }}
+                    className="text-[11px] text-rose-300/90 hover:underline"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-slate-600">
+            No campaigns yet — open a live dossier (chemist role) → Process reaction network →
+            Save as science campaign.
+          </p>
+        )}
+        <CampaignGraphPanel />
+        <CampaignAgentPanel />
+        <BatchDensifyPanel />
+        <DensifyTelemetryPanel />
+      </section>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[16rem_1fr]">
         <aside className="space-y-2">

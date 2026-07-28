@@ -781,9 +781,10 @@ export async function synthesizeDossierFromEvidence(
     userPrompt: userContent,
     dataFed: evidenceBlock,
     dataSources,
+    // Keep a large preview so AI provenance can paginate the real response
     responsePreview: first.content
-      ? first.content.length > 4000
-        ? first.content.slice(0, 4000) + "\n…[truncated]"
+      ? first.content.length > 48_000
+        ? first.content.slice(0, 48_000) + "\n…[truncated for storage]"
         : first.content
       : undefined,
     responseChars: first.content?.length,

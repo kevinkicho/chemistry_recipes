@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SearchForm } from "@/components/SearchForm";
+import { ProblemFirstSearch } from "@/components/ProblemFirstSearch";
 import { routes } from "@/lib/routes";
 
 export default function HomePage() {
@@ -20,8 +21,47 @@ export default function HomePage() {
             chemist, MSAT, and manager.{" "}
             <strong className="font-medium text-slate-300">Not GMP or regulatory decision support</strong>.
           </p>
+
+          {/* Stark split: live plant work vs training demos */}
+          <div className="mt-8 grid max-w-3xl gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-teal-500/35 bg-teal-500/10 p-4 ring-1 ring-teal-400/20">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-teal-200">
+                Live · plant scout
+              </p>
+              <p className="mt-1 text-sm text-slate-200">
+                Real free-API dossiers for any PubChem CID. Use this for Monday work.
+              </p>
+              <Link
+                href={routes.search()}
+                className="mt-3 inline-flex rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-500"
+              >
+                Open live search →
+              </Link>
+            </div>
+            <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 p-4 ring-1 ring-amber-400/20">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-100">
+                Training · demos only
+              </p>
+              <p className="mt-1 text-sm text-slate-200">
+                Curated dual-view examples and packages under Info — not live plant data.
+              </p>
+              <Link
+                href={routes.info()}
+                className="mt-3 inline-flex rounded-lg border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-sm font-semibold text-amber-50 hover:bg-amber-500/25"
+              >
+                Open training (Info) →
+              </Link>
+            </div>
+          </div>
+
           <div className="mt-8 max-w-xl">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+              Molecule search (live)
+            </p>
             <SearchForm />
+          </div>
+          <div className="mt-6 max-w-3xl">
+            <ProblemFirstSearch />
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
@@ -46,7 +86,7 @@ export default function HomePage() {
               href={routes.compare()}
               className="rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 hover:border-slate-600 hover:bg-slate-900"
             >
-              Compare (tech transfer)
+              Compare (MSAT route pick)
             </Link>
           </div>
         </div>

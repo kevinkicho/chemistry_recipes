@@ -62,11 +62,30 @@ import { MondayMorningPack } from "@/components/MondayMorningPack";
 import { SiteFillPanel } from "@/components/SiteFillPanel";
 import { SiteGapsExport } from "@/components/SiteGapsExport";
 import { WorkPackPanel } from "@/components/WorkPackPanel";
+import { ProblemUnitOpSearch } from "@/components/ProblemUnitOpSearch";
+import { EvidenceCritiquePanel } from "@/components/EvidenceCritiquePanel";
+import { WorkerPlaybookPanel } from "@/components/WorkerPlaybookPanel";
+import { PdfWorkerPack } from "@/components/PdfWorkerPack";
+import { ShiftPackPanel } from "@/components/ShiftPackPanel";
+import { ThinToUsefulBanner } from "@/components/ThinToUsefulBanner";
+import { AiAccuracyBadge } from "@/components/AiAccuracyBadge";
+import { OrdBulkPanel } from "@/components/OrdBulkPanel";
+import { DensifySchedulePanel } from "@/components/DensifySchedulePanel";
+import { FieldRegenerateBar } from "@/components/FieldRegenerateBar";
+import { IdealPageParityPanel } from "@/components/IdealPageParityPanel";
+import { ConditionAtlasPanel } from "@/components/frontier/ConditionAtlasPanel";
+import { RouteHypothesesPanel } from "@/components/frontier/RouteHypothesesPanel";
+import { EvidenceSciencePanel } from "@/components/frontier/EvidenceSciencePanel";
+import { ReactionNetworkPanel } from "@/components/frontier/ReactionNetworkPanel";
+import { BatchDensifyPanel } from "@/components/frontier/BatchDensifyPanel";
+import { ScienceAgentPanel } from "@/components/frontier/ScienceAgentPanel";
 import {
   readWorkerRole,
   sectionVisible,
   type WorkerRole,
 } from "@/lib/worker/roleMode";
+import { touchDensifySchedule } from "@/lib/dossier/densifySchedule";
+import { ensureDossierKnowledge } from "@/lib/frontier/knowledgeFingerprint";
 
 export type LiveDossierChrome = {
   fromCache?: boolean;
@@ -91,6 +110,24 @@ export function LiveMoleculeDossier({
     setWorkerRole(readWorkerRole());
   }, []);
 
+  // Client densify schedule: remember thin CIDs for background warm
+  useEffect(() => {
+    const litChars = (dossierIn.literature || []).reduce(
+      (n, h) => n + (h.fullTextExcerpt?.length || 0),
+      0
+    );
+    const patChars = (dossierIn.patents || []).reduce(
+      (n, h) => n + (h.procedureExcerpt?.length || 0),
+      0
+    );
+    touchDensifySchedule(dossierIn.cid, {
+      label: dossierIn.identity?.name,
+      evidenceScore: dossierIn.evidenceScore?.score,
+      procedureCharsHint: litChars + patChars,
+      warmed: chrome?.phase === "ready",
+    });
+  }, [dossierIn, chrome?.phase]);
+
   const show = (id: Parameters<typeof sectionVisible>[1]) =>
     sectionVisible(workerRole, id);
 
@@ -111,10 +148,12 @@ export function LiveMoleculeDossier({
 
   const dossier = useMemo(() => {
     void enrichTick;
-    if (vaultDossier && vaultDossier.cid === dossierIn.cid) {
-      return applyLocalFactEnrichment(vaultDossier);
-    }
-    return applyLocalFactEnrichment(dossierIn);
+    const base =
+      vaultDossier && vaultDossier.cid === dossierIn.cid
+        ? applyLocalFactEnrichment(vaultDossier)
+        : applyLocalFactEnrichment(dossierIn);
+    // Rebuild process-knowledge only when densify fingerprint changes
+    return ensureDossierKnowledge(base);
   }, [dossierIn, enrichTick, vaultDossier]);
 
   const hit = dossier.identity;
@@ -125,6 +164,8 @@ export function LiveMoleculeDossier({
   const prov = ai.provenance;
   const aiChip = ai.parsed && prov ? prov : null;
   const aiAttempt = prov ?? null;
+  /** Re-run free APIs + Ollama — exposed on every AI provenance modal */
+  const onRegenerate = chrome?.onRefresh;
 
   const overviewFromAi = Boolean(ai.parsed && ai.overview);
   const overview =
@@ -311,6 +352,26 @@ export function LiveMoleculeDossier({
               score={dossier.evidenceScore?.score}
               reasons={dossier.evidenceScore?.reasons}
             />
+            <AiAccuracyBadge
+              dossier={dossier}
+              grounding={dossier.groundingReport}
+            />
+            {dossier.idealParity ? (
+              <button
+                type="button"
+                onClick={() => scrollTo("ideal-page-parity")}
+                className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ring-1 ring-inset ${
+                  dossier.idealParity.score >= 75
+                    ? "bg-emerald-500/15 text-emerald-100 ring-emerald-500/35"
+                    : dossier.idealParity.score >= 50
+                      ? "bg-amber-500/15 text-amber-50 ring-amber-400/40"
+                      : "bg-slate-800 text-slate-400 ring-slate-700"
+                }`}
+                title="Progress toward curated Tier-A ideal page depth"
+              >
+                Ideal {dossier.idealParity.score}/100
+              </button>
+            ) : null}
             <span className="print:hidden inline-flex flex-wrap items-center gap-1.5">
               <TechTransferExport source={{ kind: "live", dossier }} compact />
               <AddToProject
@@ -368,6 +429,7 @@ export function LiveMoleculeDossier({
                 provenance={aiAttempt}
                 field="Full dossier synthesis call"
                 label="AI"
+                onRegenerate={onRegenerate}
               />
             ) : null}
           </div>
@@ -423,7 +485,12 @@ export function LiveMoleculeDossier({
               <p className="leading-relaxed text-slate-300">
                 {overviewFromAi && aiChip ? (
                   <span className="mr-2 inline-flex align-middle">
-                    <AiProvenance provenance={aiChip} field="Overview" label="AI" />
+                    <AiProvenance
+                      provenance={aiChip}
+                      field="Overview"
+                      label="AI"
+                      onRegenerate={onRegenerate}
+                    />
                   </span>
                 ) : null}
                 {overview}
@@ -439,7 +506,12 @@ export function LiveMoleculeDossier({
           {applications.length > 0 ? (
             <div className="flex flex-wrap items-center gap-1.5">
               {appsFromAi && aiChip ? (
-                <AiProvenance provenance={aiChip} field="Applications" label="AI" />
+                <AiProvenance
+                  provenance={aiChip}
+                  field="Applications"
+                  label="AI"
+                  onRegenerate={onRegenerate}
+                />
               ) : null}
               {applications.map((a) => (
                 <span
@@ -485,7 +557,12 @@ export function LiveMoleculeDossier({
                 AI enhance incomplete: {ai.rawError}. Showing free-API evidence scaffold.
               </span>
               {aiAttempt ? (
-                <AiProvenance provenance={aiAttempt} field="Failed AI attempt" label="AI" />
+                <AiProvenance
+                  provenance={aiAttempt}
+                  field="Failed AI attempt"
+                  label="AI"
+                  onRegenerate={onRegenerate}
+                />
               ) : null}
             </p>
           ) : null}
@@ -501,6 +578,44 @@ export function LiveMoleculeDossier({
         <div className="space-y-8 lg:col-span-2">
           <WorkerRoleBar onChange={setWorkerRole} />
 
+          <ThinToUsefulBanner
+            dossier={dossier}
+            onScroll={scrollTo}
+            onRegenerate={onRegenerate}
+          />
+
+          {show("readiness") ||
+          show("framing") ||
+          workerRole === "chemist" ||
+          workerRole === "msat" ||
+          workerRole === "manager" ? (
+            <IdealPageParityPanel
+              dossier={dossier}
+              onScroll={scrollTo}
+              onRegenerate={onRegenerate}
+            />
+          ) : null}
+
+          {/* Frontier science engine — condition space, hypotheses, Q&A */}
+          {workerRole === "chemist" ||
+          workerRole === "msat" ||
+          workerRole === "manager" ? (
+            <div id="frontier-science" className="scroll-mt-24 space-y-4">
+              <ConditionAtlasPanel dossier={dossier} />
+              <RouteHypothesesPanel dossier={dossier} />
+              <ReactionNetworkPanel dossier={dossier} />
+              <EvidenceSciencePanel dossier={dossier} />
+              <ScienceAgentPanel dossier={dossier} />
+              <BatchDensifyPanel
+                seedCids={
+                  dossier.processKnowledge?.reactionNetwork?.campaignCids || [
+                    dossier.cid,
+                  ]
+                }
+              />
+            </div>
+          ) : null}
+
           {show("monday-pack") ? (
             <MondayMorningPack
               dossier={dossier}
@@ -508,19 +623,42 @@ export function LiveMoleculeDossier({
               onScrollEnrich={() => scrollTo("local-text-enrich")}
               onScrollAid={() => scrollTo("operator-job-aid")}
               onScrollGaps={() => scrollTo("site-fill")}
+              onRegenerate={onRegenerate}
             />
           ) : null}
 
+          {show("work-pack") || workerRole === "operator" ? (
+            <ShiftPackPanel dossier={dossier} onRegenerate={onRegenerate} />
+          ) : null}
+
           {show("framing") ? <ProcessFramingBanner dossier={dossier} /> : null}
-          {show("readiness") ? <RecipeReadinessPanel dossier={dossier} /> : null}
+          {show("readiness") ? (
+            <RecipeReadinessPanel dossier={dossier} onRegenerate={onRegenerate} />
+          ) : null}
 
           {show("critical-params") ? (
-            <CriticalParametersBoard routes={dossier.processRoutes} />
+            <CriticalParametersBoard
+              routes={dossier.processRoutes}
+              pubchemCid={cid}
+              traces={traces}
+              onRegenerate={onRegenerate}
+              ai={aiChip}
+            />
           ) : null}
 
           {show("parameters") ? (
             <section id="process-parameters" className="scroll-mt-24">
-              <SectionTitle>Educational parameters</SectionTitle>
+              <SectionTitle
+                field="Educational parameters"
+                pubchemCid={cid}
+                traces={pubchemTraces}
+                sourceRefs={dossier.sourceRefs}
+                ai={aiChip}
+                showAi={false}
+                onRegenerate={onRegenerate}
+              >
+                Educational parameters
+              </SectionTitle>
               <p className="mb-3 text-xs text-slate-500">
                 {paramSet.parameters.length} {modalityMeta?.label || modality} teaching
                 envelopes — literature-typical only, not site CQAs.
@@ -537,6 +675,10 @@ export function LiveMoleculeDossier({
               <SectionTitle
                 ai={routesFromAi && aiChip ? aiChip : undefined}
                 field="Process recipe"
+                pubchemCid={cid}
+                traces={traces}
+                sourceRefs={dossier.sourceRefs}
+                onRegenerate={onRegenerate}
               >
                 Process recipe
               </SectionTitle>
@@ -558,13 +700,31 @@ export function LiveMoleculeDossier({
                 routes={dossier.processRoutes}
                 aiProvenance={routesFromAi ? aiChip : null}
                 processFacts={dossier.processFacts?.facts}
+                onRegenerate={onRegenerate}
+                pubchemCid={cid}
+                traces={traces}
               />
+              {routesFromAi ? (
+                <FieldRegenerateBar
+                  field="Process routes"
+                  onRegenerate={onRegenerate}
+                  denseNote="re-structures dual-view from current evidence package"
+                />
+              ) : null}
             </section>
           ) : null}
 
           {show("route-compare") ? (
             <section id="route-compare" className="scroll-mt-24">
-              <SectionTitle>Route compare</SectionTitle>
+              <SectionTitle
+                field="Route compare"
+                pubchemCid={cid}
+                traces={traces}
+                sourceRefs={dossier.sourceRefs}
+                showAi={false}
+              >
+                Route compare
+              </SectionTitle>
               <RouteCompare routes={dossier.processRoutes} />
             </section>
           ) : null}
@@ -581,10 +741,18 @@ export function LiveMoleculeDossier({
                     : undefined
                 }
                 field="Related materials"
+                pubchemCid={cid}
+                traces={traces}
+                sourceRefs={dossier.sourceRefs}
+                onRegenerate={onRegenerate}
               >
                 Related entities
               </SectionTitle>
-              <EntityGraph centerName={name} entities={dossier.relatedEntities} />
+              <EntityGraph
+                centerName={name}
+                centerCid={cid}
+                entities={dossier.relatedEntities}
+              />
               <ul className="mt-3 space-y-2">
                 {dossier.relatedEntities.map((rel, i) => {
                   const href =
@@ -631,7 +799,20 @@ export function LiveMoleculeDossier({
           dossier.unitOpFills &&
           dossier.unitOpFills.length > 0 ? (
             <section id="unit-op-fill" className="scroll-mt-24">
-              <SectionTitle>Modality unit ops</SectionTitle>
+              <SectionTitle
+                field="Modality unit ops"
+                ai={
+                  aiChip &&
+                  ai.provenance?.fieldsGenerated?.includes("unitOpFills")
+                    ? aiChip
+                    : undefined
+                }
+                pubchemCid={cid}
+                traces={traces}
+                onRegenerate={onRegenerate}
+              >
+                Modality unit ops
+              </SectionTitle>
               <UnitOpFillPanel
                 fills={dossier.unitOpFills}
                 modalityLabel={modalityMeta?.label}
@@ -661,14 +842,45 @@ export function LiveMoleculeDossier({
                 </>
               ) : null}
               {show("manager-brief") ? (
-                <ManagerBriefPanel dossier={dossier} />
+                <ManagerBriefPanel
+                  dossier={dossier}
+                  onRegenerate={onRegenerate}
+                />
               ) : null}
               {show("operator-aid") ? (
-                <OperatorJobAid dossier={dossier} />
+                <OperatorJobAid
+                  dossier={dossier}
+                  onRegenerate={onRegenerate}
+                />
               ) : null}
               {show("process-facts") ? (
-                <ProcessFactsPanel dossier={dossier} />
+                <ProcessFactsPanel
+                  dossier={dossier}
+                  onRegenerate={onRegenerate}
+                />
               ) : null}
+              {show("process-facts") ? (
+                <ProblemUnitOpSearch
+                  dossier={dossier}
+                  onRegenerate={onRegenerate}
+                />
+              ) : null}
+              {show("score-coverage") || workerRole === "chemist" || workerRole === "msat" ? (
+                <EvidenceCritiquePanel
+                  dossier={dossier}
+                  onRegenerate={onRegenerate}
+                  onScroll={scrollTo}
+                  grounding={dossier.groundingReport}
+                />
+              ) : null}
+              {workerRole !== "operator" ? (
+                <WorkerPlaybookPanel
+                  dossier={dossier}
+                  onScroll={scrollTo}
+                  onRegenerate={onRegenerate}
+                />
+              ) : null}
+              <PdfWorkerPack dossier={dossier} onRegenerate={onRegenerate} />
               {show("local-enrich") ? (
                 <LocalTextEnrich
                   cid={cid}
@@ -680,9 +892,19 @@ export function LiveMoleculeDossier({
                   onSaved={() => setEnrichTick((n) => n + 1)}
                 />
               ) : null}
+              {workerRole !== "operator" ? (
+                <>
+                  <OrdBulkPanel
+                    name={name}
+                    smiles={hit?.smiles}
+                    cid={cid}
+                  />
+                  <DensifySchedulePanel />
+                </>
+              ) : null}
               {show("site-fill") ? (
                 <>
-                  <SiteFillPanel cid={cid} name={name} />
+                  <SiteFillPanel cid={cid} name={name} modality={modality} />
                   <SiteGapsExport dossier={dossier} />
                 </>
               ) : null}
@@ -880,6 +1102,7 @@ export function LiveMoleculeDossier({
             pugViewTraces={pugViewTraces}
             pubchemTraces={pubchemTraces}
             allTraces={traces}
+            onRegenerate={onRegenerate}
           />
         ) : (
           <aside className="space-y-4 print:hidden">
@@ -941,6 +1164,29 @@ export function LiveMoleculeDossier({
                 {dossier.buildAudit.patentCount ?? 0} patents
               </dd>
             </div>
+            {dossier.buildAudit.densifyQuality ? (
+              <div className="sm:col-span-2 lg:col-span-4">
+                <dt className="text-slate-600">Densify quality</dt>
+                <dd className="text-slate-300">
+                  {dossier.buildAudit.densifyQuality.procedureExcerptCount} excerpts · ~
+                  {dossier.buildAudit.densifyQuality.procedureChars.toLocaleString()} chars ·{" "}
+                  {dossier.buildAudit.densifyQuality.oaLitWindows} OA lit ·{" "}
+                  {dossier.buildAudit.densifyQuality.patentWindows} patent windows ·{" "}
+                  {dossier.buildAudit.densifyQuality.processFactConditions} conditions ·{" "}
+                  {dossier.buildAudit.densifyQuality.unitOpFacts} unit ops
+                  {dossier.groundingReport
+                    ? ` · grounding: ${dossier.groundingReport.summary}`
+                    : ""}
+                </dd>
+                {dossier.buildAudit.densifyQuality.softFailHints?.length ? (
+                  <ul className="mt-1 list-inside list-disc text-[11px] text-slate-600">
+                    {dossier.buildAudit.densifyQuality.softFailHints.slice(0, 4).map((h) => (
+                      <li key={h}>{h}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
           </dl>
         </div>
       ) : null}
@@ -952,7 +1198,12 @@ export function LiveMoleculeDossier({
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-sm font-semibold text-slate-300">Disclaimer</h2>
           {ai.parsed && ai.disclaimer && aiChip ? (
-            <AiProvenance provenance={aiChip} field="Disclaimer" label="AI" />
+            <AiProvenance
+              provenance={aiChip}
+              field="Disclaimer"
+              label="AI"
+              onRegenerate={onRegenerate}
+            />
           ) : null}
         </div>
         <RegulatoryDisclaimer className="mt-2" />

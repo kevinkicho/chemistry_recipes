@@ -1,7 +1,11 @@
 "use client";
 
+import { ContentProvenance } from "@/components/ContentProvenance";
+import { ApiProvenance } from "@/components/ApiProvenance";
 import type { LiveDossier } from "@/lib/dossier/types";
 import type { ProcessFact } from "@/lib/dossier/processFacts";
+import { slimTraces } from "@/lib/api/trace";
+import type { SourceRef } from "@/lib/types/process";
 
 const KIND_STYLE: Record<string, string> = {
   condition: "bg-teal-500/15 text-teal-200 ring-teal-500/30",
@@ -16,8 +20,34 @@ const KIND_STYLE: Record<string, string> = {
   "open-gap": "bg-slate-800 text-slate-500 ring-slate-700",
 };
 
-function FactRow({ fact }: { fact: ProcessFact }) {
+function FactRow({
+  fact,
+  pubchemCid,
+  traces,
+}: {
+  fact: ProcessFact;
+  pubchemCid?: number;
+  traces?: ReturnType<typeof slimTraces>;
+}) {
   const isGap = fact.kind === "open-gap";
+  const sourceRefs: SourceRef[] | undefined =
+    fact.sourceUrl || fact.sourceLabel
+      ? [
+          {
+            type:
+              fact.provenance === "patent"
+                ? "patent"
+                : fact.provenance === "literature"
+                  ? "literature"
+                  : "api",
+            id: fact.sourceId || fact.id,
+            label: fact.sourceLabel || fact.sourceId,
+            url: fact.sourceUrl,
+            note: fact.quote?.slice(0, 200),
+          },
+        ]
+      : undefined;
+
   return (
     <li
       className={`rounded-lg border px-3 py-2 ${
@@ -35,9 +65,20 @@ function FactRow({ fact }: { fact: ProcessFact }) {
           {fact.kind}
         </span>
         <div className="min-w-0 flex-1">
-          <p className={`text-xs ${isGap ? "text-slate-500" : "text-slate-200"}`}>
-            {fact.claim}
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <p className={`text-xs ${isGap ? "text-slate-500" : "text-slate-200"}`}>
+              {fact.claim}
+            </p>
+            {!isGap && (sourceRefs?.length || pubchemCid) ? (
+              <ApiProvenance
+                pubchemCid={pubchemCid}
+                traces={traces}
+                sourceRefs={sourceRefs}
+                title={`Fact: ${fact.claim.slice(0, 80)}`}
+                label="API"
+              />
+            ) : null}
+          </div>
           {fact.quote && !isGap ? (
             <p className="mt-1 border-l-2 border-teal-500/30 pl-2 text-[11px] italic leading-relaxed text-slate-500">
               “{fact.quote}”
@@ -58,6 +99,13 @@ function FactRow({ fact }: { fact: ProcessFact }) {
                 fact.sourceLabel
               )}
               <span className="text-slate-700"> · {fact.provenance}</span>
+              {fact.value ? (
+                <span className="text-slate-500">
+                  {" "}
+                  · {fact.value}
+                  {fact.unit ? ` ${fact.unit}` : ""}
+                </span>
+              ) : null}
             </p>
           ) : null}
         </div>
@@ -69,12 +117,20 @@ function FactRow({ fact }: { fact: ProcessFact }) {
 /**
  * Sourced process fact atoms + explicit open gaps (accuracy layer).
  */
-export function ProcessFactsPanel({ dossier }: { dossier: LiveDossier }) {
+export function ProcessFactsPanel({
+  dossier,
+  onRegenerate,
+}: {
+  dossier: LiveDossier;
+  onRegenerate?: () => void;
+}) {
   const pf = dossier.processFacts;
   if (!pf) return null;
 
   const sourced = pf.facts.filter((f) => f.kind !== "open-gap");
   const gaps = pf.facts.filter((f) => f.kind === "open-gap");
+  const traces = slimTraces(dossier.traces || []);
+  const ai = dossier.synthesis.provenance;
 
   return (
     <div
@@ -82,9 +138,21 @@ export function ProcessFactsPanel({ dossier }: { dossier: LiveDossier }) {
       className="scroll-mt-24 rounded-xl border border-slate-800 bg-slate-900/50 p-4"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold text-slate-100">
-          Public process facts
-        </h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-sm font-semibold text-slate-100">
+            Public process facts
+          </h2>
+          <ContentProvenance
+            title="Public process facts"
+            field="Process facts"
+            pubchemCid={dossier.cid}
+            traces={traces}
+            sourceRefs={dossier.sourceRefs}
+            ai={ai}
+            showAi={Boolean(ai)}
+            onRegenerate={onRegenerate}
+          />
+        </div>
         <p className="text-xs text-slate-500">
           {pf.sourcedConditionCount} conditions · {pf.unitOpCount} unit ops ·{" "}
           {pf.productionBriefEligible ? (
@@ -97,14 +165,19 @@ export function ProcessFactsPanel({ dossier }: { dossier: LiveDossier }) {
       <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
         {pf.summary} Manufacturing numbers below are{" "}
         <strong className="font-medium text-slate-400">only</strong> what free-public
-        text supports — solid cards are sourced; dashed cards are explicit gaps
-        (not plant truth).
+        text supports — solid cards are sourced; open each fact&apos;s API chip for
+        quote + URL. Dashed cards are explicit gaps (not plant truth).
       </p>
 
       {sourced.length > 0 ? (
         <ul className="mt-3 max-h-80 space-y-1.5 overflow-y-auto">
           {sourced.slice(0, 40).map((f) => (
-            <FactRow key={f.id} fact={f} />
+            <FactRow
+              key={f.id}
+              fact={f}
+              pubchemCid={dossier.cid}
+              traces={traces}
+            />
           ))}
         </ul>
       ) : (

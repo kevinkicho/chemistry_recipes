@@ -16,6 +16,7 @@ import {
 import { getExampleById } from "@/lib/data/examples";
 import { TechTransferExport } from "@/components/TechTransferExport";
 import { warmLiveDossier } from "@/lib/dossier/warmCache";
+import { CompareMsatBoard } from "@/components/CompareMsatBoard";
 
 type Resolved =
   | { kind: "cid"; cid: number; label: string; href: string }
@@ -257,6 +258,8 @@ function CompareInner() {
           {status}
         </p>
       ) : null}
+
+      <CompareMsatBoard a={dossierA} b={dossierB} />
 
       <div className="mt-8 grid gap-4 lg:grid-cols-2">
         <ComparePane

@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { AiProvenance } from "@/components/AiProvenance";
+import { ApiProvenance } from "@/components/ApiProvenance";
 import type { AiProvenanceRecord } from "@/lib/dossier/types";
 import type { ProcessFact } from "@/lib/dossier/processFacts";
 import type { ProcessRoute, ProcessStep } from "@/lib/types/process";
+import type { ApiFetchTrace } from "@/lib/api/trace";
 import { ViewToggle, type AudienceView } from "./ViewToggle";
 
 function Tag({ children }: { children: React.ReactNode }) {
@@ -89,12 +91,18 @@ function StepCard({
   view,
   aiProvenance,
   factHints,
+  onRegenerate,
+  pubchemCid,
+  traces,
 }: {
   step: ProcessStep;
   view: AudienceView;
   aiProvenance?: AiProvenanceRecord | null;
   /** factId → short citation string */
   factHints?: Map<string, string>;
+  onRegenerate?: () => void;
+  pubchemCid?: number;
+  traces?: ApiFetchTrace[];
 }) {
   const showMech = view === "mechanism" || view === "dual";
   const showMfg = view === "manufacturing" || view === "dual";
@@ -154,11 +162,21 @@ function StepCard({
             Sourced lead
           </span>
         ) : null}
+        {(pubchemCid || (traces && traces.length) || step.sourceRefs?.length) ? (
+          <ApiProvenance
+            pubchemCid={pubchemCid}
+            traces={traces}
+            sourceRefs={step.sourceRefs}
+            title={`Step: ${step.title}`}
+            label="API"
+          />
+        ) : null}
         {aiProvenance ? (
           <AiProvenance
             provenance={aiProvenance}
             field={`Route step: ${step.title}`}
             label="AI"
+            onRegenerate={onRegenerate}
           />
         ) : null}
       </header>
@@ -348,11 +366,17 @@ export function RoutePanel({
   emptyMessage,
   aiProvenance,
   processFacts,
+  onRegenerate,
+  pubchemCid,
+  traces,
 }: {
   routes: ProcessRoute[];
   emptyMessage?: string;
   aiProvenance?: AiProvenanceRecord | null;
   processFacts?: ProcessFact[];
+  onRegenerate?: () => void;
+  pubchemCid?: number;
+  traces?: ApiFetchTrace[];
 }) {
   const [routeId, setRouteId] = useState(routes[0]?.id ?? "");
   const [view, setView] = useState<AudienceView>("manufacturing");
@@ -381,11 +405,20 @@ export function RoutePanel({
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wider text-slate-500">
             Recipe
+            {(pubchemCid || (traces && traces.length)) ? (
+              <ApiProvenance
+                pubchemCid={pubchemCid}
+                traces={traces}
+                title={`Process routes · ${route.name}`}
+                label="API"
+              />
+            ) : null}
             {aiProvenance ? (
               <AiProvenance
                 provenance={aiProvenance}
                 field={`Process routes · ${route.name}`}
                 label="AI"
+                onRegenerate={onRegenerate}
               />
             ) : null}
           </div>
@@ -515,6 +548,9 @@ export function RoutePanel({
               view={view}
               aiProvenance={aiProvenance}
               factHints={factHints}
+              onRegenerate={onRegenerate}
+              pubchemCid={pubchemCid}
+              traces={traces}
             />
           ))}
       </div>

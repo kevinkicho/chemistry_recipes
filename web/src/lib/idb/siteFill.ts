@@ -19,8 +19,16 @@ export interface SiteFillRecord {
   batchSize?: string;
   /** Free notes for shift / tech transfer */
   notes?: string;
+  /** Modality-specific blanks (mAb / gene / cell) — still empty until user types */
+  bioreactorId?: string;
+  captureColumn?: string;
+  viralClearance?: string;
+  mediaLot?: string;
+  vectorLot?: string;
   updatedAt: string;
 }
+
+export type SiteFillFieldKey = keyof Omit<SiteFillRecord, "cid" | "updatedAt">;
 
 type Store = Record<string, SiteFillRecord>;
 

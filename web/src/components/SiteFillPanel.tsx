@@ -6,15 +6,27 @@ import {
   getSiteFill,
   saveSiteFill,
   subscribeSiteFill,
+  type SiteFillFieldKey,
   type SiteFillRecord,
 } from "@/lib/idb/siteFill";
+import { siteFillFieldsForModality } from "@/lib/idb/siteFillTemplates";
 
 /**
  * Site-fill blanks — empty on purpose; sticky locally under QMS ownership.
+ * Field set varies by modality (small-molecule vs mAb vs gene/cell).
  */
-export function SiteFillPanel({ cid, name }: { cid: number; name?: string }) {
+export function SiteFillPanel({
+  cid,
+  name,
+  modality,
+}: {
+  cid: number;
+  name?: string;
+  modality?: string | null;
+}) {
   const [row, setRow] = useState<SiteFillRecord | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const fields = siteFillFieldsForModality(modality);
 
   const reload = useCallback(() => {
     setRow(getSiteFill(cid));
@@ -25,14 +37,13 @@ export function SiteFillPanel({ cid, name }: { cid: number; name?: string }) {
     return subscribeSiteFill(reload);
   }, [reload]);
 
-  function field(
-    key: keyof Omit<SiteFillRecord, "cid" | "updatedAt">,
-    label: string,
-    placeholder: string
-  ) {
+  function field(key: SiteFillFieldKey, label: string, placeholder: string) {
     const value = (row?.[key] as string | undefined) || "";
     return (
-      <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+      <label
+        key={key}
+        className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500"
+      >
         {label}
         <input
           value={value}
@@ -55,16 +66,14 @@ export function SiteFillPanel({ cid, name }: { cid: number; name?: string }) {
     >
       <h2 className="text-sm font-semibold text-slate-100">Site fill (local only)</h2>
       <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
-        Empty by design — your plant owns validated ranges. Stored only in this browser for{" "}
-        {name || `CID ${cid}`}. Not synced. Not GMP.
+        Empty by design — your plant owns validated ranges. Template:{" "}
+        <strong className="font-medium text-slate-400">
+          {modality || "small-molecule"}
+        </strong>
+        . Stored only in this browser for {name || `CID ${cid}`}. Not synced. Not GMP.
       </p>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        {field("siteTemp", "Site temperature envelope", "e.g. site-validated °C range")}
-        {field("siteTime", "Site time / cycle", "e.g. site hold / reaction time")}
-        {field("sitePressure", "Site pressure", "e.g. site bar / psig")}
-        {field("equipmentTag", "Equipment tag", "e.g. R-2401 GLR")}
-        {field("ipcMethod", "Site IPC method", "e.g. HPLC-IPC-12 (site ID)")}
-        {field("batchSize", "Batch / campaign size", "e.g. pilot 50 L")}
+        {fields.map((f) => field(f.key, f.label, f.placeholder))}
       </div>
       <label className="mt-2 block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
         Shift / transfer notes

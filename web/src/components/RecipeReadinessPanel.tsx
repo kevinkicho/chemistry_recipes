@@ -1,5 +1,6 @@
 "use client";
 
+import { ContentProvenance } from "@/components/ContentProvenance";
 import type { LiveDossier } from "@/lib/dossier/types";
 import type {
   ProductMode,
@@ -7,6 +8,7 @@ import type {
   RecipeReadiness,
 } from "@/lib/dossier/recipeReadiness";
 import { assessRecipeReadiness } from "@/lib/dossier/recipeReadiness";
+import { slimTraces } from "@/lib/api/trace";
 
 const MODE_LABEL: Record<ProductMode, string> = {
   "scout-dossier": "Scout dossier",
@@ -54,7 +56,13 @@ function readinessFromDossier(dossier: LiveDossier): RecipeReadiness {
 /**
  * Product mode banner + missing-for-recipe checklist.
  */
-export function RecipeReadinessPanel({ dossier }: { dossier: LiveDossier }) {
+export function RecipeReadinessPanel({
+  dossier,
+  onRegenerate,
+}: {
+  dossier: LiveDossier;
+  onRegenerate?: () => void;
+}) {
   const r = readinessFromDossier(dossier);
   const mode = dossier.productMode || r.mode;
 
@@ -67,6 +75,16 @@ export function RecipeReadinessPanel({ dossier }: { dossier: LiveDossier }) {
         <h2 className="text-sm font-semibold text-slate-100">
           Recipe readiness
         </h2>
+        <ContentProvenance
+          title="Recipe readiness"
+          field="Recipe readiness"
+          pubchemCid={dossier.cid}
+          traces={slimTraces(dossier.traces || [])}
+          sourceRefs={dossier.sourceRefs}
+          ai={dossier.synthesis.provenance}
+          showAi={Boolean(dossier.synthesis.provenance)}
+          onRegenerate={onRegenerate}
+        />
         <span
           className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${MODE_STYLE[mode]}`}
         >

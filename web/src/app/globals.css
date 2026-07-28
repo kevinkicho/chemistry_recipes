@@ -83,10 +83,12 @@ body {
     break-inside: avoid;
   }
 
-  /* Operator floor pack — large type, high contrast */
+  /* Operator floor pack — large type, high contrast, write-in blanks */
   .monday-pack,
   #operator-job-aid,
-  .operator-job-aid {
+  .operator-job-aid,
+  #shift-pack,
+  .shift-pack-print {
     break-inside: avoid;
   }
   .monday-pack h2,
@@ -106,6 +108,37 @@ body {
   .operator-step-num {
     font-size: 14pt !important;
     font-weight: 700 !important;
+  }
+
+  /* Site write-in lines for print handouts */
+  .print-write-in {
+    display: block !important;
+    margin-top: 8pt;
+    border-bottom: 1pt solid #94a3b8;
+    min-height: 18pt;
+  }
+  .print-write-in-label {
+    display: block !important;
+    font-size: 9pt !important;
+    color: #64748b !important;
+    margin-top: 10pt;
+  }
+
+  /* Hide provenance chips and regenerate chrome on paper */
+  [data-content-provenance],
+  button[aria-haspopup="dialog"] {
+    display: none !important;
+  }
+
+  /* Prefer floor sections; collapse research chrome */
+  #multi-source,
+  #build-audit,
+  #evidence-critique,
+  #worker-playbooks,
+  #ord-bulk,
+  #densify-schedule,
+  #pdf-worker-pack {
+    display: none !important;
   }
 
   h1,

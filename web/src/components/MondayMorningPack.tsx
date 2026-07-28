@@ -1,7 +1,9 @@
 "use client";
 
+import { ContentProvenance } from "@/components/ContentProvenance";
 import type { LiveDossier } from "@/lib/dossier/types";
 import { assessRecipeReadiness } from "@/lib/dossier/recipeReadiness";
+import { slimTraces } from "@/lib/api/trace";
 
 /**
  * Pinned "Monday morning" worker pack — EHS, steps, gaps, actions under 2 minutes.
@@ -12,12 +14,14 @@ export function MondayMorningPack({
   onScrollEnrich,
   onScrollAid,
   onScrollGaps,
+  onRegenerate,
 }: {
   dossier: LiveDossier;
   onPrint?: () => void;
   onScrollEnrich?: () => void;
   onScrollAid?: () => void;
   onScrollGaps?: () => void;
+  onRegenerate?: () => void;
 }) {
   const readiness =
     dossier.recipeReadiness ||
@@ -71,9 +75,21 @@ export function MondayMorningPack({
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300/90 print:text-teal-800">
-            Monday morning pack
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300/90 print:text-teal-800">
+              Monday morning pack
+            </p>
+            <ContentProvenance
+              title="Monday morning pack"
+              field="Monday pack"
+              pubchemCid={dossier.cid}
+              traces={slimTraces(dossier.traces || [])}
+              sourceRefs={dossier.sourceRefs}
+              ai={dossier.synthesis.provenance}
+              showAi={Boolean(dossier.synthesis.provenance)}
+              onRegenerate={onRegenerate}
+            />
+          </div>
           <h2 className="mt-1 text-lg font-semibold text-slate-50 print:text-slate-900">
             {name}
           </h2>

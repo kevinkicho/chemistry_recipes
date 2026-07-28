@@ -16,9 +16,12 @@ import {
   preferRoutesForEvidence,
   stripUncitedRouteDetails,
 } from "@/lib/dossier/processFacts";
+import { groundRoutesAgainstEvidence } from "@/lib/dossier/quoteGrounding";
 import { applyPlantDeliverables } from "@/lib/dossier/plantDeliverables";
 import { applyTierABaseline } from "@/lib/dossier/tierABaseline";
 import { withRecipeReadiness } from "@/lib/dossier/recipeReadiness";
+import { withIdealPageParity } from "@/lib/dossier/idealPage";
+import { withProcessKnowledge } from "@/lib/frontier/buildKnowledge";
 import type { LiveDossier } from "@/lib/dossier/types";
 import {
   createProgressClock,
@@ -290,6 +293,13 @@ export async function buildLiveDossierWithProgress(
       ];
       let aiRoutes = aiRoutesToProcessRoutes(synthesis.routes, editorialRef);
       aiRoutes = stripUncitedRouteDetails(aiRoutes, processFacts);
+      const grounded = groundRoutesAgainstEvidence(aiRoutes, {
+        facts: processFacts?.facts,
+        dataFed: synthesis.provenance?.dataFed,
+        mfgTexts: dossier.manufacturingTexts,
+        procedureTexts: (evidence.procedureExcerpts || []).map((p) => p.text),
+      });
+      aiRoutes = grounded.routes;
       aiRoutes = preferRoutesForEvidence(aiRoutes, processFacts);
       const processRoutes = aiRoutes.length ? aiRoutes : dossier.processRoutes;
       const relatedEntities = withEntityLinks(
@@ -309,6 +319,7 @@ export async function buildLiveDossierWithProgress(
         relatedEntities,
         contradictions,
         modality: synthesis.modality || dossier.modality,
+        groundingReport: grounded.report,
         synthesis: {
           ...synthesis,
           confidence: synthesis.confidence || scored.confidence,
@@ -408,6 +419,16 @@ export async function buildLiveDossierWithProgress(
   const unitOpFills = fillModalityUnitOps(modality, dossier.processRoutes);
 
   const finishedAt = new Date().toISOString();
+  const procEx = evidence.procedureExcerpts || [];
+  const procChars = procEx.reduce((n, p) => n + (p.chars || p.text?.length || 0), 0);
+  const oaLitWindows = (dossier.literature || []).filter(
+    (h) => (h.fullTextExcerpt?.length || 0) >= 80
+  ).length;
+  const patentWindows = (dossier.patents || []).filter(
+    (h) => (h.procedureExcerpt?.length || 0) >= 80
+  ).length;
+  const pfBundle = dossier.processFacts || processFacts;
+  const softFails = (evidence.fetchErrors || []).slice(0, 8);
   const buildAudit: DossierBuildAudit = {
     startedAt: auditStartedAt,
     finishedAt,
@@ -421,6 +442,15 @@ export async function buildLiveDossierWithProgress(
     patentCount: dossier.patents.length,
     evidenceScore: scored.score,
     buildMode: dossier.buildMode,
+    densifyQuality: {
+      procedureExcerptCount: procEx.length,
+      procedureChars: procChars,
+      oaLitWindows,
+      patentWindows,
+      processFactConditions: pfBundle?.sourcedConditionCount ?? 0,
+      unitOpFacts: pfBundle?.unitOpCount ?? 0,
+      softFailHints: softFails.length ? softFails : undefined,
+    },
   };
 
   dossier = {
@@ -455,11 +485,15 @@ export async function buildLiveDossierWithProgress(
   dossier = applyPlantDeliverables(dossier);
   // Product mode: scout-dossier vs recipe-draft (+ missing checklist)
   dossier = withRecipeReadiness(dossier);
+  // Curated Tier-A ideal page depth score (north-star inventory)
+  dossier = withIdealPageParity(dossier);
+  // Frontier process-knowledge: condition atlas, hypotheses, experiments
+  dossier = withProcessKnowledge(dossier);
 
   emit({
     type: "complete",
     label: "Dossier ready",
-    detail: `Total ${clock.elapsed()} ms · Tier ${dossier.tier} · mode ${dossier.buildMode} · product ${dossier.productMode || "scout"} · routes ${dossier.processRoutes.length} · ${modality}`,
+    detail: `Total ${clock.elapsed()} ms · Tier ${dossier.tier} · mode ${dossier.buildMode} · product ${dossier.productMode || "scout"} · ideal ${dossier.idealParity?.score ?? "—"}/100 · atlas ${dossier.processKnowledge?.metrics.observationCount ?? 0} obs · routes ${dossier.processRoutes.length} · ${modality}`,
     stepsDone: STEPS_TOTAL,
     stepsTotal: STEPS_TOTAL,
     evidenceScore: scored.score,

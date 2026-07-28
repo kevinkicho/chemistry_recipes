@@ -1,12 +1,20 @@
 "use client";
 
+import { ContentProvenance } from "@/components/ContentProvenance";
 import type { LiveDossier } from "@/lib/dossier/types";
+import { slimTraces } from "@/lib/api/trace";
 
 /**
  * MSAT / manager planning brief — preferred path, alternatives, risks, IP pointers, gaps.
  * Not regulatory or legal advice.
  */
-export function ManagerBriefPanel({ dossier }: { dossier: LiveDossier }) {
+export function ManagerBriefPanel({
+  dossier,
+  onRegenerate,
+}: {
+  dossier: LiveDossier;
+  onRegenerate?: () => void;
+}) {
   const pf = dossier.processFacts;
   const framing = dossier.processFraming || pf?.framing || "evidence-lead-pack";
   const routes = dossier.processRoutes || [];
@@ -35,9 +43,21 @@ export function ManagerBriefPanel({ dossier }: { dossier: LiveDossier }) {
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h2 className="text-sm font-semibold text-slate-50">
-            Manager / MSAT brief
-          </h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-sm font-semibold text-slate-50">
+              Manager / MSAT brief
+            </h2>
+            <ContentProvenance
+              title="Manager / MSAT brief"
+              field="Manager brief"
+              pubchemCid={dossier.cid}
+              traces={slimTraces(dossier.traces || [])}
+              sourceRefs={dossier.sourceRefs}
+              ai={dossier.synthesis.provenance}
+              showAi={Boolean(dossier.synthesis.provenance)}
+              onRegenerate={onRegenerate}
+            />
+          </div>
           <p className="mt-0.5 text-[11px] text-slate-500">
             Planning handout from free-public evidence — not a batch record, not legal
             advice.

@@ -1,4 +1,7 @@
+import { ContentProvenance } from "@/components/ContentProvenance";
 import type { ProcessRoute } from "@/lib/types/process";
+import type { AiProvenanceRecord } from "@/lib/dossier/types";
+import type { ApiFetchTrace } from "@/lib/api/trace";
 
 interface Row {
   routeName: string;
@@ -76,7 +79,19 @@ const KIND_LABEL: Record<Row["kind"], string> = {
 /**
  * Aggregated critical parameters / IPC / CQA board for tech transfer scanning.
  */
-export function CriticalParametersBoard({ routes }: { routes: ProcessRoute[] }) {
+export function CriticalParametersBoard({
+  routes,
+  pubchemCid,
+  traces,
+  onRegenerate,
+  ai,
+}: {
+  routes: ProcessRoute[];
+  pubchemCid?: number;
+  traces?: ApiFetchTrace[];
+  onRegenerate?: () => void;
+  ai?: AiProvenanceRecord | null;
+}) {
   const rows = collect(routes);
   // Empty board stays out of the way — recipe page stays clean
   if (!rows.length) return null;
@@ -86,7 +101,18 @@ export function CriticalParametersBoard({ routes }: { routes: ProcessRoute[] }) 
       id="critical-board"
       className="scroll-mt-24 rounded-xl border border-slate-800 bg-slate-900/40 p-4"
     >
-      <h2 className="text-lg font-semibold text-slate-100">Control points</h2>
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-lg font-semibold text-slate-100">Control points</h2>
+        <ContentProvenance
+          title="Control points"
+          field="Control points"
+          pubchemCid={pubchemCid}
+          traces={traces}
+          ai={ai}
+          showAi={Boolean(ai)}
+          onRegenerate={onRegenerate}
+        />
+      </div>
       <p className="mt-1 text-xs text-slate-500">
         CPPs, IPCs, CQAs, and holds from the recipe — validate on site.
       </p>

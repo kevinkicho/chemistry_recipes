@@ -274,6 +274,16 @@ export interface DossierBuildAudit {
   patentCount?: number;
   evidenceScore?: number;
   buildMode?: LiveDossier["buildMode"];
+  /** Densify / procedure quality for support & observability */
+  densifyQuality?: {
+    procedureExcerptCount: number;
+    procedureChars: number;
+    oaLitWindows: number;
+    patentWindows: number;
+    processFactConditions: number;
+    unitOpFacts: number;
+    softFailHints?: string[];
+  };
 }
 
 export interface LiveDossier {
@@ -316,6 +326,18 @@ export interface LiveDossier {
   unitOpFills?: UnitOpFill[];
   /** Build audit for exports and QA review */
   buildAudit?: DossierBuildAudit;
+  /** Second-pass quote-grounding of AI route conditions */
+  groundingReport?: import("@/lib/dossier/quoteGrounding").GroundingReport;
+  /**
+   * Progress toward curated Tier-A ideal page depth
+   * (ExampleDossierView inventory is the product north star).
+   */
+  idealParity?: import("@/lib/dossier/idealPage").IdealPageParity;
+  /**
+   * Frontier process-knowledge package: condition atlas, route hypotheses,
+   * conflicts, next experiments, seed Q&A (free-public only).
+   */
+  processKnowledge?: import("@/lib/frontier/types").ProcessKnowledgePackage;
   /** Snapshot identity when restored from version history */
   snapshotId?: string;
   snapshotSavedAt?: string;

@@ -19,16 +19,22 @@ const ROLE_ORDER = [
 ] as const;
 
 /**
- * Simple role-grouped graph of related entities (API ↔ intermediates ↔ DP).
+ * Role-grouped multi-CID graph of related entities (API ↔ intermediates ↔ DP).
+ * Edges with PubChem CIDs open live dossiers.
  */
 export function EntityGraph({
   centerName,
   entities,
+  centerCid,
 }: {
   centerName: string;
   entities: RelatedEntity[];
+  centerCid?: number;
 }) {
   if (!entities?.length) return null;
+
+  const linked = entities.filter((e) => e.pubchemCid || e.cas || e.href);
+  const multiCid = entities.filter((e) => e.pubchemCid).length;
 
   const byRole = new Map<string, RelatedEntity[]>();
   for (const e of entities) {
@@ -41,13 +47,36 @@ export function EntityGraph({
 
   return (
     <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/40 p-3">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-        Entity graph
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+          Multi-CID process graph
+        </div>
+        <div className="text-[10px] text-slate-600">
+          {multiCid} linked CID{multiCid === 1 ? "" : "s"} · {linked.length} openable
+        </div>
       </div>
+      <p className="mt-1 text-[10px] text-slate-600">
+        Impurities / intermediates / reagents from public evidence — open live dossiers;
+        no invented plant numbers.
+      </p>
       <div className="mt-3 flex flex-wrap items-stretch justify-center gap-2">
         <div className="flex min-w-[7rem] max-w-[10rem] flex-col items-center justify-center rounded-lg border border-teal-500/40 bg-teal-500/10 px-3 py-2 text-center">
           <span className="text-[9px] uppercase text-teal-500/80">Center</span>
-          <span className="text-xs font-semibold text-teal-100">{centerName}</span>
+          {centerCid ? (
+            <Link
+              href={routes.pubchem(centerCid)}
+              className="text-xs font-semibold text-teal-100 hover:underline"
+            >
+              {centerName}
+            </Link>
+          ) : (
+            <span className="text-xs font-semibold text-teal-100">{centerName}</span>
+          )}
+          {centerCid ? (
+            <span className="mt-0.5 font-mono text-[9px] text-teal-500/70">
+              CID {centerCid}
+            </span>
+          ) : null}
         </div>
         {orderedRoles.map((role) => (
           <div
@@ -75,6 +104,11 @@ export function EntityGraph({
                     ) : (
                       <span className="text-slate-300">{e.name}</span>
                     )}
+                    {e.pubchemCid ? (
+                      <span className="ml-1 font-mono text-[9px] text-slate-600">
+                        CID {e.pubchemCid}
+                      </span>
+                    ) : null}
                   </li>
                 );
               })}
