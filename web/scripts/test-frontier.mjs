@@ -459,6 +459,31 @@ ok(
   )
 );
 ok(
+  "openalex crossref in multi search",
+  /searchOpenAlexProcess/.test(read("lib/search/multiSourceSearch.ts")) &&
+    /searchCrossrefProcess/.test(read("lib/search/multiSourceSearch.ts"))
+);
+ok(
+  "problemMultiSource module",
+  existsSync(join(root, "src/lib/search/problemMultiSource.ts"))
+);
+ok(
+  "searchProblemFirstMulti",
+  /export async function searchProblemFirstMulti/.test(
+    read("lib/search/problemMultiSource.ts")
+  )
+);
+ok(
+  "problem search API",
+  existsSync(join(root, "src/app/api/search/problem/route.ts"))
+);
+ok(
+  "ProblemFirstSearch multi enrich",
+  /\/api\/search\/problem|sourcePills/.test(
+    read("components/ProblemFirstSearch.tsx")
+  )
+);
+ok(
   "densifyQuality atlas after knowledge",
   /withProcessKnowledge/.test(pipe) &&
     /conditionObservations/.test(pipe) &&

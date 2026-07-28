@@ -209,7 +209,7 @@ export function SearchResults({ query }: { query: string }) {
 
         setHits([]);
         setError(
-          "No free-public hits across PubChem / ChEMBL / ChEBI / MyChem / RxNorm / GSRS / DrugCentral / openFDA / KEGG / Europe PMC. Try a CID or CAS."
+          "No free-public hits across identity + process literature sources (PubChem…OpenAlex/Crossref). Try a CID or CAS."
         );
         setNote(null);
       } catch (e) {

@@ -65,8 +65,11 @@ export async function POST() {
       "openfda",
       "kegg",
       "europepmc",
+      "openalex",
+      "crossref",
     ],
     suggest: "GET /api/search/suggest?q=asp",
+    problem: "GET /api/search/problem?q=hydrogenation",
     note: "Free-public fan-out; merges to openable PubChem CIDs when possible. Not GMP.",
   });
 }

@@ -15,6 +15,8 @@ import { fetchDrugCentralByName } from "@/lib/api/drugCentral";
 import { fetchOpenFdaByName } from "@/lib/api/openFda";
 import { fetchKeggByName } from "@/lib/api/kegg";
 import { searchEuropePmc } from "@/lib/api/europePmc";
+import { searchOpenAlexProcess } from "@/lib/api/openAlex";
+import { searchCrossrefProcess } from "@/lib/api/crossref";
 import { resolveLocalSearchHits } from "@/lib/data/searchLocalIndex";
 import type { ApiFetchTrace } from "@/lib/api/trace";
 
@@ -29,7 +31,9 @@ export type MultiSourceId =
   | "drugcentral"
   | "openfda"
   | "kegg"
-  | "europepmc";
+  | "europepmc"
+  | "openalex"
+  | "crossref";
 
 export interface MultiSourceRef {
   source: MultiSourceId;
@@ -521,11 +525,13 @@ export async function multiSourceSearch(
     });
   }
 
-  // Second wave: openFDA, KEGG, Europe PMC process literature
+  // Second wave: openFDA, KEGG, process literature (EPMC + OpenAlex + Crossref)
   const wave2 = await Promise.allSettled([
     fetchOpenFdaByName(q),
     fetchKeggByName(q),
     searchEuropePmc(q, { limit: 6 }),
+    searchOpenAlexProcess(q, { limit: 5 }),
+    searchCrossrefProcess(q, { limit: 5 }),
   ]);
 
   // openFDA
@@ -640,67 +646,118 @@ export async function multiSourceSearch(
     });
   }
 
-  // Europe PMC process literature — attach count to primary name / openable hits
-  const epmc = wave2[2];
-  if (epmc.status === "fulfilled" && epmc.value.hits.length > 0) {
-    traces.push(...epmc.value.traces);
-    const nLit = epmc.value.hits.length;
-    const top = epmc.value.hits[0]!;
-    // Boost any existing hits that match the query name
+  /** Attach process-literature sources to name-matching molecule hits */
+  function attachProcessLit(
+    source: MultiSourceId,
+    label: string,
+    hits: Array<{ id: string; title: string; url: string; pmid?: string; pmcid?: string; doi?: string }>,
+    tracesIn: ApiFetchTrace[]
+  ): void {
+    if (!hits.length) {
+      sourceStatus.push({
+        source,
+        ok: false,
+        hitCount: 0,
+        detail: "no hit",
+      });
+      return;
+    }
+    traces.push(...tracesIn);
+    const nLit = hits.length;
+    const top = hits[0]!;
+    const ref: MultiSourceRef = {
+      source,
+      label,
+      externalId: top.pmcid || top.pmid || top.doi || top.id,
+      url: top.url,
+    };
+    let attached = false;
     for (const [k, h] of map) {
       if (
         h.name.toLowerCase().includes(q.toLowerCase()) ||
         q.toLowerCase().includes(h.name.toLowerCase().slice(0, 12))
       ) {
-        const epmcRef: MultiSourceRef = {
-          source: "europepmc",
-          label: "Europe PMC",
-          externalId: top.pmcid || top.pmid || top.id,
-          url: top.url,
-        };
-        const sources: MultiSourceRef[] = h.sources.some(
-          (s) => s.source === "europepmc"
-        )
+        attached = true;
+        const sources: MultiSourceRef[] = h.sources.some((s) => s.source === source)
           ? h.sources
-          : [...h.sources, epmcRef];
+          : [...h.sources, ref];
         map.set(k, {
           ...h,
           processLiteratureCount: Math.max(h.processLiteratureCount || 0, nLit),
-          score: h.score + Math.min(12, nLit * 2),
+          score: h.score + Math.min(10, nLit * 2),
           sources,
         });
       }
     }
-    // If map empty of name match, still record a literature-backed identity row
-    if (![...map.values()].some((h) => (h.processLiteratureCount || 0) > 0)) {
+    if (!attached) {
       mergeHit(map, {
         name: q,
-        sources: [
-          {
-            source: "europepmc",
-            label: "Europe PMC",
-            externalId: top.pmcid || top.pmid || top.id,
-            url: top.url,
-          },
-        ],
-        score: 15 + Math.min(10, nLit),
+        sources: [ref],
+        score: 12 + Math.min(10, nLit),
         openable: false,
         processLiteratureCount: nLit,
         note: top.title.slice(0, 120),
       });
     }
     sourceStatus.push({
-      source: "europepmc",
+      source,
       ok: true,
       hitCount: nLit,
       detail: `${nLit} process-relevant papers`,
     });
+  }
+
+  // Europe PMC
+  const epmc = wave2[2];
+  if (epmc.status === "fulfilled" && epmc.value.hits.length > 0) {
+    attachProcessLit(
+      "europepmc",
+      "Europe PMC",
+      epmc.value.hits,
+      epmc.value.traces
+    );
   } else {
     sourceStatus.push({
       source: "europepmc",
       ok: false,
       hitCount: 0,
       detail: epmc.status === "rejected" ? String(epmc.reason) : "no hit",
+    });
+  }
+
+  // OpenAlex
+  const oalex = wave2[3];
+  if (oalex.status === "fulfilled" && oalex.value.hits.length > 0) {
+    attachProcessLit(
+      "openalex",
+      "OpenAlex",
+      oalex.value.hits,
+      oalex.value.traces
+    );
+  } else {
+    sourceStatus.push({
+      source: "openalex",
+      ok: false,
+      hitCount: 0,
+      detail: oalex.status === "rejected" ? String(oalex.reason) : "no hit",
+    });
+  }
+
+  // Crossref
+  const xref = wave2[4];
+  if (xref.status === "fulfilled" && xref.value.hits.length > 0) {
+    attachProcessLit(
+      "crossref",
+      "Crossref",
+      xref.value.hits,
+      xref.value.traces
+    );
+  } else {
+    sourceStatus.push({
+      source: "crossref",
+      ok: false,
+      hitCount: 0,
+      detail: xref.status === "rejected" ? String(xref.reason) : "no hit",
     });
   }
 
