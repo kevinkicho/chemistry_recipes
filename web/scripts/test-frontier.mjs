@@ -150,6 +150,42 @@ ok("CampaignAgentPanel force densify", /force/.test(read("components/frontier/Ca
 ok("CampaignAgentPanel preflight", /campaignStatuses|healthMsg/.test(read("components/frontier/CampaignAgentPanel.tsx")));
 ok("telemetry campaign-server kind", /campaign-server/.test(read("lib/dossier/densifyTelemetry.ts")));
 ok(
+  "thinOrMissingCids helper",
+  /export function thinOrMissingCids/.test(read("lib/frontier/campaignKnowledge.ts"))
+);
+ok(
+  "formatIdealDelta helper",
+  /export function formatIdealDelta/.test(read("lib/frontier/campaignKnowledge.ts"))
+);
+ok(
+  "CampaignAgentPanel densify queue",
+  /densifyQueue|thinOrMissingCids/.test(read("components/frontier/CampaignAgentPanel.tsx"))
+);
+ok(
+  "CampaignAgentPanel export agent run",
+  /buildCampaignKnowledgeExport|agentResult|Export knowledge/.test(
+    read("components/frontier/CampaignAgentPanel.tsx")
+  )
+);
+ok(
+  "campaign export agentRun",
+  /agentRun|CAMPAIGN_AGENT_RUN_SCHEMA|agentResult/.test(
+    read("lib/frontier/campaignExport.ts")
+  )
+);
+ok(
+  "BatchDensify ideal deltas",
+  /idealDeltaMsg|formatIdealDelta|beforeIdeal/.test(
+    read("components/frontier/BatchDensifyPanel.tsx")
+  )
+);
+ok(
+  "CampaignGraph thin densify + ideal",
+  /densifyThinOrMissing|formatIdealDelta|idealDeltaMsg/.test(
+    read("components/frontier/CampaignGraphPanel.tsx")
+  )
+);
+ok(
   "densifyQuality atlas after knowledge",
   /withProcessKnowledge/.test(pipe) &&
     /conditionObservations/.test(pipe) &&

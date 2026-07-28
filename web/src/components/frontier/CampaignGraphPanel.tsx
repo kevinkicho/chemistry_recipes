@@ -9,6 +9,8 @@ import {
 } from "@/lib/workspace/campaigns";
 import {
   buildMergedCampaignKnowledge,
+  formatIdealDelta,
+  thinOrMissingCids,
   type MergedCampaignKnowledge,
 } from "@/lib/frontier/campaignKnowledge";
 import {
@@ -20,7 +22,7 @@ import { NetworkEdgeComparePanel } from "@/components/frontier/NetworkEdgeCompar
 import { routes } from "@/lib/routes";
 
 /**
- * Merge multi-CID campaign graph from IndexedDB caches; stream densify missing.
+ * Merge multi-CID campaign graph from IndexedDB caches; stream densify thin/missing.
  */
 export function CampaignGraphPanel() {
   const [campaigns, setCampaigns] = useState<ScienceCampaign[]>([]);
@@ -29,6 +31,7 @@ export function CampaignGraphPanel() {
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<string[]>([]);
+  const [idealDeltaMsg, setIdealDeltaMsg] = useState<string | null>(null);
 
   const reloadList = useCallback(() => {
     const rows = listCampaigns();
@@ -72,34 +75,57 @@ export function CampaignGraphPanel() {
     }
   }
 
-  async function densifyMissing() {
+  async function densifyThinOrMissing() {
     const camp = campaigns.find((c) => c.id === selected);
     if (!camp) return;
-    const missing = (merged?.statuses || [])
-      .filter((s) => !s.cached)
-      .map((s) => s.cid);
-    const cids = missing.length ? missing : camp.cids.slice(0, 12);
+    const statuses = merged?.statuses || [];
+    const thinMissing = thinOrMissingCids(statuses);
+    // Prefer thin/missing queue; if package looks dense, re-densify all (user intent)
+    const cids = (thinMissing.length ? thinMissing : camp.cids).slice(0, 12);
     if (!cids.length) {
       setStatus("No CIDs to densify");
       return;
     }
+    const beforeIdeal = new Map(
+      statuses.map((s) => [s.cid, s.idealScore ?? 0] as const)
+    );
     setBusy(true);
     setLog([]);
+    setIdealDeltaMsg(null);
+    setStatus(
+      thinMissing.length
+        ? `Queue thin/missing: ${cids.join(", ")}`
+        : `Re-densify all: ${cids.join(", ")}`
+    );
+    const deltas: string[] = [];
     try {
       await streamBatchDensifyCids(cids, {
         includeDossiers: true,
         cacheLocal: true,
+        force: thinMissing.length === 0,
         onProgress: (m) => setStatus(m),
         onEvent: (ev) => {
-          if (ev.type === "cid_complete") {
-            setLog((prev) => [
-              ...prev,
-              `CID ${ev.cid}: ${ev.ok ? "ok" : ev.error || "fail"} · ${ev.summary?.observationCount ?? "—"} obs`,
-            ]);
+          if (ev.type === "cid_complete" && ev.cid != null) {
+            const b = beforeIdeal.get(ev.cid);
+            const a = ev.summary?.idealScore;
+            const idealPart =
+              b != null || a != null
+                ? ` · ideal ${formatIdealDelta(b, a)}`
+                : "";
+            const line = `CID ${ev.cid}: ${
+              ev.ok ? "ok" : ev.error || "fail"
+            } · ${ev.summary?.observationCount ?? "—"} obs${idealPart}`;
+            setLog((prev) => [...prev, line]);
+            if (ev.ok && (b != null || a != null)) {
+              deltas.push(`CID ${ev.cid} ideal ${formatIdealDelta(b, a)}`);
+            }
           }
         },
       });
       await loadMerge(camp);
+      if (deltas.length) {
+        setIdealDeltaMsg(`Ideal deltas · ${deltas.join(" · ")}`);
+      }
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Stream densify failed");
     } finally {
@@ -120,7 +146,7 @@ export function CampaignGraphPanel() {
       </h2>
       <p className="mt-1 text-[11px] text-slate-500">
         Loads IndexedDB caches for a science campaign, merges reaction networks and
-        condition atlases. Stream-densify missing CIDs with live progress.
+        condition atlases. Stream-densify thin/missing CIDs with Ideal score deltas.
       </p>
 
       <label className="mt-3 block text-[10px] font-semibold uppercase text-slate-500">
@@ -154,10 +180,14 @@ export function CampaignGraphPanel() {
         <button
           type="button"
           disabled={busy || !selected}
-          onClick={() => void densifyMissing()}
+          onClick={() => void densifyThinOrMissing()}
           className="rounded-lg bg-teal-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-teal-500 disabled:opacity-40"
         >
-          {busy ? "Streaming densify…" : "Stream densify missing / all"}
+          {busy
+            ? "Streaming densify…"
+            : merged
+              ? `Stream densify thin/missing (${thinOrMissingCids(merged.statuses).length || "all"})`
+              : "Stream densify thin/missing"}
         </button>
         <button
           type="button"
@@ -172,6 +202,14 @@ export function CampaignGraphPanel() {
       {status ? (
         <p className="mt-2 text-[11px] text-slate-400" role="status">
           {status}
+        </p>
+      ) : null}
+      {idealDeltaMsg ? (
+        <p
+          className="mt-1 rounded border border-teal-500/30 bg-teal-500/10 px-2 py-1.5 text-[11px] text-teal-100/90"
+          role="status"
+        >
+          {idealDeltaMsg}
         </p>
       ) : null}
 

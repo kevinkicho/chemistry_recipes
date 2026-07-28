@@ -8,6 +8,10 @@ import {
   subscribeCampaigns,
 } from "@/lib/workspace/campaigns";
 import { streamBatchDensifyCids } from "@/lib/dossier/batchClient";
+import {
+  campaignStatuses,
+  formatIdealDelta,
+} from "@/lib/frontier/campaignKnowledge";
 import Link from "next/link";
 import { routes } from "@/lib/routes";
 
@@ -26,6 +30,7 @@ export function BatchDensifyPanel({ seedCids }: { seedCids?: number[] }) {
   const [streamLog, setStreamLog] = useState<string[]>([]);
   const [concurrency, setConcurrency] = useState(2);
   const [force, setForce] = useState(false);
+  const [idealDeltaMsg, setIdealDeltaMsg] = useState<string | null>(null);
 
   const reload = useCallback(() => {
     const rows = listCampaigns();
@@ -59,6 +64,13 @@ export function BatchDensifyPanel({ seedCids }: { seedCids?: number[] }) {
     setBusy(true);
     setStatus(null);
     setStreamLog([]);
+    setIdealDeltaMsg(null);
+    // Snapshot Ideal scores before stream densify (local cache)
+    const beforeStatuses = await campaignStatuses(cids);
+    const beforeIdeal = new Map(
+      beforeStatuses.map((s) => [s.cid, s.idealScore ?? 0] as const)
+    );
+    const deltas: string[] = [];
     try {
       const res = await streamBatchDensifyCids(cids, {
         includeDossiers: true,
@@ -73,24 +85,39 @@ export function BatchDensifyPanel({ seedCids }: { seedCids?: number[] }) {
               [...prev, `pool start · ${ev.total} CIDs`].slice(-40)
             );
           }
-          if (ev.type === "cid_start" || ev.type === "cid_complete") {
+          if (ev.type === "cid_start") {
+            setStreamLog((prev) =>
+              [...prev, `→ CID ${ev.cid} starting…`].slice(-40)
+            );
+          }
+          if (ev.type === "cid_complete" && ev.cid != null) {
+            const b = beforeIdeal.get(ev.cid);
+            const a = ev.summary?.idealScore;
+            const idealPart =
+              b != null || a != null
+                ? ` · ideal ${formatIdealDelta(b, a)}`
+                : "";
             setStreamLog((prev) =>
               [
                 ...prev,
-                ev.type === "cid_start"
-                  ? `→ CID ${ev.cid} starting…`
-                  : `✓ CID ${ev.cid}: ${
-                      ev.summary?.fromCache
-                        ? "cache"
-                        : ev.ok
-                          ? "ok"
-                          : ev.error || "fail"
-                    } (${ev.summary?.observationCount ?? "—"} obs)`,
+                `✓ CID ${ev.cid}: ${
+                  ev.summary?.fromCache
+                    ? "cache"
+                    : ev.ok
+                      ? "ok"
+                      : ev.error || "fail"
+                } (${ev.summary?.observationCount ?? "—"} obs)${idealPart}`,
               ].slice(-40)
             );
+            if (ev.ok && (b != null || a != null)) {
+              deltas.push(`CID ${ev.cid} ${formatIdealDelta(b, a)}`);
+            }
           }
         },
       });
+      if (deltas.length) {
+        setIdealDeltaMsg(`Ideal score deltas · ${deltas.join(" · ")}`);
+      }
       setLast(
         JSON.stringify(
           {
@@ -101,11 +128,14 @@ export function BatchDensifyPanel({ seedCids }: { seedCids?: number[] }) {
             ok: res.ok,
             fail: res.fail,
             durationMs: res.durationMs,
+            idealDeltas: deltas,
             results: (res.results || []).map((r) => ({
               cid: r.cid,
               ok: r.ok,
               name: r.summary?.name,
               evidence: r.summary?.evidenceScore,
+              ideal: r.summary?.idealScore,
+              idealBefore: beforeIdeal.get(r.cid),
               atlas: r.summary?.observationCount,
               error: r.error,
             })),
@@ -216,6 +246,14 @@ export function BatchDensifyPanel({ seedCids }: { seedCids?: number[] }) {
       {status ? (
         <p className="mt-2 text-[11px] text-slate-400" role="status">
           {status}
+        </p>
+      ) : null}
+      {idealDeltaMsg ? (
+        <p
+          className="mt-1 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-100/90"
+          role="status"
+        >
+          {idealDeltaMsg}
         </p>
       ) : null}
       {streamLog.length > 0 ? (

@@ -74,6 +74,36 @@ export async function campaignStatuses(
   return statuses;
 }
 
+/** Default: not cached, or fewer than 2 condition observations (thin densify). */
+export const THIN_OBS_THRESHOLD = 2;
+
+/**
+ * CIDs that should be densified: missing cache and/or thin atlas.
+ * Used for preflight auto-queue (campaign agent / graph).
+ */
+export function thinOrMissingCids(
+  statuses: CampaignCidStatus[],
+  opts?: { minObservations?: number }
+): number[] {
+  const minObs = opts?.minObservations ?? THIN_OBS_THRESHOLD;
+  return statuses
+    .filter(
+      (s) => !s.cached || (s.observationCount ?? 0) < minObs
+    )
+    .map((s) => s.cid);
+}
+
+export function formatIdealDelta(
+  before: number | undefined | null,
+  after: number | undefined | null
+): string {
+  const b = before ?? 0;
+  const a = after ?? 0;
+  const d = a - b;
+  const sign = d > 0 ? `+${d}` : String(d);
+  return `${b}→${a} (${sign})`;
+}
+
 function mergeAtlases(atlases: ConditionAtlas[]): ConditionDistribution[] {
   const byKind = new Map<string, ConditionDistribution>();
   for (const a of atlases) {

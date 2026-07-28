@@ -9,9 +9,13 @@ import {
 } from "@/lib/frontier/campaignKnowledge";
 import { buildProcessKnowledgePackage } from "@/lib/frontier/buildKnowledge";
 import type { ProcessKnowledgePackage } from "@/lib/frontier/types";
+import type { CampaignAgentResult } from "@/lib/frontier/campaignAgent";
 
 export const CAMPAIGN_KNOWLEDGE_SCHEMA =
   "chemistry-recipes.campaign-knowledge.v1" as const;
+
+export const CAMPAIGN_AGENT_RUN_SCHEMA =
+  "chemistry-recipes.campaign-agent-run.v1" as const;
 
 export interface CampaignKnowledgeExport {
   schema: typeof CAMPAIGN_KNOWLEDGE_SCHEMA;
@@ -38,6 +42,15 @@ export interface CampaignKnowledgeExport {
     networkEdges: number;
     packageCount: number;
   };
+  /** Optional last agent Q&A attached for notebooks */
+  agentRun?: {
+    schema: typeof CAMPAIGN_AGENT_RUN_SCHEMA;
+    question: string;
+    answer: CampaignAgentResult["answer"];
+    steps: CampaignAgentResult["steps"];
+    nextExperiments: CampaignAgentResult["nextExperiments"];
+    metrics: CampaignAgentResult["metrics"];
+  };
 }
 
 const DISCLAIMER =
@@ -47,9 +60,11 @@ const DISCLAIMER =
 
 /**
  * Build exportable campaign knowledge from IndexedDB caches.
+ * Optionally attach a campaign-agent run (question + grounded answer).
  */
 export async function buildCampaignKnowledgeExport(
-  campaign: ScienceCampaign
+  campaign: ScienceCampaign,
+  opts?: { agentResult?: CampaignAgentResult }
 ): Promise<CampaignKnowledgeExport> {
   const merged = await buildMergedCampaignKnowledge(
     campaign.cids,
@@ -62,6 +77,7 @@ export async function buildCampaignKnowledgeExport(
     return rest;
   });
 
+  const agent = opts?.agentResult;
   return {
     schema: CAMPAIGN_KNOWLEDGE_SCHEMA,
     exportedAt: new Date().toISOString(),
@@ -86,6 +102,16 @@ export async function buildCampaignKnowledgeExport(
       networkEdges: merged.network.edges.length,
       packageCount: packages.length,
     },
+    agentRun: agent
+      ? {
+          schema: CAMPAIGN_AGENT_RUN_SCHEMA,
+          question: agent.question,
+          answer: agent.answer,
+          steps: agent.steps,
+          nextExperiments: agent.nextExperiments,
+          metrics: agent.metrics,
+        }
+      : undefined,
   };
 }
 

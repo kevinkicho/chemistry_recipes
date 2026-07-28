@@ -1,18 +1,29 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   listCampaigns,
   type ScienceCampaign,
   subscribeCampaigns,
 } from "@/lib/workspace/campaigns";
-import { runCampaignAgent } from "@/lib/frontier/campaignAgent";
+import {
+  runCampaignAgent,
+  type CampaignAgentResult,
+} from "@/lib/frontier/campaignAgent";
 import {
   campaignStatuses,
+  thinOrMissingCids,
   type CampaignCidStatus,
 } from "@/lib/frontier/campaignKnowledge";
 import { recordDensifyRun } from "@/lib/dossier/densifyTelemetry";
-import { batchDensifyCids } from "@/lib/dossier/batchClient";
+import {
+  batchDensifyCids,
+  streamBatchDensifyCids,
+} from "@/lib/dossier/batchClient";
+import {
+  buildCampaignKnowledgeExport,
+  downloadCampaignKnowledge,
+} from "@/lib/frontier/campaignExport";
 
 /**
  * Campaign-level quote-bound Q&A over merged multi-CID caches.
@@ -31,6 +42,8 @@ export function CampaignAgentPanel() {
   const [force, setForce] = useState(false);
   const [health, setHealth] = useState<CampaignCidStatus[] | null>(null);
   const [healthMsg, setHealthMsg] = useState<string | null>(null);
+  const [lastAgent, setLastAgent] = useState<CampaignAgentResult | null>(null);
+  const [exportMsg, setExportMsg] = useState<string | null>(null);
 
   const reload = useCallback(() => {
     const rows = listCampaigns();
@@ -43,34 +56,93 @@ export function CampaignAgentPanel() {
     return subscribeCampaigns(reload);
   }, [reload]);
 
+  const refreshHealth = useCallback(async (camp: ScienceCampaign) => {
+    const statuses = await campaignStatuses(camp.cids, camp.labels);
+    setHealth(statuses);
+    const cached = statuses.filter((s) => s.cached).length;
+    const obs = statuses.reduce((n, s) => n + (s.observationCount || 0), 0);
+    const queue = thinOrMissingCids(statuses);
+    const missing = statuses.filter((s) => !s.cached).length;
+    const thin = queue.length - missing;
+    setHealthMsg(
+      `Local package: ${cached}/${camp.cids.length} cached · ${obs} atlas obs` +
+        (missing ? ` · ${missing} not densified` : "") +
+        (thin > 0 ? ` · ${thin} thin` : "") +
+        (queue.length ? ` · queue ${queue.length}` : "")
+    );
+    return statuses;
+  }, []);
+
   // Preflight: how dense is the local campaign package?
   useEffect(() => {
     const camp = campaigns.find((c) => c.id === selected);
     if (!camp) {
       setHealth(null);
       setHealthMsg(null);
+      setLastAgent(null);
       return;
     }
     let cancelled = false;
-    void campaignStatuses(camp.cids, camp.labels).then((statuses) => {
+    void refreshHealth(camp).then(() => {
       if (cancelled) return;
-      setHealth(statuses);
-      const cached = statuses.filter((s) => s.cached).length;
-      const obs = statuses.reduce((n, s) => n + (s.observationCount || 0), 0);
-      const thin = statuses.filter(
-        (s) => s.cached && (s.observationCount || 0) < 2
-      ).length;
-      const missing = statuses.filter((s) => !s.cached).length;
-      setHealthMsg(
-        `Local package: ${cached}/${camp.cids.length} cached · ${obs} atlas obs` +
-          (missing ? ` · ${missing} not densified` : "") +
-          (thin ? ` · ${thin} thin` : "")
-      );
     });
     return () => {
       cancelled = true;
     };
-  }, [selected, campaigns]);
+  }, [selected, campaigns, refreshHealth]);
+
+  const queueCids = useMemo(
+    () => (health ? thinOrMissingCids(health) : []),
+    [health]
+  );
+
+  async function densifyQueue() {
+    const camp = campaigns.find((c) => c.id === selected);
+    if (!camp || !queueCids.length) return;
+    setBusy(true);
+    setOut(null);
+    setSteps([`[densify] Auto-queue thin/missing: ${queueCids.join(", ")}`]);
+    const beforeIdeal = new Map(
+      (health || []).map((s) => [s.cid, s.idealScore ?? 0] as const)
+    );
+    try {
+      const res = await streamBatchDensifyCids(queueCids, {
+        includeDossiers: true,
+        cacheLocal: true,
+        concurrency: 2,
+        force: false,
+        retries: 2,
+        onProgress: (m) =>
+          setSteps((prev) => [...prev, `[densify] ${m}`].slice(-24)),
+        onEvent: (ev) => {
+          if (ev.type === "cid_complete" && ev.cid != null) {
+            const b = beforeIdeal.get(ev.cid);
+            const a = ev.summary?.idealScore;
+            const delta =
+              b != null || a != null
+                ? ` ideal ${b ?? "—"}→${a ?? "—"}`
+                : "";
+            setSteps((prev) =>
+              [
+                ...prev,
+                `[densify] CID ${ev.cid}: ${
+                  ev.ok ? "ok" : ev.error || "fail"
+                } · obs ${ev.summary?.observationCount ?? "—"}${delta}`,
+              ].slice(-24)
+            );
+          }
+        },
+      });
+      await refreshHealth(camp);
+      setOut(
+        `Thin/missing queue densify · ${res.ok}ok/${res.fail}fail · ${Math.round(res.durationMs / 1000)}s · not GMP`
+      );
+    } catch (e) {
+      setOut(e instanceof Error ? e.message : "Queue densify failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function run() {
     const camp = campaigns.find((c) => c.id === selected);
@@ -79,9 +151,11 @@ export function CampaignAgentPanel() {
     setOut(null);
     setSteps([]);
     setExps([]);
+    setLastAgent(null);
+    setExportMsg(null);
     const t0 = Date.now();
     try {
-      let res: Awaited<ReturnType<typeof runCampaignAgent>>;
+      let res: CampaignAgentResult;
       let densify: Array<{ cid: number; ok: boolean; error?: string }> | undefined;
       if (useServer) {
         const r = await fetch("/api/ai/campaign", {
@@ -95,9 +169,7 @@ export function CampaignAgentPanel() {
             force,
           }),
         });
-        const data = (await r.json()) as Awaited<
-          ReturnType<typeof runCampaignAgent>
-        > & {
+        const data = (await r.json()) as CampaignAgentResult & {
           error?: string;
           densify?: Array<{ cid: number; ok: boolean; error?: string }>;
         };
@@ -113,11 +185,14 @@ export function CampaignAgentPanel() {
           ok,
           fail,
           durationMs: Date.now() - t0,
-          detail: force ? "force densify + campaign answer" : "campaign densify + answer",
+          detail: force
+            ? "force densify + campaign answer"
+            : "campaign densify + answer",
         });
       } else {
         res = await runCampaignAgent(camp, q);
       }
+      setLastAgent(res);
       setSteps(res.steps.map((s) => `[${s.role}] ${s.detail}`));
       setExps(
         res.nextExperiments
@@ -152,7 +227,6 @@ export function CampaignAgentPanel() {
           .join("\n")
       );
       // Warm local IndexedDB from server batch (uses evidence cache when possible)
-      // so preflight + local-mode re-asks see densified packages.
       if (useServer && densify?.some((d) => d.ok)) {
         const warmCids = densify.filter((d) => d.ok).map((d) => d.cid);
         setSteps((prev) => [
@@ -166,19 +240,10 @@ export function CampaignAgentPanel() {
             force: false,
             includeDossiers: false,
           });
-          const statuses = await campaignStatuses(camp.cids, camp.labels);
-          setHealth(statuses);
-          const cached = statuses.filter((s) => s.cached).length;
-          const obs = statuses.reduce(
-            (n, s) => n + (s.observationCount || 0),
-            0
-          );
-          setHealthMsg(
-            `Local package: ${cached}/${camp.cids.length} cached · ${obs} atlas obs (warmed after server)`
-          );
+          await refreshHealth(camp);
           setSteps((prev) => [
             ...prev,
-            `[densify] Local cache warm complete · ${cached}/${camp.cids.length}`,
+            `[densify] Local cache warm complete`,
           ]);
         } catch {
           setSteps((prev) => [
@@ -191,6 +256,33 @@ export function CampaignAgentPanel() {
       setOut(e instanceof Error ? e.message : "Campaign agent failed");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function exportWithAgent() {
+    const camp = campaigns.find((c) => c.id === selected);
+    if (!camp) return;
+    setExportMsg("Building campaign-knowledge export…");
+    try {
+      const data = await buildCampaignKnowledgeExport(camp, {
+        agentResult: lastAgent || undefined,
+      });
+      downloadCampaignKnowledge(
+        data,
+        lastAgent
+          ? `campaign-agent-${camp.name
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .slice(0, 32)}.json`
+          : undefined
+      );
+      setExportMsg(
+        lastAgent
+          ? `Exported campaign-knowledge.v1 + agent run · ${data.metrics.packageCount} packages`
+          : `Exported campaign-knowledge.v1 · ${data.metrics.packageCount} packages (no agent run yet)`
+      );
+    } catch (e) {
+      setExportMsg(e instanceof Error ? e.message : "Export failed");
     }
   }
 
@@ -211,7 +303,7 @@ export function CampaignAgentPanel() {
       </h2>
       <p className="mt-1 text-[11px] text-slate-500">
         Answers only from campaign densify (merged atlas + network). No plant
-        invention. Stream densify first if local cache is empty, or use server mode.
+        invention. Stream densify thin/missing from preflight, or use server mode.
       </p>
 
       <label className="mt-3 block text-[10px] font-semibold uppercase text-slate-500">
@@ -233,18 +325,17 @@ export function CampaignAgentPanel() {
       {healthMsg ? (
         <p
           className={`mt-2 text-[11px] ${
-            missingCids.length || (health && health.every((s) => !s.cached))
+            queueCids.length || (health && health.every((s) => !s.cached))
               ? "text-amber-200/90"
               : "text-slate-400"
           }`}
           role="status"
         >
           {healthMsg}
-          {missingCids.length > 0 && !useServer ? (
+          {queueCids.length > 0 ? (
             <span className="block text-[10px] text-amber-200/70">
-              Tip: enable server densify, or stream densify missing CIDs in Campaign
-              graph ({missingCids.slice(0, 6).join(", ")}
-              {missingCids.length > 6 ? "…" : ""}).
+              Auto-queue: {queueCids.slice(0, 8).join(", ")}
+              {queueCids.length > 8 ? "…" : ""} (missing or &lt;2 atlas obs)
             </span>
           ) : null}
         </p>
@@ -252,15 +343,33 @@ export function CampaignAgentPanel() {
 
       {health && health.length > 0 ? (
         <ul className="mt-2 max-h-24 space-y-0.5 overflow-y-auto font-mono text-[10px] text-slate-600">
-          {health.map((s) => (
-            <li key={s.cid}>
-              CID {s.cid}
-              {s.name ? ` ${s.name.slice(0, 24)}` : ""} ·{" "}
-              {s.cached ? `obs ${s.observationCount ?? 0}` : "not cached"} · ideal{" "}
-              {s.idealScore ?? "—"}
-            </li>
-          ))}
+          {health.map((s) => {
+            const needs = !s.cached || (s.observationCount ?? 0) < 2;
+            return (
+              <li
+                key={s.cid}
+                className={needs ? "text-amber-200/70" : undefined}
+              >
+                CID {s.cid}
+                {s.name ? ` ${s.name.slice(0, 24)}` : ""} ·{" "}
+                {s.cached ? `obs ${s.observationCount ?? 0}` : "not cached"} ·
+                ideal {s.idealScore ?? "—"}
+                {needs ? " · queue" : ""}
+              </li>
+            );
+          })}
         </ul>
+      ) : null}
+
+      {queueCids.length > 0 ? (
+        <button
+          type="button"
+          disabled={busy || !selected}
+          onClick={() => void densifyQueue()}
+          className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-100 hover:bg-amber-500/20 disabled:opacity-40"
+        >
+          {busy ? "Densifying queue…" : `Densify thin/missing (${queueCids.length})`}
+        </button>
       ) : null}
 
       <textarea
@@ -287,21 +396,38 @@ export function CampaignAgentPanel() {
           Force re-gather (skip server evidence cache)
         </label>
       ) : null}
-      <button
-        type="button"
-        disabled={busy || !selected || q.trim().length < 4}
-        onClick={() => void run()}
-        className="mt-2 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 disabled:opacity-40"
-      >
-        {busy
-          ? useServer
-            ? "Densifying + answering…"
-            : "Running…"
-          : "Ask campaign package"}
-      </button>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={busy || !selected || q.trim().length < 4}
+          onClick={() => void run()}
+          className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 disabled:opacity-40"
+        >
+          {busy
+            ? useServer
+              ? "Densifying + answering…"
+              : "Running…"
+            : "Ask campaign package"}
+        </button>
+        <button
+          type="button"
+          disabled={busy || !selected}
+          onClick={() => void exportWithAgent()}
+          className="rounded-lg border border-violet-500/40 bg-violet-950/40 px-3 py-1.5 text-xs font-medium text-violet-100 disabled:opacity-40"
+        >
+          {lastAgent
+            ? "Export knowledge + agent run"
+            : "Export campaign-knowledge"}
+        </button>
+      </div>
       {camp && !useServer && missingCids.length === camp.cids.length ? (
         <p className="mt-1 text-[10px] text-amber-200/80">
-          No local densify yet — answer will refuse until you densify.
+          No local densify yet — densify thin/missing queue or enable server mode.
+        </p>
+      ) : null}
+      {exportMsg ? (
+        <p className="mt-1 text-[10px] text-violet-200/80" role="status">
+          {exportMsg}
         </p>
       ) : null}
 

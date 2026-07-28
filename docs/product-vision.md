@@ -55,6 +55,9 @@ Export: process-knowledge JSON from the Evidence science panel.
 | **Campaign agent** | Multi-CID Q&A over merged cache (`campaign-agent.v1`) |
 | **`POST /api/ai/campaign`** | Server densify up to 8 CIDs then quote-bound campaign answer (force optional) |
 | **Campaign package preflight** | Cached/thin CID status before ask; force re-gather checkbox |
+| **Thin-CID auto-queue** | Densify missing or &lt;2 atlas obs from preflight (agent + graph) |
+| **Agent + knowledge export** | `campaign-knowledge.v1` optional `agentRun` (Q&A + steps + experiments) |
+| **Stream densify ideal delta** | Before→after Ideal score per CID on batch/stream densify |
 | **Paste ideal delta** | After local procedure paste: Ideal score and process-fact before→after |
 | **Densify quality audit** | Procedure chars, OA/patent windows, atlas obs, hypotheses on build audit |
 | **Densify telemetry** | Local concurrency / ok-fail / duration history (incl. campaign-server) |
