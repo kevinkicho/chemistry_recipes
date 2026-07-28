@@ -37,6 +37,7 @@ async function runStream(
     includeDossiers?: boolean;
     concurrency?: number;
     retries?: number;
+    force?: boolean;
   }
 ) {
   const encoder = new TextEncoder();
@@ -46,6 +47,7 @@ async function runStream(
     Math.max(1, opts.concurrency || DEFAULT_CONCURRENCY)
   );
   const retries = Math.min(3, Math.max(0, opts.retries ?? 2));
+  const force = Boolean(opts.force);
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -66,6 +68,7 @@ async function runStream(
         cids,
         concurrency,
         retries,
+        force,
         t: Date.now(),
       });
 
@@ -97,6 +100,7 @@ async function runStream(
             const dossier = await buildOneCidForBatch(cid, {
               model: opts.model,
               fastModel: opts.fastModel,
+              force,
               onProgress: (label) =>
                 send({
                   type: "cid_progress",
@@ -190,6 +194,7 @@ export async function GET(req: Request) {
     fastModel: url.searchParams.get("fastModel") || undefined,
     concurrency: Number(url.searchParams.get("concurrency")) || undefined,
     retries: Number(url.searchParams.get("retries")) || undefined,
+    force: url.searchParams.get("force") === "1",
   });
 }
 
@@ -201,6 +206,7 @@ export async function POST(req: Request) {
     fastModel?: string;
     concurrency?: number;
     retries?: number;
+    force?: boolean;
   } = {};
   try {
     body = (await req.json()) as typeof body;
@@ -227,5 +233,6 @@ export async function POST(req: Request) {
     fastModel: body.fastModel,
     concurrency: body.concurrency,
     retries: body.retries,
+    force: Boolean(body.force),
   });
 }

@@ -36,6 +36,7 @@ async function buildCidResult(
     fastModel?: string;
     includeDossiers?: boolean;
     retries: number;
+    force?: boolean;
   }
 ): Promise<BatchDossierResult> {
   const t0 = Date.now();
@@ -46,6 +47,7 @@ async function buildCidResult(
       const dossier = await buildOneCidForBatch(cid, {
         model: opts.model,
         fastModel: opts.fastModel,
+        force: opts.force,
       });
       return {
         cid,
@@ -108,6 +110,7 @@ export async function POST(req: NextRequest) {
   const model = safeModel(body.model);
   const fastModel = safeModel(body.fastModel);
   const includeDossiers = Boolean(body.includeDossiers);
+  const force = Boolean(body.force);
   const concurrency = Math.min(
     MAX_CONCURRENCY,
     Math.max(1, Number(body.concurrency) || DEFAULT_CONCURRENCY)
@@ -121,6 +124,7 @@ export async function POST(req: NextRequest) {
       fastModel,
       includeDossiers,
       retries,
+      force,
     })
   );
 

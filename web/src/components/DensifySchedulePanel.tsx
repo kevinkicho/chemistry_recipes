@@ -9,15 +9,17 @@ import {
   type DensifyScheduleEntry,
 } from "@/lib/dossier/densifySchedule";
 import { warmLiveDossier } from "@/lib/dossier/warmCache";
+import { streamBatchDensifyCids } from "@/lib/dossier/batchClient";
 import { routes } from "@/lib/routes";
 
 /**
- * Client densify schedule — recently viewed thin CIDs + warm-now actions.
+ * Client densify schedule — recently viewed thin CIDs + warm-now / warm-due-all.
  */
 export function DensifySchedulePanel() {
   const [entries, setEntries] = useState<DensifyScheduleEntry[]>([]);
   const [due, setDue] = useState<DensifyScheduleEntry[]>([]);
   const [busy, setBusy] = useState<number | null>(null);
+  const [batchBusy, setBatchBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
   const reload = useCallback(() => {
@@ -50,6 +52,33 @@ export function DensifySchedulePanel() {
     }
   }
 
+  async function warmAllDue() {
+    const cids = due.map((e) => e.cid).slice(0, 12);
+    if (!cids.length) return;
+    setBatchBusy(true);
+    setStatus(`Streaming densify for ${cids.length} due CID(s)…`);
+    try {
+      const res = await streamBatchDensifyCids(cids, {
+        force: true,
+        cacheLocal: true,
+        includeDossiers: true,
+        concurrency: 2,
+        onProgress: (m) => setStatus(m),
+      });
+      for (const r of res.results) {
+        if (r.ok) markDensifyWarmed(r.cid);
+      }
+      setStatus(
+        `Due densify done · ${res.ok} ok · ${res.fail} fail · ${res.skipped ?? 0} skipped`
+      );
+      reload();
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "Batch warm failed");
+    } finally {
+      setBatchBusy(false);
+    }
+  }
+
   if (!entries.length) return null;
 
   return (
@@ -59,14 +88,24 @@ export function DensifySchedulePanel() {
     >
       <h2 className="text-sm font-semibold text-slate-100">Densify schedule (local)</h2>
       <p className="mt-1 text-[11px] text-slate-500">
-        Recently viewed CIDs — warm thin ones in the background so Monday opens dense.
-        Client-only; no server cron.
+        Recently viewed thin CIDs — warm so Monday opens dense. Uses stream batch with
+        cache + retries.
       </p>
       {due.length > 0 ? (
         <div className="mt-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-200/80">
-            Due for densify
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-200/80">
+              Due for densify ({due.length})
+            </p>
+            <button
+              type="button"
+              disabled={batchBusy || busy != null}
+              onClick={() => void warmAllDue()}
+              className="rounded border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-100 disabled:opacity-40"
+            >
+              {batchBusy ? "Warming all…" : "Warm all due (stream)"}
+            </button>
+          </div>
           <ul className="mt-1 space-y-1">
             {due.map((e) => (
               <li
@@ -78,7 +117,7 @@ export function DensifySchedulePanel() {
                 </Link>
                 <button
                   type="button"
-                  disabled={busy === e.cid}
+                  disabled={busy === e.cid || batchBusy}
                   onClick={() => void warmOne(e.cid)}
                   className="rounded border border-slate-700 px-2 py-0.5 text-[10px] text-slate-300 enabled:hover:border-teal-500/40 disabled:opacity-40"
                 >

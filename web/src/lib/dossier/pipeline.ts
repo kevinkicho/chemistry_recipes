@@ -75,6 +75,8 @@ export interface PipelineOptions {
   model?: string;
   /** User-selected fast/draft model */
   fastModel?: string;
+  /** Skip durable evidence cache and re-gather free APIs */
+  force?: boolean;
 }
 
 /**
@@ -143,7 +145,9 @@ export async function buildLiveDossierWithProgress(
     stepsTotal: STEPS_TOTAL,
   });
   const tGather = Date.now();
-  const evidence = await gatherCompoundEvidence(cid);
+  const evidence = await gatherCompoundEvidence(cid, {
+    force: Boolean(opts.force),
+  });
   const gSum = summarizeTraces(evidence.traces);
   emit({
     type: evidence.identity ? "step_done" : "step_error",

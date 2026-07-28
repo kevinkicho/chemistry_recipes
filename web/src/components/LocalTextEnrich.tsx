@@ -61,7 +61,7 @@ export function LocalTextEnrich({
       moleculeLabel,
     });
     setMsg(
-      `Saved ${row.text.length.toLocaleString()} chars locally (${sourceKind}). Facts re-extract on this device only.`
+      `Saved ${row.text.length.toLocaleString()} chars locally (${sourceKind}). Facts re-extract now — check Ideal score / condition atlas for densify lift (still not GMP).`
     );
     setText("");
     setStep(1);

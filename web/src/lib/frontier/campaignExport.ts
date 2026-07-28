@@ -55,9 +55,12 @@ export async function buildCampaignKnowledgeExport(
     campaign.cids,
     campaign.labels
   );
-  const packages = merged.dossiers.map(
-    (d) => d.processKnowledge || buildProcessKnowledgePackage(d)
-  );
+  const packages = merged.dossiers.map((d) => {
+    const p = d.processKnowledge || buildProcessKnowledgePackage(d);
+    const rest = { ...p };
+    delete rest._fp;
+    return rest;
+  });
 
   return {
     schema: CAMPAIGN_KNOWLEDGE_SCHEMA,

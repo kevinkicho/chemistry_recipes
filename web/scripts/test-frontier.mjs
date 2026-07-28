@@ -152,6 +152,11 @@ ok("batch client partition cache", /partitionCidsByCache/.test(read("lib/dossier
 ok("batch client skip warm", /loadWarmCache|fromCache/.test(read("lib/dossier/batchClient.ts")));
 ok("science agent local-first", /local package|canLocal|runLocal/.test(read("components/frontier/ScienceAgentPanel.tsx")));
 ok("batch retries in API", /retries/.test(read("app/api/dossier/batch/route.ts")));
+ok("pipeline force option", /force\?: boolean/.test(read("lib/dossier/pipeline.ts")));
+ok("gather force from pipeline", /force: Boolean\(opts\.force\)/.test(read("lib/dossier/pipeline.ts")));
+ok("batchBuild force", /force\?: boolean/.test(read("lib/dossier/batchBuild.ts")));
+ok("export strips _fp", /publicProcessKnowledge|_fp/.test(read("lib/frontier/exportKnowledge.ts")));
+ok("schedule warm all due", /warmAllDue|Warm all due/.test(read("components/DensifySchedulePanel.tsx")));
 
 // Pure JS extract smoke (mirrors atlas patterns)
 function extractTemp(text) {

@@ -40,6 +40,7 @@ export async function buildOneCidForBatch(
   opts?: {
     model?: string;
     fastModel?: string;
+    force?: boolean;
     onProgress?: (label: string) => void;
   }
 ): Promise<LiveDossier> {
@@ -48,7 +49,11 @@ export async function buildOneCidForBatch(
     (ev) => {
       if (ev.label) opts?.onProgress?.(ev.label);
     },
-    { model: opts?.model, fastModel: opts?.fastModel }
+    {
+      model: opts?.model,
+      fastModel: opts?.fastModel,
+      force: opts?.force,
+    }
   );
   return ensureDossierKnowledge(dossier);
 }

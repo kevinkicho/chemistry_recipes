@@ -6,11 +6,21 @@ import type { ProcessKnowledgePackage } from "@/lib/frontier/types";
 import type { LiveDossier } from "@/lib/dossier/types";
 import { buildProcessKnowledgePackage } from "@/lib/frontier/buildKnowledge";
 
+/** Strip internal client fields before external export */
+export function publicProcessKnowledge(
+  pack: ProcessKnowledgePackage
+): ProcessKnowledgePackage {
+  const rest = { ...pack };
+  delete rest._fp;
+  return rest;
+}
+
 export function downloadProcessKnowledge(
   dossier: LiveDossier,
   pack?: ProcessKnowledgePackage
 ): void {
-  const data = pack || dossier.processKnowledge || buildProcessKnowledgePackage(dossier);
+  const raw = pack || dossier.processKnowledge || buildProcessKnowledgePackage(dossier);
+  const data = publicProcessKnowledge(raw);
   const name = (dossier.identity?.name || `cid-${dossier.cid}`)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")

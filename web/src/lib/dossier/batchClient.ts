@@ -155,6 +155,7 @@ export async function batchDensifyCids(
       includeDossiers: opts?.includeDossiers ?? opts?.cacheLocal ?? false,
       concurrency,
       retries: opts?.retries ?? 2,
+      force: opts?.force,
     }),
   });
   const data = (await res.json()) as BatchClientResponse;
@@ -305,6 +306,7 @@ export async function streamBatchDensifyCids(
       includeDossiers: opts?.includeDossiers ?? opts?.cacheLocal ?? true,
       concurrency,
       retries: opts?.retries ?? 2,
+      force: opts?.force,
     }),
   });
 
