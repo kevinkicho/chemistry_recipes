@@ -18,13 +18,17 @@ export default async function SearchPage({ searchParams }: Props) {
     <div className="w-full p-3 sm:p-4">
       <h1 className="text-3xl font-semibold tracking-tight text-slate-50">Search</h1>
       <p className="mt-2 max-w-2xl text-slate-400">
-        Free public search via PubChem (NCBI / NIH). Use{" "}
+        Free-public multi-source search:{" "}
+        <strong className="font-medium text-slate-300">
+          PubChem, ChEMBL, ChEBI, MyChem, RxNorm, GSRS, DrugCentral
+        </strong>{" "}
+        + local hub index. Query by{" "}
         <strong className="font-medium text-slate-300">
           name, CAS RN, SMILES, InChIKey, UNII, or CID
         </strong>
-        . Results open{" "}
-        <strong className="font-medium text-slate-300">live multi-API dossiers</strong>{" "}
-        only — not curated demos. Teaching packages live under{" "}
+        . Hits merge toward openable{" "}
+        <strong className="font-medium text-slate-300">live multi-API dossiers</strong>
+        . Teaching packages live under{" "}
         <Link href={routes.info()} className="text-amber-300/90 hover:underline">
           Info
         </Link>

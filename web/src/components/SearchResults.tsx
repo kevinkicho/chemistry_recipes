@@ -1,33 +1,47 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PubChemResultCard } from "@/components/SearchResultCards";
+import { MultiSourceResultCard } from "@/components/SearchResultCards";
 import { searchPubChemInBrowser } from "@/lib/api/pubchemBrowser";
 import { resolveLocalSearchHits } from "@/lib/data/searchLocalIndex";
-
-type Hit = {
-  cid: number;
-  name: string;
-  formula?: string;
-  molecularWeight?: number;
-  cas?: string;
-  inchiKey?: string;
-};
+import type {
+  MultiSourceHit,
+  MultiSourceSearchResult,
+} from "@/lib/search/multiSourceSearch";
 
 /**
- * Search order (deployed App Hosting often gets PubChem 503 on server egress):
+ * Search order:
  * 1) Instant local hub + package index
- * 2) Browser → PubChem (user IP, usually works)
- * 3) Server /api/search/pubchem (fallback)
+ * 2) Browser → PubChem (user IP)
+ * 3) Server multi-source fan-out (PubChem + ChEMBL + ChEBI + MyChem + RxNorm + GSRS + DrugCentral)
+ * 4) Server PubChem-only fallback
  */
 export function SearchResults({ query }: { query: string }) {
   const q = query.trim();
-  const [hits, setHits] = useState<Hit[]>(() =>
-    q ? resolveLocalSearchHits(q, 10) : []
+  const [hits, setHits] = useState<MultiSourceHit[]>(() =>
+    q
+      ? resolveLocalSearchHits(q, 10).map((h) => ({
+          cid: h.cid,
+          name: h.name,
+          cas: h.cas,
+          sources: [
+            {
+              source: "local" as const,
+              label: "Local hub / package",
+              externalId: String(h.cid),
+            },
+          ],
+          score: 50,
+          openable: true,
+        }))
+      : []
   );
   const [loading, setLoading] = useState(Boolean(q));
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [sourceStatus, setSourceStatus] = useState<
+    MultiSourceSearchResult["sourceStatus"]
+  >([]);
 
   useEffect(() => {
     if (!q) {
@@ -35,83 +49,167 @@ export function SearchResults({ query }: { query: string }) {
       setLoading(false);
       setError(null);
       setNote(null);
+      setSourceStatus([]);
       return;
     }
 
-    const local = resolveLocalSearchHits(q, 10);
+    const local = resolveLocalSearchHits(q, 10).map((h) => ({
+      cid: h.cid,
+      name: h.name,
+      cas: h.cas,
+      sources: [
+        {
+          source: "local" as const,
+          label: "Local hub / package",
+          externalId: String(h.cid),
+        },
+      ],
+      score: 50,
+      openable: true,
+    }));
     setHits(local);
     setLoading(true);
     setError(null);
+    setSourceStatus([]);
     setNote(
       local.length
-        ? "Searching PubChem from your browser…"
-        : "Searching PubChem…"
+        ? "Searching free-public sources (PubChem + multi-API)…"
+        : "Multi-source free-public search…"
     );
 
     const ac = new AbortController();
-    const t = window.setTimeout(() => ac.abort(), 25_000);
+    const t = window.setTimeout(() => ac.abort(), 45_000);
 
     void (async () => {
       try {
-        // 1) Browser-direct PubChem (avoids Cloud Run 503)
+        // 1) Browser-direct PubChem for fast openable cards
         const browser = await searchPubChemInBrowser(q, 10, ac.signal);
         if (browser.hits.length > 0) {
-          setHits(browser.hits);
-          setError(null);
-          setNote(null);
-          return;
+          setHits(
+            browser.hits.map((h) => ({
+              cid: h.cid,
+              name: h.name,
+              formula: h.formula,
+              molecularWeight: h.molecularWeight,
+              cas: h.cas,
+              inchiKey: h.inchiKey,
+              sources: [
+                {
+                  source: "pubchem" as const,
+                  label: "PubChem · NIH",
+                  externalId: String(h.cid),
+                  url: `https://pubchem.ncbi.nlm.nih.gov/compound/${h.cid}`,
+                },
+              ],
+              score: 45,
+              openable: true,
+            }))
+          );
+          setNote("PubChem browser hits — enriching with multi-source fan-out…");
         }
 
-        // 2) Server API (hub fallbacks + server-side PUG)
+        // 2) Server multi-source (merges ChEMBL, ChEBI, MyChem, RxNorm, GSRS, DrugCentral)
+        const multiRes = await fetch(
+          `/api/search/multi?q=${encodeURIComponent(q)}&limit=16`,
+          { signal: ac.signal, cache: "no-store" }
+        );
+        if (multiRes.ok) {
+          const data = (await multiRes.json()) as MultiSourceSearchResult & {
+            error?: string;
+          };
+          if (data.hits?.length) {
+            setHits(data.hits);
+            setSourceStatus(data.sourceStatus || []);
+            setError(null);
+            setNote(data.note || null);
+            return;
+          }
+        }
+
+        // 3) Server PubChem-only fallback
         const res = await fetch(
           `/api/search/pubchem?q=${encodeURIComponent(q)}&limit=10`,
           { signal: ac.signal, cache: "no-store" }
         );
         if (res.ok) {
           const data = (await res.json()) as {
-            hits?: Hit[];
-            failure?: string | null;
+            hits?: Array<{
+              cid: number;
+              name: string;
+              formula?: string;
+              molecularWeight?: number;
+              cas?: string;
+              inchiKey?: string;
+            }>;
             usedLocalFallback?: boolean;
           };
           const next = data.hits ?? [];
           if (next.length > 0) {
-            setHits(next);
+            setHits(
+              next.map((h) => ({
+                cid: h.cid,
+                name: h.name,
+                formula: h.formula,
+                molecularWeight: h.molecularWeight,
+                cas: h.cas,
+                inchiKey: h.inchiKey,
+                sources: [
+                  {
+                    source: "pubchem" as const,
+                    label: "PubChem · NIH",
+                    externalId: String(h.cid),
+                  },
+                ],
+                score: 40,
+                openable: true,
+              }))
+            );
             setError(null);
             setNote(
               data.usedLocalFallback
-                ? "Showing catalog matches (PubChem busy on server). Cards open live dossiers."
-                : null
+                ? "Showing catalog matches (PubChem busy). Cards open live dossiers."
+                : "PubChem-only results (multi-source empty)."
             );
             return;
           }
         }
 
-        // 3) Keep local if we had any
         if (local.length > 0) {
           setHits(local);
           setError(null);
           setNote(
-            "PubChem did not return live hits — showing known catalog CIDs. Open a card for the dossier."
+            "Live multi-source search thin — showing known catalog CIDs."
           );
           return;
         }
 
-        // Pure numeric CID always openable even if properties fail
         if (/^\d+$/.test(q)) {
           const cid = Number(q);
           if (cid > 0) {
-            setHits([{ cid, name: `CID ${cid}` }]);
+            setHits([
+              {
+                cid,
+                name: `CID ${cid}`,
+                sources: [
+                  {
+                    source: "pubchem",
+                    label: "PubChem · NIH",
+                    externalId: String(cid),
+                  },
+                ],
+                score: 30,
+                openable: true,
+              },
+            ]);
             setError(null);
-            setNote("Opened as PubChem CID (name lookup was unavailable).");
+            setNote("Opened as PubChem CID.");
             return;
           }
         }
 
         setHits([]);
         setError(
-          browser.error && browser.error !== "No PubChem hits"
-            ? `Search issue: ${browser.error}. Try a CID (e.g. 2244) or a common drug name.`
-            : "No PubChem hits. Try another name, CAS, or CID (e.g. 2244)."
+          "No free-public hits across PubChem / ChEMBL / ChEBI / MyChem / RxNorm / GSRS / DrugCentral. Try a CID or CAS."
         );
         setNote(null);
       } catch (e) {
@@ -121,9 +219,23 @@ export function SearchResults({ query }: { query: string }) {
             setNote("Search timed out — showing known catalog matches.");
             setError(null);
           } else if (/^\d+$/.test(q)) {
-            setHits([{ cid: Number(q), name: `CID ${q}` }]);
+            setHits([
+              {
+                cid: Number(q),
+                name: `CID ${q}`,
+                sources: [
+                  {
+                    source: "pubchem",
+                    label: "PubChem · NIH",
+                    externalId: q,
+                  },
+                ],
+                score: 30,
+                openable: true,
+              },
+            ]);
             setError(null);
-            setNote("Timed out — use this CID card to open the live dossier.");
+            setNote("Timed out — use this CID card for the live dossier.");
           } else {
             setError("Search timed out. Try a CID or retry shortly.");
           }
@@ -148,16 +260,38 @@ export function SearchResults({ query }: { query: string }) {
 
   if (!q) return null;
 
+  const openable = hits.filter((h) => h.openable && h.cid);
+  const identityOnly = hits.filter((h) => !h.openable || !h.cid);
+
   return (
     <section id="pubchem-results" className="mt-10">
       <h2 className="mb-3 flex flex-wrap items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-500">
-        PubChem results (NIH)
+        Multi-source results
         {loading ? (
           <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-normal normal-case tracking-normal text-slate-400">
             updating…
           </span>
         ) : null}
       </h2>
+
+      {sourceStatus.length > 0 ? (
+        <ul className="mb-3 flex flex-wrap gap-1.5 text-[10px]">
+          {sourceStatus.map((s) => (
+            <li
+              key={s.source}
+              className={`rounded-full px-2 py-0.5 font-mono ring-1 ring-inset ${
+                s.ok
+                  ? "bg-teal-500/10 text-teal-200 ring-teal-500/30"
+                  : "bg-slate-900 text-slate-600 ring-slate-800"
+              }`}
+              title={s.detail || undefined}
+            >
+              {s.source}
+              {s.ok ? ` · ${s.hitCount}` : " · —"}
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
       {error ? <p className="mb-3 text-sm text-rose-400">{error}</p> : null}
       {note && !error ? (
@@ -166,26 +300,35 @@ export function SearchResults({ query }: { query: string }) {
 
       {!error && !loading && hits.length === 0 ? (
         <p className="text-sm text-slate-500">
-          No PubChem hits for this query. Try a different name, CAS RN, CID, InChIKey, or
-          SMILES.
+          No free-public hits for this query. Try a different name, CAS RN, CID,
+          InChIKey, or UNII.
         </p>
       ) : null}
 
-      <ul className="grid gap-3 sm:grid-cols-2">
-        {hits.map((hit) => (
-          <li key={hit.cid}>
-            <PubChemResultCard
-              href={`/compounds/pubchem/${hit.cid}`}
-              cid={hit.cid}
-              name={hit.name}
-              formula={hit.formula}
-              molecularWeight={hit.molecularWeight}
-              cas={hit.cas}
-              inchiKey={hit.inchiKey}
-            />
-          </li>
-        ))}
-      </ul>
+      {openable.length > 0 ? (
+        <ul className="space-y-2">
+          {openable.map((h) => (
+            <li key={`cid-${h.cid}-${h.name}`}>
+              <MultiSourceResultCard hit={h} />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {identityOnly.length > 0 ? (
+        <div className="mt-6">
+          <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+            Identity hits without resolved CID
+          </h3>
+          <ul className="space-y-2">
+            {identityOnly.map((h, i) => (
+              <li key={`id-${h.name}-${i}`}>
+                <MultiSourceResultCard hit={h} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </section>
   );
 }

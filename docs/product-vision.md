@@ -76,6 +76,9 @@ Export: process-knowledge JSON from the Evidence science panel.
 | **Neighbor densify graph** | Impurity-first related-entity densify queue + impurity campaigns |
 | **ORD → campaign bridge** | Local ORD snippets → densify paste + spin multi-CID science campaign |
 | **Campaign ideal rollup** | Mean/min/max Ideal score + section heatmap + weak-CID densify |
+| **Multi-source search** | Fan-out PubChem + ChEMBL + ChEBI + MyChem + RxNorm + GSRS + DrugCentral |
+| **Related-entity CID resolve** | Name/CAS → free-public PubChem fill for missing related CIDs |
+| **Campaign compare** | Side-by-side densify/ideal/lit-depth metrics for two campaigns |
 
 ## User journeys
 

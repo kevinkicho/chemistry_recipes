@@ -17,6 +17,8 @@ export interface MyChemHit {
   cas?: string;
   summary?: string;
   url: string;
+  /** When MyChem returns a PubChem CID join */
+  pubchemCid?: number;
 }
 
 export async function fetchMyChemByName(
@@ -30,7 +32,7 @@ export async function fetchMyChemByName(
     `${MYCHEM}/query?q=${encodeURIComponent(q)}` +
     `&fields=chembl.molecule_chembl_id,chembl.pref_name,unii.unii,drugbank.id,drugbank.name,` +
     `pubchem.cid,chebi.id,chebi.name,ginas.unii,` +
-    `pharmgkb.id&size=3`;
+    `pharmgkb.id&size=5`;
 
   const { data, trace } = await fetchJsonWithTrace<{
     hits?: Array<{
@@ -41,6 +43,7 @@ export async function fetchMyChemByName(
       drugbank?: { id?: string; name?: string };
       chebi?: { id?: string; name?: string };
       pharmgkb?: { id?: string };
+      pubchem?: { cid?: number | string };
     }>;
   }>(url, {
     next: { revalidate: 3600 },
@@ -53,12 +56,20 @@ export async function fetchMyChemByName(
   const unii = h.unii?.unii || h.ginas?.unii;
   const chemblId = h.chembl?.molecule_chembl_id;
   const nameOut = h.chembl?.pref_name || h.drugbank?.name || h.chebi?.name || q;
+  const rawCid = h.pubchem?.cid;
+  const pubchemCid =
+    typeof rawCid === "number"
+      ? rawCid
+      : typeof rawCid === "string"
+        ? Number(rawCid)
+        : undefined;
 
   const parts = [
     chemblId && `ChEMBL ${chemblId}`,
     unii && `UNII ${unii}`,
     h.drugbank?.id && `DrugBank ${h.drugbank.id}`,
     h.chebi?.id && `ChEBI ${h.chebi.id}`,
+    pubchemCid && Number.isFinite(pubchemCid) && `CID ${pubchemCid}`,
   ].filter(Boolean);
 
   return {
@@ -68,11 +79,17 @@ export async function fetchMyChemByName(
       unii,
       chemblId,
       drugbankId: h.drugbank?.id,
+      inchikey: undefined,
+      cas: undefined,
       summary: parts.join(" · ") || undefined,
       url: chemblId
         ? `https://www.ebi.ac.uk/chembl/compound_report_card/${chemblId}/`
         : `https://mychem.info/v1/query?q=${encodeURIComponent(q)}`,
-    },
+      // Extended for multi-source search (optional field)
+      ...(pubchemCid && Number.isFinite(pubchemCid)
+        ? { pubchemCid: pubchemCid as number }
+        : {}),
+    } as MyChemHit & { pubchemCid?: number },
     traces: [trace],
     query: q,
   };

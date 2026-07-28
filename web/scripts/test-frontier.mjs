@@ -373,6 +373,60 @@ ok(
   )
 );
 ok(
+  "multiSourceSearch module",
+  existsSync(join(root, "src/lib/search/multiSourceSearch.ts"))
+);
+ok(
+  "multiSourceSearch export",
+  /export async function multiSourceSearch/.test(
+    read("lib/search/multiSourceSearch.ts")
+  )
+);
+ok(
+  "multi search API route",
+  existsSync(join(root, "src/app/api/search/multi/route.ts"))
+);
+ok(
+  "SearchResults multi-source",
+  /\/api\/search\/multi|MultiSourceResultCard/.test(
+    read("components/SearchResults.tsx")
+  )
+);
+ok(
+  "relatedEntityResolve module",
+  existsSync(join(root, "src/lib/frontier/relatedEntityResolve.ts"))
+);
+ok(
+  "resolveRelatedEntityCids",
+  /export async function resolveRelatedEntityCids/.test(
+    read("lib/frontier/relatedEntityResolve.ts")
+  )
+);
+ok(
+  "EntityGraph resolve CIDs",
+  /Resolve missing PubChem CIDs|resolveRelatedEntityCids/.test(
+    read("components/EntityGraph.tsx")
+  )
+);
+ok(
+  "campaignCompare module",
+  existsSync(join(root, "src/lib/frontier/campaignCompare.ts"))
+);
+ok(
+  "compareScienceCampaigns",
+  /export async function compareScienceCampaigns/.test(
+    read("lib/frontier/campaignCompare.ts")
+  )
+);
+ok(
+  "CampaignComparePanel",
+  existsSync(join(root, "src/components/frontier/CampaignComparePanel.tsx"))
+);
+ok(
+  "workspace mounts campaign compare",
+  /CampaignComparePanel/.test(read("app/workspace/page.tsx"))
+);
+ok(
   "densifyQuality atlas after knowledge",
   /withProcessKnowledge/.test(pipe) &&
     /conditionObservations/.test(pipe) &&

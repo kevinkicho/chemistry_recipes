@@ -20,6 +20,7 @@ import { BatchDensifyPanel } from "@/components/frontier/BatchDensifyPanel";
 import { CampaignGraphPanel } from "@/components/frontier/CampaignGraphPanel";
 import { CampaignAgentPanel } from "@/components/frontier/CampaignAgentPanel";
 import { CampaignBriefPanel } from "@/components/frontier/CampaignBriefPanel";
+import { CampaignComparePanel } from "@/components/frontier/CampaignComparePanel";
 import { WorkspaceScienceIndexPanel } from "@/components/frontier/WorkspaceScienceIndexPanel";
 import { DensifyTelemetryPanel } from "@/components/frontier/DensifyTelemetryPanel";
 import {
@@ -196,6 +197,7 @@ export default function WorkspacePage() {
         )}
         <WorkspaceScienceIndexPanel />
         <CampaignGraphPanel />
+        <CampaignComparePanel />
         <CampaignBriefPanel />
         <CampaignAgentPanel />
         <BatchDensifyPanel />
