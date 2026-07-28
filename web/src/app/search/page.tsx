@@ -20,9 +20,10 @@ export default async function SearchPage({ searchParams }: Props) {
       <p className="mt-2 max-w-2xl text-slate-400">
         Free-public multi-source search:{" "}
         <strong className="font-medium text-slate-300">
-          PubChem, ChEMBL, ChEBI, MyChem, RxNorm, GSRS, DrugCentral
+          PubChem, ChEMBL, ChEBI, MyChem, RxNorm, GSRS, DrugCentral, openFDA,
+          KEGG, Europe PMC
         </strong>{" "}
-        + local hub index. Query by{" "}
+        + local hub index (autocomplete too). Query by{" "}
         <strong className="font-medium text-slate-300">
           name, CAS RN, SMILES, InChIKey, UNII, or CID
         </strong>

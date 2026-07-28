@@ -13,10 +13,12 @@ import { fetchPubChemAutocomplete } from "@/lib/api/pubchemAutocomplete";
 import type { SuggestItem } from "@/lib/data/suggestions";
 import { pushSearchQuery, readHistory } from "@/lib/search-history";
 import { routes } from "@/lib/routes";
+import { resolveLocalSearchHits } from "@/lib/data/searchLocalIndex";
 
 const DEBOUNCE_MS = 280;
 const MAX_PUBCHEM = 8;
 const MAX_HISTORY = 4;
+const MAX_TOTAL = 16;
 
 function recentHistorySuggestions(query: string): SuggestItem[] {
   const qLower = query.trim().toLowerCase();
@@ -36,24 +38,30 @@ function recentHistorySuggestions(query: string): SuggestItem[] {
   return out;
 }
 
-function mergeSuggestions(
-  history: SuggestItem[],
-  pubchemTerms: string[]
+function localSuggestItems(query: string): SuggestItem[] {
+  return resolveLocalSearchHits(query, 5).map((h) => ({
+    value: h.name,
+    detail: `Local hub · CID ${h.cid}`,
+    kind: "local" as const,
+    href: routes.pubchem(h.cid),
+  }));
+}
+
+function mergeSuggestionLists(
+  ...lists: SuggestItem[][]
 ): SuggestItem[] {
-  const seen = new Set(history.map((h) => h.value.toLowerCase()));
-  const pubchem: SuggestItem[] = [];
-  for (const term of pubchemTerms) {
-    const key = term.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    pubchem.push({
-      value: term,
-      detail: "PubChem · NIH",
-      kind: "pubchem",
-    });
-    if (pubchem.length >= MAX_PUBCHEM) break;
+  const seen = new Set<string>();
+  const out: SuggestItem[] = [];
+  for (const list of lists) {
+    for (const item of list) {
+      const key = item.value.toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push(item);
+      if (out.length >= MAX_TOTAL) return out;
+    }
   }
-  return [...history, ...pubchem].slice(0, MAX_HISTORY + MAX_PUBCHEM);
+  return out;
 }
 
 export function SearchForm({
@@ -75,22 +83,25 @@ export function SearchForm({
   const [highlight, setHighlight] = useState(0);
   const [suggestions, setSuggestions] = useState<SuggestItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pubchemError, setPubchemError] = useState<string | null>(null);
+  const [suggestError, setSuggestError] = useState<string | null>(null);
+  const [suggestSources, setSuggestSources] = useState<string[]>([]);
 
   useEffect(() => {
     setQ(initialQuery);
   }, [initialQuery]);
 
-  // Debounced PubChem autocomplete + history
+  // Debounced multi-source autocomplete: history + local + PubChem + server fan-out
   useEffect(() => {
     const qTrim = q.trim();
     const history = recentHistorySuggestions(qTrim);
+    const local = localSuggestItems(qTrim);
 
     // Empty field: history only
     if (qTrim.length < 2) {
       abortRef.current?.abort();
       setLoading(false);
-      setPubchemError(null);
+      setSuggestError(null);
+      setSuggestSources([]);
       setSuggestions(history);
       return;
     }
@@ -99,7 +110,8 @@ export function SearchForm({
     if (/^\d+$/.test(qTrim)) {
       abortRef.current?.abort();
       setLoading(false);
-      setPubchemError(null);
+      setSuggestError(null);
+      setSuggestSources(["cid"]);
       const cidItem: SuggestItem = {
         value: qTrim,
         detail: "PubChem CID · open compound",
@@ -107,32 +119,64 @@ export function SearchForm({
         href: routes.pubchem(qTrim),
       };
       const rest = history.filter((h) => h.value !== qTrim);
-      setSuggestions([cidItem, ...rest].slice(0, MAX_HISTORY + 1));
+      setSuggestions([cidItem, ...rest, ...local].slice(0, MAX_HISTORY + 4));
       return;
     }
 
     setLoading(true);
-    setPubchemError(null);
-    // Show history immediately while network loads
-    setSuggestions(history);
+    setSuggestError(null);
+    // Show history + local immediately while network loads
+    setSuggestions(mergeSuggestionLists(history, local));
+    setSuggestSources(local.length ? ["local", "history"] : ["history"]);
 
     const timer = window.setTimeout(() => {
       abortRef.current?.abort();
       const ac = new AbortController();
       abortRef.current = ac;
 
-      void fetchPubChemAutocomplete(qTrim, MAX_PUBCHEM, ac.signal).then(
-        (result) => {
-          if (ac.signal.aborted) return;
-          setLoading(false);
-          if (!result.ok && result.error) {
-            setPubchemError(result.error);
-          } else {
-            setPubchemError(null);
-          }
-          setSuggestions(mergeSuggestions(history, result.terms));
+      void (async () => {
+        // Parallel: browser PubChem autocomplete + server multi-suggest
+        const [pc, multiRes] = await Promise.all([
+          fetchPubChemAutocomplete(qTrim, MAX_PUBCHEM, ac.signal),
+          fetch(
+            `/api/search/suggest?q=${encodeURIComponent(qTrim)}&limit=14`,
+            { signal: ac.signal, cache: "no-store" }
+          )
+            .then(async (r) => {
+              if (!r.ok) return null;
+              return (await r.json()) as {
+                suggestions?: SuggestItem[];
+                sourcesUsed?: string[];
+              };
+            })
+            .catch(() => null),
+        ]);
+
+        if (ac.signal.aborted) return;
+        setLoading(false);
+
+        const pcItems: SuggestItem[] = (pc.terms || []).map((t) => ({
+          value: t,
+          detail: "PubChem · NIH",
+          kind: "pubchem" as const,
+        }));
+        const multiItems = multiRes?.suggestions || [];
+        const sources = new Set<string>([
+          ...(local.length ? ["local"] : []),
+          ...(history.length ? ["history"] : []),
+          ...(pc.ok && pc.terms.length ? ["pubchem"] : []),
+          ...(multiRes?.sourcesUsed || []),
+        ]);
+        setSuggestSources([...sources]);
+        if (!pc.ok && pc.error && !multiItems.length) {
+          setSuggestError(pc.error);
+        } else {
+          setSuggestError(null);
         }
-      );
+        setSuggestions(
+          mergeSuggestionLists(history, local, multiItems, pcItems)
+        );
+      })();
     }, DEBOUNCE_MS);
 
     return () => {
@@ -201,7 +245,7 @@ export function SearchForm({
   }
 
   const showDropdown =
-    open && (suggestions.length > 0 || loading || Boolean(pubchemError));
+    open && (suggestions.length > 0 || loading || Boolean(suggestError));
 
   return (
     <div ref={rootRef} className="relative w-full">
@@ -245,12 +289,16 @@ export function SearchForm({
             >
               {loading && (
                 <li className="px-3 py-2 text-xs text-slate-500">
-                  Loading PubChem suggestions…
+                  Multi-source suggestions
+                  {suggestSources.length
+                    ? ` (${suggestSources.slice(0, 4).join(", ")})`
+                    : ""}
+                  …
                 </li>
               )}
-              {pubchemError && !loading && suggestions.length === 0 && (
+              {suggestError && !loading && suggestions.length === 0 && (
                 <li className="px-3 py-2 text-xs text-rose-400/90">
-                  PubChem autocomplete unavailable ({pubchemError})
+                  Autocomplete unavailable ({suggestError})
                 </li>
               )}
               {suggestions.map((s, i) => {

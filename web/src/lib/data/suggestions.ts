@@ -1,6 +1,14 @@
 /** Search suggestion row for the combobox dropdown. */
 
-export type SuggestKind = "history" | "pubchem" | "cid";
+export type SuggestKind =
+  | "history"
+  | "pubchem"
+  | "cid"
+  | "local"
+  | "rxnorm"
+  | "openfda"
+  | "chembl"
+  | "multi";
 
 export interface SuggestItem {
   value: string;

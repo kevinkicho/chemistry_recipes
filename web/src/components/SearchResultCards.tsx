@@ -99,6 +99,17 @@ export function MultiSourceResultCard({
             {hit.inchiKey}
           </div>
         ) : null}
+        {hit.note ? (
+          <div className="mt-0.5 truncate text-[10px] text-slate-500">
+            {hit.note}
+          </div>
+        ) : null}
+        {hit.processLiteratureCount != null && hit.processLiteratureCount > 0 ? (
+          <div className="mt-0.5 text-[10px] text-emerald-300/80">
+            {hit.processLiteratureCount} process-relevant Europe PMC paper
+            {hit.processLiteratureCount === 1 ? "" : "s"}
+          </div>
+        ) : null}
         <div className="mt-2 flex flex-wrap gap-1">
           {hit.sources.map((s) => (
             <span

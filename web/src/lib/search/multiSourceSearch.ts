@@ -1,6 +1,7 @@
 /**
  * Multi-source free-public molecule search.
- * Fan-out: PubChem + ChEMBL + ChEBI + MyChem + RxNorm + GSRS + DrugCentral,
+ * Fan-out: PubChem + ChEMBL + ChEBI + MyChem + RxNorm + GSRS + DrugCentral
+ * + openFDA + KEGG + Europe PMC process literature,
  * then merge/resolve to openable PubChem CIDs when possible.
  */
 
@@ -11,6 +12,9 @@ import { fetchMyChemByName } from "@/lib/api/mychem";
 import { fetchRxNormByName } from "@/lib/api/rxnorm";
 import { fetchGsrsByName } from "@/lib/api/gsrs";
 import { fetchDrugCentralByName } from "@/lib/api/drugCentral";
+import { fetchOpenFdaByName } from "@/lib/api/openFda";
+import { fetchKeggByName } from "@/lib/api/kegg";
+import { searchEuropePmc } from "@/lib/api/europePmc";
 import { resolveLocalSearchHits } from "@/lib/data/searchLocalIndex";
 import type { ApiFetchTrace } from "@/lib/api/trace";
 
@@ -22,7 +26,10 @@ export type MultiSourceId =
   | "mychem"
   | "rxnorm"
   | "gsrs"
-  | "drugcentral";
+  | "drugcentral"
+  | "openfda"
+  | "kegg"
+  | "europepmc";
 
 export interface MultiSourceRef {
   source: MultiSourceId;
@@ -45,6 +52,10 @@ export interface MultiSourceHit {
   score: number;
   /** True when CID is known / resolved for live dossier */
   openable: boolean;
+  /** Europe PMC process-chemistry paper count when available */
+  processLiteratureCount?: number;
+  /** Short free-public note (e.g. KEGG pathway, openFDA form) */
+  note?: string;
 }
 
 export interface MultiSourceSearchResult {
@@ -103,6 +114,11 @@ function mergeHit(
     sources,
     score: Math.max(prev.score, partial.score) + Math.min(8, sources.length * 2),
     openable: Boolean(prev.cid || partial.cid),
+    processLiteratureCount: Math.max(
+      prev.processLiteratureCount || 0,
+      partial.processLiteratureCount || 0
+    ) || undefined,
+    note: prev.note || partial.note,
   });
 }
 
@@ -505,12 +521,199 @@ export async function multiSourceSearch(
     });
   }
 
+  // Second wave: openFDA, KEGG, Europe PMC process literature
+  const wave2 = await Promise.allSettled([
+    fetchOpenFdaByName(q),
+    fetchKeggByName(q),
+    searchEuropePmc(q, { limit: 6 }),
+  ]);
+
+  // openFDA
+  const fda = wave2[0];
+  if (fda.status === "fulfilled" && fda.value.hits.length > 0) {
+    traces.push(...fda.value.traces);
+    const h0 = fda.value.hits[0]!;
+    const drugName = h0.genericName || h0.brandName || q;
+    mergeHit(map, {
+      name: drugName,
+      sources: [
+        {
+          source: "openfda",
+          label: "openFDA · FDA",
+          externalId: h0.id,
+          url: h0.url,
+        },
+      ],
+      score: 26,
+      openable: false,
+      note: [h0.dosageForm, h0.route, h0.manufacturer]
+        .filter(Boolean)
+        .slice(0, 3)
+        .join(" · ") || undefined,
+    });
+    const r = await searchPubChem(drugName, 3);
+    traces.push(...r.traces);
+    for (const ph of r.hits) {
+      mergeHit(map, {
+        ...fromPubChem(ph, 5),
+        sources: [
+          ...fromPubChem(ph).sources,
+          {
+            source: "openfda",
+            label: "openFDA · FDA",
+            externalId: h0.id,
+            url: h0.url,
+          },
+        ],
+        note: h0.dosageForm || h0.route,
+      });
+    }
+    sourceStatus.push({
+      source: "openfda",
+      ok: true,
+      hitCount: fda.value.hits.length,
+      detail: h0.genericName || h0.brandName,
+    });
+  } else {
+    sourceStatus.push({
+      source: "openfda",
+      ok: false,
+      hitCount: 0,
+      detail: fda.status === "rejected" ? String(fda.reason) : "no hit",
+    });
+  }
+
+  // KEGG
+  const kegg = wave2[1];
+  if (kegg.status === "fulfilled" && kegg.value.hit) {
+    traces.push(...kegg.value.traces);
+    const h = kegg.value.hit;
+    const pathNote = h.pathways
+      .slice(0, 2)
+      .map((p) => p.name || p.id)
+      .join("; ");
+    mergeHit(map, {
+      name: h.name.split(";")[0]?.trim() || h.name,
+      formula: h.formula,
+      sources: [
+        {
+          source: "kegg",
+          label: "KEGG",
+          externalId: h.id,
+          url: h.url,
+        },
+      ],
+      score: 23,
+      openable: false,
+      note: pathNote || (h.reactions[0] ? `rxn ${h.reactions[0]}` : undefined),
+    });
+    const r = await searchPubChem(h.name.split(";")[0]?.trim() || h.name, 2);
+    traces.push(...r.traces);
+    for (const ph of r.hits) {
+      mergeHit(map, {
+        ...fromPubChem(ph, 4),
+        formula: ph.formula || h.formula,
+        sources: [
+          ...fromPubChem(ph).sources,
+          {
+            source: "kegg",
+            label: "KEGG",
+            externalId: h.id,
+            url: h.url,
+          },
+        ],
+        note: pathNote || undefined,
+      });
+    }
+    sourceStatus.push({
+      source: "kegg",
+      ok: true,
+      hitCount: 1,
+      detail: h.id,
+    });
+  } else {
+    sourceStatus.push({
+      source: "kegg",
+      ok: false,
+      hitCount: 0,
+      detail: kegg.status === "rejected" ? String(kegg.reason) : "no hit",
+    });
+  }
+
+  // Europe PMC process literature — attach count to primary name / openable hits
+  const epmc = wave2[2];
+  if (epmc.status === "fulfilled" && epmc.value.hits.length > 0) {
+    traces.push(...epmc.value.traces);
+    const nLit = epmc.value.hits.length;
+    const top = epmc.value.hits[0]!;
+    // Boost any existing hits that match the query name
+    for (const [k, h] of map) {
+      if (
+        h.name.toLowerCase().includes(q.toLowerCase()) ||
+        q.toLowerCase().includes(h.name.toLowerCase().slice(0, 12))
+      ) {
+        const epmcRef: MultiSourceRef = {
+          source: "europepmc",
+          label: "Europe PMC",
+          externalId: top.pmcid || top.pmid || top.id,
+          url: top.url,
+        };
+        const sources: MultiSourceRef[] = h.sources.some(
+          (s) => s.source === "europepmc"
+        )
+          ? h.sources
+          : [...h.sources, epmcRef];
+        map.set(k, {
+          ...h,
+          processLiteratureCount: Math.max(h.processLiteratureCount || 0, nLit),
+          score: h.score + Math.min(12, nLit * 2),
+          sources,
+        });
+      }
+    }
+    // If map empty of name match, still record a literature-backed identity row
+    if (![...map.values()].some((h) => (h.processLiteratureCount || 0) > 0)) {
+      mergeHit(map, {
+        name: q,
+        sources: [
+          {
+            source: "europepmc",
+            label: "Europe PMC",
+            externalId: top.pmcid || top.pmid || top.id,
+            url: top.url,
+          },
+        ],
+        score: 15 + Math.min(10, nLit),
+        openable: false,
+        processLiteratureCount: nLit,
+        note: top.title.slice(0, 120),
+      });
+    }
+    sourceStatus.push({
+      source: "europepmc",
+      ok: true,
+      hitCount: nLit,
+      detail: `${nLit} process-relevant papers`,
+    });
+  } else {
+    sourceStatus.push({
+      source: "europepmc",
+      ok: false,
+      hitCount: 0,
+      detail: epmc.status === "rejected" ? String(epmc.reason) : "no hit",
+    });
+  }
+
   // Prefer openable CIDs; still surface multi-source identity rows without CID
   const hits = [...map.values()]
     .map((h) => ({
       ...h,
       openable: Boolean(h.cid && h.cid > 0),
-      score: h.score + (h.cid ? 15 : 0) + h.sources.length * 2,
+      score:
+        h.score +
+        (h.cid ? 15 : 0) +
+        h.sources.length * 2 +
+        Math.min(10, (h.processLiteratureCount || 0) * 1.5),
     }))
     .sort((a, b) => {
       if (a.openable !== b.openable) return a.openable ? -1 : 1;

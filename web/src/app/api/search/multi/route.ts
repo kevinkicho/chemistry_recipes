@@ -62,7 +62,11 @@ export async function POST() {
       "rxnorm",
       "gsrs",
       "drugcentral",
+      "openfda",
+      "kegg",
+      "europepmc",
     ],
+    suggest: "GET /api/search/suggest?q=asp",
     note: "Free-public fan-out; merges to openable PubChem CIDs when possible. Not GMP.",
   });
 }

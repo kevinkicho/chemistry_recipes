@@ -427,6 +427,38 @@ ok(
   /CampaignComparePanel/.test(read("app/workspace/page.tsx"))
 );
 ok(
+  "multi-source includes openfda kegg europepmc",
+  /openfda/.test(read("lib/search/multiSourceSearch.ts")) &&
+    /kegg/.test(read("lib/search/multiSourceSearch.ts")) &&
+    /europepmc/.test(read("lib/search/multiSourceSearch.ts"))
+);
+ok(
+  "fetchOpenFdaByName in multi search",
+  /fetchOpenFdaByName/.test(read("lib/search/multiSourceSearch.ts"))
+);
+ok(
+  "fetchKeggByName in multi search",
+  /fetchKeggByName/.test(read("lib/search/multiSourceSearch.ts"))
+);
+ok(
+  "searchEuropePmc in multi search",
+  /searchEuropePmc/.test(read("lib/search/multiSourceSearch.ts"))
+);
+ok(
+  "multiSourceSuggest module",
+  existsSync(join(root, "src/lib/search/multiSourceSuggest.ts"))
+);
+ok(
+  "suggest API route",
+  existsSync(join(root, "src/app/api/search/suggest/route.ts"))
+);
+ok(
+  "SearchForm multi-source suggest",
+  /\/api\/search\/suggest|multiSource|sourcesUsed/.test(
+    read("components/SearchForm.tsx")
+  )
+);
+ok(
   "densifyQuality atlas after knowledge",
   /withProcessKnowledge/.test(pipe) &&
     /conditionObservations/.test(pipe) &&
