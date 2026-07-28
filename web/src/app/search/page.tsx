@@ -21,7 +21,7 @@ export default async function SearchPage({ searchParams }: Props) {
         Free-public multi-source search:{" "}
         <strong className="font-medium text-slate-300">
           PubChem, ChEMBL, ChEBI, MyChem, RxNorm, GSRS, DrugCentral, openFDA,
-          KEGG, Europe PMC, OpenAlex, Crossref
+          KEGG, Europe PMC, OpenAlex, Crossref, Semantic Scholar, PubMed
         </strong>{" "}
         + local hub index (autocomplete too). Query by{" "}
         <strong className="font-medium text-slate-300">

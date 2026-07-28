@@ -10,6 +10,8 @@ import {
 import { multiSourceSearch, type MultiSourceHit } from "@/lib/search/multiSourceSearch";
 import { searchEuropePmc, type LiteratureHit } from "@/lib/api/europePmc";
 import { searchOpenAlexProcess } from "@/lib/api/openAlex";
+import { searchSemanticScholarProcess } from "@/lib/api/semanticScholar";
+import { searchPubMedProcess } from "@/lib/api/pubmed";
 import { routes } from "@/lib/routes";
 
 export const PROBLEM_MULTI_SCHEMA =
@@ -22,7 +24,7 @@ export interface ProblemMultiSearchResult {
   localHits: ProblemSearchHit[];
   /** Openable multi-source molecule hits */
   moleculeHits: MultiSourceHit[];
-  /** Process-relevant literature (Europe PMC + OpenAlex) */
+  /** Process-relevant literature (EPMC + OpenAlex + Semantic Scholar + PubMed) */
   literatureHits: LiteratureHit[];
   /** Unified ranked list for UI */
   unified: ProblemSearchHit[];
@@ -103,7 +105,7 @@ export async function searchProblemFirstMulti(
     },
   ];
 
-  const [multi, epmc, oalex] = await Promise.allSettled([
+  const [multi, epmc, oalex, s2, pubmed] = await Promise.allSettled([
     multiSourceSearch(q, Math.min(8, limit)),
     searchEuropePmc(q, {
       limit: 5,
@@ -111,6 +113,8 @@ export async function searchProblemFirstMulti(
         "(synthesis OR manufacturing OR process OR crystalliz* OR hydrogenat* OR workup OR isolation OR unit operation OR fermentation)",
     }),
     searchOpenAlexProcess(q, { limit: 4 }),
+    searchSemanticScholarProcess(q, { limit: 4 }),
+    searchPubMedProcess(q, { limit: 4 }),
   ]);
 
   let moleculeHits: MultiSourceHit[] = [];
@@ -137,26 +141,27 @@ export async function searchProblemFirstMulti(
   }
 
   const literatureHits: LiteratureHit[] = [];
-  if (epmc.status === "fulfilled") {
-    literatureHits.push(...epmc.value.hits);
-    sourceStatus.push({
-      source: "europepmc",
-      ok: epmc.value.hits.length > 0,
-      hitCount: epmc.value.hits.length,
-    });
-  } else {
-    sourceStatus.push({ source: "europepmc", ok: false, hitCount: 0 });
+  function pushLit(
+    source: string,
+    res:
+      | PromiseFulfilledResult<{ hits: LiteratureHit[] }>
+      | PromiseRejectedResult
+  ) {
+    if (res.status === "fulfilled") {
+      literatureHits.push(...res.value.hits);
+      sourceStatus.push({
+        source,
+        ok: res.value.hits.length > 0,
+        hitCount: res.value.hits.length,
+      });
+    } else {
+      sourceStatus.push({ source, ok: false, hitCount: 0 });
+    }
   }
-  if (oalex.status === "fulfilled") {
-    literatureHits.push(...oalex.value.hits);
-    sourceStatus.push({
-      source: "openalex",
-      ok: oalex.value.hits.length > 0,
-      hitCount: oalex.value.hits.length,
-    });
-  } else {
-    sourceStatus.push({ source: "openalex", ok: false, hitCount: 0 });
-  }
+  pushLit("europepmc", epmc);
+  pushLit("openalex", oalex);
+  pushLit("semanticscholar", s2);
+  pushLit("pubmed", pubmed);
 
   // Deduplicate literature by title
   const litSeen = new Set<string>();

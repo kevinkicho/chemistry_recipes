@@ -9,6 +9,7 @@ import {
 } from "@/lib/search/problemFirst";
 import {
   cidsFromProblemHits,
+  createCampaignAndDensifyFromProblemHits,
   createCampaignFromProblemHits,
 } from "@/lib/search/problemCampaign";
 import type { ProblemMultiSearchResult } from "@/lib/search/problemMultiSource";
@@ -23,6 +24,7 @@ export function ProblemFirstSearch() {
   const [liveHits, setLiveHits] = useState<ProblemSearchHit[] | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [densifyBusy, setDensifyBusy] = useState(false);
   const [sourcePills, setSourcePills] = useState<
     Array<{ source: string; ok: boolean; hitCount: number }>
   >([]);
@@ -89,6 +91,34 @@ export function ProblemFirstSearch() {
     setCampMsg(
       `Created science campaign “${camp.name}” · ${camp.cids.length} CID(s). Open Workspace to densify & brief.`
     );
+  }
+
+  async function spinCampaignAndDensify() {
+    if (!q.trim() || !cids.length) {
+      setCampMsg("Need hub/live hits with PubChem CIDs to densify.");
+      return;
+    }
+    setDensifyBusy(true);
+    setCampMsg(null);
+    try {
+      const res = await createCampaignAndDensifyFromProblemHits(q, hits, {
+        concurrency: 2,
+        onProgress: (m) => setCampMsg(m),
+      });
+      if (!res) {
+        setCampMsg("Could not create campaign from these hits.");
+        return;
+      }
+      setCampMsg(
+        `Campaign “${res.campaign.name}” · densify ${res.densify.ok}ok/${res.densify.fail}fail · ${res.queueCids.length} CIDs · open Workspace for brief/agent.`
+      );
+    } catch (e) {
+      setCampMsg(
+        e instanceof Error ? e.message : "Campaign densify queue failed"
+      );
+    } finally {
+      setDensifyBusy(false);
+    }
   }
 
   return (
@@ -162,10 +192,21 @@ export function ProblemFirstSearch() {
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <button
             type="button"
+            disabled={densifyBusy}
             onClick={spinCampaign}
-            className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-500"
+            className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 disabled:opacity-40"
           >
             Spin science campaign ({cids.length} CIDs)
+          </button>
+          <button
+            type="button"
+            disabled={densifyBusy}
+            onClick={() => void spinCampaignAndDensify()}
+            className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-100 hover:bg-amber-500/20 disabled:opacity-40"
+          >
+            {densifyBusy
+              ? "Densifying campaign queue…"
+              : `Spin + densify queue (${Math.min(12, cids.length)})`}
           </button>
           <Link
             href={routes.workspace()}

@@ -484,6 +484,32 @@ ok(
   )
 );
 ok(
+  "semanticscholar pubmed in multi search",
+  /searchSemanticScholarProcess/.test(read("lib/search/multiSourceSearch.ts")) &&
+    /searchPubMedProcess/.test(read("lib/search/multiSourceSearch.ts"))
+);
+ok(
+  "problem multi includes S2 pubmed",
+  /searchSemanticScholarProcess/.test(read("lib/search/problemMultiSource.ts")) &&
+    /searchPubMedProcess/.test(read("lib/search/problemMultiSource.ts"))
+);
+ok(
+  "createCampaignAndDensifyFromProblemHits",
+  /export async function createCampaignAndDensifyFromProblemHits/.test(
+    read("lib/search/problemCampaign.ts")
+  )
+);
+ok(
+  "cidsFromProblemHits ms- ids",
+  /ms-/.test(read("lib/search/problemCampaign.ts"))
+);
+ok(
+  "ProblemFirstSearch densify queue",
+  /spinCampaignAndDensify|Spin \+ densify/.test(
+    read("components/ProblemFirstSearch.tsx")
+  )
+);
+ok(
   "densifyQuality atlas after knowledge",
   /withProcessKnowledge/.test(pipe) &&
     /conditionObservations/.test(pipe) &&

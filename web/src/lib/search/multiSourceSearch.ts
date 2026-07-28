@@ -1,7 +1,7 @@
 /**
  * Multi-source free-public molecule search.
- * Fan-out: PubChem + ChEMBL + ChEBI + MyChem + RxNorm + GSRS + DrugCentral
- * + openFDA + KEGG + Europe PMC process literature,
+ * Fan-out: identity APIs + openFDA + KEGG + process literature
+ * (Europe PMC, OpenAlex, Crossref, Semantic Scholar, PubMed),
  * then merge/resolve to openable PubChem CIDs when possible.
  */
 
@@ -17,6 +17,8 @@ import { fetchKeggByName } from "@/lib/api/kegg";
 import { searchEuropePmc } from "@/lib/api/europePmc";
 import { searchOpenAlexProcess } from "@/lib/api/openAlex";
 import { searchCrossrefProcess } from "@/lib/api/crossref";
+import { searchSemanticScholarProcess } from "@/lib/api/semanticScholar";
+import { searchPubMedProcess } from "@/lib/api/pubmed";
 import { resolveLocalSearchHits } from "@/lib/data/searchLocalIndex";
 import type { ApiFetchTrace } from "@/lib/api/trace";
 
@@ -33,7 +35,9 @@ export type MultiSourceId =
   | "kegg"
   | "europepmc"
   | "openalex"
-  | "crossref";
+  | "crossref"
+  | "semanticscholar"
+  | "pubmed";
 
 export interface MultiSourceRef {
   source: MultiSourceId;
@@ -525,13 +529,15 @@ export async function multiSourceSearch(
     });
   }
 
-  // Second wave: openFDA, KEGG, process literature (EPMC + OpenAlex + Crossref)
+  // Second wave: openFDA, KEGG, process literature (EPMC + OpenAlex + Crossref + S2 + PubMed)
   const wave2 = await Promise.allSettled([
     fetchOpenFdaByName(q),
     fetchKeggByName(q),
     searchEuropePmc(q, { limit: 6 }),
     searchOpenAlexProcess(q, { limit: 5 }),
     searchCrossrefProcess(q, { limit: 5 }),
+    searchSemanticScholarProcess(q, { limit: 5 }),
+    searchPubMedProcess(q, { limit: 5 }),
   ]);
 
   // openFDA
@@ -758,6 +764,42 @@ export async function multiSourceSearch(
       ok: false,
       hitCount: 0,
       detail: xref.status === "rejected" ? String(xref.reason) : "no hit",
+    });
+  }
+
+  // Semantic Scholar
+  const s2 = wave2[5];
+  if (s2.status === "fulfilled" && s2.value.hits.length > 0) {
+    attachProcessLit(
+      "semanticscholar",
+      "Semantic Scholar",
+      s2.value.hits,
+      s2.value.traces
+    );
+  } else {
+    sourceStatus.push({
+      source: "semanticscholar",
+      ok: false,
+      hitCount: 0,
+      detail: s2.status === "rejected" ? String(s2.reason) : "no hit",
+    });
+  }
+
+  // PubMed (NCBI)
+  const pm = wave2[6];
+  if (pm.status === "fulfilled" && pm.value.hits.length > 0) {
+    attachProcessLit(
+      "pubmed",
+      "PubMed · NCBI",
+      pm.value.hits,
+      pm.value.traces
+    );
+  } else {
+    sourceStatus.push({
+      source: "pubmed",
+      ok: false,
+      hitCount: 0,
+      detail: pm.status === "rejected" ? String(pm.reason) : "no hit",
     });
   }
 
