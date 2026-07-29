@@ -2,14 +2,12 @@
  * Free patent full-text densification beyond PatentsView abstracts.
  *
  * Legal free paths:
- * - USPTO PatentsView (already wired; abstracts)
- * - Europe PMC SRC:PAT (already wired)
- * - USPTO Patent Public Search is not a stable free bulk full-text REST for us
- * - Best-effort: USPTO ODP / PED bulk is heavy; we use Europe PMC + PatentsView
- *   and optional USPTO assignment/publication HTML is fragile.
+ * - USPTO PatentsView (abstracts; optional key)
+ * - Europe PMC SRC:PAT
+ * - PubChem PUG View patent records (pug_view/data/patent/{US-xxx}/JSON)
  *
- * Additional densify: PubChem patent abstract endpoint when available,
- * and Google Patents is intentionally NOT scraped.
+ * PUG REST /patent/patentid/ was retired ("Invalid input domain") — use PUG View.
+ * Google Patents is intentionally NOT scraped.
  */
 
 import { fetchJsonWithTrace, type ApiFetchTrace } from "@/lib/api/trace";
@@ -22,13 +20,51 @@ import {
 } from "@/lib/literature/procedureWindowScore";
 
 /**
- * For US patents missing procedure windows, try PubChem patent record abstract
- * and Europe PMC already handled in patentFullText.ts.
- *
- * Prefers process-rich titles/abstracts (temp/equiv/workup) before clinical-only.
- *
- * PubChem: /rest/pug/patent/patentid/{id}/xrefs/… limited;
- * Prefer PubChem view of patent via PUG when patent ID is known.
+ * Normalize patent numbers to PubChem PUG View accession form, e.g. US-10029448-B2.
+ */
+export function normalizePubChemPatentAccession(raw: string): string | null {
+  const s = raw.replace(/\s+/g, "").toUpperCase();
+  if (!s) return null;
+  // Already US-1234567-A1
+  if (/^US-\d+[A-Z0-9-]*$/i.test(s)) return s;
+  // US10029448B2 or US10029448
+  const m = s.match(/^US0*(\d{4,})([A-Z]\d*)?$/i);
+  if (m) {
+    const kind = m[2] || "A";
+    return `US-${m[1]}-${kind}`;
+  }
+  // 10029448.pn style
+  const n = s.match(/^(\d{6,})([A-Z]\d*)?$/);
+  if (n) return `US-${n[1]}-${n[2] || "A"}`;
+  return null;
+}
+
+function walkPatentText(section: unknown, out: string[] = []): string[] {
+  if (!section) return out;
+  const secs = Array.isArray(section) ? section : [section];
+  for (const sec of secs) {
+    if (!sec || typeof sec !== "object") continue;
+    const s = sec as {
+      TOCHeading?: string;
+      Description?: string;
+      Information?: Array<{
+        Value?: { StringWithMarkup?: Array<{ String?: string }> };
+      }>;
+      Section?: unknown;
+    };
+    if (s.Description) out.push(s.Description);
+    for (const info of s.Information || []) {
+      for (const m of info.Value?.StringWithMarkup || []) {
+        if (m.String) out.push(m.String);
+      }
+    }
+    if (s.Section) walkPatentText(s.Section, out);
+  }
+  return out;
+}
+
+/**
+ * For US patents missing procedure windows, densify via PubChem PUG View patent JSON.
  */
 export async function densifyUsPatentsWithPubchem(
   hits: PatentHit[],
@@ -36,7 +72,6 @@ export async function densifyUsPatentsWithPubchem(
 ): Promise<{ hits: PatentHit[]; traces: ApiFetchTrace[] }> {
   const max = opts.max ?? 4;
   const traces: ApiFetchTrace[] = [];
-  // Rank candidates so densify budget hits process patents first
   const ranked = rankByProcedureWindow(hits, (h) =>
     [h.procedureExcerpt, h.abstract, h.title].filter(Boolean).join("\n")
   );
@@ -46,47 +81,49 @@ export async function densifyUsPatentsWithPubchem(
   for (let i = 0; i < out.length && n < max; i++) {
     const h = out[i]!;
     if (h.procedureExcerpt && h.procedureExcerpt.length > 400) continue;
-    // Skip pure clinical noise when we still have densify budget and better candidates later
     if (
       scoreProcedureWindow(`${h.title}\n${h.abstract || ""}`) < 0 &&
       n + 1 < max
     ) {
       continue;
     }
-    const num = (h.patentNumber || "").replace(/\s+/g, "");
-    if (!/^US/i.test(num) && !/^US/i.test(h.id)) continue;
+    const num = (h.patentNumber || h.id || "").replace(/\s+/g, "");
+    if (!/^US/i.test(num) && !/^\d{6,}/.test(num)) continue;
 
-    // PubChem patent JSON (when indexed)
-    const patentId = num || h.patentNumber;
-    if (!patentId) continue;
-    const url = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/patent/patentid/${encodeURIComponent(patentId)}/JSON`;
+    const accession =
+      normalizePubChemPatentAccession(num) ||
+      normalizePubChemPatentAccession(h.patentNumber || "") ||
+      normalizePubChemPatentAccession(h.id);
+    if (!accession) continue;
+
+    // PUG View patent record (free public; works when PUG /patent/ domain fails)
+    const url = `https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/patent/${encodeURIComponent(accession)}/JSON`;
     const { data, trace } = await fetchJsonWithTrace<{
-      Patents?: {
-        Patent?: Array<{
-          PatentId?: string;
-          Title?: string;
-          Abstract?: string;
-          PublicationDate?: string;
-        }>;
+      Record?: {
+        RecordTitle?: string;
+        RecordAccession?: string;
+        Section?: unknown;
       };
     }>(url, {
       next: { revalidate: 86400 },
-      timeoutMs: 10_000,
+      timeoutMs: 14_000,
+      headers: { Accept: "application/json" },
     });
     traces.push(trace);
     n += 1;
 
-    const pat = data?.Patents?.Patent?.[0];
-    if (pat?.Abstract && pat.Abstract.length > 80) {
-      h.abstract = pat.Abstract.slice(0, 4000);
-      h.procedureExcerpt = extractProcessWindowsFromFullText(
-        pat.Abstract,
-        2800
-      );
-      if (pat.Title && h.title.includes("linked patent")) {
-        h.title = pat.Title;
+    const texts = walkPatentText(data?.Record?.Section);
+    const abstractish =
+      texts.find((t) => t.length > 80 && t.length < 8000) ||
+      texts.sort((a, b) => b.length - a.length)[0];
+    if (abstractish && abstractish.length >= 80) {
+      if (!h.abstract || h.abstract.length < abstractish.length) {
+        h.abstract = abstractish.slice(0, 4000);
       }
-      if (pat.PublicationDate) h.date = pat.PublicationDate;
+      h.procedureExcerpt = extractProcessWindowsFromFullText(abstractish, 2800);
+      if (data?.Record?.RecordTitle && h.title.includes("linked patent")) {
+        h.title = data.Record.RecordTitle;
+      }
     }
     await politeDelay(80);
   }

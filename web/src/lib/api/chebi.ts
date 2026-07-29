@@ -91,69 +91,91 @@ export async function fetchChebiByName(
     return { hit, annotations, traces, query: q };
   }
 
-  // Fallback: ChEBI 2.0 public lite search (best-effort)
-  const liteUrl = `https://www.ebi.ac.uk/chebi/backend/api/public/compounds?search=${encodeURIComponent(q)}&size=3`;
-  const lite = await fetchJsonWithTrace<{
-    content?: Array<{
-      chebiId?: string | number;
-      chebiAsciiName?: string;
-      definition?: string;
-      formula?: string;
-    }>;
-    // alt shapes
-    compounds?: Array<Record<string, unknown>>;
-  }>(liteUrl, {
+  // Fallback: second OLS pass (exact label) — free-text ChEBI backend /compounds?search= is broken
+  const ols2Url =
+    `https://www.ebi.ac.uk/ols4/api/search?q=${encodeURIComponent(q)}` +
+    `&ontology=chebi&rows=5&exact=false&queryFields=label`;
+  const ols2 = await fetchJsonWithTrace<{
+    response?: {
+      docs?: Array<{
+        iri?: string;
+        label?: string;
+        short_form?: string;
+        obo_id?: string;
+        description?: string[];
+      }>;
+    };
+  }>(ols2Url, {
     next: { revalidate: 86400 },
     timeoutMs: 10_000,
     headers: { Accept: "application/json" },
   });
-  traces.push(lite.trace);
-
-  const row =
-    lite.data?.content?.[0] ||
-    (Array.isArray(lite.data?.compounds)
-      ? (lite.data!.compounds![0] as {
-          chebiId?: string | number;
-          chebiAsciiName?: string;
-          definition?: string;
-          formula?: string;
-        })
-      : undefined);
-
-  if (row?.chebiId != null) {
-    const idNum = String(row.chebiId).replace(/^CHEBI:/i, "");
-    const hit: ChebiHit = {
-      chebiId: `CHEBI:${idNum}`,
-      name: row.chebiAsciiName || q,
-      definition: row.definition,
-      formula: row.formula,
-      url: `https://www.ebi.ac.uk/chebi/searchId.do?chebiId=CHEBI:${idNum}`,
-    };
-    return {
-      hit,
-      annotations: [
-        {
-          source: "ChEBI",
-          organization: "EMBL-EBI",
-          kind: "identity",
-          title: `${hit.name} (${hit.chebiId})`,
-          summary: [
-            hit.formula && `Formula ${hit.formula}`,
-            hit.definition?.slice(0, 300),
-          ]
-            .filter(Boolean)
-            .join(" · ") || "ChEBI compound hit",
-          url: hit.url,
-          endpointUrl: "https://www.ebi.ac.uk/chebi/backend/api",
-          fields: {
-            chebiId: hit.chebiId,
-            ...(hit.formula ? { formula: hit.formula } : {}),
+  traces.push(ols2.trace);
+  const doc2 = ols2.data?.response?.docs?.[0];
+  if (doc2) {
+    const rawId =
+      doc2.obo_id ||
+      doc2.short_form ||
+      (doc2.iri?.match(/CHEBI[_:](\d+)/i)?.[0] ?? "");
+    const chebiId = String(rawId)
+      .replace(/_/g, ":")
+      .replace(/^CHEBI/i, "CHEBI")
+      .replace(/^(\d+)$/, "CHEBI:$1");
+    const idNum = chebiId.replace(/^CHEBI:/i, "");
+    if (idNum) {
+      // Optional enrich from ChEBI backend by id (works; free-text search does not)
+      const byIdUrl = `https://www.ebi.ac.uk/chebi/backend/api/public/compounds?chebi_ids=${encodeURIComponent(idNum)}`;
+      const byId = await fetchJsonWithTrace<
+        Record<
+          string,
+          {
+            primary_chebi_id?: string;
+            default_structure?: { smiles?: string };
+            ascii_name?: string;
+            definition?: string;
+            formula?: string;
+          }
+        >
+      >(byIdUrl, {
+        next: { revalidate: 86400 },
+        timeoutMs: 10_000,
+        headers: { Accept: "application/json" },
+      });
+      traces.push(byId.trace);
+      const pack = byId.data?.[idNum];
+      const hit: ChebiHit = {
+        chebiId: `CHEBI:${idNum}`,
+        name: pack?.ascii_name || doc2.label || q,
+        definition: pack?.definition || doc2.description?.[0],
+        formula: pack?.formula,
+        url: `https://www.ebi.ac.uk/chebi/searchId.do?chebiId=CHEBI:${idNum}`,
+      };
+      return {
+        hit,
+        annotations: [
+          {
+            source: "ChEBI",
+            organization: "EMBL-EBI",
+            kind: "identity",
+            title: `${hit.name} (${hit.chebiId})`,
+            summary: [
+              hit.formula && `Formula ${hit.formula}`,
+              hit.definition?.slice(0, 300),
+            ]
+              .filter(Boolean)
+              .join(" · ") || "ChEBI compound hit",
+            url: hit.url,
+            endpointUrl: "https://www.ebi.ac.uk/ols4/api",
+            fields: {
+              chebiId: hit.chebiId,
+              ...(hit.formula ? { formula: hit.formula } : {}),
+            },
           },
-        },
-      ],
-      traces,
-      query: q,
-    };
+        ],
+        traces,
+        query: q,
+      };
+    }
   }
 
   return { hit: null, annotations: [], traces, query: q };

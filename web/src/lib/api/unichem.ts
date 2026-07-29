@@ -105,43 +105,43 @@ export async function fetchUnichemByPubchemCid(
 
   const traces: ApiFetchTrace[] = [];
 
-  // 1) Legacy CID/src path (source 22 = PubChem CID) — may 404 after UniChem migration
-  const urlCid = `${UNICHEM}/src_compound_id/${cid}/22`;
-  const cidRes = await fetchJsonWithTrace<
-    Array<Array<{ src_id?: string | number; src_compound_id?: string }>>
-  >(urlCid, {
+  // Prefer InChIKey map (legacy CID path 404 after UniChem migration)
+  let xrefs: UniChemXref[] = [];
+  const ikUrl = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${cid}/property/InChIKey/JSON`;
+  const ik = await fetchJsonWithTrace<{
+    PropertyTable?: { Properties?: Array<{ InChIKey?: string }> };
+  }>(ikUrl, {
     next: { revalidate: 86400 },
     timeoutMs: 10_000,
     headers: { Accept: "application/json" },
   });
-  traces.push(cidRes.trace);
-
-  let xrefs = rowsToXrefs(
-    Array.isArray(cidRes.data) ? (cidRes.data.flat() as UnichemRow[]) : []
-  );
-
-  // 2) Fallback: resolve InChIKey from PubChem, then verbose_inchikey (still works)
-  if (!xrefs.length) {
-    const ikUrl = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${cid}/property/InChIKey/JSON`;
-    const ik = await fetchJsonWithTrace<{
-      PropertyTable?: { Properties?: Array<{ InChIKey?: string }> };
-    }>(ikUrl, {
+  traces.push(ik.trace);
+  const inchiKey = ik.data?.PropertyTable?.Properties?.[0]?.InChIKey?.trim();
+  if (inchiKey) {
+    const urlIk = `${UNICHEM}/verbose_inchikey/${encodeURIComponent(inchiKey)}`;
+    const ikMap = await fetchJsonWithTrace<UnichemRow[]>(urlIk, {
       next: { revalidate: 86400 },
-      timeoutMs: 10_000,
+      timeoutMs: 12_000,
       headers: { Accept: "application/json" },
     });
-    traces.push(ik.trace);
-    const inchiKey = ik.data?.PropertyTable?.Properties?.[0]?.InChIKey?.trim();
-    if (inchiKey) {
-      const urlIk = `${UNICHEM}/verbose_inchikey/${encodeURIComponent(inchiKey)}`;
-      const ikMap = await fetchJsonWithTrace<UnichemRow[]>(urlIk, {
-        next: { revalidate: 86400 },
-        timeoutMs: 10_000,
-        headers: { Accept: "application/json" },
-      });
-      traces.push(ikMap.trace);
-      xrefs = rowsToXrefs(Array.isArray(ikMap.data) ? ikMap.data : []);
-    }
+    traces.push(ikMap.trace);
+    xrefs = rowsToXrefs(Array.isArray(ikMap.data) ? ikMap.data : []);
+  }
+
+  // Last resort: legacy CID path (usually 404)
+  if (!xrefs.length) {
+    const urlCid = `${UNICHEM}/src_compound_id/${cid}/22`;
+    const cidRes = await fetchJsonWithTrace<
+      Array<Array<{ src_id?: string | number; src_compound_id?: string }>>
+    >(urlCid, {
+      next: { revalidate: 86400 },
+      timeoutMs: 8_000,
+      headers: { Accept: "application/json" },
+    });
+    traces.push(cidRes.trace);
+    xrefs = rowsToXrefs(
+      Array.isArray(cidRes.data) ? (cidRes.data.flat() as UnichemRow[]) : []
+    );
   }
 
   const top = xrefs.slice(0, 16);
@@ -200,9 +200,10 @@ function deepLink(srcId: number, id: string): string | undefined {
     case 15:
       return `https://www.surechembl.org/search/?q=${encodeURIComponent(id)}`;
     case 29:
+    case 32:
       return `https://comptox.epa.gov/dashboard/chemical/details/${id}`;
     case 34:
-      return `https://www.rhea-db.org/rhea/${id.replace(/^RHEA:/i, "")}`;
+      return `https://drugcentral.org/drugcard/${id}`;
     case 2:
       return `https://go.drugbank.com/drugs/${id}`;
     default:

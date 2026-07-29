@@ -1,6 +1,7 @@
 /**
- * DrugCentral — free drug cards (targets, structure links).
- * Public API: https://drugcentral.org/
+ * DrugCentral identity via free-public UniChem + PubChem (DrugCentral REST API is gone).
+ * Resolves: name → PubChem InChIKey → UniChem → DrugCentral drugcard id.
+ * Card pages remain free-public HTML deep links (no HTML scrape for plant numbers).
  */
 
 import { fetchJsonWithTrace, type ApiFetchTrace } from "@/lib/api/trace";
@@ -16,7 +17,7 @@ export interface DrugCentralHit {
 }
 
 /**
- * Search DrugCentral by drug/compound name.
+ * Search DrugCentral by drug/compound name (free-public mapping only).
  */
 export async function fetchDrugCentralByName(
   name: string
@@ -29,87 +30,133 @@ export async function fetchDrugCentralByName(
   const q = name.trim();
   if (!q) return { hit: null, annotations: [], traces: [], query: "" };
 
-  // Public search endpoint variants
-  const url = `https://drugcentral.org/api/v1/structures/?filter=name,${encodeURIComponent(q)}&page_size=3`;
+  const traces: ApiFetchTrace[] = [];
 
-  const { data, trace } = await fetchJsonWithTrace<{
-    results?: Array<{
-      id?: number | string;
-      name?: string;
-      cas_reg_no?: string;
-      unii?: string;
-      smiles?: string;
-      inchikey?: string;
-    }>;
-    // alt
-    objects?: Array<Record<string, unknown>>;
-  }>(url, {
+  // 1) Resolve name → InChIKey via PubChem (free)
+  const pugUrl =
+    `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encodeURIComponent(q)}` +
+    `/property/InChIKey,Title,IUPACName/JSON`;
+  const pug = await fetchJsonWithTrace<{
+    PropertyTable?: {
+      Properties?: Array<{ InChIKey?: string; Title?: string; IUPACName?: string }>;
+    };
+  }>(pugUrl, {
     next: { revalidate: 86400 },
-    timeoutMs: 10_000,
+    timeoutMs: 12_000,
     headers: { Accept: "application/json" },
   });
+  traces.push(pug.trace);
 
-  const row =
-    data?.results?.[0] ||
-    (Array.isArray(data?.objects)
-      ? (data!.objects![0] as {
-          id?: number | string;
-          name?: string;
-          cas_reg_no?: string;
-          unii?: string;
-        })
-      : undefined);
+  let inchiKey = pug.data?.PropertyTable?.Properties?.[0]?.InChIKey?.trim();
+  const title =
+    pug.data?.PropertyTable?.Properties?.[0]?.Title ||
+    pug.data?.PropertyTable?.Properties?.[0]?.IUPACName ||
+    q;
 
-  if (!row?.id && !row?.name) {
-    // Fallback HTML-free deep link annotation only
-    return {
-      hit: null,
-      annotations: [
-        {
-          source: "DrugCentral",
-          organization: "UNM / DrugCentral",
-          kind: "identity",
-          title: `DrugCentral search: ${q}`,
-          summary: "No structured hit — open DrugCentral for drug card context.",
-          url: `https://drugcentral.org/drugcard?q=${encodeURIComponent(q)}`,
-          endpointUrl: "https://drugcentral.org/api/v1",
-        },
-      ],
-      traces: [trace],
-      query: q,
-    };
+  // 2) Fallback: PubChem text search → CID → InChIKey
+  if (!inchiKey) {
+    const esUrl =
+      `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encodeURIComponent(q)}/cids/JSON`;
+    const cids = await fetchJsonWithTrace<{
+      IdentifierList?: { CID?: number[] };
+    }>(esUrl, {
+      next: { revalidate: 86400 },
+      timeoutMs: 10_000,
+      headers: { Accept: "application/json" },
+    });
+    traces.push(cids.trace);
+    const cid = cids.data?.IdentifierList?.CID?.[0];
+    if (cid) {
+      const ikUrl = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${cid}/property/InChIKey,Title/JSON`;
+      const ik = await fetchJsonWithTrace<{
+        PropertyTable?: { Properties?: Array<{ InChIKey?: string; Title?: string }> };
+      }>(ikUrl, {
+        next: { revalidate: 86400 },
+        timeoutMs: 10_000,
+        headers: { Accept: "application/json" },
+      });
+      traces.push(ik.trace);
+      inchiKey = ik.data?.PropertyTable?.Properties?.[0]?.InChIKey?.trim();
+    }
   }
 
-  const id = String(row.id ?? q);
-  const hit: DrugCentralHit = {
-    id,
-    name: row.name || q,
-    cas: row.cas_reg_no,
-    unii: row.unii,
-    url: `https://drugcentral.org/drugcard/${id}`,
-    summary: [row.cas_reg_no && `CAS ${row.cas_reg_no}`, row.unii && `UNII ${row.unii}`]
-      .filter(Boolean)
-      .join(" · "),
-  };
+  // 3) UniChem InChIKey map → DrugCentral source (src_id 34)
+  if (inchiKey) {
+    const uniUrl = `https://www.ebi.ac.uk/unichem/rest/verbose_inchikey/${encodeURIComponent(inchiKey)}`;
+    const uni = await fetchJsonWithTrace<
+      Array<{
+        name?: string;
+        src_id?: number;
+        src_compound_id?: string[];
+        src_url?: string;
+        base_id_url?: string;
+      }>
+    >(uniUrl, {
+      next: { revalidate: 86400 },
+      timeoutMs: 12_000,
+      headers: { Accept: "application/json" },
+    });
+    traces.push(uni.trace);
 
-  const annotations: ExternalAnnotation[] = [
-    {
-      source: "DrugCentral",
-      organization: "UNM / DrugCentral",
-      kind: "identity",
-      title: hit.name,
-      summary:
-        hit.summary ||
-        "Drug card identity / target context (not a manufacturing route).",
-      url: hit.url,
-      endpointUrl: "https://drugcentral.org/api/v1",
-      fields: {
-        id: hit.id,
-        ...(hit.cas ? { cas: hit.cas } : {}),
-        ...(hit.unii ? { unii: hit.unii } : {}),
+    const rows = Array.isArray(uni.data) ? uni.data : [];
+    const dc = rows.find(
+      (r) =>
+        Number(r.src_id) === 34 ||
+        /drugcentral/i.test(r.name || "")
+    );
+    const dcId = dc?.src_compound_id?.[0];
+    if (dcId) {
+      const url =
+        dc.src_url ||
+        `https://drugcentral.org/drugcard/${encodeURIComponent(dcId)}`;
+      const hit: DrugCentralHit = {
+        id: String(dcId),
+        name: title,
+        url,
+        summary: `DrugCentral id ${dcId} via UniChem (free-public map; DrugCentral REST API retired)`,
+      };
+      return {
+        hit,
+        annotations: [
+          {
+            source: "DrugCentral",
+            organization: "UNM / DrugCentral",
+            kind: "identity",
+            title: hit.name,
+            summary:
+              hit.summary +
+              " — drug card identity / target context (not a manufacturing route).",
+            url: hit.url,
+            endpointUrl: "https://www.ebi.ac.uk/unichem/rest",
+            fields: {
+              id: hit.id,
+              inchiKey,
+              via: "unichem-inchikey",
+            },
+          },
+        ],
+        traces,
+        query: q,
+      };
+    }
+  }
+
+  // 4) Soft deep-link only (no invented card ids)
+  return {
+    hit: null,
+    annotations: [
+      {
+        source: "DrugCentral",
+        organization: "UNM / DrugCentral",
+        kind: "identity",
+        title: `DrugCentral search: ${q}`,
+        summary:
+          "No UniChem DrugCentral map for this name — open DrugCentral manually for drug-card context.",
+        url: "https://drugcentral.org/",
+        endpointUrl: "https://drugcentral.org/",
       },
-    },
-  ];
-
-  return { hit, annotations, traces: [trace], query: q };
+    ],
+    traces,
+    query: q,
+  };
 }

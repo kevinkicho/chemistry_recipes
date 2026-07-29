@@ -27,22 +27,23 @@ export async function fetchRheaByName(
   const limit = Math.min(opts.limit ?? 6, 12);
   if (!q) return { hits: [], annotations: [], traces: [], query: "" };
 
-  // Rhea REST search (TSV/JSON flavours vary; use JSON columns)
+  // Rhea REST — JSON results shape: { count, results: [{ id, equation, ... }] }
   const url =
     `https://www.rhea-db.org/rhea/?query=${encodeURIComponent(q)}` +
     `&columns=rhea-id,equation,chebi-id&format=json&limit=${limit}`;
 
   const { data, trace } = await fetchJsonWithTrace<{
+    count?: number;
     results?: Array<{
+      id?: string | number;
       "rhea-id"?: string | number;
       rheaId?: string | number;
       equation?: string;
       Equation?: string;
     }>;
-    // Alternate shape: array at top level
   } | Array<Record<string, unknown>>>(url, {
     next: { revalidate: 86400 },
-    timeoutMs: 10_000,
+    timeoutMs: 18_000,
     headers: { Accept: "application/json" },
   });
 

@@ -102,14 +102,17 @@ async function runOne(def: PublicProbeDef): Promise<ApiProbeResult> {
       };
     }
 
-    // Rate limited but service is up
-    if (status === 429) {
+    // Rate limited / busy but service is up
+    if (status === 429 || status === 503) {
       return {
         ...base,
         status: "degraded",
         httpStatus: status,
         latencyMs,
-        detail: "HTTP 429 rate limited — service up",
+        detail:
+          status === 429
+            ? "HTTP 429 rate limited — service up"
+            : "HTTP 503 server busy — service up",
       };
     }
 

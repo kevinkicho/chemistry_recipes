@@ -78,53 +78,46 @@ const PROBES = [
   },
   {
     id: "pubchem-patent-record",
-    name: "PubChem patent record densify (gather path)",
+    name: "PubChem PUG View patent densify",
     category: "densify",
     gather: "patent-uspto-densify",
-    url: `https://pubchem.ncbi.nlm.nih.gov/rest/pug/patent/patentid/US6090958/JSON`,
-    notes: "Gather uses this domain; PUG currently returns Invalid input domain for patentid",
+    url: `https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/patent/US-10029448-B2/JSON`,
+    body: /Record|Abstract|Patent/i,
+    timeoutMs: 20000,
+    notes: "Gather densify uses pug_view (PUG /patent/ domain retired)",
   },
   {
     id: "unichem-v1-sources",
-    name: "UniChem API v1 sources (live)",
+    name: "UniChem API v1 sources",
     category: "identity",
     gather: "unichem",
     url: "https://www.ebi.ac.uk/unichem/api/v1/sources",
     body: /sources|response/i,
-    notes: "New UniChem API — sources list healthy",
   },
   {
-    id: "unichem-legacy-rest",
-    name: "UniChem legacy REST by CID (gather path)",
-    category: "identity",
-    gather: "unichem",
-    url: `https://www.ebi.ac.uk/unichem/rest/src_compound_id/${CID}/22`,
-    notes: "gather uses CID/src path — currently 404 after UniChem migration",
-  },
-  {
-    id: "unichem-legacy-inchikey",
-    name: "UniChem legacy REST by InChIKey",
+    id: "unichem-inchikey",
+    name: "UniChem InChIKey map (gather path)",
     category: "identity",
     gather: "unichem",
     url: "https://www.ebi.ac.uk/unichem/rest/verbose_inchikey/BSYNRYMUTXBXSQ-UHFFFAOYSA-N",
     body: /src_compound_id|name|source/i,
-    notes: "Legacy InChIKey path still works — preferred migration for gather",
+    notes: "Primary gather path after CID REST retirement",
   },
   {
     id: "chebi-ols",
-    name: "ChEBI via OLS4 (primary gather path)",
+    name: "ChEBI via OLS4 (gather path)",
     category: "identity",
     gather: "chebi",
     url: `https://www.ebi.ac.uk/ols4/api/search?q=${encodeURIComponent(Q)}&ontology=chebi&rows=1`,
     body: /response|docs/i,
   },
   {
-    id: "chebi-backend",
-    name: "ChEBI backend compounds (fallback path)",
+    id: "chebi-backend-by-id",
+    name: "ChEBI backend by id (enrich path)",
     category: "identity",
     gather: "chebi",
-    url: `https://www.ebi.ac.uk/chebi/backend/api/public/compounds?search=${encodeURIComponent(Q)}&size=3`,
-    notes: "Fallback after OLS; API shape may reject free-text search",
+    url: `https://www.ebi.ac.uk/chebi/backend/api/public/compounds?chebi_ids=15365`,
+    body: /15365|CHEBI|primary/i,
   },
   {
     id: "mychem",
@@ -158,19 +151,20 @@ const PROBES = [
     body: /idGroup|rxnormId/i,
   },
   {
-    id: "drugcentral-api",
-    name: "DrugCentral structures API (gather path)",
+    id: "drugcentral-map",
+    name: "DrugCentral via UniChem map (gather path)",
     category: "identity",
     gather: "drugcentral",
-    url: `https://drugcentral.org/api/v1/structures/?filter=name,${encodeURIComponent(Q)}&page_size=3`,
-    notes: "gather calls this; currently 404 — soft-fail to site deep link",
+    url: "https://www.ebi.ac.uk/unichem/rest/verbose_inchikey/BSYNRYMUTXBXSQ-UHFFFAOYSA-N",
+    body: /drugcentral|src_compound_id/i,
+    notes: "DrugCentral REST retired; gather maps via UniChem",
   },
   {
-    id: "drugcentral-site",
-    name: "DrugCentral site",
+    id: "drugcentral-card",
+    name: "DrugCentral drugcard page",
     category: "identity",
     gather: "drugcentral",
-    url: "https://drugcentral.org/",
+    url: "https://drugcentral.org/drugcard/74",
     accept: [200, 301, 302, 303, 307, 308],
   },
   {
@@ -295,10 +289,12 @@ const PROBES = [
   },
   {
     id: "rhea",
-    name: "Rhea TSV search",
+    name: "Rhea JSON search",
     category: "reactions",
     gather: "rhea",
-    url: `https://www.rhea-db.org/rhea/?query=${encodeURIComponent(Q)}&columns=rhea-id,equation&format=tsv&limit=3`,
+    url: `https://www.rhea-db.org/rhea/?query=${encodeURIComponent(Q)}&columns=rhea-id,equation&format=json&limit=3`,
+    body: /results|equation|id/i,
+    timeoutMs: 20000,
   },
   {
     id: "reactome",
@@ -308,12 +304,13 @@ const PROBES = [
     url: `https://reactome.org/ContentService/search/query?query=${encodeURIComponent(Q)}&types=Pathway,Reaction,ChemicalCompound&cluster=true`,
   },
   {
-    id: "wikipathways-api",
-    name: "WikiPathways findPathwaysByText (gather path)",
+    id: "wikipathways-via-pc",
+    name: "WikiPathways-class pathways via PC2 (gather path)",
     category: "pathways",
     gather: "wikipathways",
-    url: `https://webservice.wikipathways.org/findPathwaysByText?query=${encodeURIComponent(Q)}&format=json`,
-    notes: "Legacy webservice path used by gather — currently 404",
+    url: `https://www.pathwaycommons.org/pc2/search?q=${encodeURIComponent(Q)}&type=Pathway&page=0`,
+    body: /searchHit|numHits/i,
+    notes: "Legacy WikiPathways webservice retired; gather uses PC2",
   },
   {
     id: "wikipathways-site",
@@ -330,7 +327,6 @@ const PROBES = [
     gather: "pathway-commons",
     url: `https://www.pathwaycommons.org/pc2/search?q=${encodeURIComponent(Q)}&type=Pathway&page=0`,
     body: /searchHit|numHits/i,
-    notes: "Fixed gather path (no .json suffix)",
   },
   {
     id: "ord-site",
@@ -349,12 +345,13 @@ const PROBES = [
     accept: [200, 301, 302, 303, 307, 308],
   },
   {
-    id: "massbank-api",
-    name: "MassBank EU API search (gather path)",
+    id: "massbank-pubchem",
+    name: "MassBank-class via PubChem identity (gather path)",
     category: "supporting",
     gather: "massbank",
-    url: `https://massbank.eu/MassBank-api/search?compound.name=${encodeURIComponent(Q)}`,
-    notes: "Gather path currently 404 — API may have moved",
+    url: `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encodeURIComponent(Q)}/property/MolecularFormula,Title,InChIKey/JSON`,
+    body: /PropertyTable|MolecularFormula|InChIKey/i,
+    notes: "MassBank REST retired; gather uses PubChem + site deep link",
   },
   {
     id: "massbank-site",
@@ -455,8 +452,8 @@ async function runOne(p) {
       };
     }
 
-    // Rate limits: degraded, not hard fail (service alive)
-    if (res.status === 429) {
+    // Rate limits / busy: degraded, not hard fail (service alive)
+    if (res.status === 429 || res.status === 503) {
       return {
         id: p.id,
         name: p.name,
@@ -465,7 +462,10 @@ async function runOne(p) {
         status: "degraded",
         http: res.status,
         ms,
-        detail: "HTTP 429 rate limited — service up, slow down / key recommended",
+        detail:
+          res.status === 429
+            ? "HTTP 429 rate limited — service up, slow down / key recommended"
+            : "HTTP 503 server busy — service up, retry later",
         url: p.url,
         notes: p.notes,
       };
