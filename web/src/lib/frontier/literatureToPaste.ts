@@ -5,6 +5,7 @@
  */
 
 import type { LiteratureHit } from "@/lib/api/europePmc";
+import type { PatentHit } from "@/lib/api/patentsView";
 import { saveUserSupplement } from "@/lib/idb/userSupplements";
 import { scoreProcedureWindow } from "@/lib/literature/procedureWindowScore";
 import {
@@ -36,6 +37,41 @@ function textFromHit(h: LiteratureHit): string {
     h.url && `URL: ${h.url}`,
   ].filter(Boolean);
   return parts.join("\n\n").trim();
+}
+
+/** Map a patent hit into literature shape for shared paste attach. */
+export function patentHitToLiterature(p: PatentHit): LiteratureHit {
+  return {
+    id: p.id || p.patentNumber,
+    source: "Patent",
+    title: p.title,
+    abstract: p.abstract,
+    fullTextExcerpt: p.procedureExcerpt || p.abstract,
+    fullTextChars: (p.procedureExcerpt || p.abstract || "").length,
+    url: p.url,
+    year: p.date?.slice(0, 4),
+  };
+}
+
+/**
+ * Attach a single paper (or patent-as-lit) as densify paste for this CID.
+ * Then rematerialize IndexedDB if a cache exists.
+ */
+export async function attachOneLiteratureHitToCid(
+  cid: number,
+  hit: LiteratureHit
+): Promise<LiteraturePasteAttachResult & { rematerialized: boolean }> {
+  const res = attachLiteratureHitsToCid(cid, [hit], {
+    max: 1,
+    minChars: 40,
+    minScore: 0,
+  });
+  let rematerialized = false;
+  if (res.attached > 0) {
+    const m = await rematerializeCachesWithLocalPastes([cid]);
+    rematerialized = m.updated > 0;
+  }
+  return { ...res, rematerialized };
 }
 
 /**

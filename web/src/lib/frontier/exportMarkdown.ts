@@ -12,6 +12,9 @@ import type { LiteratureDepthReport } from "@/lib/frontier/literatureDepth";
 import { buildLiteratureDepthReport } from "@/lib/frontier/literatureDepth";
 import { buildProcessKnowledgePackage } from "@/lib/frontier/buildKnowledge";
 import type { CampaignIdealRollup } from "@/lib/frontier/campaignIdealRollup";
+import type { ProblemCampaignDensifyResult } from "@/lib/search/problemCampaign";
+import type { ProblemSearchHit } from "@/lib/search/problemFirst";
+import type { LiteratureHit } from "@/lib/api/europePmc";
 
 function h(level: number, text: string): string {
   return `${"#".repeat(level)} ${text}\n`;
@@ -364,4 +367,95 @@ export function downloadMarkdown(filename: string, markdown: string): void {
   a.download = name;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Notebook Markdown for a problem → campaign densify run.
+ */
+export function formatProblemDensifyRunMarkdown(opts: {
+  problemQuery: string;
+  result: ProblemCampaignDensifyResult;
+  problemHits?: ProblemSearchHit[];
+  literatureHits?: LiteratureHit[];
+  agentAnswer?: string;
+}): string {
+  const { problemQuery, result, problemHits, literatureHits, agentAnswer } =
+    opts;
+  const camp = result.campaign;
+  const parts: string[] = [];
+  parts.push(h(1, `Problem densify run · ${problemQuery}`));
+  parts.push(
+    `> Free-public multi-source densify notebook. Not GMP. Not plant setpoints.\n`
+  );
+  parts.push(`**Exported:** ${new Date().toISOString()}\n`);
+  parts.push(h(2, "Campaign"));
+  parts.push(
+    bullets([
+      `Name: **${camp.name}**`,
+      `Id: \`${camp.id}\``,
+      `CIDs: ${result.queueCids.join(", ")}`,
+      `Densify: ${result.densify.ok} ok / ${result.densify.fail} fail · ${Math.round(result.densify.durationMs / 1000)}s`,
+      result.literatureAttached
+        ? `Literature pastes: ${result.literatureAttached} · ${result.literatureChars.toLocaleString()} chars`
+        : "Literature pastes: none",
+      result.literatureSummary || "",
+    ].filter(Boolean))
+  );
+
+  if (problemHits?.length) {
+    parts.push(h(2, "Problem hits (unified)"));
+    parts.push(
+      bullets(
+        problemHits.slice(0, 20).map(
+          (hit) =>
+            `**${hit.title}** · ${hit.kind} · score ${hit.score}` +
+            (hit.subtitle ? ` — ${hit.subtitle}` : "") +
+            (hit.href ? ` · [link](${hit.href})` : "")
+        )
+      )
+    );
+  }
+
+  if (literatureHits?.length) {
+    parts.push(h(2, "Process literature attached / considered"));
+    parts.push(
+      bullets(
+        literatureHits.slice(0, 16).map(
+          (lit) =>
+            `**${lit.title.slice(0, 100)}** · ${lit.source}` +
+            (lit.year ? ` · ${lit.year}` : "") +
+            (lit.url ? ` · [open](${lit.url})` : "")
+        )
+      )
+    );
+  }
+
+  parts.push(h(2, "Densify results"));
+  parts.push(
+    bullets(
+      (result.densify.results || []).map((r) => {
+        const sum = r.summary;
+        return `CID **${r.cid}** · ${r.ok ? "ok" : r.error || "fail"}` +
+          (sum
+            ? ` · ideal ${sum.idealScore ?? "—"} · obs ${sum.observationCount ?? "—"} · ${sum.name || ""}`
+            : "");
+      })
+    )
+  );
+
+  if (agentAnswer) {
+    parts.push(h(2, "Campaign agent answer"));
+    parts.push(`${agentAnswer}\n`);
+  }
+
+  parts.push(h(2, "Next steps"));
+  parts.push(
+    bullets([
+      "Open Workspace → campaign brief / ideal rollup",
+      "Ask campaign agent edge / temperature questions",
+      "Paste additional public procedure text on thin CIDs",
+    ])
+  );
+
+  return parts.join("\n");
 }

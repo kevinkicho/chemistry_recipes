@@ -83,6 +83,8 @@ Export: process-knowledge JSON from the Evidence science panel.
 | **Problem → agent handoff** | After densify, open Workspace campaign agent with auto-ask question |
 | **Literature → paste densify** | Attach process papers as local CID pastes; rematerialize IDB packages |
 | **Problem → brief + agent** | Handoff opens scientific brief then auto-runs campaign agent |
+| **Dossier lit/patent paste** | One-click densify paste from literature & patents tables |
+| **Problem densify notebook** | Markdown export of problem hits, lit pastes, densify results |
 | **Related-entity CID resolve** | Name/CAS → free-public PubChem fill for missing related CIDs |
 | **Campaign compare** | Side-by-side densify/ideal/lit-depth metrics for two campaigns |
 

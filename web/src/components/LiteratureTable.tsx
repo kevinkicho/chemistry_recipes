@@ -6,6 +6,11 @@ import {
   EvidenceDataTableChrome,
   evidenceFilterChipClass,
 } from "@/components/EvidenceDataTable";
+import {
+  attachLiteratureHitsToCid,
+  attachOneLiteratureHitToCid,
+  rematerializeCachesWithLocalPastes,
+} from "@/lib/frontier/literatureToPaste";
 
 type SortKey = "year" | "journal" | "title" | "process" | "source";
 type SortDir = "asc" | "desc";
@@ -15,7 +20,9 @@ const PROCESS_RE =
   /synthes|manufactur|process|ferment|preparat|industrial|scale|product|biocatal|route|catalys|crystal|isolation|plant|production/i;
 
 function isProcessy(h: LiteratureHit): boolean {
-  return PROCESS_RE.test(`${h.title} ${h.abstract || ""}`);
+  return PROCESS_RE.test(
+    `${h.title} ${h.abstract || ""} ${h.fullTextExcerpt || ""}`
+  );
 }
 
 function yearNum(y?: string): number {
@@ -26,13 +33,30 @@ function yearNum(y?: string): number {
 
 /**
  * Clickable literature table: search, sort, filter (process / OA).
+ * Optional CID enables one-click densify paste from public paper text.
  */
-export function LiteratureTable({ hits }: { hits: LiteratureHit[] }) {
+export function LiteratureTable({
+  hits,
+  cid,
+  onPasteAttached,
+}: {
+  hits: LiteratureHit[];
+  /** When set, enable densify-paste actions */
+  cid?: number;
+  /** Parent can re-extract facts / refresh ideal delta */
+  onPasteAttached?: (info: {
+    attached: number;
+    chars: number;
+    single?: boolean;
+  }) => void;
+}) {
   const [q, setQ] = useState("");
   const [tag, setTag] = useState<TagFilter>("all");
   const [sortKey, setSortKey] = useState<SortKey>("process");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [pasteMsg, setPasteMsg] = useState<string | null>(null);
+  const [pasteBusy, setPasteBusy] = useState(false);
 
   const counts = useMemo(() => {
     let process = 0;
@@ -109,6 +133,65 @@ export function LiteratureTable({ hits }: { hits: LiteratureHit[] }) {
     ? hits.find((h) => h.id === selectedId) || null
     : null;
 
+  async function pasteOne(hit: LiteratureHit) {
+    if (!cid || cid <= 0) return;
+    setPasteBusy(true);
+    setPasteMsg(null);
+    try {
+      const res = await attachOneLiteratureHitToCid(cid, hit);
+      setPasteMsg(
+        res.attached
+          ? `Pasted “${(hit.title || "paper").slice(0, 48)}” · ${res.totalChars.toLocaleString()} chars` +
+              (res.rematerialized ? " · cache rematerialized" : " · will apply on re-extract")
+          : "Could not paste (need ~40+ chars of public text)"
+      );
+      if (res.attached) {
+        onPasteAttached?.({
+          attached: res.attached,
+          chars: res.totalChars,
+          single: true,
+        });
+      }
+    } catch (e) {
+      setPasteMsg(e instanceof Error ? e.message : "Paste failed");
+    } finally {
+      setPasteBusy(false);
+    }
+  }
+
+  async function pasteProcessBatch() {
+    if (!cid || cid <= 0) return;
+    setPasteBusy(true);
+    setPasteMsg(null);
+    try {
+      const processHits = hits.filter(isProcessy);
+      const res = attachLiteratureHitsToCid(cid, processHits.length ? processHits : hits, {
+        max: 5,
+        minChars: 60,
+        minScore: 2,
+      });
+      if (res.attached > 0) {
+        await rematerializeCachesWithLocalPastes([cid]);
+      }
+      setPasteMsg(
+        res.attached
+          ? `Attached ${res.attached} process paper(s) · ${res.totalChars.toLocaleString()} chars as densify pastes`
+          : "No procedure-rich abstracts to attach"
+      );
+      if (res.attached) {
+        onPasteAttached?.({
+          attached: res.attached,
+          chars: res.totalChars,
+          single: false,
+        });
+      }
+    } catch (e) {
+      setPasteMsg(e instanceof Error ? e.message : "Batch paste failed");
+    } finally {
+      setPasteBusy(false);
+    }
+  }
+
   if (hits.length === 0) {
     return (
       <p className="text-sm text-slate-500">
@@ -147,6 +230,28 @@ export function LiteratureTable({ hits }: { hits: LiteratureHit[] }) {
 
   return (
     <div className="space-y-3">
+      {cid ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={pasteBusy}
+            onClick={() => void pasteProcessBatch()}
+            className="rounded-lg border border-teal-500/40 bg-teal-500/10 px-2.5 py-1 text-[11px] font-semibold text-teal-100 hover:bg-teal-500/20 disabled:opacity-40"
+          >
+            {pasteBusy
+              ? "Attaching…"
+              : "Paste process papers → densify"}
+          </button>
+          <span className="text-[10px] text-slate-600">
+            Saves public abstracts/excerpts as local densify pastes (not GMP)
+          </span>
+        </div>
+      ) : null}
+      {pasteMsg ? (
+        <p className="text-[11px] text-teal-200/90" role="status">
+          {pasteMsg}
+        </p>
+      ) : null}
       <EvidenceDataTableChrome
         search={q}
         onSearch={setQ}
@@ -333,14 +438,29 @@ export function LiteratureTable({ hits }: { hits: LiteratureHit[] }) {
           ) : (
             <p className="mt-2 text-xs text-slate-600">No abstract in this capture.</p>
           )}
-          <a
-            href={selected.url}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 inline-block text-xs font-medium text-teal-400 hover:underline"
-          >
-            Open paper in new tab →
-          </a>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {cid ? (
+              <button
+                type="button"
+                disabled={pasteBusy}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void pasteOne(selected);
+                }}
+                className="rounded-lg bg-teal-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-teal-500 disabled:opacity-40"
+              >
+                Paste this paper → densify
+              </button>
+            ) : null}
+            <a
+              href={selected.url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center text-xs font-medium text-teal-400 hover:underline"
+            >
+              Open paper in new tab →
+            </a>
+          </div>
         </div>
       ) : null}
     </div>

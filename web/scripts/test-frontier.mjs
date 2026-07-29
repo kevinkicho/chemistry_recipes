@@ -573,6 +573,30 @@ ok(
   /openBrief/.test(read("lib/workspace/campaigns.ts"))
 );
 ok(
+  "LiteratureTable densify paste",
+  /Paste process papers|attachOneLiteratureHitToCid/.test(
+    read("components/LiteratureTable.tsx")
+  )
+);
+ok(
+  "PatentsTable densify paste",
+  /Paste process patents|patentHitToLiterature/.test(
+    read("components/PatentsTable.tsx")
+  )
+);
+ok(
+  "formatProblemDensifyRunMarkdown",
+  /export function formatProblemDensifyRunMarkdown/.test(
+    read("lib/frontier/exportMarkdown.ts")
+  )
+);
+ok(
+  "ProblemFirstSearch notebook export",
+  /exportDensifyNotebook|formatProblemDensifyRunMarkdown/.test(
+    read("components/ProblemFirstSearch.tsx")
+  )
+);
+ok(
   "densifyQuality atlas after knowledge",
   /withProcessKnowledge/.test(pipe) &&
     /conditionObservations/.test(pipe) &&

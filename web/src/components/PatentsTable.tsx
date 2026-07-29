@@ -6,6 +6,12 @@ import {
   EvidenceDataTableChrome,
   evidenceFilterChipClass,
 } from "@/components/EvidenceDataTable";
+import {
+  attachLiteratureHitsToCid,
+  attachOneLiteratureHitToCid,
+  patentHitToLiterature,
+  rematerializeCachesWithLocalPastes,
+} from "@/lib/frontier/literatureToPaste";
 
 type SortKey = "date" | "number" | "title" | "assignee" | "process";
 type SortDir = "asc" | "desc";
@@ -28,13 +34,28 @@ function dateKey(d?: string): number {
 
 /**
  * Clickable patents table: search, sort, filter (process vs other).
+ * Optional CID enables densify paste from public procedure windows.
  */
-export function PatentsTable({ hits }: { hits: PatentHit[] }) {
+export function PatentsTable({
+  hits,
+  cid,
+  onPasteAttached,
+}: {
+  hits: PatentHit[];
+  cid?: number;
+  onPasteAttached?: (info: {
+    attached: number;
+    chars: number;
+    single?: boolean;
+  }) => void;
+}) {
   const [q, setQ] = useState("");
   const [tag, setTag] = useState<TagFilter>("all");
   const [sortKey, setSortKey] = useState<SortKey>("process");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [pasteMsg, setPasteMsg] = useState<string | null>(null);
+  const [pasteBusy, setPasteBusy] = useState(false);
 
   const counts = useMemo(() => {
     let process = 0;
@@ -104,6 +125,71 @@ export function PatentsTable({ hits }: { hits: PatentHit[] }) {
     ? hits.find((h) => h.id === selectedId) || null
     : null;
 
+  async function pasteOne(p: PatentHit) {
+    if (!cid || cid <= 0) return;
+    setPasteBusy(true);
+    setPasteMsg(null);
+    try {
+      const res = await attachOneLiteratureHitToCid(
+        cid,
+        patentHitToLiterature(p)
+      );
+      setPasteMsg(
+        res.attached
+          ? `Pasted ${p.patentNumber || "patent"} · ${res.totalChars.toLocaleString()} chars` +
+              (res.rematerialized ? " · cache rematerialized" : "")
+          : "Could not paste (need procedure/abstract text)"
+      );
+      if (res.attached) {
+        onPasteAttached?.({
+          attached: res.attached,
+          chars: res.totalChars,
+          single: true,
+        });
+      }
+    } catch (e) {
+      setPasteMsg(e instanceof Error ? e.message : "Paste failed");
+    } finally {
+      setPasteBusy(false);
+    }
+  }
+
+  async function pasteProcessBatch() {
+    if (!cid || cid <= 0) return;
+    setPasteBusy(true);
+    setPasteMsg(null);
+    try {
+      const processHits = hits.filter(isProcessy);
+      const lit = (processHits.length ? processHits : hits).map(
+        patentHitToLiterature
+      );
+      const res = attachLiteratureHitsToCid(cid, lit, {
+        max: 5,
+        minChars: 60,
+        minScore: 2,
+      });
+      if (res.attached > 0) {
+        await rematerializeCachesWithLocalPastes([cid]);
+      }
+      setPasteMsg(
+        res.attached
+          ? `Attached ${res.attached} process patent(s) · ${res.totalChars.toLocaleString()} chars`
+          : "No procedure-rich patent text to attach"
+      );
+      if (res.attached) {
+        onPasteAttached?.({
+          attached: res.attached,
+          chars: res.totalChars,
+          single: false,
+        });
+      }
+    } catch (e) {
+      setPasteMsg(e instanceof Error ? e.message : "Batch paste failed");
+    } finally {
+      setPasteBusy(false);
+    }
+  }
+
   if (hits.length === 0) {
     return (
       <p className="text-sm text-slate-500">
@@ -141,6 +227,26 @@ export function PatentsTable({ hits }: { hits: PatentHit[] }) {
 
   return (
     <div className="space-y-3">
+      {cid ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={pasteBusy}
+            onClick={() => void pasteProcessBatch()}
+            className="rounded-lg border border-orange-500/40 bg-orange-500/10 px-2.5 py-1 text-[11px] font-semibold text-orange-100 hover:bg-orange-500/20 disabled:opacity-40"
+          >
+            {pasteBusy ? "Attaching…" : "Paste process patents → densify"}
+          </button>
+          <span className="text-[10px] text-slate-600">
+            Public procedure windows / abstracts only · not GMP
+          </span>
+        </div>
+      ) : null}
+      {pasteMsg ? (
+        <p className="text-[11px] text-orange-100/90" role="status">
+          {pasteMsg}
+        </p>
+      ) : null}
       <EvidenceDataTableChrome
         search={q}
         onSearch={setQ}
@@ -308,14 +414,29 @@ export function PatentsTable({ hits }: { hits: PatentHit[] }) {
           ) : (
             <p className="mt-2 text-xs text-slate-600">No abstract in this capture.</p>
           )}
-          <a
-            href={selected.url}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 inline-block text-xs font-medium text-orange-300 hover:underline"
-          >
-            Open patent in new tab →
-          </a>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {cid ? (
+              <button
+                type="button"
+                disabled={pasteBusy}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void pasteOne(selected);
+                }}
+                className="rounded-lg bg-orange-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-orange-500 disabled:opacity-40"
+              >
+                Paste this patent → densify
+              </button>
+            ) : null}
+            <a
+              href={selected.url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center text-xs font-medium text-orange-300 hover:underline"
+            >
+              Open patent in new tab →
+            </a>
+          </div>
         </div>
       ) : null}
     </div>

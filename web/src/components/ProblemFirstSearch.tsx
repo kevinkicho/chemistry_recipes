@@ -16,6 +16,11 @@ import type { ProblemMultiSearchResult } from "@/lib/search/problemMultiSource";
 import { setCampaignAgentHandoff } from "@/lib/workspace/campaigns";
 import { routes } from "@/lib/routes";
 import { useRouter } from "next/navigation";
+import {
+  downloadMarkdown,
+  formatProblemDensifyRunMarkdown,
+} from "@/lib/frontier/exportMarkdown";
+import type { ProblemCampaignDensifyResult } from "@/lib/search/problemCampaign";
 
 /**
  * Home / search entry: problem or unit-op first, enriched with multi-source fan-out.
@@ -34,6 +39,8 @@ export function ProblemFirstSearch() {
   const [literatureHits, setLiteratureHits] = useState<
     ProblemMultiSearchResult["literatureHits"]
   >([]);
+  const [lastDensify, setLastDensify] =
+    useState<ProblemCampaignDensifyResult | null>(null);
 
   const localHits = useMemo(() => searchProblemFirst(q, 12), [q]);
   const hits = liveHits ?? localHits;
@@ -120,6 +127,7 @@ export function ProblemFirstSearch() {
         setCampMsg("Could not create campaign from these hits.");
         return;
       }
+      setLastDensify(res);
       const agentQ = `What free-public process conditions and unit-op evidence appear for “${q.trim()}” across this campaign? Any edge conflicts?`;
       setCampMsg(
         [
@@ -157,6 +165,25 @@ export function ProblemFirstSearch() {
     } finally {
       setDensifyBusy(false);
     }
+  }
+
+  function exportDensifyNotebook() {
+    if (!lastDensify) {
+      setCampMsg("Run Spin + densify first, then export the notebook.");
+      return;
+    }
+    const md = formatProblemDensifyRunMarkdown({
+      problemQuery: q.trim() || lastDensify.campaign.name,
+      result: lastDensify,
+      problemHits: hits,
+      literatureHits,
+    });
+    const slug = (q.trim() || "problem")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .slice(0, 40);
+    downloadMarkdown(`problem-densify-${slug}.md`, md);
+    setCampMsg(`Exported problem densify notebook · ${slug}.md`);
   }
 
   return (
@@ -254,6 +281,15 @@ export function ProblemFirstSearch() {
           >
             Densify only
           </button>
+          {lastDensify ? (
+            <button
+              type="button"
+              onClick={exportDensifyNotebook}
+              className="rounded-lg border border-sky-500/40 bg-sky-500/10 px-3 py-1.5 text-xs font-medium text-sky-100"
+            >
+              Export densify notebook .md
+            </button>
+          ) : null}
           <Link
             href={routes.workspace()}
             className="text-[11px] text-violet-300/90 hover:underline"

@@ -1112,7 +1112,16 @@ export function LiveMoleculeDossier({
                 label="API"
               />
             </div>
-            <LiteratureTable hits={dossier.literature} />
+            <LiteratureTable
+              hits={dossier.literature}
+              cid={cid}
+              onPasteAttached={(info) => {
+                setPasteDeltaMsg(
+                  `Literature densify paste · ${info.attached} paper(s) · ${info.chars.toLocaleString()} chars · re-extracting local facts… Not GMP.`
+                );
+                setEnrichTick((n) => n + 1);
+              }}
+            />
           </CollapsibleSection>
 
           <CollapsibleSection
@@ -1142,7 +1151,16 @@ export function LiveMoleculeDossier({
                 label="API"
               />
             </div>
-            <PatentsTable hits={dossier.patents} />
+            <PatentsTable
+              hits={dossier.patents}
+              cid={cid}
+              onPasteAttached={(info) => {
+                setPasteDeltaMsg(
+                  `Patent densify paste · ${info.attached} document(s) · ${info.chars.toLocaleString()} chars · re-extracting local facts… Not GMP.`
+                );
+                setEnrichTick((n) => n + 1);
+              }}
+            />
           </CollapsibleSection>
           </>
           ) : null}
