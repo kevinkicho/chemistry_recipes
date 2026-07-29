@@ -7,12 +7,17 @@ import { answerFromEvidencePackage } from "@/lib/frontier/evidenceQa";
 import { downloadProcessKnowledge } from "@/lib/frontier/exportKnowledge";
 import { buildLiteratureDepthReport } from "@/lib/frontier/literatureDepth";
 import {
+  buildAiGuidancePackage,
+  downloadAiGuidancePackage,
+} from "@/lib/frontier/aiGuidancePackage";
+import {
   downloadMarkdown,
   formatProcessKnowledgeMarkdown,
 } from "@/lib/frontier/exportMarkdown";
 
 /**
  * Seed Q&A, free-form evidence query, next experiments, knowledge export.
+ * Densify-first: export AI guidance package for agent ingest (not full-text UI).
  */
 export function EvidenceSciencePanel({ dossier }: { dossier: LiveDossier }) {
   const pack = useMemo(
@@ -21,6 +26,10 @@ export function EvidenceSciencePanel({ dossier }: { dossier: LiveDossier }) {
   );
   const litDepth = useMemo(
     () => buildLiteratureDepthReport(dossier),
+    [dossier]
+  );
+  const guidance = useMemo(
+    () => buildAiGuidancePackage(dossier),
     [dossier]
   );
   const [q, setQ] = useState("");
@@ -78,10 +87,24 @@ export function EvidenceSciencePanel({ dossier }: { dossier: LiveDossier }) {
           >
             Export notebook Markdown
           </button>
+          <button
+            type="button"
+            onClick={() => downloadAiGuidancePackage(dossier)}
+            className="rounded-lg border border-cyan-500/40 bg-cyan-950/40 px-3 py-1.5 text-xs font-medium text-cyan-100"
+            title="Compact densify package for AI agents — atoms + procedure windows + densify-next"
+          >
+            Export AI guidance.v1
+          </button>
         </div>
       </div>
 
-      <dl className="mt-3 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-5">
+      <dl className="mt-3 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-6">
+        <div className="rounded border border-slate-800 bg-slate-950/40 px-2 py-1.5">
+          <dt className="text-slate-600">AI ingest</dt>
+          <dd className="font-mono text-cyan-100/90">
+            {guidance.ingestScore}/100
+          </dd>
+        </div>
         <div className="rounded border border-slate-800 bg-slate-950/40 px-2 py-1.5">
           <dt className="text-slate-600">Observations</dt>
           <dd className="font-mono text-slate-200">
@@ -111,6 +134,35 @@ export function EvidenceSciencePanel({ dossier }: { dossier: LiveDossier }) {
           </dd>
         </div>
       </dl>
+
+      {guidance.densifyNext.length > 0 ? (
+        <div className="mt-3 rounded-lg border border-cyan-500/20 bg-cyan-950/20 p-3">
+          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-cyan-300/80">
+            Densify next · improve AI guidance
+          </h3>
+          <p className="mt-0.5 text-[10px] text-slate-500">
+            Actions that bring more free-public process data into the package — not paper previews.
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {guidance.densifyNext.slice(0, 5).map((a) => (
+              <li key={a.id} className="text-[11px] text-slate-300">
+                <span
+                  className={
+                    a.priority === "high"
+                      ? "font-semibold text-amber-200"
+                      : a.priority === "medium"
+                        ? "font-medium text-slate-200"
+                        : "text-slate-400"
+                  }
+                >
+                  [{a.priority}] {a.title}
+                </span>
+                <span className="text-slate-500"> — {a.how}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <div className="mt-4">
         <h3 className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">

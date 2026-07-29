@@ -250,6 +250,11 @@ export function buildScaffoldDossier(evidence: CompoundEvidence): LiveDossier {
     patents: evidence.patents,
     annotations: evidence.annotations ?? [],
     processFacts,
+    // Keep densify windows on the live dossier so agents can ingest without re-gather
+    procedureExcerpts: (evidence.procedureExcerpts || [])
+      .slice()
+      .sort((a, b) => (b.chars || b.text.length) - (a.chars || a.text.length))
+      .slice(0, 64),
     processFraming: processFacts.framing,
     synthesis: {
       available: false,

@@ -314,6 +314,11 @@ export interface LiveDossier {
   evidenceScore?: EvidenceScoreSnapshot;
   /** Structured process facts extracted from free-public text */
   processFacts?: ProcessFactBundle;
+  /**
+   * Harvested procedure windows (OA, patent, OrgSyn, ORD, …) for AI ingest.
+   * Not a UI full-text preview — durable multi-source densify payload.
+   */
+  procedureExcerpts?: ProcedureExcerpt[];
   /** process-recipe vs evidence-lead-pack framing for UI */
   processFraming?: import("@/lib/dossier/processFacts").ProcessFraming;
   /** Scout vs recipe-draft vs teaching-package product mode */

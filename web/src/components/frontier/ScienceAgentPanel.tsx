@@ -1,20 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { LiveDossier } from "@/lib/dossier/types";
 import {
   runScienceAgentLocal,
   runScienceAgentWithTools,
+  type ScienceAgentResult,
 } from "@/lib/frontier/scienceAgent";
 import {
   ensureDossierKnowledge,
   packageIsUsable,
 } from "@/lib/frontier/knowledgeFingerprint";
+import { buildAiGuidancePackage } from "@/lib/frontier/aiGuidancePackage";
 import { warmLiveDossier } from "@/lib/dossier/warmCache";
 import { recordDensifyRun } from "@/lib/dossier/densifyTelemetry";
 
 /**
- * Quote-bound science agent — prefers local package (fast) unless neighbors/LLM needed.
+ * Quote-bound science agent — prefers local densify package (fast).
+ * Surfaces densify-next actions so users grow evidence, not paper previews.
  */
 export function ScienceAgentPanel({ dossier }: { dossier: LiveDossier }) {
   const [q, setQ] = useState(
@@ -26,6 +29,11 @@ export function ScienceAgentPanel({ dossier }: { dossier: LiveDossier }) {
   const [busy, setBusy] = useState(false);
   const [out, setOut] = useState<string | null>(null);
   const [steps, setSteps] = useState<string[]>([]);
+  const [lastIngest, setLastIngest] = useState<number | null>(null);
+  const guidance = useMemo(
+    () => buildAiGuidancePackage(dossier),
+    [dossier]
+  );
 
   async function runLocal() {
     const d = ensureDossierKnowledge(dossier);
@@ -123,9 +131,23 @@ export function ScienceAgentPanel({ dossier }: { dossier: LiveDossier }) {
           "neighborCids" in data
             ? (data as { neighborCids?: number[] }).neighborCids
             : undefined;
+        const ingestScore =
+          "ingestScore" in data &&
+          typeof (data as ScienceAgentResult).ingestScore === "number"
+            ? (data as ScienceAgentResult).ingestScore
+            : guidance.ingestScore;
+        setLastIngest(ingestScore ?? null);
+        const densifyTips =
+          "densifyNext" in data &&
+          Array.isArray((data as ScienceAgentResult).densifyNext)
+            ? (data as ScienceAgentResult).densifyNext!
+            : guidance.densifyNext;
         setOut(
           [
-            canLocal ? "mode: local package (efficient)" : "mode: server rebuild",
+            canLocal
+              ? "mode: local densify package (efficient)"
+              : "mode: server rebuild",
+            ingestScore != null ? `AI ingest readiness: ${ingestScore}/100` : "",
             answer.insufficientEvidence
               ? "⚠ insufficient free-public evidence"
               : "✓ package-grounded",
@@ -141,6 +163,12 @@ export function ScienceAgentPanel({ dossier }: { dossier: LiveDossier }) {
             "",
             answer.answer || "",
             cites ? `\nCitations: ${cites}` : "",
+            densifyTips?.length
+              ? `\nDensify next:\n${densifyTips
+                  .slice(0, 4)
+                  .map((a) => `• [${a.priority}] ${a.title} — ${a.how}`)
+                  .join("\n")}`
+              : "",
           ]
             .filter(Boolean)
             .join("\n")
@@ -165,8 +193,16 @@ export function ScienceAgentPanel({ dossier }: { dossier: LiveDossier }) {
         Quote-bound scientific agent
       </h2>
       <p className="mt-1 text-[11px] text-slate-500">
-        Prefer local densified package (no full rebuild). Server path only when LLM or
-        forced densify is needed. Never invents plant numbers.
+        Prefer local densify package (atoms + procedure windows). Server only when LLM or
+        forced densify is needed. Never invents plant numbers — densify more free-public
+        data instead of previewing papers in-app.
+      </p>
+      <p className="mt-1 text-[10px] text-violet-300/80">
+        AI ingest readiness: {lastIngest ?? guidance.ingestScore}/100 ·{" "}
+        {guidance.metrics.harvestedExcerpts} excerpts ·{" "}
+        {guidance.metrics.processFactConditions} conditions ·{" "}
+        {guidance.densifyNext.filter((d) => d.priority === "high").length} high densify
+        action(s)
       </p>
       <textarea
         value={q}

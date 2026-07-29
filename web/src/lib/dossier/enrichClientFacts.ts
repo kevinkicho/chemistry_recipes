@@ -50,9 +50,12 @@ export function reextractFactsWithLocalSupplements(
     literature: dossier.literature,
     patents: dossier.patents,
     annotations: dossier.annotations || [],
+    // Prefer vault paste extras, else durable densify harvest on the dossier
     procedureExcerpts: vaultExtras?.length
       ? [...(vaultExtras || [])]
-      : undefined,
+      : dossier.procedureExcerpts?.length
+        ? [...dossier.procedureExcerpts]
+        : undefined,
     traces: dossier.traces || [],
     sourceRefs: dossier.sourceRefs || [],
     fetchErrors: [],

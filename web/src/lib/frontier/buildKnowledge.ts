@@ -25,9 +25,13 @@ const DISCLAIMER =
 
 function procedureChars(d: LiveDossier): number {
   let n = 0;
-  for (const h of d.literature || []) n += h.fullTextExcerpt?.length || 0;
-  for (const p of d.patents || []) n += p.procedureExcerpt?.length || 0;
-  for (const t of d.manufacturingTexts || []) n += t.length;
+  for (const p of d.procedureExcerpts || []) n += p.chars || p.text.length;
+  // Fall back / add OA+patent fields when excerpts not yet attached
+  if (n < 200) {
+    for (const h of d.literature || []) n += h.fullTextExcerpt?.length || 0;
+    for (const p of d.patents || []) n += p.procedureExcerpt?.length || 0;
+    for (const t of d.manufacturingTexts || []) n += t.length;
+  }
   return n;
 }
 

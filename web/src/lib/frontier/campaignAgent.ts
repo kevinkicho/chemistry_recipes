@@ -37,6 +37,10 @@ export interface CampaignAgentResult {
   };
 }
 
+/**
+ * Dense multi-CID text for token retrieval — process atoms + procedure
+ * windows first (AI ingest), not UI previews.
+ */
 function campaignBlob(merged: MergedCampaignKnowledge): string {
   const parts: string[] = [merged.summary];
   for (const s of merged.statuses) {
@@ -46,11 +50,11 @@ function campaignBlob(merged: MergedCampaignKnowledge): string {
   }
   for (const d of merged.atlasByKind) {
     parts.push(d.summary);
-    for (const o of d.observations.slice(0, 4)) {
+    for (const o of d.observations.slice(0, 6)) {
       parts.push(`QUOTE [${o.sourceLabel}]: ${o.quote}`);
     }
   }
-  for (const e of merged.network.edges.slice(0, 20)) {
+  for (const e of merged.network.edges.slice(0, 24)) {
     parts.push(
       `EDGE ${e.relation} str=${e.strength}: ${e.evidence.join(" | ")}`
     );
@@ -58,12 +62,33 @@ function campaignBlob(merged: MergedCampaignKnowledge): string {
   for (const d of merged.dossiers) {
     parts.push(
       d.identity?.name || `CID ${d.cid}`,
-      d.synthesis.overview || "",
-      ...(d.processFacts?.facts || [])
-        .filter((f) => f.kind !== "open-gap")
-        .slice(0, 8)
-        .map((f) => f.claim + " " + (f.quote || ""))
+      d.synthesis.overview || ""
     );
+    // Prefer densify harvest windows for multi-source guidance
+    for (const pe of (d.procedureExcerpts || []).slice(0, 6)) {
+      parts.push(
+        `PROC [${pe.source}] ${pe.label}: ${(pe.text || "").slice(0, 900)}`
+      );
+    }
+    for (const f of (d.processFacts?.facts || [])
+      .filter((x) => x.kind !== "open-gap")
+      .slice(0, 16)) {
+      parts.push(
+        `ATOM ${f.kind} ${f.claim} ${f.value || ""} ${f.unit || ""} ${f.quote || ""} ${f.sourceLabel}`
+      );
+    }
+    for (const h of (d.literature || []).slice(0, 4)) {
+      const body = h.fullTextExcerpt || h.abstract || "";
+      if (body.length >= 80) {
+        parts.push(`LIT ${h.title}: ${body.slice(0, 500)}`);
+      }
+    }
+    for (const p of (d.patents || []).slice(0, 4)) {
+      const body = p.procedureExcerpt || p.abstract || "";
+      if (body.length >= 80) {
+        parts.push(`PAT ${p.patentNumber || p.title}: ${body.slice(0, 500)}`);
+      }
+    }
   }
   return parts.join("\n").toLowerCase();
 }
@@ -86,14 +111,39 @@ function findQuotes(
       if (cites.length >= 8) return cites;
     }
   }
+  // Densify harvest + process atoms before thin lit titles
   for (const dossier of merged.dossiers) {
-    for (const h of (dossier.literature || []).slice(0, 5)) {
-      const hay = `${h.title} ${h.abstract || ""}`.toLowerCase();
+    const name = dossier.identity?.name || `CID ${dossier.cid}`;
+    for (const pe of dossier.procedureExcerpts || []) {
+      const hay = `${pe.label} ${pe.text || ""}`.toLowerCase();
+      if (tokens.some((t) => t.length >= 3 && hay.includes(t))) {
+        cites.push({
+          label: `${name}: ${pe.label.slice(0, 50)}`,
+          url: pe.url,
+          quote: (pe.text || "").slice(0, 160),
+        });
+      }
+      if (cites.length >= 8) return cites;
+    }
+    for (const f of dossier.processFacts?.facts || []) {
+      if (f.kind === "open-gap") continue;
+      const hay = `${f.claim} ${f.quote || ""} ${f.value || ""}`.toLowerCase();
+      if (tokens.some((t) => t.length >= 3 && hay.includes(t))) {
+        cites.push({
+          label: `${name}: ${f.sourceLabel}`,
+          url: f.sourceUrl,
+          quote: (f.quote || f.claim).slice(0, 160),
+        });
+      }
+      if (cites.length >= 8) return cites;
+    }
+    for (const h of (dossier.literature || []).slice(0, 6)) {
+      const hay = `${h.title} ${h.fullTextExcerpt || ""} ${h.abstract || ""}`.toLowerCase();
       if (tokens.some((t) => hay.includes(t))) {
         cites.push({
-          label: `${dossier.identity?.name || dossier.cid}: ${h.title.slice(0, 50)}`,
+          label: `${name}: ${h.title.slice(0, 50)}`,
           url: h.url,
-          quote: (h.abstract || "").slice(0, 140),
+          quote: (h.fullTextExcerpt || h.abstract || "").slice(0, 140),
         });
       }
       if (cites.length >= 8) break;

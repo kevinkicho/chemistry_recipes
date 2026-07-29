@@ -1134,7 +1134,7 @@ export async function gatherCompoundEvidenceLive(
     literature,
     patents,
     annotations,
-    procedureExcerpts: procedureExcerpts.slice(0, 40),
+    procedureExcerpts: procedureExcerpts.slice(0, 56),
     literatureQuery: [
       litResult.query,
       openAlexResult.query,

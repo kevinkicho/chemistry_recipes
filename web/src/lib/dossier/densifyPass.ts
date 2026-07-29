@@ -65,11 +65,34 @@ export async function runDensifyPass(
     procedureExcerpts.push(p);
   };
 
-  // 1) OA full text — more articles, longer soft budget
+  // Rank literature by process/procedure density before OA budget spend
+  const processScore = (title: string, body?: string) => {
+    const t = `${title} ${body || ""}`;
+    let s = 0;
+    if (/synthes|manufactur|process|ferment|preparat|industrial|scale|crystal|hydrogen|workup|equiv|°\s*C/i.test(t))
+      s += 4;
+    if (/example\s+\d+|procedure|method of making/i.test(t)) s += 3;
+    if ((body?.length || 0) > 400) s += 2;
+    if (/\b\d+\s*°\s*C\b/.test(t)) s += 2;
+    return s;
+  };
+  literature = [...literature].sort((a, b) => {
+    const sa =
+      processScore(a.title, a.fullTextExcerpt || a.abstract) +
+      (a.fullTextExcerpt ? 3 : 0) +
+      (a.pmcid ? 2 : 0);
+    const sb =
+      processScore(b.title, b.fullTextExcerpt || b.abstract) +
+      (b.fullTextExcerpt ? 3 : 0) +
+      (b.pmcid ? 2 : 0);
+    return sb - sa;
+  });
+
+  // 1) OA full text — process-ranked, higher article budget
   try {
     const oa = await withSoftTimeout(
-      enrichLiteratureWithOaFullText(literature, { maxArticles: 8 }),
-      45_000,
+      enrichLiteratureWithOaFullText(literature, { maxArticles: 10 }),
+      50_000,
       { hits: literature, traces: [] }
     );
     literature = oa.hits;
@@ -95,7 +118,7 @@ export async function runDensifyPass(
   // 2) Extra PMC full text for process-ranked OA with pmcid not yet densified
   const extraPmc = literature
     .filter((h) => h.pmcid && !(h.fullTextExcerpt && h.fullTextExcerpt.length > 200))
-    .slice(0, 3);
+    .slice(0, 5);
   for (const h of extraPmc) {
     try {
       const ft = await withSoftTimeout(
@@ -176,11 +199,32 @@ export async function runDensifyPass(
     }
   }
 
+  // 5) Promote process-dense abstracts still lacking full-text as secondary windows
+  for (const h of literature) {
+    if (h.fullTextExcerpt && h.fullTextExcerpt.length >= 80) continue;
+    const body = h.abstract || "";
+    if (body.length < 200) continue;
+    if (processScore(h.title, body) < 5) continue;
+    pushExcerpt({
+      id: `abs-d2:${h.id}`,
+      source: h.pmid ? "pubmed" : h.pmcid ? "europepmc-oa" : "other",
+      label: `Abstract · ${h.title.slice(0, 80)}`,
+      text: body,
+      url: h.url,
+      chars: body.length,
+    });
+  }
+
+  // Prefer densest procedure windows first in the package
+  procedureExcerpts.sort(
+    (a, b) => (b.chars || b.text.length) - (a.chars || a.text.length)
+  );
+
   const densified: CompoundEvidence = {
     ...evidence,
     literature,
     patents,
-    procedureExcerpts: procedureExcerpts.slice(0, 48),
+    procedureExcerpts: procedureExcerpts.slice(0, 64),
     traces,
     fetchErrors: [
       ...fetchErrors,
@@ -189,7 +233,7 @@ export async function runDensifyPass(
         literature,
         patents,
         manufacturingTexts: evidence.view?.manufacturingTexts,
-      })}`,
+      })} · excerpts ${procedureExcerpts.length}`,
     ].slice(0, 50),
   };
 

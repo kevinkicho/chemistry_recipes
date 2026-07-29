@@ -703,4 +703,55 @@ function nPsiToBar(psi) {
 ok("psi conversion positive", nPsiToBar(14.7) > 0.9 && nPsiToBar(14.7) < 1.2);
 ok("temp mid", nTemp(60, 90).value === 75);
 
+// Densify-first AI guidance (max useful data for agents, not full-text previews)
+ok(
+  "aiGuidancePackage module",
+  existsSync(join(root, "src/lib/frontier/aiGuidancePackage.ts"))
+);
+const guide = read("lib/frontier/aiGuidancePackage.ts");
+ok("buildAiGuidancePackage", /export function buildAiGuidancePackage/.test(guide));
+ok("formatAiGuidanceContext", /export function formatAiGuidanceContext/.test(guide));
+ok("downloadAiGuidancePackage", /export function downloadAiGuidancePackage/.test(guide));
+ok("ai-guidance.v1 schema", /ai-guidance\.v1/.test(guide));
+ok("densifyNext actions", /densifyNext/.test(guide));
+ok("ingestScore", /ingestScore/.test(guide));
+ok(
+  "science agent uses densify guidance",
+  /buildAiGuidancePackage|formatAiGuidanceContext/.test(
+    read("lib/frontier/scienceAgent.ts")
+  )
+);
+ok(
+  "science agent returns densifyNext",
+  /densifyNext/.test(read("lib/frontier/scienceAgent.ts"))
+);
+ok(
+  "scaffold keeps procedureExcerpts",
+  /procedureExcerpts/.test(read("lib/dossier/scaffold.ts"))
+);
+ok(
+  "LiveDossier has procedureExcerpts",
+  /procedureExcerpts\?:/.test(read("lib/dossier/types.ts"))
+);
+ok(
+  "densifyPass process-ranks literature",
+  /processScore|maxArticles:\s*10/.test(read("lib/dossier/densifyPass.ts"))
+);
+ok(
+  "campaign blob uses procedure excerpts",
+  /procedureExcerpts/.test(read("lib/frontier/campaignAgent.ts"))
+);
+ok(
+  "EvidenceScience densify next UI",
+  /Densify next|downloadAiGuidancePackage/.test(
+    read("components/frontier/EvidenceSciencePanel.tsx")
+  )
+);
+ok(
+  "ScienceAgent densify readiness",
+  /AI ingest readiness|ingestScore/.test(
+    read("components/frontier/ScienceAgentPanel.tsx")
+  )
+);
+
 console.log(`\n${n} frontier checks passed`);

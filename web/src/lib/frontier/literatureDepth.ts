@@ -54,6 +54,19 @@ export function buildLiteratureDepthReport(
     });
   }
 
+  // Durable densify harvest (preferred over re-slicing lit/patents alone)
+  for (const pe of dossier.procedureExcerpts || []) {
+    if (!pe.text || pe.text.length < 40) continue;
+    windows.push({
+      kind: pe.source === "patent" ? "patent" : pe.source === "pubchem-mfg" ? "mfg" : "other",
+      label: pe.label.slice(0, 80),
+      score: scoreProcedureWindow(`${pe.label}\n${pe.text}`),
+      chars: pe.chars || pe.text.length,
+      url: pe.url,
+      sourceField: `procedureExcerpts:${pe.source}`,
+    });
+  }
+
   for (const h of dossier.literature || []) {
     const best = pickBestProcedureText({
       fullTextExcerpt: h.fullTextExcerpt,
@@ -149,6 +162,17 @@ export function rankDossierTextWindows(
     url?: string;
   }> = [];
 
+  for (const pe of dossier.procedureExcerpts || []) {
+    if (!pe.text || pe.text.length < 40) continue;
+    out.push({
+      text: pe.text,
+      score: scoreProcedureWindow(`${pe.label}\n${pe.text}`),
+      kind: pe.source === "patent" ? "patent" : pe.source === "pubchem-mfg" ? "mfg" : "other",
+      label: pe.label.slice(0, 80),
+      sourceId: pe.id,
+      url: pe.url,
+    });
+  }
   for (const t of dossier.manufacturingTexts || []) {
     if (t.length < 20) continue;
     out.push({

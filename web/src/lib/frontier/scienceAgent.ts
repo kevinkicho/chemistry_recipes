@@ -8,6 +8,11 @@ import type { ProcessKnowledgePackage, EvidenceAnswer } from "@/lib/frontier/typ
 import { buildProcessKnowledgePackage } from "@/lib/frontier/buildKnowledge";
 import { answerFromEvidencePackage } from "@/lib/frontier/evidenceQa";
 import { prioritizedNeighborCids } from "@/lib/frontier/neighborDensifyGraph";
+import {
+  buildAiGuidancePackage,
+  formatAiGuidanceContext,
+  type DensifyNextAction,
+} from "@/lib/frontier/aiGuidancePackage";
 
 export interface ScienceAgentStep {
   id: string;
@@ -26,9 +31,37 @@ export interface ScienceAgentResult {
   packageMetrics: ProcessKnowledgePackage["metrics"];
   /** Neighbor packages densified during this run */
   neighborCids?: number[];
+  /** Densify-next actions for UI / further harvest */
+  densifyNext?: DensifyNextAction[];
+  /** 0–100 AI ingest readiness from densify package */
+  ingestScore?: number;
 }
 
-function packageContext(pack: ProcessKnowledgePackage): string {
+function guidanceMeta(dossier: LiveDossier): {
+  densifyNext: DensifyNextAction[];
+  ingestScore: number;
+} {
+  const g = buildAiGuidancePackage(dossier);
+  return { densifyNext: g.densifyNext, ingestScore: g.ingestScore };
+}
+
+function packageContext(
+  pack: ProcessKnowledgePackage,
+  dossier?: LiveDossier
+): string {
+  // Prefer densify-first AI guidance package when dossier available
+  if (dossier) {
+    const g = buildAiGuidancePackage(dossier);
+    const core = formatAiGuidanceContext(g, 22_000);
+    const hyp = pack.routeHypotheses
+      .slice(0, 3)
+      .map(
+        (h) =>
+          `Hypothesis ${h.name} [${h.status}]: ${h.summary}\nKill: ${h.killCriteria.join("; ")}`
+      )
+      .join("\n");
+    return `${core}\n\n## Route hypotheses\n${hyp}`.slice(0, 28_000);
+  }
   const lines: string[] = [
     `CID ${pack.cid} ${pack.moleculeName || ""}`,
     pack.conditionAtlas.summary,
@@ -57,16 +90,18 @@ function packageContext(pack: ProcessKnowledgePackage): string {
 
 function mergeNeighborContext(
   primary: ProcessKnowledgePackage,
-  neighbors: ProcessKnowledgePackage[]
+  neighbors: ProcessKnowledgePackage[],
+  primaryDossier?: LiveDossier
 ): string {
-  const parts = [packageContext(primary)];
+  const parts = [packageContext(primary, primaryDossier)];
   for (const n of neighbors) {
     parts.push(
       `\n--- NEIGHBOR CID ${n.cid} ${n.moleculeName || ""} ---`,
       n.conditionAtlas.summary,
       ...n.routeHypotheses.slice(0, 2).map((h) => h.summary),
-      ...n.conditionAtlas.distributions.slice(0, 3).flatMap((d) =>
-        d.observations.slice(0, 2).map((o) => `QUOTE [${o.sourceLabel}]: ${o.quote}`)
+      // densify-first: more quote atoms for multi-CID guidance
+      ...n.conditionAtlas.distributions.slice(0, 5).flatMap((d) =>
+        d.observations.slice(0, 3).map((o) => `QUOTE [${o.sourceLabel}]: ${o.quote}`)
       )
     );
   }
@@ -80,7 +115,8 @@ RULES:
 3. Prefer short answers with explicit citations as source labels already in the package.
 4. Suggest experiments as research questions, not site setpoints.
 5. Neighbor CID sections are free-public densify of related molecules — not the same compound.
-6. Not GMP advice. Not legal/IP advice.`;
+6. When densify-next actions are listed, prefer recommending those harvest steps over inventing numbers.
+7. Not GMP advice. Not legal/IP advice.`;
 
 /**
  * Suggest neighbor CIDs to densify — impurities / intermediates first
@@ -111,11 +147,12 @@ export function runScienceAgentLocal(
 ): ScienceAgentResult {
   const t0 = Date.now();
   const knowledge = pack || buildProcessKnowledgePackage(dossier);
+  const meta = guidanceMeta(dossier);
   const steps: ScienceAgentStep[] = [
     {
       id: "s1",
       role: "retrieve",
-      detail: `Loaded process-knowledge.v1 · ${knowledge.metrics.observationCount} obs · ${knowledge.metrics.hypothesisCount} hypotheses`,
+      detail: `Loaded densify package · ingest ${meta.ingestScore}/100 · ${knowledge.metrics.observationCount} obs · ${knowledge.metrics.procedureChars} proc chars`,
       durationMs: Date.now() - t0,
     },
   ];
@@ -126,11 +163,20 @@ export function runScienceAgentLocal(
     knowledge.conditionAtlas,
     knowledge.routeHypotheses
   );
+  // Append densify guidance when evidence is thin
+  if (answer.insufficientEvidence && meta.densifyNext.length) {
+    const tips = meta.densifyNext
+      .slice(0, 3)
+      .map((a) => `• [${a.priority}] ${a.title}: ${a.how}`)
+      .join("\n");
+    answer.answer =
+      `${answer.answer}\n\nDensify to improve AI guidance:\n${tips}`;
+  }
   steps.push({
     id: "s2",
     role: answer.insufficientEvidence ? "refuse" : "cite",
     detail: answer.insufficientEvidence
-      ? "Insufficient package support — refused to invent"
+      ? `Insufficient package — ${meta.densifyNext.filter((d) => d.priority === "high").length} high densify action(s)`
       : `Grounded retrieval with ${answer.citations.length} citation(s)`,
     durationMs: Date.now() - t1,
   });
@@ -140,6 +186,8 @@ export function runScienceAgentLocal(
     steps,
     usedLlm: false,
     packageMetrics: knowledge.metrics,
+    densifyNext: meta.densifyNext,
+    ingestScore: meta.ingestScore,
   };
 }
 
@@ -168,12 +216,13 @@ export async function runScienceAgentWithTools(
   }
 ): Promise<ScienceAgentResult> {
   const knowledge = opts?.pack || buildProcessKnowledgePackage(dossier);
+  const meta = guidanceMeta(dossier);
   const steps: ScienceAgentStep[] = [];
   const t0 = Date.now();
   steps.push({
     id: "s1",
     role: "retrieve",
-    detail: `Primary package CID ${knowledge.cid} · ${knowledge.metrics.observationCount} obs`,
+    detail: `Primary CID ${knowledge.cid} · ingest ${meta.ingestScore}/100 · ${knowledge.metrics.observationCount} obs · ${knowledge.metrics.procedureChars} proc chars`,
     durationMs: Date.now() - t0,
   });
 
@@ -294,25 +343,41 @@ export async function runScienceAgentWithTools(
       });
     }
   } else {
+    if (answer.insufficientEvidence && meta.densifyNext.length) {
+      const tips = meta.densifyNext
+        .slice(0, 3)
+        .map((a) => `• [${a.priority}] ${a.title}: ${a.how}`)
+        .join("\n");
+      answer = {
+        ...answer,
+        answer: `${answer.answer}\n\nDensify to improve AI guidance:\n${tips}`,
+      };
+    }
     steps.push({
       id: "s2",
       role: answer.insufficientEvidence ? "refuse" : "cite",
       detail: answer.insufficientEvidence
-        ? "Insufficient package support — refused to invent"
+        ? `Insufficient package — ${meta.densifyNext.filter((d) => d.priority === "high").length} high densify action(s)`
         : `Grounded retrieval with ${answer.citations.length} citation(s)`,
       durationMs: Date.now() - t1,
     });
   }
 
+  const withMeta = (r: Omit<ScienceAgentResult, "densifyNext" | "ingestScore">): ScienceAgentResult => ({
+    ...r,
+    densifyNext: meta.densifyNext,
+    ingestScore: meta.ingestScore,
+  });
+
   if (!opts?.useLlm || !opts.chat) {
-    return {
+    return withMeta({
       question,
       answer,
       steps,
       usedLlm: false,
       packageMetrics: knowledge.metrics,
       neighborCids,
-    };
+    });
   }
 
   // Thin package skip LLM
@@ -326,19 +391,20 @@ export async function runScienceAgentWithTools(
       role: "refuse",
       detail: "Skipped LLM — package too thin to ground a model call",
     });
-    return {
+    return withMeta({
       question,
       answer,
       steps,
       usedLlm: false,
       packageMetrics: knowledge.metrics,
       neighborCids,
-    };
+    });
   }
 
   const tL = Date.now();
-  const ctx = mergeNeighborContext(knowledge, neighborPacks);
-  const user = `EVIDENCE PACKAGE (free-public only):\n${ctx}\n\nSCIENTIST QUESTION:\n${question}\n\nRespond with: (1) answer or insufficient evidence (2) which package facts you used.`;
+  // Densify-first context when dossier available
+  const ctx = mergeNeighborContext(knowledge, neighborPacks, dossier);
+  const user = `EVIDENCE PACKAGE (free-public densify only):\n${ctx}\n\nSCIENTIST QUESTION:\n${question}\n\nRespond with: (1) answer or insufficient evidence (2) which package facts you used. If package is thin, recommend densify-next actions already listed.`;
 
   try {
     const res = await opts.chat({ system: AGENT_SYSTEM, user });
@@ -349,14 +415,14 @@ export async function runScienceAgentWithTools(
         detail: `LLM unavailable: ${res.error || "empty"} — using retrieval only`,
         durationMs: Date.now() - tL,
       });
-      return {
+      return withMeta({
         question,
         answer,
         steps,
         usedLlm: false,
         packageMetrics: knowledge.metrics,
         neighborCids,
-      };
+      });
     }
     const content = res.content.trim();
     const modelRefuses =
@@ -366,10 +432,10 @@ export async function runScienceAgentWithTools(
     steps.push({
       id: "s3",
       role: modelRefuses ? "refuse" : "reason",
-      detail: `LLM over package (+${neighborPacks.length} neighbors) · ${res.model || "model"}`,
+      detail: `LLM over densify package (+${neighborPacks.length} neighbors) · ${res.model || "model"}`,
       durationMs: Date.now() - tL,
     });
-    return {
+    return withMeta({
       question,
       answer: {
         id: `agent:${Date.now()}`,
@@ -384,7 +450,7 @@ export async function runScienceAgentWithTools(
       usedLlm: true,
       packageMetrics: knowledge.metrics,
       neighborCids,
-    };
+    });
   } catch (e) {
     steps.push({
       id: "s3",
@@ -392,14 +458,14 @@ export async function runScienceAgentWithTools(
       detail: `LLM error: ${e instanceof Error ? e.message : "fail"}`,
       durationMs: Date.now() - tL,
     });
-    return {
+    return withMeta({
       question,
       answer,
       steps,
       usedLlm: false,
       packageMetrics: knowledge.metrics,
       neighborCids,
-    };
+    });
   }
 }
 
