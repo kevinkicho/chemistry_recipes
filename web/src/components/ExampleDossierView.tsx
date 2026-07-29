@@ -7,7 +7,7 @@ import Link from "next/link";
 import { RoutePanel } from "@/components/RoutePanel";
 import { RouteCompare } from "@/components/RouteCompare";
 import { TierBadge } from "@/components/TierBadge";
-import { pubchemStructureUrl } from "@/lib/api/pubchem";
+import { PubchemStructureImage } from "@/components/PubchemStructureImage";
 import type { MoleculeDossier } from "@/lib/types/process";
 import { routes } from "@/lib/routes";
 import { TechTransferExport } from "@/components/TechTransferExport";
@@ -41,15 +41,12 @@ export function ExampleDossierView({ d }: { d: MoleculeDossier }) {
           className="scroll-mt-24 flex h-40 w-40 shrink-0 flex-col items-center justify-center rounded-xl bg-white p-3 shadow-lg shadow-black/30"
         >
           {cid ? (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={pubchemStructureUrl(cid, "large")}
-                alt={`2D structure of ${name} (PubChem CID ${cid})`}
-                className="max-h-full max-w-full object-contain"
-                loading="eager"
-              />
-            </>
+            <PubchemStructureImage
+              cid={cid}
+              size="large"
+              alt={`2D structure of ${name} (PubChem CID ${cid})`}
+              className="max-h-full max-w-full object-contain"
+            />
           ) : (
             <span className="text-sm text-slate-400">No structure</span>
           )}

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { TierBadge } from "@/components/TierBadge";
-import { pubchemStructureUrl } from "@/lib/api/pubchem";
+import { PubchemStructureImage } from "@/components/PubchemStructureImage";
 import {
   filterHubCatalog,
   getHubCatalog,
@@ -200,9 +200,9 @@ export default async function CatalogPage({ searchParams }: Props) {
                 <div className="flex gap-3">
                   <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-white p-1">
                     {e.pubchemCid ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={pubchemStructureUrl(e.pubchemCid, "small")}
+                      <PubchemStructureImage
+                        cid={e.pubchemCid}
+                        size="small"
                         alt=""
                         className="max-h-full max-w-full object-contain"
                       />

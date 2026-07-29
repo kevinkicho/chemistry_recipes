@@ -14,10 +14,10 @@ const PUBCHEM_HEADERS: HeadersInit = {
   "User-Agent": "ChemistryRecipes/1.2 (educational; process-recipe hub)",
 };
 
-/** Short timeouts — App Hosting egress often gets 503; don't block the UI. */
-const PUG_TIMEOUT_MS = 4500;
-const PUG_RETRIES = 2;
-const PUG_BASE_DELAY_MS = 400;
+/** Timeouts — App Hosting egress often gets 503; retry with longer backoff. */
+const PUG_TIMEOUT_MS = 6000;
+const PUG_RETRIES = 3;
+const PUG_BASE_DELAY_MS = 550;
 
 export interface PubChemHit {
   cid: number;

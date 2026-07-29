@@ -12,7 +12,7 @@ import { TierBadge } from "@/components/TierBadge";
 import { RegulatoryDisclaimer } from "@/components/RegulatoryDisclaimer";
 import { MODALITY_TEMPLATES } from "@/lib/modality/templates";
 import { routes } from "@/lib/routes";
-import { pubchemStructureUrl } from "@/lib/api/pubchem";
+import { PubchemStructureImage } from "@/components/PubchemStructureImage";
 import { getExampleById } from "@/lib/data/examples";
 import { ForShowBanner, ForShowBreadcrumb } from "@/components/ForShowBanner";
 
@@ -50,9 +50,9 @@ export default async function PackageDetailPage({ params }: Props) {
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         {pkg.pubchemCid ? (
           <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-xl bg-white p-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={pubchemStructureUrl(pkg.pubchemCid, "large")}
+            <PubchemStructureImage
+              cid={pkg.pubchemCid}
+              size="large"
               alt=""
               className="max-h-full max-w-full object-contain"
             />

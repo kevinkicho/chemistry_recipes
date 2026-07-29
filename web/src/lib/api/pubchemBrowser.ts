@@ -2,8 +2,11 @@
  * Browser-side PubChem PUG search.
  *
  * App Hosting / Cloud Run egress often gets HTTP 503 from PubChem.
- * The user's browser IP usually still works — use this path first for search UI.
+ * The user's browser IP usually still works — use this path for search UI
+ * and related-entity CID resolve, with a serial queue + 503 backoff.
  */
+
+import { pubchemQueuedFetch } from "@/lib/api/pubchemQueue";
 
 export type BrowserPubChemHit = {
   cid: number;
@@ -30,25 +33,7 @@ async function fetchJson(
   url: string,
   signal?: AbortSignal
 ): Promise<{ ok: boolean; status: number; data: unknown | null }> {
-  try {
-    const res = await fetch(url, {
-      signal,
-      headers: { Accept: "application/json" },
-      cache: "no-store",
-    });
-    let data: unknown | null = null;
-    if (res.ok) {
-      try {
-        data = await res.json();
-      } catch {
-        data = null;
-      }
-    }
-    return { ok: res.ok, status: res.status, data };
-  } catch (e) {
-    if (e instanceof Error && e.name === "AbortError") throw e;
-    return { ok: false, status: 0, data: null };
-  }
+  return pubchemQueuedFetch(url, { signal, asJson: true, gapMs: 500, retries: 3 });
 }
 
 async function resolveCids(
@@ -90,15 +75,15 @@ async function resolveCids(
     }
   }
 
-  // Autocomplete → first terms → name resolve
-  if (!looksLikeCas(t) && !looksLikeInchiKey(t) && t.length >= 2) {
+  // Autocomplete → first terms → name resolve (still queued)
+  if (!looksLikeCas(t) && !looksLikeInchiKey(t) && t.length >= 2 && r.status !== 503) {
     const acUrl = `https://pubchem.ncbi.nlm.nih.gov/rest/autocomplete/compound/${encodeURIComponent(t)}/json?limit=6`;
     const ac = await fetchJson(acUrl, signal);
     if (ac.ok && ac.data && typeof ac.data === "object") {
       const terms =
         (ac.data as { dictionary_terms?: { compound?: string[] } })
           .dictionary_terms?.compound ?? [];
-      for (const term of terms.slice(0, 4)) {
+      for (const term of terms.slice(0, 3)) {
         const nr = await fetchJson(
           `${PUG}/compound/name/${encodeURIComponent(term)}/cids/JSON`,
           signal
@@ -118,6 +103,7 @@ async function resolveCids(
 
 /**
  * Live PubChem search in the browser. Never invents hits.
+ * Serial queue + 503 retries to avoid console storms on PubChem busy.
  */
 export async function searchPubChemInBrowser(
   query: string,
@@ -134,7 +120,11 @@ export async function searchPubChemInBrowser(
       .slice(0, limit);
 
     if (!cids.length) {
-      return { hits: [], error: "No PubChem hits" };
+      return {
+        hits: [],
+        error:
+          "No PubChem hits (or PubChem is busy — try again in a moment)",
+      };
     }
 
     const propsUrl = `${PUG}/compound/cid/${cids.join(",")}/property/MolecularFormula,MolecularWeight,IUPACName,CanonicalSMILES,IsomericSMILES,InChIKey,Title/JSON`;

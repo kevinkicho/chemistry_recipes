@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { TierBadge } from "@/components/TierBadge";
 import { RegulatoryDisclaimer } from "@/components/RegulatoryDisclaimer";
-import { pubchemStructureUrl } from "@/lib/api/pubchem";
+import { PubchemStructureImage } from "@/components/PubchemStructureImage";
 import { getExampleCatalog, getExampleDossiers } from "@/lib/data/examples";
 import { curatedPackageCount } from "@/lib/data/curatedPackages";
 import { HUB_INDEX } from "@/lib/data/hubIndex";
@@ -174,9 +174,9 @@ export default function InfoPage() {
                 <div className="flex gap-4">
                   <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-white p-1">
                     {e.pubchemCid ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={pubchemStructureUrl(e.pubchemCid, "small")}
+                      <PubchemStructureImage
+                        cid={e.pubchemCid}
+                        size="small"
                         alt=""
                         className="max-h-full max-w-full object-contain"
                       />

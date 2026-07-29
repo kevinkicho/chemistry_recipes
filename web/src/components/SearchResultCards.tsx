@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ApiProvenance } from "@/components/ApiProvenance";
-import { pubchemStructureUrl } from "@/lib/api/pubchem";
+import { PubchemStructureImage } from "@/components/PubchemStructureImage";
 import { routes } from "@/lib/routes";
 import { findHubByCid } from "@/lib/data/hubIndex";
 import type { MultiSourceHit } from "@/lib/search/multiSourceSearch";
@@ -73,9 +73,9 @@ export function MultiSourceResultCard({
     <>
       <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-white p-1">
         {cid ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={pubchemStructureUrl(cid, "small")}
+          <PubchemStructureImage
+            cid={cid}
+            size="small"
             alt=""
             className="max-h-full max-w-full object-contain"
           />

@@ -17,7 +17,7 @@ import { ApiProvenance } from "@/components/ApiProvenance";
 import { RoutePanel } from "@/components/RoutePanel";
 import { RouteCompare } from "@/components/RouteCompare";
 import { TierBadge } from "@/components/TierBadge";
-import { pubchemStructureUrl } from "@/lib/api/pubchem";
+import { PubchemStructureImage } from "@/components/PubchemStructureImage";
 import type { LiveDossier } from "@/lib/dossier/types";
 import { slimTraces } from "@/lib/api/trace";
 import { routes } from "@/lib/routes";
@@ -399,35 +399,12 @@ export function LiveMoleculeDossier({
           id="structure"
           className="scroll-mt-24 flex h-40 w-40 shrink-0 flex-col items-center justify-center rounded-xl bg-white p-3 shadow-lg shadow-black/30"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={pubchemStructureUrl(cid, "large")}
+          <PubchemStructureImage
+            cid={cid}
+            size="large"
             alt={`2D structure of ${name} (PubChem CID ${cid})`}
             className="max-h-full max-w-full object-contain"
-            loading="eager"
-            decoding="async"
-            onError={(e) => {
-              const el = e.currentTarget;
-              el.style.display = "none";
-              const fallback = el.nextElementSibling;
-              if (fallback instanceof HTMLElement) fallback.hidden = false;
-            }}
           />
-          <span
-            hidden
-            className="px-1 text-center text-[10px] font-medium leading-tight text-slate-600"
-          >
-            Structure image unavailable
-            <br />
-            <a
-              href={`https://pubchem.ncbi.nlm.nih.gov/compound/${cid}`}
-              className="text-teal-700 underline"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Open PubChem CID {cid}
-            </a>
-          </span>
         </div>
 
         <div className="min-w-0 flex-1 space-y-3">

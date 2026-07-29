@@ -67,13 +67,15 @@ export function EntityGraph({
     try {
       const { entities: next, report } = await resolveRelatedEntityCids(
         display,
-        { maxResolve: 8 }
+        { maxResolve: 6, gapMs: 750 }
       );
       setDisplay(next);
       onEntitiesResolved?.(next);
       setMsg(
         `Resolved ${report.resolved}/${report.attempted} related CID(s)` +
-          (report.failed ? ` · ${report.failed} unresolved` : "")
+          (report.failed
+            ? ` · ${report.failed} unresolved (PubChem may be busy — wait and retry)`
+            : "")
       );
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Resolve failed");
