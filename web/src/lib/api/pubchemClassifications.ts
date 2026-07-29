@@ -75,44 +75,27 @@ export async function fetchPubchemClassifications(
   }
 
   // xrefs for MeSH / PharmGKB style when available
-  const xrefUrl = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${cid}/xrefs/PubMedID,MeSH,PatentID/JSON`;
-  const xr = await fetchJsonWithTrace<{
+  // PubChem rejects multi-type xrefs with invalid types (e.g. MeSH) — request one type at a time
+  const pmUrl = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${cid}/xrefs/PubMedID/JSON`;
+  const pm = await fetchJsonWithTrace<{
     InformationList?: {
-      Information?: Array<{
-        PubMedID?: number[];
-        MeSH?: string[];
-        PatentID?: string[];
-      }>;
+      Information?: Array<{ PubMedID?: number[] }>;
     };
-  }>(xrefUrl, { next: { revalidate: 86400 }, timeoutMs: 10_000 });
-  traces.push(xr.trace);
-
-  const info = xr.data?.InformationList?.Information?.[0];
-  if (info?.MeSH?.length) {
-    const mesh = info.MeSH.slice(0, 12);
-    annotations.push({
-      source: "PubChem MeSH",
-      organization: "NCBI (NIH)",
-      kind: "identity",
-      title: `MeSH: ${mesh.slice(0, 4).join(", ")}`,
-      summary: mesh.join("; "),
-      url: `https://pubchem.ncbi.nlm.nih.gov/compound/${cid}`,
-      endpointUrl: "https://pubchem.ncbi.nlm.nih.gov/rest/pug",
-      fields: { mesh: mesh.slice(0, 8).join(", ") },
-    });
-  }
-  if (info?.PubMedID?.length) {
+  }>(pmUrl, { next: { revalidate: 86400 }, timeoutMs: 12_000 });
+  traces.push(pm.trace);
+  const pmids = pm.data?.InformationList?.Information?.[0]?.PubMedID || [];
+  if (pmids.length) {
     annotations.push({
       source: "PubChem PubMed xrefs",
       organization: "NCBI (NIH)",
       kind: "literature",
-      title: `${info.PubMedID.length} PubMed cross-reference(s)`,
-      summary: `Sample PMIDs: ${info.PubMedID.slice(0, 8).join(", ")}`,
+      title: `${pmids.length} PubMed cross-reference(s)`,
+      summary: `Sample PMIDs: ${pmids.slice(0, 8).join(", ")}`,
       url: `https://pubchem.ncbi.nlm.nih.gov/compound/${cid}#section=Literature`,
       endpointUrl: "https://pubchem.ncbi.nlm.nih.gov/rest/pug",
       fields: {
-        sample: info.PubMedID.slice(0, 10).join(", "),
-        count: String(info.PubMedID.length),
+        sample: pmids.slice(0, 10).join(", "),
+        count: String(pmids.length),
       },
     });
   }

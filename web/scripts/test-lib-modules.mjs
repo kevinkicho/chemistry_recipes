@@ -270,10 +270,21 @@ ok("SourcesRegistry wires massbank", /"massbank"/.test(sourcesReg));
 ok("SourcesRegistry wires clinicaltrials", /"clinicaltrials"/.test(sourcesReg));
 ok("SourcesRegistry recipe focus", /RECIPE_FOCUS_IDS|recipeFocus/.test(sourcesReg));
 
-// Probes include new APIs
+// Probes include new APIs + full catalog
 const probes = read("lib/diagnostics/probes.ts");
-ok("probes include comptox", /comptox/i.test(probes));
-ok("probes include dailymed", /dailymed/i.test(probes));
-ok("probes include semantic-scholar", /semantic-scholar|semanticscholar/i.test(probes));
+const probeCat = read("lib/diagnostics/publicApiProbes.ts");
+ok("probes include comptox", /comptox/i.test(probes) || /comptox/i.test(probeCat));
+ok("probes include dailymed", /dailymed/i.test(probes) || /dailymed/i.test(probeCat));
+ok("probes include semantic-scholar", /semantic-scholar|semanticscholar/i.test(probes + probeCat));
+ok("full publicApiProbes catalog exists", exists("lib/diagnostics/publicApiProbes.ts"));
+ok(
+  "publicApiProbes covers unichem+pubmed+massbank",
+  /unichem/i.test(probeCat) && /pubmed/i.test(probeCat) && /massbank/i.test(probeCat)
+);
+ok(
+  "full API health CLI exists",
+  exists("../scripts/test-api-health-full.mjs") ||
+    fs.existsSync(path.join(__dirname, "test-api-health-full.mjs"))
+);
 
 console.log(`\nAll lib-module integrity checks passed (${passed}).`);

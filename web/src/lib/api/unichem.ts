@@ -50,8 +50,47 @@ export interface UniChemXref {
   url?: string;
 }
 
+type UnichemRow = {
+  src_id?: string | number;
+  src_compound_id?: string | string[];
+  name?: string;
+  name_long?: string;
+};
+
+function rowsToXrefs(rows: UnichemRow[]): UniChemXref[] {
+  const xrefs: UniChemXref[] = [];
+  for (const row of rows) {
+    const srcId = Number(row.src_id);
+    const raw = row.src_compound_id;
+    const compoundId = Array.isArray(raw)
+      ? String(raw[0] || "").trim()
+      : String(raw || "").trim();
+    if (!Number.isFinite(srcId) || !compoundId) continue;
+    // Skip self PubChem
+    if (srcId === 22) continue;
+    xrefs.push({
+      sourceId: srcId,
+      sourceName:
+        SOURCE_LABEL[srcId] ||
+        row.name_long ||
+        row.name ||
+        `UniChem:${srcId}`,
+      srcCompoundId: compoundId,
+      url: deepLink(srcId, compoundId),
+    });
+  }
+  const priority = [7, 14, 1, 15, 29, 6, 34, 2, 31];
+  xrefs.sort((a, b) => {
+    const pa = priority.indexOf(a.sourceId);
+    const pb = priority.indexOf(b.sourceId);
+    return (pa < 0 ? 99 : pa) - (pb < 0 ? 99 : pb);
+  });
+  return xrefs;
+}
+
 /**
  * Map a PubChem CID to other free DB identifiers via UniChem.
+ * Primary: legacy CID path. Fallback: InChIKey verbose map (CID path retired 2025–26).
  */
 export async function fetchUnichemByPubchemCid(
   cid: number
@@ -64,39 +103,46 @@ export async function fetchUnichemByPubchemCid(
     return { xrefs: [], annotations: [], traces: [] };
   }
 
-  // src_compound_id / src_id  — PubChem CID is source 22
-  const url = `${UNICHEM}/src_compound_id/${cid}/22`;
-  const { data, trace } = await fetchJsonWithTrace<
+  const traces: ApiFetchTrace[] = [];
+
+  // 1) Legacy CID/src path (source 22 = PubChem CID) — may 404 after UniChem migration
+  const urlCid = `${UNICHEM}/src_compound_id/${cid}/22`;
+  const cidRes = await fetchJsonWithTrace<
     Array<Array<{ src_id?: string | number; src_compound_id?: string }>>
-  >(url, {
+  >(urlCid, {
     next: { revalidate: 86400 },
     timeoutMs: 10_000,
     headers: { Accept: "application/json" },
   });
+  traces.push(cidRes.trace);
 
-  const xrefs: UniChemXref[] = [];
-  const rows = Array.isArray(data) ? data.flat() : [];
-  for (const row of rows) {
-    const srcId = Number(row.src_id);
-    const compoundId = String(row.src_compound_id || "").trim();
-    if (!Number.isFinite(srcId) || !compoundId) continue;
-    // Skip self PubChem
-    if (srcId === 22) continue;
-    xrefs.push({
-      sourceId: srcId,
-      sourceName: SOURCE_LABEL[srcId] || `UniChem:${srcId}`,
-      srcCompoundId: compoundId,
-      url: deepLink(srcId, compoundId),
+  let xrefs = rowsToXrefs(
+    Array.isArray(cidRes.data) ? (cidRes.data.flat() as UnichemRow[]) : []
+  );
+
+  // 2) Fallback: resolve InChIKey from PubChem, then verbose_inchikey (still works)
+  if (!xrefs.length) {
+    const ikUrl = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${cid}/property/InChIKey/JSON`;
+    const ik = await fetchJsonWithTrace<{
+      PropertyTable?: { Properties?: Array<{ InChIKey?: string }> };
+    }>(ikUrl, {
+      next: { revalidate: 86400 },
+      timeoutMs: 10_000,
+      headers: { Accept: "application/json" },
     });
+    traces.push(ik.trace);
+    const inchiKey = ik.data?.PropertyTable?.Properties?.[0]?.InChIKey?.trim();
+    if (inchiKey) {
+      const urlIk = `${UNICHEM}/verbose_inchikey/${encodeURIComponent(inchiKey)}`;
+      const ikMap = await fetchJsonWithTrace<UnichemRow[]>(urlIk, {
+        next: { revalidate: 86400 },
+        timeoutMs: 10_000,
+        headers: { Accept: "application/json" },
+      });
+      traces.push(ikMap.trace);
+      xrefs = rowsToXrefs(Array.isArray(ikMap.data) ? ikMap.data : []);
+    }
   }
-
-  // Prefer recipe-useful sources first
-  const priority = [7, 14, 1, 15, 29, 6, 34, 2, 31];
-  xrefs.sort((a, b) => {
-    const pa = priority.indexOf(a.sourceId);
-    const pb = priority.indexOf(b.sourceId);
-    return (pa < 0 ? 99 : pa) - (pb < 0 ? 99 : pb);
-  });
 
   const top = xrefs.slice(0, 16);
   const annotations: ExternalAnnotation[] = [];
@@ -138,7 +184,7 @@ export async function fetchUnichemByPubchemCid(
     }
   }
 
-  return { xrefs: top, annotations, traces: [trace] };
+  return { xrefs: top, annotations, traces };
 }
 
 function deepLink(srcId: number, id: string): string | undefined {

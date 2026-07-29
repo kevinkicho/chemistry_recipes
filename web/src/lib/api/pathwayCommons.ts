@@ -29,9 +29,9 @@ export async function fetchPathwayCommonsByName(
   const limit = Math.min(opts.limit ?? 5, 10);
   if (!q) return { hits: [], annotations: [], traces: [], query: "" };
 
-  // PC2 search (JSON)
+  // PC2 search (JSON body; `.json` suffix 404s as of 2026 — use plain /search)
   const url =
-    `https://www.pathwaycommons.org/pc2/search.json?q=${encodeURIComponent(q)}` +
+    `https://www.pathwaycommons.org/pc2/search?q=${encodeURIComponent(q)}` +
     `&type=Pathway&page=0`;
 
   const { data, trace } = await fetchJsonWithTrace<{

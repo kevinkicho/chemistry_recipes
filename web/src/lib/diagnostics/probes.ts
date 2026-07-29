@@ -1,7 +1,14 @@
 /**
- * Lightweight free-API health probes for diagnostics.
- * Never logs secrets. Timeouts stay short so the page stays snappy.
+ * Free-API health probes for diagnostics + CLI.
+ * Catalog: publicApiProbes.ts (full gather/densify inventory).
+ * Never logs secrets. Timeouts stay bounded.
  */
+
+import {
+  PUBLIC_API_PROBE_DEFS,
+  type PublicProbeDef,
+  probeCatalogStats,
+} from "@/lib/diagnostics/publicApiProbes";
 
 export type ProbeStatus = "ok" | "degraded" | "fail" | "skip";
 
@@ -15,188 +22,142 @@ export interface ApiProbeResult {
   latencyMs?: number;
   detail?: string;
   category: string;
+  gatherFamilies?: string[];
+  notes?: string;
 }
 
-const PROBE_TIMEOUT_MS = 4500;
+const PROBE_TIMEOUT_MS = Number(process.env.PROBE_TIMEOUT_MS || 8000);
+const PROBE_CONCURRENCY = Number(process.env.PROBE_CONCURRENCY || 8);
 
-async function probeGet(
-  id: string,
-  name: string,
-  organization: string,
-  url: string,
-  category: string,
-  okWhen: (status: number, body: string) => boolean = (s) => s >= 200 && s < 400
-): Promise<ApiProbeResult> {
+async function mapPool<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T, i: number) => Promise<R>
+): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i]!, i);
+    }
+  }
+  const n = Math.min(concurrency, Math.max(1, items.length));
+  await Promise.all(Array.from({ length: n }, () => worker()));
+  return out;
+}
+
+function bodyOk(def: PublicProbeDef, body: string): boolean {
+  if (!def.bodyMustMatch) return true;
+  try {
+    return new RegExp(def.bodyMustMatch, "i").test(body);
+  } catch {
+    return body.toLowerCase().includes(def.bodyMustMatch.toLowerCase());
+  }
+}
+
+async function runOne(def: PublicProbeDef): Promise<ApiProbeResult> {
   const t0 = Date.now();
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), PROBE_TIMEOUT_MS);
+  const base: Pick<
+    ApiProbeResult,
+    "id" | "name" | "organization" | "endpointUrl" | "category" | "gatherFamilies" | "notes"
+  > = {
+    id: def.id,
+    name: def.name,
+    organization: def.organization,
+    endpointUrl: def.url,
+    category: def.category,
+    gatherFamilies: def.gatherFamilies,
+    notes: def.notes,
+  };
+
   try {
-    const res = await fetch(url, {
+    const res = await fetch(def.url, {
       method: "GET",
       signal: ctrl.signal,
-      headers: { Accept: "application/json, text/plain, */*" },
+      headers: {
+        Accept: "application/json, text/plain, text/xml, */*",
+        "User-Agent":
+          "ChemistryRecipes/1.0 (educational free-public health probe; mailto:devnull@example.com)",
+      },
       cache: "no-store",
     });
     const body = await res.text().catch(() => "");
     const latencyMs = Date.now() - t0;
-    const ok = okWhen(res.status, body);
+    const status = res.status;
+    const accept = def.acceptStatus || [200, 201, 202, 203, 204];
+    const statusOk = accept.includes(status) || (status >= 200 && status < 300);
+    const contentOk = bodyOk(def, body);
+
+    // Optional-key services
+    if (def.optionalKey && (status === 401 || status === 403)) {
+      return {
+        ...base,
+        status: "skip",
+        httpStatus: status,
+        latencyMs,
+        detail: `HTTP ${status} · optional API key not configured (expected)`,
+      };
+    }
+
+    // Rate limited but service is up
+    if (status === 429) {
+      return {
+        ...base,
+        status: "degraded",
+        httpStatus: status,
+        latencyMs,
+        detail: "HTTP 429 rate limited — service up",
+      };
+    }
+
+    if (!statusOk || !contentOk) {
+      return {
+        ...base,
+        status: "fail",
+        httpStatus: status,
+        latencyMs,
+        detail: !statusOk
+          ? `HTTP ${status}${body ? ` · ${body.slice(0, 100)}` : ""}`
+          : `HTTP ${status} · body mismatch (expected /${def.bodyMustMatch}/)`,
+      };
+    }
+
     return {
-      id,
-      name,
-      organization,
-      endpointUrl: url,
-      status: ok ? (latencyMs > 2500 ? "degraded" : "ok") : "fail",
-      httpStatus: res.status,
+      ...base,
+      status: latencyMs > 3500 ? "degraded" : "ok",
+      httpStatus: status,
       latencyMs,
-      detail: ok
-        ? `HTTP ${res.status} · ${body.length} B`
-        : `HTTP ${res.status}${body ? ` · ${body.slice(0, 80)}` : ""}`,
-      category,
+      detail: `HTTP ${status} · ${body.length} B`,
     };
   } catch (e) {
     return {
-      id,
-      name,
-      organization,
-      endpointUrl: url,
+      ...base,
       status: "fail",
       latencyMs: Date.now() - t0,
       detail: e instanceof Error ? e.message : "request failed",
-      category,
     };
   } finally {
     clearTimeout(timer);
   }
 }
 
-/** Concurrent free-API probes (no API keys required for these checks). */
-export async function runPublicApiProbes(): Promise<ApiProbeResult[]> {
-  const jobs = [
-    probeGet(
-      "pubchem",
-      "PubChem PUG",
-      "NCBI (NIH)",
-      "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
-      "identity"
-    ),
-    probeGet(
-      "europepmc",
-      "Europe PMC",
-      "EMBL-EBI",
-      "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=aspirin&pageSize=1&format=json",
-      "literature"
-    ),
-    probeGet(
-      "openalex",
-      "OpenAlex",
-      "OurResearch",
-      "https://api.openalex.org/works?search=aspirin&per_page=1",
-      "literature"
-    ),
-    probeGet(
-      "crossref",
-      "Crossref",
-      "Crossref",
-      "https://api.crossref.org/works?query=aspirin&rows=1",
-      "literature"
-    ),
-    probeGet(
-      "chembl",
-      "ChEMBL",
-      "EMBL-EBI",
-      "https://www.ebi.ac.uk/chembl/api/data/molecule/CHEMBL25.json",
-      "identity"
-    ),
-    probeGet(
-      "mychem",
-      "MyChem.info",
-      "BioThings",
-      "https://mychem.info/v1/query?q=aspirin&size=1",
-      "identity"
-    ),
-    probeGet(
-      "openfda",
-      "openFDA label",
-      "U.S. FDA",
-      "https://api.fda.gov/drug/label.json?search=openfda.generic_name:aspirin&limit=1",
-      "regulatory"
-    ),
-    probeGet(
-      "rxnorm",
-      "RxNorm",
-      "NLM (NIH)",
-      "https://rxnav.nlm.nih.gov/REST/rxcui.json?name=aspirin",
-      "identity"
-    ),
-    probeGet(
-      "kegg",
-      "KEGG",
-      "KEGG",
-      "https://rest.kegg.jp/find/compound/aspirin",
-      "pathways",
-      (s, body) => s >= 200 && s < 400 && body.length > 0
-    ),
-    probeGet(
-      "patentsview",
-      "PatentsView",
-      "USPTO",
-      "https://search.patentsview.org/api/v1/patent/?q={\"patent_title\":\"aspirin\"}&f=[\"patent_id\"]&o={\"size\":1}",
-      "patents",
-      // May 401 without key — report as skip/degraded not hard fail
-      (s) => s === 200 || s === 401 || s === 403
-    ),
-    probeGet(
-      "comptox",
-      "EPA CompTox",
-      "EPA",
-      "https://comptox.epa.gov/dashboard-api/ccdapp1/search/chemical/equal/aspirin",
-      "hazards"
-    ),
-    probeGet(
-      "dailymed",
-      "DailyMed",
-      "NLM (NIH)",
-      "https://dailymed.nlm.nih.gov/dailymed/services/v2/spls.json?drug_name=aspirin&pagesize=1",
-      "regulatory"
-    ),
-    probeGet(
-      "semantic-scholar",
-      "Semantic Scholar",
-      "AI2",
-      "https://api.semanticscholar.org/graph/v1/paper/search?query=aspirin+synthesis&limit=1&fields=title",
-      "literature"
-    ),
-    probeGet(
-      "pubchem-patents",
-      "PubChem Patent xrefs",
-      "NCBI (NIH)",
-      "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/xrefs/PatentID/JSON",
-      "patents",
-      (s, body) => s >= 200 && s < 400 && /PatentID/i.test(body)
-    ),
-    probeGet(
-      "ord-site",
-      "Open Reaction Database",
-      "ORD community",
-      "https://open-reaction-database.org/",
-      "reactions",
-      // Site is a SPA — any 2xx/3xx HTML is "reachable"
-      (s) => s >= 200 && s < 500
-    ),
-  ];
-
-  const results = await Promise.all(jobs);
-  // Normalize patentsview: 401 means "needs key" not outage
-  return results.map((r) => {
-    if (r.id === "patentsview" && (r.httpStatus === 401 || r.httpStatus === 403)) {
-      return {
-        ...r,
-        status: "skip" as const,
-        detail: `HTTP ${r.httpStatus} · optional PATENTSVIEW_API_KEY may improve results`,
-      };
-    }
-    return r;
-  });
+/**
+ * Concurrent free-API probes covering the full gather/densify catalog.
+ */
+export async function runPublicApiProbes(opts?: {
+  ids?: string[];
+  concurrency?: number;
+}): Promise<ApiProbeResult[]> {
+  let defs = PUBLIC_API_PROBE_DEFS;
+  if (opts?.ids?.length) {
+    const want = new Set(opts.ids);
+    defs = defs.filter((d) => want.has(d.id));
+  }
+  const concurrency = opts?.concurrency ?? PROBE_CONCURRENCY;
+  return mapPool(defs, concurrency, (d) => runOne(d));
 }
 
 export function summarizeProbes(probes: ApiProbeResult[]): {
@@ -205,6 +166,8 @@ export function summarizeProbes(probes: ApiProbeResult[]): {
   fail: number;
   skip: number;
   avgLatencyMs: number | null;
+  total: number;
+  catalog: ReturnType<typeof probeCatalogStats>;
 } {
   let ok = 0;
   let degraded = 0;
@@ -228,5 +191,9 @@ export function summarizeProbes(probes: ApiProbeResult[]): {
     fail,
     skip,
     avgLatencyMs: latN ? Math.round(latSum / latN) : null,
+    total: probes.length,
+    catalog: probeCatalogStats(),
   };
 }
+
+export { PUBLIC_API_PROBE_DEFS, probeCatalogStats } from "@/lib/diagnostics/publicApiProbes";
