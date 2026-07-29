@@ -1,8 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   listCampaigns,
+  peekCampaignAgentHandoff,
   type ScienceCampaign,
   subscribeCampaigns,
 } from "@/lib/workspace/campaigns";
@@ -27,13 +30,15 @@ import {
   formatCampaignRoutesMarkdown,
 } from "@/lib/frontier/exportMarkdown";
 import { streamBatchDensifyCids } from "@/lib/dossier/batchClient";
-import Link from "next/link";
 import { routes } from "@/lib/routes";
 
 /**
  * Multi-CID scientific brief: condition landscape, cross-CID conflicts, experiments.
+ * Deep-link: ?campaign=id&brief=1 or session handoff after problem densify.
  */
 export function CampaignBriefPanel() {
+  const searchParams = useSearchParams();
+  const handoffDone = useRef(false);
   const [campaigns, setCampaigns] = useState<ScienceCampaign[]>([]);
   const [selected, setSelected] = useState("");
   const [brief, setBrief] = useState<CampaignScientificBrief | null>(null);
@@ -42,6 +47,7 @@ export function CampaignBriefPanel() {
   const [ideal, setIdeal] = useState<CampaignIdealRollup | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [handoffNote, setHandoffNote] = useState<string | null>(null);
 
   const reloadList = useCallback(() => {
     const rows = listCampaigns();
@@ -53,6 +59,37 @@ export function CampaignBriefPanel() {
     reloadList();
     return subscribeCampaigns(reloadList);
   }, [reloadList]);
+
+  // Handoff / URL: select campaign and scroll to brief
+  useEffect(() => {
+    if (handoffDone.current) return;
+    const urlCamp = searchParams.get("campaign")?.trim() || "";
+    const urlBrief = searchParams.get("brief") === "1";
+    const handoff = peekCampaignAgentHandoff();
+    const campaignId = urlCamp || handoff?.campaignId || "";
+    const openBrief = urlBrief || Boolean(handoff?.openBrief);
+
+    if (!campaignId) return;
+    handoffDone.current = true;
+    setSelected(campaignId);
+    if (handoff?.problemQuery || openBrief) {
+      setHandoffNote(
+        handoff?.problemQuery
+          ? `Brief for problem densify “${handoff.problemQuery}”` +
+              (handoff.literatureAttached
+                ? ` · ${handoff.literatureAttached} lit pastes`
+                : "")
+          : "Campaign brief opened from handoff"
+      );
+    }
+    if (openBrief) {
+      window.setTimeout(() => {
+        document
+          .getElementById("campaign-brief")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 250);
+    }
+  }, [searchParams]);
 
   const loadBrief = useCallback(async (camp: ScienceCampaign) => {
     setBusy(true);
@@ -162,8 +199,17 @@ export function CampaignBriefPanel() {
       </h2>
       <p className="mt-1 text-[11px] text-slate-500">
         Depth score, cross-CID range conflicts, and research experiments from
-        densified free-public packages. Not plant setpoints.
+        densified free-public packages. Not plant setpoints. Problem densify can
+        open this brief automatically.
       </p>
+      {handoffNote ? (
+        <p
+          className="mt-2 rounded border border-indigo-500/30 bg-indigo-500/10 px-2 py-1.5 text-[11px] text-indigo-100/90"
+          role="status"
+        >
+          {handoffNote}
+        </p>
+      ) : null}
 
       <label className="mt-3 block text-[10px] font-semibold uppercase text-slate-500">
         Campaign

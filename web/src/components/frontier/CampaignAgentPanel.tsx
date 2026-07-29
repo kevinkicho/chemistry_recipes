@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  consumeCampaignAgentHandoff,
+  clearCampaignAgentHandoff,
   listCampaigns,
+  peekCampaignAgentHandoff,
   type ScienceCampaign,
   subscribeCampaigns,
 } from "@/lib/workspace/campaigns";
@@ -70,7 +71,7 @@ export function CampaignAgentPanel() {
     const urlCamp = searchParams.get("campaign")?.trim() || "";
     const urlAgent = searchParams.get("agent") === "1";
     const urlQ = searchParams.get("q")?.trim() || "";
-    const handoff = consumeCampaignAgentHandoff();
+    const handoff = peekCampaignAgentHandoff();
 
     const campaignId = urlCamp || handoff?.campaignId || "";
     const question =
@@ -87,13 +88,21 @@ export function CampaignAgentPanel() {
       if (question) setQ(question);
       if (handoff?.problemQuery) {
         setHandoffNote(
-          `Opened from problem densify “${handoff.problemQuery}” · campaign agent ready`
+          `Opened from problem densify “${handoff.problemQuery}”` +
+            (handoff.literatureAttached
+              ? ` · ${handoff.literatureAttached} lit pastes`
+              : "") +
+            " · campaign agent ready"
         );
       }
-      // Scroll agent into view
+      // Prefer brief first if handoff asks, else agent
+      const scrollId =
+        handoff?.openBrief || searchParams.get("brief") === "1"
+          ? "campaign-brief"
+          : "campaign-agent";
       window.setTimeout(() => {
         document
-          .getElementById("campaign-agent")
+          .getElementById(scrollId)
           ?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 200);
     }
@@ -109,6 +118,8 @@ export function CampaignAgentPanel() {
           setOut(null);
           setSteps(["[retrieve] Auto-run after problem densify handoff…"]);
           try {
+            // Brief panel may need handoff first; clear after agent starts
+            window.setTimeout(() => clearCampaignAgentHandoff(), 1500);
             const res = await runCampaignAgent(camp, ask);
             setLastAgent(res);
             setSteps(res.steps.map((s) => `[${s.role}] ${s.detail}`));
@@ -119,7 +130,7 @@ export function CampaignAgentPanel() {
             );
             setOut(
               [
-                "mode: handoff auto-ask (local cache after densify)",
+                "mode: handoff auto-ask (local cache after densify + lit pastes)",
                 res.answer.insufficientEvidence
                   ? "⚠ insufficient free-public evidence"
                   : "✓ campaign-grounded",
@@ -128,10 +139,19 @@ export function CampaignAgentPanel() {
                 res.answer.answer,
               ].join("\n")
             );
+            // After agent, jump to agent panel if brief was first
+            if (handoff?.openBrief || searchParams.get("brief") === "1") {
+              window.setTimeout(() => {
+                document
+                  .getElementById("campaign-agent")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }, 400);
+            }
           } catch (e) {
             setOut(
               e instanceof Error ? e.message : "Auto campaign agent failed"
             );
+            clearCampaignAgentHandoff();
           } finally {
             setBusy(false);
           }

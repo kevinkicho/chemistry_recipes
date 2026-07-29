@@ -31,6 +31,9 @@ export function ProblemFirstSearch() {
   const [sourcePills, setSourcePills] = useState<
     Array<{ source: string; ok: boolean; hitCount: number }>
   >([]);
+  const [literatureHits, setLiteratureHits] = useState<
+    ProblemMultiSearchResult["literatureHits"]
+  >([]);
 
   const localHits = useMemo(() => searchProblemFirst(q, 12), [q]);
   const hits = liveHits ?? localHits;
@@ -43,6 +46,7 @@ export function ProblemFirstSearch() {
       setLiveHits(null);
       setStatus(null);
       setSourcePills([]);
+      setLiteratureHits([]);
       setLoading(false);
       return;
     }
@@ -63,6 +67,7 @@ export function ProblemFirstSearch() {
           if (ac.signal.aborted) return;
           setLiveHits(data.unified?.length ? data.unified : null);
           setSourcePills(data.sourceStatus || []);
+          setLiteratureHits(data.literatureHits || []);
           setStatus(data.summary || null);
           setLoading(false);
         })
@@ -70,6 +75,7 @@ export function ProblemFirstSearch() {
           if (ac.signal.aborted) return;
           if (e instanceof Error && e.name === "AbortError") return;
           setLiveHits(null);
+          setLiteratureHits([]);
           setStatus("Multi-source enrich unavailable — showing local hub hits");
           setLoading(false);
         });
@@ -107,6 +113,7 @@ export function ProblemFirstSearch() {
     try {
       const res = await createCampaignAndDensifyFromProblemHits(q, hits, {
         concurrency: 2,
+        literatureHits,
         onProgress: (m) => setCampMsg(m),
       });
       if (!res) {
@@ -115,20 +122,30 @@ export function ProblemFirstSearch() {
       }
       const agentQ = `What free-public process conditions and unit-op evidence appear for “${q.trim()}” across this campaign? Any edge conflicts?`;
       setCampMsg(
-        `Campaign “${res.campaign.name}” · densify ${res.densify.ok}ok/${res.densify.fail}fail · ${res.queueCids.length} CIDs` +
-          (openAgent ? " · opening campaign agent…" : " · open Workspace for brief/agent.")
+        [
+          `Campaign “${res.campaign.name}” · densify ${res.densify.ok}ok/${res.densify.fail}fail · ${res.queueCids.length} CIDs`,
+          res.literatureAttached
+            ? `lit pastes ${res.literatureAttached} (${res.literatureChars.toLocaleString()} chars)`
+            : null,
+          openAgent ? "opening brief + agent…" : "open Workspace for brief/agent",
+        ]
+          .filter(Boolean)
+          .join(" · ")
       );
       if (openAgent) {
         setCampaignAgentHandoff({
           campaignId: res.campaign.id,
           question: agentQ,
           autoRun: true,
+          openBrief: true,
           problemQuery: q.trim(),
+          literatureAttached: res.literatureAttached,
         });
         router.push(
           routes.workspace({
             campaign: res.campaign.id,
             agent: true,
+            brief: true,
             q: agentQ,
           })
         );

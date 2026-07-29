@@ -14,6 +14,11 @@ import {
   streamBatchDensifyCids,
   type BatchClientResponse,
 } from "@/lib/dossier/batchClient";
+import type { LiteratureHit } from "@/lib/api/europePmc";
+import {
+  attachLiteratureHitsToCampaignCids,
+  rematerializeCachesWithLocalPastes,
+} from "@/lib/frontier/literatureToPaste";
 
 /**
  * Extract PubChem CIDs from problem-search hits (hub-live, multi-source, example).
@@ -89,11 +94,15 @@ export interface ProblemCampaignDensifyResult {
   campaign: ScienceCampaign;
   densify: BatchClientResponse;
   queueCids: number[];
+  literatureAttached: number;
+  literatureChars: number;
+  literatureSummary?: string;
 }
 
 /**
- * Create campaign from problem hits, then stream-densify the CID queue.
- * Client-only (uses IndexedDB batch cache).
+ * Create campaign from problem hits, optionally attach process literature as
+ * local densify pastes, then stream-densify the CID queue.
+ * Client-only (uses IndexedDB batch cache + local supplements).
  */
 export async function createCampaignAndDensifyFromProblemHits(
   query: string,
@@ -103,6 +112,7 @@ export async function createCampaignAndDensifyFromProblemHits(
     limit?: number;
     concurrency?: number;
     force?: boolean;
+    literatureHits?: LiteratureHit[];
     onProgress?: (msg: string) => void;
   }
 ): Promise<ProblemCampaignDensifyResult | null> {
@@ -113,6 +123,23 @@ export async function createCampaignAndDensifyFromProblemHits(
   if (!camp) return null;
 
   const queueCids = camp.cids.slice(0, 12);
+  let literatureAttached = 0;
+  let literatureChars = 0;
+  let literatureSummary: string | undefined;
+
+  if (opts?.literatureHits?.length) {
+    opts.onProgress?.("Attaching free-public literature as densify pastes…");
+    const lit = attachLiteratureHitsToCampaignCids(
+      queueCids,
+      opts.literatureHits,
+      { maxPerCid: 3, maxCids: 8 }
+    );
+    literatureAttached = lit.totalAttached;
+    literatureChars = lit.totalChars;
+    literatureSummary = lit.summary;
+    opts.onProgress?.(lit.summary);
+  }
+
   opts?.onProgress?.(
     `Campaign “${camp.name}” · densifying ${queueCids.length} CID(s)…`
   );
@@ -126,12 +153,21 @@ export async function createCampaignAndDensifyFromProblemHits(
     onProgress: opts?.onProgress,
   });
 
+  // Fold literature pastes into IDB so campaign agent/brief use enriched packages
+  if (literatureAttached > 0) {
+    opts?.onProgress?.("Rematerializing caches with literature pastes…");
+    await rematerializeCachesWithLocalPastes(queueCids);
+  }
+
   updateCampaign(camp.id, {
     lastBatch: {
       at: new Date().toISOString(),
       ok: densify.ok,
       fail: densify.fail,
-      detail: densify.error || `problem densify queue · ${queueCids.length} CIDs`,
+      detail:
+        densify.error ||
+        `problem densify queue · ${queueCids.length} CIDs` +
+          (literatureAttached ? ` · lit pastes ${literatureAttached}` : ""),
     },
   });
 
@@ -149,5 +185,8 @@ export async function createCampaignAndDensifyFromProblemHits(
     campaign: refreshed,
     densify,
     queueCids,
+    literatureAttached,
+    literatureChars,
+    literatureSummary,
   };
 }

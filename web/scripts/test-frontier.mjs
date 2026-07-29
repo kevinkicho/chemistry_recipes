@@ -538,7 +538,39 @@ ok(
 );
 ok(
   "workspace route campaign agent params",
-  /campaign\?:|agent\?:/.test(read("lib/routes.ts"))
+  /campaign\?:|agent\?:|brief\?:/.test(read("lib/routes.ts"))
+);
+ok(
+  "literatureToPaste module",
+  existsSync(join(root, "src/lib/frontier/literatureToPaste.ts"))
+);
+ok(
+  "attachLiteratureHitsToCampaignCids",
+  /export function attachLiteratureHitsToCampaignCids/.test(
+    read("lib/frontier/literatureToPaste.ts")
+  )
+);
+ok(
+  "rematerializeCachesWithLocalPastes",
+  /export async function rematerializeCachesWithLocalPastes/.test(
+    read("lib/frontier/literatureToPaste.ts")
+  )
+);
+ok(
+  "problem densify uses literature pastes",
+  /literatureHits|rematerializeCachesWithLocalPastes/.test(
+    read("lib/search/problemCampaign.ts")
+  )
+);
+ok(
+  "CampaignBrief handoff",
+  /peekCampaignAgentHandoff|openBrief|campaign-brief/.test(
+    read("components/frontier/CampaignBriefPanel.tsx")
+  )
+);
+ok(
+  "handoff openBrief field",
+  /openBrief/.test(read("lib/workspace/campaigns.ts"))
 );
 ok(
   "densifyQuality atlas after knowledge",

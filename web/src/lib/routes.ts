@@ -29,16 +29,19 @@ export const routes = {
    * Workspace. Optional deep-links:
    * - campaign: select science campaign id
    * - agent: 1 → scroll to campaign agent and auto-run
+   * - brief: 1 → scroll to campaign scientific brief
    * - q: agent question
    */
   workspace: (opts?: {
     campaign?: string;
     agent?: boolean;
+    brief?: boolean;
     q?: string;
   }) => {
     const params = new URLSearchParams();
     if (opts?.campaign?.trim()) params.set("campaign", opts.campaign.trim());
     if (opts?.agent) params.set("agent", "1");
+    if (opts?.brief) params.set("brief", "1");
     if (opts?.q?.trim()) params.set("q", opts.q.trim());
     const qs = params.toString();
     return qs ? `/workspace?${qs}` : "/workspace";

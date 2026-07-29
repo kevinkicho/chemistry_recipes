@@ -125,19 +125,26 @@ export function subscribeCampaigns(listener: () => void): () => void {
   return () => window.removeEventListener("cr-campaigns-changed", on);
 }
 
-/** Session handoff: problem densify → workspace campaign agent */
-const HANDOFF_KEY = "cr-campaign-agent-handoff-v1";
+/** Session handoff: problem densify → workspace (agent + brief) */
+const HANDOFF_KEY = "cr-campaign-workspace-handoff-v1";
 
-export interface CampaignAgentHandoff {
+export interface CampaignWorkspaceHandoff {
   campaignId: string;
   question?: string;
+  /** Auto-run campaign agent Q&A */
   autoRun: boolean;
+  /** Scroll to / select campaign scientific brief */
+  openBrief?: boolean;
   problemQuery?: string;
+  literatureAttached?: number;
   at: string;
 }
 
+/** @deprecated use CampaignWorkspaceHandoff */
+export type CampaignAgentHandoff = CampaignWorkspaceHandoff;
+
 export function setCampaignAgentHandoff(
-  handoff: Omit<CampaignAgentHandoff, "at">
+  handoff: Omit<CampaignWorkspaceHandoff, "at">
 ): void {
   if (typeof window === "undefined") return;
   try {
@@ -146,24 +153,39 @@ export function setCampaignAgentHandoff(
       JSON.stringify({
         ...handoff,
         at: new Date().toISOString(),
-      } satisfies CampaignAgentHandoff)
+      } satisfies CampaignWorkspaceHandoff)
     );
   } catch {
     /* ignore quota */
   }
 }
 
-/** Read and clear handoff (one-shot). */
-export function consumeCampaignAgentHandoff(): CampaignAgentHandoff | null {
+/** Read without clearing (brief + agent can both use). */
+export function peekCampaignAgentHandoff(): CampaignWorkspaceHandoff | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = sessionStorage.getItem(HANDOFF_KEY);
     if (!raw) return null;
-    sessionStorage.removeItem(HANDOFF_KEY);
-    const p = JSON.parse(raw) as CampaignAgentHandoff;
+    const p = JSON.parse(raw) as CampaignWorkspaceHandoff;
     if (!p?.campaignId) return null;
     return p;
   } catch {
     return null;
+  }
+}
+
+/** Read and clear handoff (one-shot). Prefer peek + clearHandoff for multi-panel. */
+export function consumeCampaignAgentHandoff(): CampaignWorkspaceHandoff | null {
+  const p = peekCampaignAgentHandoff();
+  clearCampaignAgentHandoff();
+  return p;
+}
+
+export function clearCampaignAgentHandoff(): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(HANDOFF_KEY);
+  } catch {
+    /* ignore */
   }
 }

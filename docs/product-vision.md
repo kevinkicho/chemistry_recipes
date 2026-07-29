@@ -81,6 +81,8 @@ Export: process-knowledge JSON from the Evidence science panel.
 | **Problem multi-source** | Unit-op search + live multi CIDs + process papers via `/api/search/problem` |
 | **Problem densify queue** | Spin campaign + stream densify CIDs from problem hits in one click |
 | **Problem → agent handoff** | After densify, open Workspace campaign agent with auto-ask question |
+| **Literature → paste densify** | Attach process papers as local CID pastes; rematerialize IDB packages |
+| **Problem → brief + agent** | Handoff opens scientific brief then auto-runs campaign agent |
 | **Related-entity CID resolve** | Name/CAS → free-public PubChem fill for missing related CIDs |
 | **Campaign compare** | Side-by-side densify/ideal/lit-depth metrics for two campaigns |
 
