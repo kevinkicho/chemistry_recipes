@@ -200,13 +200,15 @@ export const CHEMISTRY_API_SOURCES: ApiSource[] = [
   },
   {
     id: "patentsview",
-    name: "PatentsView",
-    organization: "USPTO / PatentsView",
+    name: "PatentsView / free patent densify",
+    organization: "USPTO / PatentsView / Europe PMC",
     priority: "P1",
-    role: "Process patents, assignees, CPC classification",
-    endpointUrl: "https://search.patentsview.org/api/v1",
-    docsUrl: "https://patentsview.org/apis/api-query-language",
+    role: "Process patents (PatentsView when online+key; free Europe PMC SRC:PAT + PubChem PUG View densify always)",
+    endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest",
+    docsUrl: "https://data.uspto.gov/support/transition-guide/patentsview",
     category: "patents",
+    notes:
+      "PatentsView PatentSearch host is migrating to USPTO Open Data Portal (2026). Live gather free-falls to Europe PMC patents.",
   },
   {
     id: "europepmc",
@@ -253,10 +255,12 @@ export const CHEMISTRY_API_SOURCES: ApiSource[] = [
     name: "Semantic Scholar",
     organization: "AI2",
     priority: "P1",
-    role: "Related papers and influence metrics",
+    role: "Related papers and influence metrics (rate-limited free tier)",
     endpointUrl: "https://api.semanticscholar.org/graph/v1",
     docsUrl: "https://api.semanticscholar.org/",
     category: "literature",
+    notes:
+      "Optional free key SEMANTIC_SCHOLAR_API_KEY / S2_API_KEY raises rate limits. Soft-fails on 429.",
   },
   {
     id: "openfda",

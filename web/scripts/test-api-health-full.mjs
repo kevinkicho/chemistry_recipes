@@ -21,7 +21,8 @@ const STRICT =
 const AS_JSON = process.argv.includes("--json");
 const INCLUDE_APP = process.argv.includes("--app");
 const TIMEOUT_MS = Number(process.env.PROBE_TIMEOUT_MS || 12000);
-const CONCURRENCY = Number(process.env.PROBE_CONCURRENCY || 6);
+// Keep concurrency low — PubChem 503s under parallel load
+const CONCURRENCY = Number(process.env.PROBE_CONCURRENCY || 3);
 const APP_BASE =
   process.env.APPHOSTING_URL ||
   "https://chemrecipe--chemistryrecipes.us-central1.hosted.app";
@@ -262,6 +263,8 @@ const PROBES = [
     gather: "semanticscholar",
     url: `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(Q + " synthesis")}&limit=1&fields=title`,
     body: /data|total|paperId|title/i,
+    // 429 is degraded (service up); optional S2 key raises limits
+    notes: "Set SEMANTIC_SCHOLAR_API_KEY for higher free rate limits",
   },
   {
     id: "arxiv",
@@ -272,13 +275,22 @@ const PROBES = [
     body: /feed|entry|arxiv/i,
   },
   {
-    id: "patentsview",
-    name: "PatentsView",
+    id: "patentsview-host",
+    name: "PatentsView host (optional / ODP migration)",
     category: "patents",
     gather: "patentsview",
-    url: `https://search.patentsview.org/api/v1/patent/?q=${encodeURIComponent(JSON.stringify({ patent_title: Q }))}&f=${encodeURIComponent(JSON.stringify(["patent_id"]))}&o=${encodeURIComponent(JSON.stringify({ size: 1 }))}`,
+    url: `https://search.patentsview.org/api/v1/patent/?q=${encodeURIComponent(JSON.stringify({ patent_id: "10029448" }))}&f=${encodeURIComponent(JSON.stringify(["patent_id"]))}&o=${encodeURIComponent(JSON.stringify({ size: 1 }))}`,
     optionalKey: true,
-    notes: "Requires PATENTSVIEW_API_KEY; network/TLS failures also skip",
+    notes: "USPTO ODP migration may ENOTFOUND this host; gather free-falls to Europe PMC SRC:PAT",
+  },
+  {
+    id: "patentsview-free-fallback",
+    name: "Patent free fallback Europe PMC SRC:PAT",
+    category: "patents",
+    gather: "patentsview",
+    url: `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=${encodeURIComponent(`(SRC:PAT) ${Q}`)}&pageSize=1&format=json`,
+    body: /resultList|hitCount/i,
+    notes: "Always-on free patent path when PatentsView is offline",
   },
   {
     id: "kegg",
