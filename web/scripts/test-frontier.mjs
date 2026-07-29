@@ -510,6 +510,37 @@ ok(
   )
 );
 ok(
+  "arxiv in multi search",
+  /searchArxivProcess/.test(read("lib/search/multiSourceSearch.ts")) &&
+    /"arxiv"/.test(read("lib/search/multiSourceSearch.ts"))
+);
+ok(
+  "problem multi includes arxiv",
+  /searchArxivProcess/.test(read("lib/search/problemMultiSource.ts"))
+);
+ok(
+  "campaign agent handoff",
+  /setCampaignAgentHandoff|consumeCampaignAgentHandoff/.test(
+    read("lib/workspace/campaigns.ts")
+  )
+);
+ok(
+  "CampaignAgentPanel auto-run handoff",
+  /consumeCampaignAgentHandoff|autoRanRef|handoff/.test(
+    read("components/frontier/CampaignAgentPanel.tsx")
+  )
+);
+ok(
+  "ProblemFirstSearch opens agent",
+  /setCampaignAgentHandoff|openAgent|routes\.workspace/.test(
+    read("components/ProblemFirstSearch.tsx")
+  )
+);
+ok(
+  "workspace route campaign agent params",
+  /campaign\?:|agent\?:/.test(read("lib/routes.ts"))
+);
+ok(
   "densifyQuality atlas after knowledge",
   /withProcessKnowledge/.test(pipe) &&
     /conditionObservations/.test(pipe) &&

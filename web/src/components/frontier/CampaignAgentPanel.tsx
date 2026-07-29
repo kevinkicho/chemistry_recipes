@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
+  consumeCampaignAgentHandoff,
   listCampaigns,
   type ScienceCampaign,
   subscribeCampaigns,
@@ -25,15 +27,19 @@ import {
   downloadCampaignKnowledge,
 } from "@/lib/frontier/campaignExport";
 
+const DEFAULT_Q =
+  "What condition ranges appear across this campaign? Any edge conflicts?";
+
 /**
  * Campaign-level quote-bound Q&A over merged multi-CID caches.
+ * Deep-link: ?campaign=id&agent=1&q=... or session handoff after problem densify.
  */
 export function CampaignAgentPanel() {
+  const searchParams = useSearchParams();
+  const autoRanRef = useRef(false);
   const [campaigns, setCampaigns] = useState<ScienceCampaign[]>([]);
   const [selected, setSelected] = useState("");
-  const [q, setQ] = useState(
-    "What condition ranges appear across this campaign? Any edge conflicts?"
-  );
+  const [q, setQ] = useState(DEFAULT_Q);
   const [busy, setBusy] = useState(false);
   const [out, setOut] = useState<string | null>(null);
   const [steps, setSteps] = useState<string[]>([]);
@@ -45,6 +51,7 @@ export function CampaignAgentPanel() {
   const [lastAgent, setLastAgent] = useState<CampaignAgentResult | null>(null);
   const [exportMsg, setExportMsg] = useState<string | null>(null);
   const [autoAskAfterQueue, setAutoAskAfterQueue] = useState(true);
+  const [handoffNote, setHandoffNote] = useState<string | null>(null);
 
   const reload = useCallback(() => {
     const rows = listCampaigns();
@@ -56,6 +63,82 @@ export function CampaignAgentPanel() {
     reload();
     return subscribeCampaigns(reload);
   }, [reload]);
+
+  // URL / session handoff: select campaign and optionally auto-run agent
+  useEffect(() => {
+    if (autoRanRef.current) return;
+    const urlCamp = searchParams.get("campaign")?.trim() || "";
+    const urlAgent = searchParams.get("agent") === "1";
+    const urlQ = searchParams.get("q")?.trim() || "";
+    const handoff = consumeCampaignAgentHandoff();
+
+    const campaignId = urlCamp || handoff?.campaignId || "";
+    const question =
+      urlQ ||
+      handoff?.question ||
+      (handoff?.problemQuery
+        ? `What free-public process conditions and unit-op evidence appear for problem “${handoff.problemQuery}” across this campaign?`
+        : "");
+    const shouldAuto =
+      urlAgent || Boolean(handoff?.autoRun && handoff.campaignId);
+
+    if (campaignId) {
+      setSelected(campaignId);
+      if (question) setQ(question);
+      if (handoff?.problemQuery) {
+        setHandoffNote(
+          `Opened from problem densify “${handoff.problemQuery}” · campaign agent ready`
+        );
+      }
+      // Scroll agent into view
+      window.setTimeout(() => {
+        document
+          .getElementById("campaign-agent")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 200);
+    }
+
+    if (shouldAuto && campaignId) {
+      autoRanRef.current = true;
+      const camp = listCampaigns().find((c) => c.id === campaignId);
+      const ask = (question || DEFAULT_Q).trim();
+      if (camp && ask.length >= 4) {
+        setQ(ask);
+        void (async () => {
+          setBusy(true);
+          setOut(null);
+          setSteps(["[retrieve] Auto-run after problem densify handoff…"]);
+          try {
+            const res = await runCampaignAgent(camp, ask);
+            setLastAgent(res);
+            setSteps(res.steps.map((s) => `[${s.role}] ${s.detail}`));
+            setExps(
+              res.nextExperiments
+                .slice(0, 5)
+                .map((e) => `${e.priority}: ${e.question}`)
+            );
+            setOut(
+              [
+                "mode: handoff auto-ask (local cache after densify)",
+                res.answer.insufficientEvidence
+                  ? "⚠ insufficient free-public evidence"
+                  : "✓ campaign-grounded",
+                `cached ${res.metrics.cachedCount}/${res.metrics.requestedCount} · obs ${res.metrics.totalObservations}`,
+                "",
+                res.answer.answer,
+              ].join("\n")
+            );
+          } catch (e) {
+            setOut(
+              e instanceof Error ? e.message : "Auto campaign agent failed"
+            );
+          } finally {
+            setBusy(false);
+          }
+        })();
+      }
+    }
+  }, [searchParams]);
 
   const refreshHealth = useCallback(async (camp: ScienceCampaign) => {
     const statuses = await campaignStatuses(camp.cids, camp.labels);
@@ -337,7 +420,16 @@ export function CampaignAgentPanel() {
       <p className="mt-1 text-[11px] text-slate-500">
         Answers only from campaign densify (merged atlas + network). No plant
         invention. Stream densify thin/missing from preflight, or use server mode.
+        Problem search can hand off here after densify with auto-ask.
       </p>
+      {handoffNote ? (
+        <p
+          className="mt-2 rounded border border-violet-500/30 bg-violet-500/10 px-2 py-1.5 text-[11px] text-violet-100/90"
+          role="status"
+        >
+          {handoffNote}
+        </p>
+      ) : null}
 
       <label className="mt-3 block text-[10px] font-semibold uppercase text-slate-500">
         Campaign

@@ -13,12 +13,15 @@ import {
   createCampaignFromProblemHits,
 } from "@/lib/search/problemCampaign";
 import type { ProblemMultiSearchResult } from "@/lib/search/problemMultiSource";
+import { setCampaignAgentHandoff } from "@/lib/workspace/campaigns";
 import { routes } from "@/lib/routes";
+import { useRouter } from "next/navigation";
 
 /**
  * Home / search entry: problem or unit-op first, enriched with multi-source fan-out.
  */
 export function ProblemFirstSearch() {
+  const router = useRouter();
   const [q, setQ] = useState("");
   const [campMsg, setCampMsg] = useState<string | null>(null);
   const [liveHits, setLiveHits] = useState<ProblemSearchHit[] | null>(null);
@@ -93,11 +96,12 @@ export function ProblemFirstSearch() {
     );
   }
 
-  async function spinCampaignAndDensify() {
+  async function spinCampaignAndDensify(opts?: { openAgent?: boolean }) {
     if (!q.trim() || !cids.length) {
       setCampMsg("Need hub/live hits with PubChem CIDs to densify.");
       return;
     }
+    const openAgent = opts?.openAgent !== false;
     setDensifyBusy(true);
     setCampMsg(null);
     try {
@@ -109,9 +113,26 @@ export function ProblemFirstSearch() {
         setCampMsg("Could not create campaign from these hits.");
         return;
       }
+      const agentQ = `What free-public process conditions and unit-op evidence appear for “${q.trim()}” across this campaign? Any edge conflicts?`;
       setCampMsg(
-        `Campaign “${res.campaign.name}” · densify ${res.densify.ok}ok/${res.densify.fail}fail · ${res.queueCids.length} CIDs · open Workspace for brief/agent.`
+        `Campaign “${res.campaign.name}” · densify ${res.densify.ok}ok/${res.densify.fail}fail · ${res.queueCids.length} CIDs` +
+          (openAgent ? " · opening campaign agent…" : " · open Workspace for brief/agent.")
       );
+      if (openAgent) {
+        setCampaignAgentHandoff({
+          campaignId: res.campaign.id,
+          question: agentQ,
+          autoRun: true,
+          problemQuery: q.trim(),
+        });
+        router.push(
+          routes.workspace({
+            campaign: res.campaign.id,
+            agent: true,
+            q: agentQ,
+          })
+        );
+      }
     } catch (e) {
       setCampMsg(
         e instanceof Error ? e.message : "Campaign densify queue failed"
@@ -201,12 +222,20 @@ export function ProblemFirstSearch() {
           <button
             type="button"
             disabled={densifyBusy}
-            onClick={() => void spinCampaignAndDensify()}
+            onClick={() => void spinCampaignAndDensify({ openAgent: true })}
             className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-100 hover:bg-amber-500/20 disabled:opacity-40"
           >
             {densifyBusy
-              ? "Densifying campaign queue…"
-              : `Spin + densify queue (${Math.min(12, cids.length)})`}
+              ? "Densifying → agent…"
+              : `Spin + densify + agent (${Math.min(12, cids.length)})`}
+          </button>
+          <button
+            type="button"
+            disabled={densifyBusy}
+            onClick={() => void spinCampaignAndDensify({ openAgent: false })}
+            className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-slate-600 disabled:opacity-40"
+          >
+            Densify only
           </button>
           <Link
             href={routes.workspace()}

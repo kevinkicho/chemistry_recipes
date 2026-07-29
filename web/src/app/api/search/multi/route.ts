@@ -69,6 +69,7 @@ export async function POST() {
       "crossref",
       "semanticscholar",
       "pubmed",
+      "arxiv",
     ],
     suggest: "GET /api/search/suggest?q=asp",
     problem: "GET /api/search/problem?q=hydrogenation",

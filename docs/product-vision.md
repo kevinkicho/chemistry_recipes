@@ -76,10 +76,11 @@ Export: process-knowledge JSON from the Evidence science panel.
 | **Neighbor densify graph** | Impurity-first related-entity densify queue + impurity campaigns |
 | **ORD → campaign bridge** | Local ORD snippets → densify paste + spin multi-CID science campaign |
 | **Campaign ideal rollup** | Mean/min/max Ideal score + section heatmap + weak-CID densify |
-| **Multi-source search** | Identity APIs + openFDA + KEGG + process lit (EPMC, OpenAlex, Crossref, Semantic Scholar, PubMed) |
+| **Multi-source search** | Identity APIs + openFDA + KEGG + process lit (EPMC, OpenAlex, Crossref, S2, PubMed, arXiv) |
 | **Multi-source autocomplete** | Combobox: local hub + PubChem + RxNorm + openFDA via `/api/search/suggest` |
 | **Problem multi-source** | Unit-op search + live multi CIDs + process papers via `/api/search/problem` |
 | **Problem densify queue** | Spin campaign + stream densify CIDs from problem hits in one click |
+| **Problem → agent handoff** | After densify, open Workspace campaign agent with auto-ask question |
 | **Related-entity CID resolve** | Name/CAS → free-public PubChem fill for missing related CIDs |
 | **Campaign compare** | Side-by-side densify/ideal/lit-depth metrics for two campaigns |
 

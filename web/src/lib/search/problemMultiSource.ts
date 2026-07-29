@@ -12,6 +12,7 @@ import { searchEuropePmc, type LiteratureHit } from "@/lib/api/europePmc";
 import { searchOpenAlexProcess } from "@/lib/api/openAlex";
 import { searchSemanticScholarProcess } from "@/lib/api/semanticScholar";
 import { searchPubMedProcess } from "@/lib/api/pubmed";
+import { searchArxivProcess } from "@/lib/api/arxiv";
 import { routes } from "@/lib/routes";
 
 export const PROBLEM_MULTI_SCHEMA =
@@ -24,7 +25,7 @@ export interface ProblemMultiSearchResult {
   localHits: ProblemSearchHit[];
   /** Openable multi-source molecule hits */
   moleculeHits: MultiSourceHit[];
-  /** Process-relevant literature (EPMC + OpenAlex + Semantic Scholar + PubMed) */
+  /** Process-relevant literature (EPMC + OpenAlex + S2 + PubMed + arXiv) */
   literatureHits: LiteratureHit[];
   /** Unified ranked list for UI */
   unified: ProblemSearchHit[];
@@ -105,7 +106,7 @@ export async function searchProblemFirstMulti(
     },
   ];
 
-  const [multi, epmc, oalex, s2, pubmed] = await Promise.allSettled([
+  const [multi, epmc, oalex, s2, pubmed, arxiv] = await Promise.allSettled([
     multiSourceSearch(q, Math.min(8, limit)),
     searchEuropePmc(q, {
       limit: 5,
@@ -115,6 +116,7 @@ export async function searchProblemFirstMulti(
     searchOpenAlexProcess(q, { limit: 4 }),
     searchSemanticScholarProcess(q, { limit: 4 }),
     searchPubMedProcess(q, { limit: 4 }),
+    searchArxivProcess(q, { limit: 3 }),
   ]);
 
   let moleculeHits: MultiSourceHit[] = [];
@@ -162,6 +164,7 @@ export async function searchProblemFirstMulti(
   pushLit("openalex", oalex);
   pushLit("semanticscholar", s2);
   pushLit("pubmed", pubmed);
+  pushLit("arxiv", arxiv);
 
   // Deduplicate literature by title
   const litSeen = new Set<string>();

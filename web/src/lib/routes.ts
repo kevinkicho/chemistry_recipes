@@ -25,7 +25,24 @@ export const routes = {
   catalog: () => "/catalog",
   packages: () => "/packages",
   package: (id: string) => `/packages/${encodeURIComponent(id)}`,
-  workspace: () => "/workspace",
+  /**
+   * Workspace. Optional deep-links:
+   * - campaign: select science campaign id
+   * - agent: 1 → scroll to campaign agent and auto-run
+   * - q: agent question
+   */
+  workspace: (opts?: {
+    campaign?: string;
+    agent?: boolean;
+    q?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (opts?.campaign?.trim()) params.set("campaign", opts.campaign.trim());
+    if (opts?.agent) params.set("agent", "1");
+    if (opts?.q?.trim()) params.set("q", opts.q.trim());
+    const qs = params.toString();
+    return qs ? `/workspace?${qs}` : "/workspace";
+  },
   compare: (a?: string, b?: string) => {
     const params = new URLSearchParams();
     if (a?.trim()) params.set("a", a.trim());

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import {
   createProject,
   deleteProject,
@@ -199,7 +199,15 @@ export default function WorkspacePage() {
         <CampaignGraphPanel />
         <CampaignComparePanel />
         <CampaignBriefPanel />
-        <CampaignAgentPanel />
+        <Suspense
+          fallback={
+            <div className="rounded-xl border border-violet-500/20 px-3 py-2 text-[11px] text-slate-500">
+              Loading campaign agent…
+            </div>
+          }
+        >
+          <CampaignAgentPanel />
+        </Suspense>
         <BatchDensifyPanel />
         <DensifyTelemetryPanel />
       </section>

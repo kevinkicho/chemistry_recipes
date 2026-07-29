@@ -19,6 +19,7 @@ import { searchOpenAlexProcess } from "@/lib/api/openAlex";
 import { searchCrossrefProcess } from "@/lib/api/crossref";
 import { searchSemanticScholarProcess } from "@/lib/api/semanticScholar";
 import { searchPubMedProcess } from "@/lib/api/pubmed";
+import { searchArxivProcess } from "@/lib/api/arxiv";
 import { resolveLocalSearchHits } from "@/lib/data/searchLocalIndex";
 import type { ApiFetchTrace } from "@/lib/api/trace";
 
@@ -37,7 +38,8 @@ export type MultiSourceId =
   | "openalex"
   | "crossref"
   | "semanticscholar"
-  | "pubmed";
+  | "pubmed"
+  | "arxiv";
 
 export interface MultiSourceRef {
   source: MultiSourceId;
@@ -529,7 +531,7 @@ export async function multiSourceSearch(
     });
   }
 
-  // Second wave: openFDA, KEGG, process literature (EPMC + OpenAlex + Crossref + S2 + PubMed)
+  // Second wave: openFDA, KEGG, process literature (+ arXiv preprints)
   const wave2 = await Promise.allSettled([
     fetchOpenFdaByName(q),
     fetchKeggByName(q),
@@ -538,6 +540,7 @@ export async function multiSourceSearch(
     searchCrossrefProcess(q, { limit: 5 }),
     searchSemanticScholarProcess(q, { limit: 5 }),
     searchPubMedProcess(q, { limit: 5 }),
+    searchArxivProcess(q, { limit: 4 }),
   ]);
 
   // openFDA
@@ -800,6 +803,24 @@ export async function multiSourceSearch(
       ok: false,
       hitCount: 0,
       detail: pm.status === "rejected" ? String(pm.reason) : "no hit",
+    });
+  }
+
+  // arXiv preprints
+  const arxiv = wave2[7];
+  if (arxiv.status === "fulfilled" && arxiv.value.hits.length > 0) {
+    attachProcessLit(
+      "arxiv",
+      "arXiv",
+      arxiv.value.hits,
+      arxiv.value.traces
+    );
+  } else {
+    sourceStatus.push({
+      source: "arxiv",
+      ok: false,
+      hitCount: 0,
+      detail: arxiv.status === "rejected" ? String(arxiv.reason) : "no hit",
     });
   }
 

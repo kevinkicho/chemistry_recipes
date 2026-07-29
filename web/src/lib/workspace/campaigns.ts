@@ -124,3 +124,46 @@ export function subscribeCampaigns(listener: () => void): () => void {
   window.addEventListener("cr-campaigns-changed", on);
   return () => window.removeEventListener("cr-campaigns-changed", on);
 }
+
+/** Session handoff: problem densify → workspace campaign agent */
+const HANDOFF_KEY = "cr-campaign-agent-handoff-v1";
+
+export interface CampaignAgentHandoff {
+  campaignId: string;
+  question?: string;
+  autoRun: boolean;
+  problemQuery?: string;
+  at: string;
+}
+
+export function setCampaignAgentHandoff(
+  handoff: Omit<CampaignAgentHandoff, "at">
+): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(
+      HANDOFF_KEY,
+      JSON.stringify({
+        ...handoff,
+        at: new Date().toISOString(),
+      } satisfies CampaignAgentHandoff)
+    );
+  } catch {
+    /* ignore quota */
+  }
+}
+
+/** Read and clear handoff (one-shot). */
+export function consumeCampaignAgentHandoff(): CampaignAgentHandoff | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(HANDOFF_KEY);
+    if (!raw) return null;
+    sessionStorage.removeItem(HANDOFF_KEY);
+    const p = JSON.parse(raw) as CampaignAgentHandoff;
+    if (!p?.campaignId) return null;
+    return p;
+  } catch {
+    return null;
+  }
+}
