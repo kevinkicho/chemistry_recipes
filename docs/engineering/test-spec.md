@@ -33,6 +33,8 @@ npm run test:nav-abort      # browser Back / leave abort contracts
 npm run test:search-contracts
 npm run test:densify-depth
 npm run test:diagnostics-honesty
+npm run test:provenance              # AI/API chip contracts
+npm run test:provenance-coverage     # full surface registry scan
 npm run test:suite-inventory
 npm run test:smoke          # live free APIs (soft offline)
 npm run test:smoke:strict   # live free APIs (fail on skip)
@@ -205,8 +207,24 @@ Optional before release/deploy:
 |----|-------------|--------|
 | **INV-01** | All unit suite files exist | `test-suite-inventory` |
 | **INV-02** | Each suite has npm script + is in `test:unit` | `test-suite-inventory` |
-| **INV-03** | test-spec.md lists REQ families ACC…DIAG | `test-suite-inventory` |
+| **INV-03** | test-spec.md lists REQ families ACC…DIAG + PROV | `test-suite-inventory` |
 | **INV-04** | precommit runs unit + tsc + eslint | `test-suite-inventory` |
+
+### N. Provenance coverage (API + AI tracking)
+
+Full surface registry and policies: **[provenance-coverage-spec.md](./provenance-coverage-spec.md)**.  
+Machine registry: `web/scripts/fixtures/provenance-surface-registry.json`.
+
+| ID | Requirement | Suite |
+|----|-------------|--------|
+| **PROV-01** | AiProvenanceRecord carries prompts, dataFed, sources, timing | `test-provenance` |
+| **PROV-02** | ContentProvenance dual-wires API + AI chips | `test-provenance` |
+| **PROV-03** | Per-field helper maps synthesis → AI chips | `test-provenance`, `test-provenance-coverage` |
+| **PROV-04** | Live dossier binds field AI chips (overview…critical) | `test-provenance-coverage` |
+| **PROV-05** | Aside plant cards use ContentProvenance + field AI | `test-provenance-coverage` |
+| **PROV-06** | Process facts use API provenance (not fake AI) | `test-provenance-coverage` |
+| **PROV-07** | Registry lists ≥28 content surfaces | `test-provenance-coverage` |
+| **PROV-SCAN-*** | Scanner asserts every registry surface still wired | `test-provenance-coverage` |
 
 ## Lifecycle diagram (validated by LIFE-* / DENS-*)
 
@@ -264,6 +282,7 @@ Manual / live (when Ollama configured):
 | AI package / QC | `lib/dossier/aiEvidencePackage.ts`, `synthesize.ts`, `processFacts.ts` |
 | Lifecycle | `lib/dossier/pipeline.ts`, `app/api/dossier/[cid]/stream/route.ts` |
 | Client durability | `lib/idb/dossierCache.ts`, `procedureVault.ts` |
+| Provenance coverage | `fixtures/provenance-surface-registry.json`, `aiFieldProvenance.ts`, `ContentProvenance.tsx` |
 | Frontier / agents | `lib/frontier/*`, `components/frontier/*` |
 | Search | `lib/search/*`, `components/SearchResults.tsx`, `ProblemFirstSearch.tsx` |
 | Nav abort | `lib/dossier/batchClient.ts`, `warmCache.ts`, `DossierClientLoader.tsx` |

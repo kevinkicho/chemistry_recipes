@@ -45,6 +45,8 @@ const UNIT_SUITES = [
   "test-search-contracts.mjs",
   "test-densify-depth.mjs",
   "test-diagnostics-honesty.mjs",
+  "test-provenance.mjs",
+  "test-provenance-coverage.mjs",
   "test-suite-inventory.mjs",
 ];
 
@@ -111,10 +113,24 @@ const reqFamilies = [
   "SEARCH-",
   "DENS-",
   "DIAG-",
+  "PROV-",
 ];
 for (const fam of reqFamilies) {
   ok(`INV test-spec has ${fam}*`, spec.includes(fam));
 }
+
+ok(
+  "INV provenance registry fixture",
+  fs.existsSync(
+    path.join(webRoot, "scripts", "fixtures", "provenance-surface-registry.json")
+  )
+);
+ok(
+  "INV provenance-coverage-spec.md",
+  fs.existsSync(
+    path.join(repoRoot, "docs", "engineering", "provenance-coverage-spec.md")
+  )
+);
 
 ok("INV testing.md lists precommit", /precommit|test:precommit/.test(testing));
 ok(

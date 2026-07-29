@@ -47,7 +47,8 @@ Free public chemical APIs + optional [Ollama Cloud](https://docs.ollama.com/clou
 | [Client storage](docs/engineering/client-storage.md) | IndexedDB cache, snapshots, health |
 | [Tech-transfer export](docs/engineering/tech-transfer-export.md) | Schema v2, MES/LIMS, validation checklist |
 | [Testing](docs/engineering/testing.md) | Precommit gate + contract suites |
-| [Test specification](docs/engineering/test-spec.md) | REQ matrix (ACC…DIAG, densify, nav abort) |
+| [Test specification](docs/engineering/test-spec.md) | REQ matrix (ACC…PROV, densify, nav abort) |
+| [Provenance coverage](docs/engineering/provenance-coverage-spec.md) | API/AI chip registry for every content card |
 
 ---
 

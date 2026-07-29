@@ -16,7 +16,8 @@ Implementation notes for the Chemistry Recipes Next.js app (`web/`).
 | [Client storage](./client-storage.md) | IndexedDB, snapshots, health probe |
 | [Tech-transfer export](./tech-transfer-export.md) | Schema v2, MES/LIMS, checklist |
 | [Testing](./testing.md) | `npm run precommit` + suite cheatsheet |
-| [Test specification](./test-spec.md) | Full REQ matrix: lifecycle, densify, agents, nav abort, diagnostics |
+| [Test specification](./test-spec.md) | Full REQ matrix: lifecycle, densify, agents, nav abort, diagnostics, provenance |
+| [Provenance coverage](./provenance-coverage-spec.md) | API/AI chip registry for every dossier content card |
 
 ## Related
 

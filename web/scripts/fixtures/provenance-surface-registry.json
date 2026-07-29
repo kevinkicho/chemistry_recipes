@@ -1,0 +1,304 @@
+{
+  "schema": "chemistry-recipes.provenance-surface-registry.v1",
+  "description": "Every content surface that must carry API and/or AI provenance for dissemination. Scanner: test-provenance-coverage.mjs",
+  "chipModules": {
+    "api": "components/ApiProvenance.tsx",
+    "ai": "components/AiProvenance.tsx",
+    "content": "components/ContentProvenance.tsx",
+    "sectionTitle": "components/dossier/DossierSectionTitle.tsx",
+    "fieldHelper": "lib/dossier/aiFieldProvenance.ts"
+  },
+  "surfaces": [
+    {
+      "id": "live.header.identity",
+      "label": "Identity header (API + dossier AI attempt)",
+      "file": "components/dossier/LiveMoleculeDossier.tsx",
+      "api": "required",
+      "ai": "when-parsed-or-attempt",
+      "patterns": ["ApiProvenance", "AiProvenance", "aiAttempt"]
+    },
+    {
+      "id": "live.overview",
+      "label": "Overview prose",
+      "file": "components/dossier/LiveMoleculeDossier.tsx",
+      "api": "required",
+      "ai": "when-field:overview",
+      "patterns": ["ContentProvenance", "field=\"Overview\"", "aiOverview"]
+    },
+    {
+      "id": "live.applications",
+      "label": "Applications chips",
+      "file": "components/dossier/LiveMoleculeDossier.tsx",
+      "api": "required",
+      "ai": "when-field:applications",
+      "patterns": ["ContentProvenance", "Applications", "aiApplications"]
+    },
+    {
+      "id": "live.critical-params",
+      "label": "Control points board",
+      "file": "components/CriticalParametersBoard.tsx",
+      "api": "required",
+      "ai": "when-field:criticalParameters",
+      "patterns": ["ContentProvenance"]
+    },
+    {
+      "id": "live.critical-params.wire",
+      "label": "Control points wired with AI field",
+      "file": "components/dossier/LiveMoleculeDossier.tsx",
+      "api": "optional",
+      "ai": "when-field:criticalParameters",
+      "patterns": ["CriticalParametersBoard", "aiCritical"]
+    },
+    {
+      "id": "live.routes",
+      "label": "Process recipe section",
+      "file": "components/dossier/LiveMoleculeDossier.tsx",
+      "api": "required",
+      "ai": "when-field:routes",
+      "patterns": ["SectionTitle", "Process recipe", "aiRoutesField|processRoutesFromAi"]
+    },
+    {
+      "id": "live.routes.panel",
+      "label": "Route steps (per-step chips)",
+      "file": "components/RoutePanel.tsx",
+      "api": "required",
+      "ai": "when-routes-from-ai",
+      "patterns": ["ApiProvenance", "AiProvenance", "aiProvenance"]
+    },
+    {
+      "id": "live.route-compare",
+      "label": "Route compare",
+      "file": "components/dossier/LiveMoleculeDossier.tsx",
+      "api": "required",
+      "ai": "when-field:routes",
+      "patterns": ["Route compare", "routesFromAi"]
+    },
+    {
+      "id": "live.related",
+      "label": "Related entities",
+      "file": "components/dossier/LiveMoleculeDossier.tsx",
+      "api": "required",
+      "ai": "when-field:relatedEntities",
+      "patterns": ["related-entities", "aiRelated"]
+    },
+    {
+      "id": "live.unit-ops",
+      "label": "Modality unit ops",
+      "file": "components/dossier/LiveMoleculeDossier.tsx",
+      "api": "required",
+      "ai": "when-field:unitOpFills",
+      "patterns": ["unit-op-fill", "aiUnitOps"]
+    },
+    {
+      "id": "live.mfg-public",
+      "label": "Public manufacturing table",
+      "file": "components/dossier/LiveMoleculeDossier.tsx",
+      "api": "required",
+      "ai": "none",
+      "patterns": ["pubchem-manufacturing", "ApiProvenance"]
+    },
+    {
+      "id": "live.literature",
+      "label": "Literature table",
+      "file": "components/dossier/LiveMoleculeDossier.tsx",
+      "api": "required",
+      "ai": "none",
+      "patterns": ["id=\"literature\"", "ApiProvenance"]
+    },
+    {
+      "id": "live.patents",
+      "label": "Patents table",
+      "file": "components/dossier/LiveMoleculeDossier.tsx",
+      "api": "required",
+      "ai": "none",
+      "patterns": ["id=\"patents\"", "ApiProvenance"]
+    },
+    {
+      "id": "aside.manufacturing",
+      "label": "Manufacturing summary (aside)",
+      "file": "components/dossier/LiveDossierAside.tsx",
+      "api": "required",
+      "ai": "when-field:manufacturingSummary",
+      "patterns": ["Manufacturing summary", "ContentProvenance", "mfgAi|aiMfg"]
+    },
+    {
+      "id": "aside.environment",
+      "label": "Plant environment baseline",
+      "file": "components/dossier/LiveDossierAside.tsx",
+      "api": "required",
+      "ai": "when-field:environmentBaseline",
+      "patterns": ["Plant environment baseline", "ContentProvenance"]
+    },
+    {
+      "id": "aside.apparatus",
+      "label": "Apparatus catalog",
+      "file": "components/dossier/LiveDossierAside.tsx",
+      "api": "required",
+      "ai": "when-field:apparatusCatalog",
+      "patterns": ["Apparatus catalog", "ContentProvenance"]
+    },
+    {
+      "id": "aside.ehs",
+      "label": "EHS highlights",
+      "file": "components/dossier/LiveDossierAside.tsx",
+      "api": "required",
+      "ai": "when-field:ehsHighlights",
+      "patterns": ["EHS highlights", "ContentProvenance"]
+    },
+    {
+      "id": "aside.hazards",
+      "label": "Hazards summary",
+      "file": "components/dossier/LiveDossierAside.tsx",
+      "api": "required",
+      "ai": "none",
+      "patterns": ["Hazards", "ApiProvenance"]
+    },
+    {
+      "id": "aside.gaps",
+      "label": "Evidence gaps",
+      "file": "components/dossier/LiveDossierAside.tsx",
+      "api": "required",
+      "ai": "when-parsed",
+      "patterns": ["Evidence gaps", "ContentProvenance"]
+    },
+    {
+      "id": "panel.manager-brief",
+      "label": "Manager / MSAT brief",
+      "file": "components/ManagerBriefPanel.tsx",
+      "api": "required",
+      "ai": "when-routes-from-ai",
+      "patterns": ["ContentProvenance", "aiProvenanceForField|processRoutesFromAi"]
+    },
+    {
+      "id": "panel.operator-aid",
+      "label": "Operator job aid",
+      "file": "components/OperatorJobAid.tsx",
+      "api": "required",
+      "ai": "optional",
+      "patterns": ["ContentProvenance"]
+    },
+    {
+      "id": "panel.process-facts",
+      "label": "Process facts (sourced atoms — API, not AI invention)",
+      "file": "components/ProcessFactsPanel.tsx",
+      "api": "required",
+      "ai": "none",
+      "patterns": ["ContentProvenance|ApiProvenance"]
+    },
+    {
+      "id": "panel.recipe-readiness",
+      "label": "Recipe readiness",
+      "file": "components/RecipeReadinessPanel.tsx",
+      "api": "required",
+      "ai": "optional",
+      "patterns": ["ContentProvenance"]
+    },
+    {
+      "id": "panel.monday-pack",
+      "label": "Monday morning pack",
+      "file": "components/MondayMorningPack.tsx",
+      "api": "required",
+      "ai": "optional",
+      "patterns": ["ContentProvenance"]
+    },
+    {
+      "id": "panel.shift-pack",
+      "label": "Shift pack",
+      "file": "components/ShiftPackPanel.tsx",
+      "api": "required",
+      "ai": "optional",
+      "patterns": ["ContentProvenance"]
+    },
+    {
+      "id": "panel.pdf-worker",
+      "label": "PDF worker pack",
+      "file": "components/PdfWorkerPack.tsx",
+      "api": "required",
+      "ai": "optional",
+      "patterns": ["ContentProvenance"]
+    },
+    {
+      "id": "panel.worker-playbook",
+      "label": "Worker playbook",
+      "file": "components/WorkerPlaybookPanel.tsx",
+      "api": "required",
+      "ai": "optional",
+      "patterns": ["ContentProvenance"]
+    },
+    {
+      "id": "panel.evidence-critique",
+      "label": "Evidence critique",
+      "file": "components/EvidenceCritiquePanel.tsx",
+      "api": "required",
+      "ai": "optional",
+      "patterns": ["ContentProvenance"]
+    },
+    {
+      "id": "panel.ideal-parity",
+      "label": "Ideal page parity",
+      "file": "components/IdealPageParityPanel.tsx",
+      "api": "required",
+      "ai": "optional",
+      "patterns": ["ContentProvenance"]
+    },
+    {
+      "id": "panel.problem-unitop",
+      "label": "Problem / unit-op search",
+      "file": "components/ProblemUnitOpSearch.tsx",
+      "api": "required",
+      "ai": "optional",
+      "patterns": ["ContentProvenance"]
+    },
+    {
+      "id": "helper.field-map",
+      "label": "Per-field AI helper",
+      "file": "lib/dossier/aiFieldProvenance.ts",
+      "api": "none",
+      "ai": "required",
+      "patterns": [
+        "synthesisHasAiField",
+        "aiProvenanceForField",
+        "processRoutesFromAi",
+        "overview",
+        "manufacturingSummary",
+        "routes",
+        "apparatusCatalog",
+        "environmentBaseline",
+        "ehsHighlights",
+        "relatedEntities",
+        "unitOpFills",
+        "criticalParameters"
+      ]
+    },
+    {
+      "id": "helper.fields-generated",
+      "label": "Synthesize fieldsGenerated inventory",
+      "file": "lib/dossier/synthesize.ts",
+      "api": "none",
+      "ai": "required",
+      "patterns": [
+        "fieldsFromSynthesis",
+        "unitOpFills",
+        "criticalParameters",
+        "fieldsGenerated"
+      ]
+    },
+    {
+      "id": "types.ai-record",
+      "label": "AiProvenanceRecord shape",
+      "file": "lib/dossier/types.ts",
+      "api": "none",
+      "ai": "required",
+      "patterns": [
+        "systemPrompt",
+        "userPrompt",
+        "dataFed",
+        "dataSources",
+        "responsePreview",
+        "fieldsGenerated",
+        "model",
+        "responseTimeMs"
+      ]
+    }
+  ]
+}
