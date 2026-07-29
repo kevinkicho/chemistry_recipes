@@ -245,6 +245,8 @@ export async function streamBatchDensifyCids(
     retries?: number;
     force?: boolean;
     maxAgeMs?: number;
+    /** Abort on browser Back / unmount — cancels client stream read */
+    signal?: AbortSignal;
     onEvent?: (ev: StreamBatchEvent) => void;
     onProgress?: (msg: string) => void;
   }
@@ -252,6 +254,24 @@ export async function streamBatchDensifyCids(
   const results: BatchClientResult[] = [];
   const concurrency = Math.min(4, Math.max(1, opts?.concurrency || 2));
   const unique = [...new Set(cids.filter((c) => c > 0))].slice(0, 12);
+
+  if (opts?.signal?.aborted) {
+    return {
+      schema: "chemistry-recipes.batch-dossier.v1",
+      requested: unique.length,
+      ok: 0,
+      fail: unique.length,
+      skipped: 0,
+      durationMs: 0,
+      results: unique.map((cid) => ({
+        cid,
+        ok: false,
+        durationMs: 0,
+        error: "aborted",
+      })),
+      error: "aborted",
+    };
+  }
 
   const { warm, needBuild } = await partitionCidsByCache(unique, {
     force: opts?.force,
@@ -298,17 +318,43 @@ export async function streamBatchDensifyCids(
     `Streaming ${needBuild.length} build(s) · ${warm.length} cache · concurrency ${concurrency}…`
   );
 
-  const res = await fetch("/api/dossier/batch/stream", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      cids: needBuild,
-      includeDossiers: opts?.includeDossiers ?? opts?.cacheLocal ?? true,
-      concurrency,
-      retries: opts?.retries ?? 2,
-      force: opts?.force,
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetch("/api/dossier/batch/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cids: needBuild,
+        includeDossiers: opts?.includeDossiers ?? opts?.cacheLocal ?? true,
+        concurrency,
+        retries: opts?.retries ?? 2,
+        force: opts?.force,
+      }),
+      signal: opts?.signal,
+    });
+  } catch (e) {
+    const aborted =
+      opts?.signal?.aborted ||
+      (e instanceof Error && e.name === "AbortError");
+    return {
+      schema: "chemistry-recipes.batch-dossier.v1",
+      requested: unique.length,
+      ok: warm.length,
+      fail: aborted ? needBuild.length : needBuild.length,
+      skipped: warm.length,
+      durationMs: 0,
+      results: [
+        ...results,
+        ...needBuild.map((cid) => ({
+          cid,
+          ok: false,
+          durationMs: 0,
+          error: aborted ? "aborted" : e instanceof Error ? e.message : "fetch failed",
+        })),
+      ],
+      error: aborted ? "aborted" : e instanceof Error ? e.message : "fetch failed",
+    };
+  }
 
   if (!res.ok || !res.body) {
     return {
@@ -329,51 +375,92 @@ export async function streamBatchDensifyCids(
   let ok = warm.length;
   let fail = 0;
   let durationMs = 0;
+  let abortedMid = false;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const parts = buffer.split("\n\n");
-    buffer = parts.pop() ?? "";
-    for (const block of parts) {
-      const dataLine = block.split("\n").find((l) => l.startsWith("data:"));
-      if (!dataLine) continue;
-      const json = dataLine.replace(/^data:\s?/, "").trim();
-      if (!json) continue;
-      try {
-        const ev = JSON.parse(json) as StreamBatchEvent;
-        opts?.onEvent?.(ev);
-        if (ev.label) opts?.onProgress?.(ev.label);
-        if (ev.type === "cid_complete" && ev.cid != null) {
-          const row: BatchClientResult = {
-            cid: ev.cid,
-            ok: Boolean(ev.ok),
-            error: ev.error,
-            durationMs: ev.durationMs || 0,
-            summary: ev.summary,
-            dossier: ev.dossier,
-          };
-          results.push(row);
-          if (ev.ok) {
-            ok += 1;
-            if (opts?.cacheLocal && ev.dossier) {
-              await putCachedDossierAndNotify(ev.dossier);
-              opts.onProgress?.(`Cached CID ${ev.cid}`);
+  const onAbort = () => {
+    abortedMid = true;
+    void reader.cancel().catch(() => undefined);
+  };
+  opts?.signal?.addEventListener("abort", onAbort);
+
+  try {
+    while (true) {
+      if (opts?.signal?.aborted) {
+        abortedMid = true;
+        await reader.cancel().catch(() => undefined);
+        break;
+      }
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() ?? "";
+      for (const block of parts) {
+        const dataLine = block.split("\n").find((l) => l.startsWith("data:"));
+        if (!dataLine) continue;
+        const json = dataLine.replace(/^data:\s?/, "").trim();
+        if (!json) continue;
+        try {
+          const ev = JSON.parse(json) as StreamBatchEvent;
+          opts?.onEvent?.(ev);
+          if (ev.label) opts?.onProgress?.(ev.label);
+          if (ev.type === "cid_complete" && ev.cid != null) {
+            const row: BatchClientResult = {
+              cid: ev.cid,
+              ok: Boolean(ev.ok),
+              error: ev.error,
+              durationMs: ev.durationMs || 0,
+              summary: ev.summary,
+              dossier: ev.dossier,
+            };
+            results.push(row);
+            if (ev.ok) {
+              ok += 1;
+              if (opts?.cacheLocal && ev.dossier) {
+                await putCachedDossierAndNotify(ev.dossier);
+                opts.onProgress?.(`Cached CID ${ev.cid}`);
+              }
+            } else {
+              fail += 1;
             }
-          } else {
-            fail += 1;
           }
+          if (ev.type === "batch_complete") {
+            if (typeof ev.ok === "number") ok = warm.length + ev.ok;
+            if (typeof ev.fail === "number") fail = ev.fail;
+            durationMs = ev.durationMs || durationMs;
+          }
+        } catch {
+          /* ignore partial */
         }
-        if (ev.type === "batch_complete") {
-          if (typeof ev.ok === "number") ok = warm.length + ev.ok;
-          if (typeof ev.fail === "number") fail = ev.fail;
-          durationMs = ev.durationMs || durationMs;
-        }
-      } catch {
-        /* ignore partial */
       }
     }
+  } finally {
+    opts?.signal?.removeEventListener("abort", onAbort);
+  }
+
+  if (abortedMid) {
+    opts?.onProgress?.(
+      `Densify cancelled (left page) · ${ok} ok cached · remaining stopped client-side`
+    );
+    recordDensifyRun({
+      kind: "batch-stream",
+      cids: unique,
+      concurrency,
+      ok,
+      fail: fail + Math.max(0, needBuild.length - (ok - warm.length) - fail),
+      durationMs,
+      detail: `aborted · skippedCache=${warm.length}`,
+    });
+    return {
+      schema: "chemistry-recipes.batch-dossier.v1",
+      requested: unique.length,
+      ok,
+      fail: unique.length - ok,
+      skipped: warm.length,
+      durationMs,
+      results,
+      error: "aborted",
+    };
   }
 
   opts?.onProgress?.(

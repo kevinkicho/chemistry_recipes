@@ -86,7 +86,10 @@ function buildAdvice(opts: {
   const tips: string[] = [];
   if (!opts.canCallOllama) {
     tips.push(
-      "Set OLLAMA_CLOUD_API_KEY for Cloud, or OLLAMA_HOST=http://127.0.0.1:11434 for local Ollama dual-view synthesis."
+      "Ollama dual-view synthesis is not ready (no Cloud key / local host). Free-public dossiers still work: evidence shell, process facts, densify harvest, and Tier-A teaching routes can look “AI-like” without Ollama."
+    );
+    tips.push(
+      "To enable Ollama structure: set OLLAMA_CLOUD_API_KEY, or OLLAMA_HOST=http://127.0.0.1:11434 with ollama serve."
     );
   } else if (opts.isLocal) {
     tips.push(
@@ -100,7 +103,7 @@ function buildAdvice(opts: {
   }
   if (opts.probeSummary?.fail) {
     tips.push(
-      `${opts.probeSummary.fail} free API probe(s) failed — check network, firewall, or upstream outages.`
+      `${opts.probeSummary.fail} free API probe(s) failed — check network, firewall, or upstream outages. Soft-fail gather still uses other sources; failed probes ≠ empty dossiers.`
     );
   }
   if (opts.probeSummary?.degraded) {

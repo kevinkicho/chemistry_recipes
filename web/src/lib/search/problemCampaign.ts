@@ -113,6 +113,8 @@ export async function createCampaignAndDensifyFromProblemHits(
     concurrency?: number;
     force?: boolean;
     literatureHits?: LiteratureHit[];
+    /** Cancel densify stream when user navigates away (browser Back) */
+    signal?: AbortSignal;
     onProgress?: (msg: string) => void;
   }
 ): Promise<ProblemCampaignDensifyResult | null> {
@@ -152,8 +154,29 @@ export async function createCampaignAndDensifyFromProblemHits(
     concurrency: opts?.concurrency ?? 2,
     force: opts?.force ?? false,
     retries: 2,
+    signal: opts?.signal,
     onProgress: opts?.onProgress,
   });
+
+  if (opts?.signal?.aborted || densify.error === "aborted") {
+    opts?.onProgress?.("Densify cancelled — left page or aborted");
+    updateCampaign(camp.id, {
+      lastBatch: {
+        at: new Date().toISOString(),
+        ok: densify.ok,
+        fail: densify.fail,
+        detail: "aborted mid densify (navigation)",
+      },
+    });
+    return {
+      campaign: camp,
+      densify,
+      queueCids,
+      literatureAttached,
+      literatureChars,
+      literatureSummary,
+    };
+  }
 
   // Fold literature pastes into IDB so campaign agent/brief use enriched packages
   if (literatureAttached > 0) {

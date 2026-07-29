@@ -171,7 +171,7 @@ export default function DiagnosticsPage() {
           {/* Summary cards */}
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Card
-              title="Ollama"
+              title="Ollama dual-view"
               value={
                 server.env.ollamaCanCall
                   ? server.env.ollamaProvider === "ollama-local"
@@ -185,11 +185,11 @@ export default function DiagnosticsPage() {
               hint={
                 server.env.ollamaCanCall
                   ? `${server.env.ollamaProvider || "cloud"} · ${server.env.ollamaHost}`
-                  : "Set OLLAMA_CLOUD_API_KEY or OLLAMA_HOST=http://127.0.0.1:11434"
+                  : "Optional for dual-view AI. Free-public shells, process facts & densify still produce structured content without Ollama."
               }
             />
             <Card
-              title="API probes"
+              title="Free API probes"
               value={
                 server.probeSummary
                   ? `${server.probeSummary.ok} ok · ${server.probeSummary.fail} fail`

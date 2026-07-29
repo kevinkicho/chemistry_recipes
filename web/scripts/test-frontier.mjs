@@ -854,5 +854,27 @@ ok(
     read("components/frontier/DensifyTelemetryPanel.tsx")
   )
 );
+ok(
+  "batch densify abort signal",
+  /signal\?: AbortSignal|error: \"aborted\"/.test(
+    read("lib/dossier/batchClient.ts")
+  )
+);
+ok(
+  "problem densify abort signal",
+  /signal\?: AbortSignal/.test(read("lib/search/problemCampaign.ts"))
+);
+ok(
+  "diagnostics distinguishes Ollama vs free-public",
+  /free-public shells|not the same as|evidence-shell/.test(
+    read("app/api/diagnostics/route.ts")
+  ) ||
+    /free-public shells|evidence-shell|not Ollama/.test(
+      read("app/diagnostics/page.tsx")
+    ) ||
+    /free-public \(not Ollama\)|no Ollama model/.test(
+      read("components/DossierDiagnostics.tsx")
+    )
+);
 
 console.log(`\n${n} frontier checks passed`);

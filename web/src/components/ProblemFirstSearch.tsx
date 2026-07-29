@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   PROBLEM_SEARCH_HINTS,
@@ -28,6 +28,7 @@ import {
  */
 export function ProblemFirstSearch() {
   const router = useRouter();
+  const densifyAbortRef = useRef<AbortController | null>(null);
   const [q, setQ] = useState("");
   const [campMsg, setCampMsg] = useState<string | null>(null);
   const [liveHits, setLiveHits] = useState<ProblemSearchHit[] | null>(null);
@@ -63,6 +64,24 @@ export function ProblemFirstSearch() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot restore
   }, []);
+
+  // Abort densify stream if user navigates away (browser Back / leave page)
+  useEffect(() => {
+    return () => {
+      densifyAbortRef.current?.abort();
+    };
+  }, []);
+
+  // Soft warn if closing tab mid-densify (Back is handled by abort above)
+  useEffect(() => {
+    if (!densifyBusy) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [densifyBusy]);
 
   // Debounced multi-source problem search
   useEffect(() => {
@@ -133,14 +152,24 @@ export function ProblemFirstSearch() {
       return;
     }
     const openAgent = opts?.openAgent !== false;
+    densifyAbortRef.current?.abort();
+    const ac = new AbortController();
+    densifyAbortRef.current = ac;
     setDensifyBusy(true);
     setCampMsg(null);
     try {
       const res = await createCampaignAndDensifyFromProblemHits(q, hits, {
         concurrency: 2,
         literatureHits,
+        signal: ac.signal,
         onProgress: (m) => setCampMsg(m),
       });
+      if (ac.signal.aborted || res?.densify.error === "aborted") {
+        setCampMsg(
+          "Densify cancelled (left page or aborted). Completed CIDs may still be in local cache."
+        );
+        return;
+      }
       if (!res) {
         setCampMsg("Could not create campaign from these hits.");
         return;

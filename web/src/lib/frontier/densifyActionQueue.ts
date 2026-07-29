@@ -131,6 +131,8 @@ export async function runDensifyActionQueue(
     streamPrimary?: boolean;
     /** AI ingest score before queue (for telemetry delta) */
     ingestBefore?: number;
+    /** Abort when user leaves page (browser Back) */
+    signal?: AbortSignal;
     onProgress?: (msg: string) => void;
   }
 ): Promise<RunDensifyQueueResult> {
@@ -165,6 +167,7 @@ export async function runDensifyActionQueue(
         includeDossiers: true,
         cacheLocal: true,
         force: false,
+        signal: opts?.signal,
         onProgress: opts?.onProgress,
       });
       densified = res.results.filter((r) => r.ok).map((r) => r.cid);
@@ -176,7 +179,10 @@ export async function runDensifyActionQueue(
         ok: densified.length,
         fail: failed.length,
         durationMs,
-        detail: "densify-action-queue-neighbors-before-primary-refresh",
+        detail:
+          res.error === "aborted"
+            ? "densify-action-queue-neighbors-aborted"
+            : "densify-action-queue-neighbors-before-primary-refresh",
         ingestBefore,
       });
     } else if (ingestBefore != null) {
@@ -225,6 +231,7 @@ export async function runDensifyActionQueue(
     includeDossiers: true,
     cacheLocal: true,
     force: plan.forcePrimary,
+    signal: opts?.signal,
     onProgress: opts?.onProgress,
   });
   const densified = res.results.filter((r) => r.ok).map((r) => r.cid);
@@ -237,7 +244,10 @@ export async function runDensifyActionQueue(
     ok: densified.length,
     fail: failed.length,
     durationMs,
-    detail: "densify-action-queue",
+    detail:
+      res.error === "aborted"
+        ? "densify-action-queue-aborted"
+        : "densify-action-queue",
     ingestBefore,
   });
 
@@ -261,6 +271,7 @@ export async function runCampaignDensifyQueue(
     force?: boolean;
     meanIngestBefore?: number;
     meanIngestAfter?: number;
+    signal?: AbortSignal;
     onProgress?: (msg: string) => void;
   }
 ): Promise<{
@@ -269,6 +280,7 @@ export async function runCampaignDensifyQueue(
   failedCids: number[];
   detail: string;
   durationMs: number;
+  aborted?: boolean;
 }> {
   const queue = [...new Set(cids.filter((c) => c > 0))].slice(0, 12);
   if (!queue.length) {
@@ -285,26 +297,33 @@ export async function runCampaignDensifyQueue(
     includeDossiers: true,
     cacheLocal: true,
     force: opts?.force ?? false,
+    signal: opts?.signal,
     onProgress: opts?.onProgress,
   });
   const densified = res.results.filter((r) => r.ok).map((r) => r.cid);
   const failed = res.results.filter((r) => !r.ok).map((r) => r.cid);
   const durationMs = Date.now() - t0;
+  const aborted = res.error === "aborted" || Boolean(opts?.signal?.aborted);
   recordIngestDeltaRun({
     kind: "guidance-queue",
     cids: queue,
     ok: densified.length,
     fail: failed.length,
     durationMs,
-    detail: "campaign-ai-guidance-queue",
+    detail: aborted
+      ? "campaign-ai-guidance-queue-aborted"
+      : "campaign-ai-guidance-queue",
     meanIngestBefore: opts?.meanIngestBefore,
     meanIngestAfter: opts?.meanIngestAfter,
   });
   return {
-    ok: failed.length === 0,
+    ok: !aborted && failed.length === 0,
     densifiedCids: densified,
     failedCids: failed,
-    detail: `Campaign densify ${densified.length}/${queue.length} ok`,
+    detail: aborted
+      ? `Campaign densify cancelled · ${densified.length} ok before leave`
+      : `Campaign densify ${densified.length}/${queue.length} ok`,
     durationMs,
+    aborted,
   };
 }

@@ -27,7 +27,9 @@ export function DossierDiagnostics({ dossier }: { dossier: LiveDossier }) {
         </Link>
       </div>
       <p className="mt-1 text-[11px] text-slate-500">
-        Snapshot of free-API HTTP + evidence for this recipe (no secrets).
+        Snapshot of free-API HTTP + evidence for this recipe (no secrets). Structured
+        routes can come from free-public densify alone — that is not the same as
+        “Ollama ready” on system diagnostics.
       </p>
 
       <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -69,13 +71,39 @@ export function DossierDiagnostics({ dossier }: { dossier: LiveDossier }) {
 
       <div className="mt-3 flex flex-wrap gap-1.5 text-[10px]">
         {d.buildMode ? (
-          <span className="rounded bg-slate-800 px-2 py-0.5 text-slate-400">
+          <span
+            className={`rounded px-2 py-0.5 ${
+              d.buildMode === "ai"
+                ? "bg-violet-500/15 text-violet-200"
+                : d.buildMode === "evidence-shell"
+                  ? "bg-teal-500/10 text-teal-200/90"
+                  : "bg-slate-800 text-slate-400"
+            }`}
+            title={
+              d.buildMode === "ai"
+                ? "Dual-view routes from Ollama over densified free-public evidence"
+                : d.buildMode === "evidence-shell"
+                  ? "Structured free-public shell (process facts / lit leads) — Ollama not required"
+                  : d.buildMode === "ai-skipped-thin-evidence"
+                    ? "Ollama could run but evidence was thin — shell kept"
+                    : undefined
+            }
+          >
             mode {d.buildMode}
+            {d.buildMode === "evidence-shell"
+              ? " · free-public (not Ollama)"
+              : d.buildMode === "ai"
+                ? " · Ollama"
+                : ""}
           </span>
         ) : null}
         {d.model ? (
           <span className="rounded bg-violet-500/10 px-2 py-0.5 text-violet-200">
             model {d.model}
+          </span>
+        ) : d.buildMode && d.buildMode !== "ai" ? (
+          <span className="rounded bg-slate-800 px-2 py-0.5 text-slate-500">
+            no Ollama model on this build
           </span>
         ) : null}
         {d.durationMs != null ? (

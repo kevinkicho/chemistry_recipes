@@ -11,13 +11,19 @@ export function EnvChecklist() {
   const [model, setModel] = useState<string>("");
   const [host, setHost] = useState<string>("");
 
+  const [canCall, setCanCall] = useState<boolean | null>(null);
+  const [provider, setProvider] = useState<string>("");
+
   useEffect(() => {
     void fetchServerAiStatus().then((s) => {
       if (!s) {
         setEnvKey(false);
+        setCanCall(false);
         return;
       }
       setEnvKey(s.envKeyConfigured);
+      setCanCall(Boolean(s.canCall));
+      setProvider(s.provider || "");
       setModel(s.model);
       setHost(s.host);
     });
@@ -25,14 +31,20 @@ export function EnvChecklist() {
 
   const rows: Array<{ ok: boolean | null; label: string; hint: string }> = [
     {
-      ok: envKey,
-      label: "OLLAMA_CLOUD_API_KEY",
-      hint: envKey ? "Server key configured" : "Set in repo-root .env for synthesis",
+      ok: canCall,
+      label: "Ollama dual-view",
+      hint: canCall
+        ? provider === "ollama-local"
+          ? "Local Ollama ready (no Cloud key required)"
+          : envKey
+            ? "Cloud key configured"
+            : "Server can call Ollama"
+        : "Optional — free-public shells work without it. Set OLLAMA_CLOUD_API_KEY or local OLLAMA_HOST",
     },
     {
       ok: true,
       label: "PubChem / Europe PMC / OpenAlex",
-      hint: "Free public HTTP — no keys required",
+      hint: "Free public HTTP — no keys required · densify/process facts independent of Ollama",
     },
     {
       ok: null,
