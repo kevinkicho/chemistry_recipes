@@ -123,24 +123,52 @@ export function RouteHypothesesPanel({
       {conflicts.length > 0 ? (
         <div className="mt-4">
           <h3 className="text-[10px] font-semibold uppercase tracking-wider text-amber-200/80">
-            Scientific conflicts
+            Scientific conflicts · research experiments
           </h3>
+          <p className="mt-0.5 text-[10px] text-slate-600">
+            Free-public ranges disagree — not plant setpoints. Resolve experimentally under fixed
+            other variables.
+          </p>
           <ul className="mt-2 space-y-2">
-            {conflicts.slice(0, 6).map((c) => (
+            {conflicts.slice(0, 8).map((c) => (
               <li
                 key={c.id}
                 className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-[11px]"
               >
-                <div className="font-medium text-amber-100/90">{c.topic}</div>
-                <p className="mt-0.5 text-slate-400">
-                  A: {c.sideA.slice(0, 140)}
-                </p>
-                <p className="text-slate-400">B: {c.sideB.slice(0, 140)}</p>
-                {c.resolvingExperiment ? (
-                  <p className="mt-1 text-sky-200/80">
-                    Resolve: {c.resolvingExperiment}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="font-medium text-amber-100/90">{c.topic}</div>
+                  <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-amber-200/90">
+                    act
+                  </span>
+                </div>
+                <div className="mt-1.5 grid gap-1 sm:grid-cols-2">
+                  <p className="rounded border border-slate-800/80 bg-slate-950/40 px-2 py-1 text-slate-400">
+                    <span className="text-[9px] font-semibold uppercase text-slate-600">
+                      Side A
+                    </span>
+                    <span className="mt-0.5 block">{c.sideA.slice(0, 160)}</span>
                   </p>
-                ) : null}
+                  <p className="rounded border border-slate-800/80 bg-slate-950/40 px-2 py-1 text-slate-400">
+                    <span className="text-[9px] font-semibold uppercase text-slate-600">
+                      Side B
+                    </span>
+                    <span className="mt-0.5 block">{c.sideB.slice(0, 160)}</span>
+                  </p>
+                </div>
+                {c.resolvingExperiment ? (
+                  <p className="mt-2 rounded border border-sky-500/25 bg-sky-500/5 px-2 py-1.5 text-sky-100/90">
+                    <span className="text-[9px] font-semibold uppercase tracking-wider text-sky-300/80">
+                      Next experiment
+                    </span>
+                    <span className="mt-0.5 block text-[11px] leading-relaxed">
+                      {c.resolvingExperiment}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="mt-2 text-[10px] text-slate-600">
+                    No auto experiment text — densify more OA/patent procedure windows.
+                  </p>
+                )}
               </li>
             ))}
           </ul>

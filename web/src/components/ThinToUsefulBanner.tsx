@@ -2,9 +2,11 @@
 
 import type { LiveDossier } from "@/lib/dossier/types";
 import { FreePublicProvenance } from "@/components/FreePublicProvenance";
+import { downloadSiteHandoff } from "@/lib/export/siteHandoff";
+import { failedFamiliesFromErrors } from "@/lib/dossier/densifyDelta";
 
 /**
- * North-star CTA: thin scout → densify → job aid. Always actionable.
+ * Monday path: thin scout → densify → job aid / handoff. Always actionable.
  */
 export function ThinToUsefulBanner({
   dossier,
@@ -26,13 +28,18 @@ export function ThinToUsefulBanner({
     ideal < 55 ||
     facts < 3;
 
+  const softN = failedFamiliesFromErrors(dossier.fetchErrors).length;
+
   if (!thin) {
     return (
       <div
         id="thin-to-useful"
         className="print:hidden scroll-mt-24 rounded-xl border border-emerald-500/25 bg-emerald-500/5 px-4 py-3"
       >
-        <div className="mb-1">
+        <div className="mb-1 flex flex-wrap items-center gap-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-200/90">
+            Monday path · ready for handoff pack
+          </p>
           <FreePublicProvenance
             dossier={dossier}
             title="Toward curated ideal"
@@ -42,14 +49,16 @@ export function ThinToUsefulBanner({
         </div>
         <p className="text-xs text-emerald-100/90">
           <strong className="font-semibold">Toward curated ideal:</strong> evidence{" "}
-          {score}/100 · ideal depth {ideal}/100 · {facts} process facts · {mode}. Save a shift
-          pack or print Monday pack for handoff — still not GMP.
+          {score}/100 · ideal depth {ideal}/100 · {facts} process facts · {mode}
+          {softN ? ` · ${softN} soft-fail family(ies)` : ""}. Still not GMP.
         </p>
         <div className="mt-2 flex flex-wrap gap-1.5">
-          <Btn onClick={() => onScroll("ideal-page-parity")} label="Ideal page gaps" />
-          <Btn onClick={() => onScroll("shift-pack")} label="Shift pack" />
           <Btn onClick={() => onScroll("monday-pack")} label="Monday pack" />
           <Btn onClick={() => onScroll("operator-job-aid")} label="Job aid" />
+          <Btn onClick={() => onScroll("shift-pack")} label="Shift pack" />
+          <Btn onClick={() => downloadSiteHandoff(dossier)} label="Site handoff .md" />
+          <Btn onClick={() => onScroll("ideal-page-parity")} label="Ideal gaps" />
+          <Btn onClick={() => onScroll("diagnostics")} label="Diagnostics" />
         </div>
       </div>
     );
@@ -62,7 +71,7 @@ export function ThinToUsefulBanner({
     >
       <div className="mb-1 flex flex-wrap items-center gap-2">
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-200/90">
-          Thin → curated ideal (primary path)
+          Monday path · densify first (primary)
         </p>
         <FreePublicProvenance
           dossier={dossier}
@@ -73,23 +82,26 @@ export function ThinToUsefulBanner({
       </div>
       <p className="mt-1 text-sm text-slate-200">
         Live depth is below the Tier-A ideal page (evidence {score}/100 · ideal {ideal}/100 ·{" "}
-        {facts} facts · {mode}). Curated dual-view is the goal — densify public procedure text
-        without inventing plant limits.
+        {facts} facts · {mode}
+        {softN ? ` · ${softN} soft-fail family(ies)` : ""}). Densify free-public procedure text
+        without inventing plant limits — research panels are secondary until density rises.
       </p>
       <ol className="mt-2 list-decimal space-y-0.5 pl-5 text-[11px] text-slate-400">
-        <li>See ideal-page gaps (recipe, apparatus, environment, …)</li>
-        <li>Paste public patent/paper experimental text</li>
-        <li>Regenerate so densify + AI re-package toward dual-view</li>
-        <li>Use Monday pack / job aid / shift pack for handoff</li>
+        <li>Force densify / paste public experimental text</li>
+        <li>Check Ideal gaps (recipe, apparatus, environment, …)</li>
+        <li>Retry failed free-API families if diagnostics show soft-fails</li>
+        <li>Monday pack / job aid / site handoff for the plant team</li>
       </ol>
       <div className="mt-3 flex flex-wrap gap-1.5">
-        <Btn primary onClick={() => onScroll("ideal-page-parity")} label="1 · Ideal gaps" />
-        <Btn onClick={() => onScroll("local-text-enrich")} label="2 · Paste wizard" />
         {onRegenerate ? (
-          <Btn onClick={onRegenerate} label="3 · Regenerate" />
+          <Btn primary onClick={onRegenerate} label="1 · Force densify" />
         ) : null}
-        <Btn onClick={() => onScroll("operator-job-aid")} label="Job aid" />
+        <Btn onClick={() => onScroll("local-text-enrich")} label="2 · Paste wizard" />
+        <Btn onClick={() => onScroll("ideal-page-parity")} label="3 · Ideal gaps" />
+        <Btn onClick={() => onScroll("diagnostics")} label="4 · Retry soft-fails" />
         <Btn onClick={() => onScroll("monday-pack")} label="Monday pack" />
+        <Btn onClick={() => onScroll("operator-job-aid")} label="Job aid" />
+        <Btn onClick={() => downloadSiteHandoff(dossier)} label="Site handoff .md" />
       </div>
     </div>
   );

@@ -77,3 +77,30 @@ export function filterProcessLiterature(
     (h) => scoreProcessRelevance(h.title, h.abstract) >= minScore
   );
 }
+
+/** Clinical / PK / trial literature (demote for process AI feed). */
+export function isClinicalLiterature(title: string, abstract?: string): boolean {
+  const hay = `${title} ${abstract || ""}`;
+  const processScore = scoreProcessRelevance(title, abstract);
+  if (processScore >= 40) return false;
+  return CLINICAL_NOISE.test(hay) || FORMULATION_NOT_SYNTHESIS.test(hay);
+}
+
+/**
+ * Split hits into process-priority vs clinical/context for AI packaging.
+ */
+export function splitProcessVsClinicalLiterature(hits: LiteratureHit[]): {
+  process: LiteratureHit[];
+  clinical: LiteratureHit[];
+} {
+  const process: LiteratureHit[] = [];
+  const clinical: LiteratureHit[] = [];
+  for (const h of rankLiteratureByProcessRelevance(hits)) {
+    if (isClinicalLiterature(h.title, h.abstract || h.fullTextExcerpt)) {
+      clinical.push(h);
+    } else {
+      process.push(h);
+    }
+  }
+  return { process, clinical };
+}

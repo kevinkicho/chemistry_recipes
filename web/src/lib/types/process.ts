@@ -61,6 +61,17 @@ export interface SourceRef {
   label?: string;
   url?: string;
   note?: string;
+  /**
+   * Free-public API that actually harvested this citation (not the human deeplink).
+   * Used for provenance so DOIs are never shown as "unfetched APIs".
+   */
+  capturedEndpoint?: string;
+  /** ISO time when harvest captured metadata/excerpt for this ref */
+  capturedAt?: string;
+  /** Abstract / procedure window / API snippet for provenance + AI densify */
+  capturedSnippet?: string;
+  /** process | clinical | identity — ranking hint for AI feed */
+  relevanceTier?: "process" | "clinical" | "identity" | "other";
 }
 
 /** Linked related entity (impurity, intermediate, DP, parent API) */

@@ -38,6 +38,7 @@ import {
 import { BiologicParametersPanel } from "@/components/BiologicParametersPanel";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { navigateToSection } from "@/lib/tocNavigate";
+import { impurityFirstCampaignCids } from "@/lib/frontier/neighborDensifyGraph";
 import { DossierDiagnostics } from "@/components/DossierDiagnostics";
 import { SourceCoverageMap } from "@/components/SourceCoverageMap";
 import { EvidenceScoreExplainer } from "@/components/EvidenceScoreExplainer";
@@ -685,11 +686,7 @@ export function LiveMoleculeDossier({
                 onForceRegather={onRegenerate}
               />
               <BatchDensifyPanel
-                seedCids={
-                  dossier.processKnowledge?.reactionNetwork?.campaignCids || [
-                    dossier.cid,
-                  ]
-                }
+                seedCids={impurityFirstCampaignCids(dossier, 8)}
                 dossier={dossier}
                 onRegenerate={onRegenerate}
               />
@@ -1329,7 +1326,7 @@ export function LiveMoleculeDossier({
       </div>
 
       <div className="mt-10 print:hidden">
-        <DossierDiagnostics dossier={dossier} />
+        <DossierDiagnostics dossier={dossier} onRegenerate={onRegenerate} />
       </div>
 
       {dossier.buildAudit ? (

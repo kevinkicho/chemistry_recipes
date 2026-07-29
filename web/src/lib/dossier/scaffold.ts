@@ -279,6 +279,7 @@ export function buildScaffoldDossier(evidence: CompoundEvidence): LiveDossier {
     },
     traces: evidence.traces,
     sourceRefs: evidence.sourceRefs,
+    fetchErrors: evidence.fetchErrors,
     processRoutes,
     disclaimer: DEFAULT_DOSSIER_DISCLAIMER,
     generatedAt: new Date().toISOString(),

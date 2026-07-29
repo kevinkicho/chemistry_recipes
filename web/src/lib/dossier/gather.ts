@@ -75,6 +75,10 @@ import {
   createSoftRunner,
   sourceNeedsRetry,
 } from "@/lib/dossier/gatherResilience";
+import {
+  literatureToCapturedSourceRefs,
+  patentToCapturedSourceRefs,
+} from "@/lib/dossier/deepDensify";
 
 function mergeLiterature(lists: LiteratureHit[][]): LiteratureHit[] {
   const map = new Map<string, LiteratureHit>();
@@ -1024,27 +1028,9 @@ export async function gatherCompoundEvidenceLive(
     });
   }
 
-  for (const hit of literature.slice(0, 18)) {
-    sourceRefs.push({
-      type: "literature",
-      id: hit.id,
-      label: hit.title.slice(0, 120),
-      url: hit.url,
-      note:
-        [hit.source, hit.journal, hit.year].filter(Boolean).join(" · ") ||
-        "Literature",
-    });
-  }
-
-  for (const p of patents) {
-    sourceRefs.push({
-      type: "patent",
-      id: p.id,
-      label: p.title.slice(0, 120),
-      url: p.url,
-      note: p.patentNumber,
-    });
-  }
+  // Literature / patents with free-public densify captures for provenance + AI
+  sourceRefs.push(...literatureToCapturedSourceRefs(literature, 18));
+  sourceRefs.push(...patentToCapturedSourceRefs(patents, 28));
 
   if (pubchemPatentIds.ids.length) {
     annotations.push({

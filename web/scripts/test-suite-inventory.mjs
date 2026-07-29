@@ -45,6 +45,7 @@ const UNIT_SUITES = [
   "test-search-contracts.mjs",
   "test-densify-depth.mjs",
   "test-diagnostics-honesty.mjs",
+  "test-smoke-gather.mjs",
   "test-provenance.mjs",
   "test-provenance-coverage.mjs",
   "test-suite-inventory.mjs",

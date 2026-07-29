@@ -307,6 +307,8 @@ export interface LiveDossier {
   synthesis: AiSynthesis;
   traces: ApiFetchTrace[];
   sourceRefs: SourceRef[];
+  /** Soft-fail / api-fail notes from durable multi-API gather (not secrets) */
+  fetchErrors?: string[];
   processRoutes: ProcessRoute[];
   disclaimer: string;
   generatedAt: string;

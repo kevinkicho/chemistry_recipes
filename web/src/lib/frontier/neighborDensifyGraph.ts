@@ -204,11 +204,31 @@ export function buildNeighborDensifyGraph(
   };
 }
 
-/** Impurity-first neighbor CIDs for science agent densify */
+/** Impurity-first neighbor CIDs for science agent densify / campaigns */
 export function prioritizedNeighborCids(
   dossier: LiveDossier,
   max = 4
 ): number[] {
   const g = buildNeighborDensifyGraph(dossier);
-  return g.queue.map((t) => t.cid).slice(0, max);
+  // Impurities first, then rest of priority queue (already role-sorted)
+  const imp = g.impurityCids.filter((c) => c !== dossier.cid);
+  const rest = g.queue
+    .map((t) => t.cid)
+    .filter((c) => c !== dossier.cid && !imp.includes(c));
+  return [...imp, ...rest].slice(0, max);
+}
+
+/** Default campaign CID set: center + impurity-first neighbors */
+export function impurityFirstCampaignCids(
+  dossier: LiveDossier,
+  max = 8
+): number[] {
+  const g = buildNeighborDensifyGraph(dossier);
+  const ordered = [
+    dossier.cid,
+    ...g.impurityCids,
+    ...g.intermediateCids,
+    ...g.queue.map((t) => t.cid),
+  ];
+  return ordered.filter((c, i, a) => a.indexOf(c) === i).slice(0, max);
 }

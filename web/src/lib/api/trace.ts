@@ -1,5 +1,11 @@
 /** Real HTTP call tracing for provenance / validation. No mock traces. */
 
+import {
+  isHostCircuitOpen,
+  recordHostFailure,
+  recordHostSuccess,
+} from "@/lib/api/hostCircuit";
+
 export interface ApiFetchTrace {
   /** Exact URL requested */
   endpointUrl: string;
@@ -220,6 +226,22 @@ export async function fetchWithTrace(
   url: string,
   init?: TraceFetchInit
 ): Promise<{ text: string; data: unknown | null; trace: ApiFetchTrace }> {
+  // Host circuit open → skip network, return synthetic fail (siblings continue)
+  if (isHostCircuitOpen(url)) {
+    return {
+      text: "",
+      data: null,
+      trace: {
+        endpointUrl: url,
+        method: (init?.method ?? "GET").toUpperCase(),
+        fetchedAt: new Date().toISOString(),
+        responseBody: "",
+        ok: false,
+        error: "host circuit open (cooldown after repeated 429/5xx/timeout)",
+      },
+    };
+  }
+
   const retries = init?.retries ?? 2;
   const baseMs = init?.retryBaseMs ?? 450;
   let last = await fetchWithTraceOnce(url, init);
@@ -241,6 +263,16 @@ export async function fetchWithTrace(
       },
     };
   }
+
+  if (last.trace.ok) {
+    recordHostSuccess(url);
+  } else if (!last.trace.notFound) {
+    recordHostFailure(url, {
+      httpStatus: last.trace.httpStatus,
+      error: last.trace.error,
+    });
+  }
+
   return last;
 }
 

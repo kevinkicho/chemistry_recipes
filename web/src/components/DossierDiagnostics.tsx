@@ -1,16 +1,60 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import type { LiveDossier } from "@/lib/dossier/types";
 import { summarizeDossierDiagnostics } from "@/lib/diagnostics/clientAnalytics";
 import { routes } from "@/lib/routes";
+import { failedFamiliesFromErrors } from "@/lib/dossier/densifyDelta";
 
 /**
  * Compact per-dossier health strip for operators / power users.
  */
-export function DossierDiagnostics({ dossier }: { dossier: LiveDossier }) {
+export function DossierDiagnostics({
+  dossier,
+  onRegenerate,
+}: {
+  dossier: LiveDossier;
+  onRegenerate?: () => void;
+}) {
   const d = summarizeDossierDiagnostics(dossier);
   const healthy = d.apiFail === 0 && (d.apiOk > 0 || d.literatureCount > 0);
+  const failed = failedFamiliesFromErrors(dossier.fetchErrors);
+  const [retryBusy, setRetryBusy] = useState(false);
+  const [retryMsg, setRetryMsg] = useState<string | null>(null);
+
+  async function retryFailedOnly() {
+    setRetryBusy(true);
+    setRetryMsg(null);
+    try {
+      const res = await fetch(`/api/dossier/${dossier.cid}/retry-families`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          families: failed.map((f) => f.label),
+        }),
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        detail?: string;
+        error?: string;
+        retried?: string[];
+      };
+      if (!res.ok || !data.ok) {
+        setRetryMsg(data.error || "Retry failed");
+        return;
+      }
+      setRetryMsg(
+        data.detail ||
+          `Retried ${data.retried?.length ?? 0} family(ies) · force densify to re-render`
+      );
+      onRegenerate?.();
+    } catch (e) {
+      setRetryMsg(e instanceof Error ? e.message : "Retry failed");
+    } finally {
+      setRetryBusy(false);
+    }
+  }
 
   return (
     <div
@@ -116,7 +160,36 @@ export function DossierDiagnostics({ dossier }: { dossier: LiveDossier }) {
             {d.apiFail} failed call(s)
           </span>
         ) : null}
+        {failed.length > 0 ? (
+          <span className="rounded bg-amber-500/10 px-2 py-0.5 text-amber-200">
+            {failed.length} soft-fail family(ies)
+          </span>
+        ) : null}
       </div>
+
+      {failed.length > 0 ? (
+        <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+          <p className="text-[11px] text-amber-100/90">
+            Soft-failed free-public families (other sources continued):{" "}
+            <span className="font-mono text-[10px] text-slate-400">
+              {failed.map((f) => f.label).join(", ")}
+            </span>
+          </p>
+          <button
+            type="button"
+            disabled={retryBusy}
+            onClick={() => void retryFailedOnly()}
+            className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-100 hover:bg-amber-500/20 disabled:opacity-40"
+          >
+            {retryBusy ? "Retrying failed families…" : "Retry failed families only"}
+          </button>
+          {retryMsg ? (
+            <p className="mt-1 text-[10px] text-slate-500" role="status">
+              {retryMsg}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {d.hosts.length > 0 ? (
         <div className="mt-3 overflow-x-auto">

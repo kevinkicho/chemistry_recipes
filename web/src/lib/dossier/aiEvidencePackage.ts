@@ -14,6 +14,10 @@
 import type { CompoundEvidence } from "@/lib/dossier/types";
 import type { AiDataFeedSource } from "@/lib/dossier/types";
 import { looksLikeProcessLiterature } from "@/lib/dossier/evidenceFilter";
+import {
+  scoreProcessRelevance,
+  splitProcessVsClinicalLiterature,
+} from "@/lib/literature/rank";
 
 /** Full-model budget — denser multi-pass harvest needs more headroom */
 export const MAX_EVIDENCE_CHARS_FULL = 32_000;
@@ -45,15 +49,23 @@ export function buildEvidenceObject(
     ? MAX_EVIDENCE_CHARS_FAST
     : MAX_EVIDENCE_CHARS_FULL;
 
-  const litSorted = [...ev.literature].sort((a, b) => {
-    const sa =
-      processScore(a.title, a.fullTextExcerpt || a.abstract) +
-      (a.fullTextExcerpt ? 4 : 0);
-    const sb =
-      processScore(b.title, b.fullTextExcerpt || b.abstract) +
-      (b.fullTextExcerpt ? 4 : 0);
-    return sb - sa;
-  });
+  // Prefer process/manufacturing lit for dual-view routes; clinical is context only
+  const { process: processLit, clinical: clinicalLit } =
+    splitProcessVsClinicalLiterature(ev.literature || []);
+  const litSorted = [
+    ...processLit.sort((a, b) => {
+      const sa =
+        scoreProcessRelevance(a.title, a.fullTextExcerpt || a.abstract) +
+        (a.fullTextExcerpt ? 8 : 0) +
+        processScore(a.title, a.fullTextExcerpt || a.abstract);
+      const sb =
+        scoreProcessRelevance(b.title, b.fullTextExcerpt || b.abstract) +
+        (b.fullTextExcerpt ? 8 : 0) +
+        processScore(b.title, b.fullTextExcerpt || b.abstract);
+      return sb - sa;
+    }),
+    ...clinicalLit,
+  ];
 
   const patSorted = [...ev.patents].sort((a, b) => {
     const sa =
@@ -147,6 +159,37 @@ export function buildEvidenceObject(
         0,
         opts?.preferFast ? 12 : 24
       ),
+    },
+    {
+      key: "literatureProcess",
+      value: processLit.slice(0, opts?.preferFast ? 8 : 12).map((h) => ({
+        id: h.id,
+        title: h.title,
+        year: h.year,
+        journal: h.journal,
+        source: h.source,
+        tier: "process",
+        abstract: (h.abstract || "").slice(0, opts?.preferFast ? 400 : 700),
+        fullTextExcerpt: h.fullTextExcerpt
+          ? h.fullTextExcerpt.slice(0, opts?.preferFast ? 900 : 1800)
+          : undefined,
+        url: h.url,
+        isOpenAccess: h.isOpenAccess,
+        processy: true,
+      })),
+    },
+    {
+      key: "literatureClinicalContext",
+      value: clinicalLit.slice(0, opts?.preferFast ? 2 : 4).map((h) => ({
+        id: h.id,
+        title: h.title,
+        year: h.year,
+        source: h.source,
+        tier: "clinical",
+        abstract: (h.abstract || "").slice(0, opts?.preferFast ? 200 : 350),
+        url: h.url,
+        note: "Clinical/PK context only — not process recipe source",
+      })),
     },
     {
       key: "literature",

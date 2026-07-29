@@ -5,7 +5,6 @@
  * Goal: break free-API ceiling via durable multi-pass harvest, not invented data.
  */
 
-import { enrichLiteratureWithOaFullText } from "@/lib/api/europePmc";
 import { enrichPatentHitsWithEpmc } from "@/lib/api/patentFullText";
 import { densifyUsPatentsWithPubchem } from "@/lib/api/usptoFullText";
 import { fetchOrgSynByName } from "@/lib/api/orgsyn";
@@ -17,6 +16,11 @@ import {
   countProcedureChars,
   withSoftTimeout,
 } from "@/lib/dossier/gatherResilience";
+import {
+  deepDensifyLiterature,
+  literatureToCapturedSourceRefs,
+  patentToCapturedSourceRefs,
+} from "@/lib/dossier/deepDensify";
 
 /** Thresholds: below these, attempt densify pass */
 export const DENSIFY_MIN_PROCEDURE_CHARS = 1800;
@@ -124,20 +128,20 @@ export async function runDensifyPass(
     return sb - sa;
   });
 
-  // 1) OA full text — process-ranked, higher article budget
+  // 1) Deep densify — metadata (EPMC/Crossref) + OA full text, process-ranked
   {
-    const oa = await step(
-      "europepmc-oa",
+    const deep = await step(
+      "deep-literature",
       () =>
         withSoftTimeout(
-          enrichLiteratureWithOaFullText(literature, { maxArticles: 12 }),
-          55_000,
+          deepDensifyLiterature(literature, { maxMeta: 16, maxOa: 12 }),
+          70_000,
           { hits: literature, traces: [] }
         ),
       { hits: literature, traces: [] }
     );
-    literature = oa.hits;
-    traces.push(...oa.traces);
+    literature = deep.hits;
+    traces.push(...deep.traces);
     for (const h of literature) {
       if (h.fullTextExcerpt && h.fullTextExcerpt.length >= 80) {
         pushExcerpt({
@@ -147,6 +151,15 @@ export async function runDensifyPass(
           text: h.fullTextExcerpt,
           url: h.url,
           chars: h.fullTextExcerpt.length,
+        });
+      } else if (h.abstract && h.abstract.length >= 200) {
+        pushExcerpt({
+          id: `abs-d2:${h.id}`,
+          source: h.pmid ? "pubmed" : "other",
+          label: `Abstract · ${h.title.slice(0, 80)}`,
+          text: h.abstract,
+          url: h.url,
+          chars: h.abstract.length,
         });
       }
     }
@@ -278,11 +291,22 @@ export async function runDensifyPass(
     (a, b) => (b.chars || b.text.length) - (a.chars || a.text.length)
   );
 
+  // Refresh lit/patent sourceRefs with densify captures for provenance
+  const nonLitPat = (evidence.sourceRefs || []).filter(
+    (r) => r.type !== "literature" && r.type !== "patent"
+  );
+  const sourceRefs = [
+    ...nonLitPat,
+    ...literatureToCapturedSourceRefs(literature, 18),
+    ...patentToCapturedSourceRefs(patents, 28),
+  ];
+
   const densified: CompoundEvidence = {
     ...evidence,
     literature,
     patents,
     procedureExcerpts: procedureExcerpts.slice(0, 64),
+    sourceRefs,
     traces,
     fetchErrors: [
       ...fetchErrors,

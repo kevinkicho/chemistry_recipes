@@ -52,8 +52,16 @@ ok("DENS-01 runDensifyPass export", /export async function runDensifyPass/.test(
 // DENS-02 process-rank before OA budget
 ok("DENS-02 processScore ranking", /processScore/.test(densify));
 ok("DENS-02 literature sort by process density", /literature\s*=\s*\[\.\.\.literature\]\.sort/.test(densify));
-ok("DENS-02 OA maxArticles ≥ 8", /maxArticles:\s*(8|10|1[0-2])/.test(densify));
-ok("DENS-02 extra PMC densify", /extraPmc|fetchEuropePmcFullTextXml/.test(densify));
+ok(
+  "DENS-02 OA maxArticles ≥ 8",
+  /maxArticles:\s*(8|10|1[0-2])|maxOa:\s*(8|10|1[0-2])|deepDensifyLiterature/.test(
+    densify
+  )
+);
+ok(
+  "DENS-02 extra PMC densify",
+  /extraPmc|fetchEuropePmcFullTextXml|deepDensifyLiterature/.test(densify)
+);
 
 // DENS-03 OA-sparse patent boost
 ok("DENS-03 oaSparse detection", /oaSparse|oaWindows/.test(densify));

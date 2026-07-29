@@ -415,6 +415,29 @@ export function provenanceFromPublicSourceRefs(
         };
       }
 
+      // Harvested paper/patent window from free APIs (EPMC/Crossref densify) — real capture
+      if (r.capturedSnippet && r.capturedSnippet.length >= 40) {
+        return {
+          id: `ref-capture:${r.type}:${r.id}:${i}`,
+          datapoint,
+          name: r.label ?? r.id,
+          kind,
+          role:
+            r.note ||
+            `Harvested free-public ${r.type} densify window` +
+              (r.relevanceTier ? ` · ${r.relevanceTier}` : ""),
+          deepLinkUrl: url,
+          recordUrl: url,
+          endpointUrl: r.capturedEndpoint || undefined,
+          responseBody: r.capturedSnippet.slice(0, 1500),
+          fetchedAt: r.capturedAt,
+          method: "GET",
+          note:
+            "Snippet from free-public densify (Europe PMC / Crossref / patent APIs) — not HTML scraping of the deep link.",
+          citationOnly: false,
+        };
+      }
+
       const isArticle = r.type === "literature" || r.type === "patent";
       return {
         id: `ref:${r.type}:${r.id}:${i}`,
@@ -424,16 +447,15 @@ export function provenanceFromPublicSourceRefs(
         role:
           r.note ??
           (isArticle
-            ? `Public ${r.type} citation (deeplink only)`
+            ? `Public ${r.type} citation — densify still pending for free-API body`
             : `Public ${r.type} record (deeplink only; no matching harvest API capture in traces)`),
         deepLinkUrl: url,
         recordUrl: url,
-        // Keep deep link for navigation; do not claim it was the API endpoint
         endpointUrl: undefined,
         citationOnly: true,
         note: isArticle
-          ? "Citation deeplink only — article/patent HTML and paywalled full text are not auto-fetched (etiquette + terms). Process density uses OA full text / paste when available; search API captures appear in the live API rows above when harvested."
-          : "Citation / landing-page deeplink only. Matching free-public JSON API was not found in harvest traces for this source (soft-fail, cache, or not yet gathered). Force re-densify to re-query APIs politely — we do not scrape HTML pages.",
+          ? "No free-public abstract/OA window captured yet. Force densify retries Europe PMC / Crossref — paywalled HTML is not scraped."
+          : "Citation / landing-page deeplink only. Matching free-public JSON API was not found in harvest traces. Use Retry failed families or force densify — we do not scrape HTML pages.",
       };
     });
 }
