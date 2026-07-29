@@ -69,6 +69,19 @@ ok(
   "AI user content mentions priority",
   /Priority:.*processFacts\.atoms|procedureExcerpts/.test(synth)
 );
+ok("AI two-pass EXTRACT_SYSTEM", /EXTRACT_SYSTEM/.test(synth));
+ok("AI two-pass pass1Extract assemble", /pass1Extract/.test(synth));
+ok("AI pack processKnowledgeDigest", /processKnowledgeDigest/.test(pack));
+ok(
+  "AI pack related context",
+  /relatedProcessContext|buildRelatedProcessContext/.test(pack)
+);
+ok("AI pack value-weighted", /value-weighted|packing:\s*"value-weighted"/.test(pack));
+ok(
+  "AI procedure-density gate in score",
+  /hasProcedureDensity|PROC_DENSITY/.test(score)
+);
+ok("pipeline attachQuotesToRoutes", /attachQuotesToRoutes/.test(pipe));
 
 // Quality gate heuristics (mirrored executable)
 const JUNK_STEP =

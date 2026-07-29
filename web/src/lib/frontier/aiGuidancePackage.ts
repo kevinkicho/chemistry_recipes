@@ -9,6 +9,8 @@ import { scoreProcedureWindow } from "@/lib/literature/procedureWindowScore";
 import { buildLiteratureDepthReport } from "@/lib/frontier/literatureDepth";
 import { buildProcessKnowledgePackage } from "@/lib/frontier/buildKnowledge";
 import { packageIsUsable } from "@/lib/frontier/knowledgeFingerprint";
+import { listThinHighValueTargets } from "@/lib/dossier/densifyBudgetPlanner";
+import { buildSourceFamilyReport } from "@/lib/dossier/sourceFamilyReport";
 
 export const AI_GUIDANCE_SCHEMA =
   "chemistry-recipes.ai-guidance.v1" as const;
@@ -339,6 +341,52 @@ export function buildAiGuidancePackage(dossier: LiveDossier): AiGuidancePackage 
       expectedGain: "Richer annotations for guidance context (not plant numbers)",
     });
   }
+
+  // Thin high-value lit/pat hits from densify budget planner
+  const thinTargets = listThinHighValueTargets(
+    dossier.literature || [],
+    dossier.patents || []
+  );
+  if (thinTargets.length >= 2) {
+    const top = thinTargets.slice(0, 3).map((t) => t.label).join("; ");
+    densifyNext.push({
+      id: "act:thin-hits",
+      kind: "oa-literature",
+      priority: thinTargets.some((t) => t.score >= 20) ? "high" : "medium",
+      title: "Densify thin high-score hits first",
+      rationale: `${thinTargets.length} thin high-value hit(s) — e.g. ${top}`,
+      how: "Force densify pass (budget planner prioritizes thin process-scored lit/patents)",
+      expectedGain: "Abstract/OA/procedure body on highest-value thin rows",
+    });
+  }
+
+  // Soft-fail / empty family report → retry densify chain
+  const familyRows = buildSourceFamilyReport({
+    traces: dossier.traces,
+    literatureCount: dossier.literature?.length,
+    patentCount: dossier.patents?.length,
+    annotationSources: (dossier.annotations || []).map((a) => a.source),
+    manufacturingCount: dossier.manufacturingTexts?.length,
+    fetchErrors: dossier.fetchErrors,
+  });
+  const failFamilies = familyRows.filter(
+    (r) => r.status === "fail" || r.status === "empty"
+  );
+  const softFailN = (dossier.fetchErrors || []).filter(
+    (e) => e.startsWith("soft-fail ·") || e.startsWith("api-fail ·")
+  ).length;
+  if (failFamilies.length >= 2 || softFailN >= 3) {
+    densifyNext.push({
+      id: "act:retry-families",
+      kind: "force-regather",
+      priority: softFailN >= 4 ? "high" : "medium",
+      title: "Retry soft-failed API families",
+      rationale: `${failFamilies.length} thin/fail family(ies) · ${softFailN} soft-fail hint(s)`,
+      how: "Retry failed families / force re-gather (durable soft-fail path — does not invent data)",
+      expectedGain: "Recover free-public payload from families that soft-failed",
+    });
+  }
+
   densifyNext.sort((a, b) => {
     const p = { high: 0, medium: 1, low: 2 };
     return p[a.priority] - p[b.priority];

@@ -49,9 +49,14 @@ ok("DENS-01 min procedure chars", /DENSIFY_MIN_PROCEDURE_CHARS/.test(densify));
 ok("DENS-01 min excerpts", /DENSIFY_MIN_EXCERPTS/.test(densify));
 ok("DENS-01 runDensifyPass export", /export async function runDensifyPass/.test(densify));
 
-// DENS-02 process-rank before OA budget
+// DENS-02 process-rank / budget planner before OA budget
 ok("DENS-02 processScore ranking", /processScore/.test(densify));
-ok("DENS-02 literature sort by process density", /literature\s*=\s*\[\.\.\.literature\]\.sort/.test(densify));
+ok(
+  "DENS-02 literature densify budget planner",
+  /planLiteratureDensifyTargets|literature\s*=\s*\[\.\.\.literature\]\.sort/.test(
+    densify
+  )
+);
 ok(
   "DENS-02 OA maxArticles ≥ 8",
   /maxArticles:\s*(8|10|1[0-2])|maxOa:\s*(8|10|1[0-2])|deepDensifyLiterature/.test(
@@ -66,7 +71,10 @@ ok(
 // DENS-03 OA-sparse patent boost
 ok("DENS-03 oaSparse detection", /oaSparse|oaWindows/.test(densify));
 ok("DENS-03 higher patent max when OA sparse", /epmcPatMax|usPatMax|oaSparse\s*\?\s*12/.test(densify));
-ok("DENS-03 patents process-ranked", /patents\s*=\s*\[\.\.\.patents\]\.sort/.test(densify));
+ok(
+  "DENS-03 patents process-ranked / planner",
+  /planPatentDensifyTargets|patents\s*=\s*\[\.\.\.patents\]\.sort/.test(densify)
+);
 
 // DENS-04 procedure excerpts retained
 ok("DENS-04 LiveDossier procedureExcerpts field", /procedureExcerpts\?:/.test(types));
@@ -100,15 +108,45 @@ ok("DENS-08 force passed to pipeline", /force\s*[,}]/.test(stream) || /force\s*:
 ok("DENS-09 MAX_EVIDENCE_CHARS_FULL", /MAX_EVIDENCE_CHARS_FULL\s*=\s*3[0-9_]+/.test(evidencePkg));
 ok("DENS-09 procedureExcerpts in package", /procedureExcerpts/.test(evidencePkg));
 ok("DENS-09 processFacts atoms first", /processFacts|atoms/.test(evidencePkg));
+ok("DENS-09 value-weighted packing", /value-weighted|rankProcedureTextsForPack|packing:\s*"value-weighted"/.test(evidencePkg));
+ok("DENS-09 processKnowledgeDigest in pack", /processKnowledgeDigest/.test(evidencePkg));
+ok("DENS-09 relatedProcessContext in pack", /relatedProcessContext|buildRelatedProcessContext/.test(evidencePkg));
 
 // DENS-10 client enrich reuses harvest
 ok("DENS-10 enrich uses dossier.procedureExcerpts", /dossier\.procedureExcerpts/.test(enrich));
+
+// DENS-11 densify budget planner + quote-bind + two-pass AI
+const planner = read("lib/dossier/densifyBudgetPlanner.ts");
+const quoteBind = read("lib/dossier/attachQuotesToRoutes.ts");
+const relatedCtx = read("lib/dossier/relatedContextPackage.ts");
+const annEx = read("lib/dossier/annotationExcerpts.ts");
+const synth = read("lib/dossier/synthesize.ts");
+const deep = read("lib/dossier/deepDensify.ts");
+const score = read("lib/dossier/evidenceScore.ts");
+
+ok("DENS-11 planLiteratureDensifyTargets", /export function planLiteratureDensifyTargets/.test(planner));
+ok("DENS-11 planPatentDensifyTargets", /export function planPatentDensifyTargets/.test(planner));
+ok("DENS-11 listThinHighValueTargets", /export function listThinHighValueTargets/.test(planner));
+ok("DENS-11 deepDensify uses planner", /planLiteratureDensifyTargets/.test(deep));
+ok("DENS-11 densifyPass uses planner", /planLiteratureDensifyTargets/.test(densify));
+ok("DENS-11 attachQuotesToRoutes export", /export function attachQuotesToRoutes/.test(quoteBind));
+ok("DENS-11 pipeline quote-bind", /attachQuotesToRoutes/.test(pipeline));
+ok("DENS-11 related context package", /export function buildRelatedProcessContext/.test(relatedCtx));
+ok("DENS-11 annotations→excerpts", /export function annotationsToProcedureExcerpts/.test(annEx));
+ok("DENS-11 gather promotes annotations", /annotationsToProcedureExcerpts/.test(gather));
+ok("DENS-11 two-pass extract system", /EXTRACT_SYSTEM|pass1Extract|two-pass/.test(synth));
+ok("DENS-11 densifyNext thin hits", /listThinHighValueTargets|act:thin-hits|thin high-value/.test(guide));
+ok("DENS-11 procedure-density gate", /hasProcedureDensity|PROC_DENSITY/.test(score));
 
 // Module presence for densify ecosystem
 const densifyMods = [
   "lib/dossier/densifyPass.ts",
   "lib/dossier/densifySchedule.ts",
   "lib/dossier/densifyTelemetry.ts",
+  "lib/dossier/densifyBudgetPlanner.ts",
+  "lib/dossier/attachQuotesToRoutes.ts",
+  "lib/dossier/relatedContextPackage.ts",
+  "lib/dossier/annotationExcerpts.ts",
   "lib/frontier/aiGuidancePackage.ts",
   "lib/frontier/campaignAiGuidance.ts",
   "lib/frontier/densifyActionQueue.ts",

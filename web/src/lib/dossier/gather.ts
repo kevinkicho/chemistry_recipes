@@ -60,6 +60,7 @@ import type {
 } from "@/lib/dossier/types";
 import { scoreCompoundEvidence } from "@/lib/dossier/evidenceScore";
 import { extractProcessFacts } from "@/lib/dossier/processFacts";
+import { annotationsToProcedureExcerpts } from "@/lib/dossier/annotationExcerpts";
 import {
   getCachedEvidence,
   putCachedEvidence,
@@ -1228,6 +1229,14 @@ export async function gatherCompoundEvidenceLive(
         chars: r.equation.length,
       });
     }
+  }
+
+  // Process-relevant annotations → procedure windows (AI density without invention)
+  for (const p of annotationsToProcedureExcerpts(annotations, cid)) {
+    if (procedureExcerpts.some((x) => x.id === p.id)) continue;
+    const head = p.text.slice(0, 100);
+    if (procedureExcerpts.some((x) => x.text.slice(0, 100) === head)) continue;
+    procedureExcerpts.push(p);
   }
 
   // Literature source notes

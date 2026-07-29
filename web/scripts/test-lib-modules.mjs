@@ -64,6 +64,10 @@ const critical = [
   "lib/dossier/gatherResilience.ts",
   "lib/idb/procedureVault.ts",
   "lib/dossier/aiEvidencePackage.ts",
+  "lib/dossier/densifyBudgetPlanner.ts",
+  "lib/dossier/attachQuotesToRoutes.ts",
+  "lib/dossier/relatedContextPackage.ts",
+  "lib/dossier/annotationExcerpts.ts",
   "components/ValidationChecklist.tsx",
   "components/SourceCoverageMap.tsx",
   "components/EvidenceScoreExplainer.tsx",
@@ -109,6 +113,18 @@ const pipeline = read("lib/dossier/pipeline.ts");
 ok("pipeline calls stripUncitedRouteDetails", /stripUncitedRouteDetails/.test(pipeline));
 ok("pipeline calls extractProcessFacts", /extractProcessFacts/.test(pipeline));
 ok("pipeline calls preferRoutesForEvidence", /preferRoutesForEvidence/.test(pipeline));
+ok("pipeline calls attachQuotesToRoutes", /attachQuotesToRoutes/.test(pipeline));
+
+ok(
+  "synthesize two-pass extract path",
+  /EXTRACT_SYSTEM/.test(synthesize) && /pass1Extract|useTwoPass/.test(synthesize)
+);
+ok(
+  "evidence pack value-weighted",
+  /value-weighted|rankProcedureTextsForPack/.test(
+    read("lib/dossier/aiEvidencePackage.ts")
+  )
+);
 
 const exportTs = read("lib/export/techTransfer.ts");
 ok(

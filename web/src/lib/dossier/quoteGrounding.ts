@@ -14,6 +14,13 @@ export interface GroundingReport {
   ungroundedSnippets: string[];
   grounded: boolean;
   summary: string;
+  /** Optional quote-bind pass (attach process-fact refs to matching step conditions) */
+  quoteBind?: {
+    boundSteps: number;
+    boundConditions: number;
+    unboundNumericSteps: number;
+    summary: string;
+  };
 }
 
 const NUMERICISH =

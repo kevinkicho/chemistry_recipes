@@ -32,6 +32,9 @@ export interface EvidenceScore {
 }
 
 const AI_SCORE_THRESHOLD = 22;
+/** Prefer densified procedure body before unlocking full dual-view AI */
+const PROC_DENSITY_SOFT = 400;
+const PROC_DENSITY_STRONG = 800;
 
 export function scoreCompoundEvidence(ev: CompoundEvidence): EvidenceScore {
   const reasons: string[] = [];
@@ -123,31 +126,54 @@ export function scoreCompoundEvidence(ev: CompoundEvidence): EvidenceScore {
   const confidence: EvidenceConfidence =
     score >= 55 ? "high" : score >= 30 ? "medium" : "low";
 
-  // AI only when identity + (process lit/patents OR fact density OR rich mfg OR densify)
+  // Procedure-density gate: thin abstract-only hits should not unlock AI invention.
+  // Require identity + at least one densified process signal.
+  const hasProcessSignal =
+    processLit.length > 0 ||
+    processPatents.length > 0 ||
+    condN >= 2 ||
+    procChars >= PROC_DENSITY_SOFT ||
+    (mfg.length >= 2 && unitN >= 1);
+
+  const hasProcedureDensity =
+    procChars >= PROC_DENSITY_SOFT ||
+    condN >= 2 ||
+    proc.length >= 2 ||
+    oaLit.length + patProc.length >= 1 ||
+    (processLit.length + processPatents.length >= 2 && mfg.length >= 1);
+
   const shouldSynthesize =
     Boolean(ev.identity) &&
-    (score >= AI_SCORE_THRESHOLD ||
-      processLit.length > 0 ||
-      processPatents.length > 0 ||
-      condN >= 2 ||
-      procChars >= 600 ||
-      (mfg.length >= 2 && unitN >= 1));
+    hasProcessSignal &&
+    (score >= AI_SCORE_THRESHOLD || hasProcedureDensity) &&
+    // Soft block: score alone is not enough without any densify/fact body
+    (hasProcedureDensity || score >= AI_SCORE_THRESHOLD + 12);
 
   // Prefer full model when densify + facts support high-value agentic structure
   const denseForFullModel =
     bundle.productionBriefEligible ||
     (condN >= 3 && unitN >= 2) ||
     procChars >= 2000 ||
-    (proc.length >= 5 && processLit.length + processPatents.length >= 2);
+    (proc.length >= 5 && processLit.length + processPatents.length >= 2) ||
+    (procChars >= PROC_DENSITY_STRONG && condN >= 2);
 
   const preferFastModel =
     !denseForFullModel &&
     (score < 45 ||
       !bundle.productionBriefEligible ||
-      processLit.length + processPatents.length < 2);
+      processLit.length + processPatents.length < 2 ||
+      procChars < PROC_DENSITY_STRONG);
 
   if (!shouldSynthesize) {
-    reasons.push("Evidence below synthesis threshold — skip AI invention");
+    reasons.push(
+      hasProcessSignal
+        ? "Evidence below synthesis threshold — skip AI invention"
+        : "No densified process signal — skip AI invention"
+    );
+  } else if (procChars < PROC_DENSITY_STRONG && !bundle.productionBriefEligible) {
+    reasons.push(
+      `Procedure density soft (${procChars} chars) — prefer draft model / strip uncited`
+    );
   }
 
   const explainer = [

@@ -1,12 +1,13 @@
 /**
  * Budgeted free-public evidence package for Ollama / agentic synthesis.
  *
- * Priority order (never invent data — only structure what was harvested):
- * 1. processFacts atoms (grounding law)
- * 2. procedureExcerpts (OA full text, patent windows, OrgSyn, ORD)
- * 3. densified literature / patents
- * 4. manufacturing + GHS
- * 5. multi-source annotations / identity
+ * Value-weighted priority (never invent data — only structure what was harvested):
+ * 1. processFacts atoms (grounding law) — conditions/yields first
+ * 2. procedureExcerpts ranked by procedure-window score
+ * 3. relatedProcessContext + processKnowledgeDigest
+ * 4. densified process literature / patents
+ * 5. manufacturing + GHS
+ * 6. multi-source annotations / identity (context only)
  *
  * Goal: high-value agentic output from denser multi-API harvest.
  */
@@ -18,11 +19,31 @@ import {
   scoreProcessRelevance,
   splitProcessVsClinicalLiterature,
 } from "@/lib/literature/rank";
+import { scoreProcedureWindow } from "@/lib/literature/procedureWindowScore";
+import { rankProcedureTextsForPack } from "@/lib/dossier/densifyBudgetPlanner";
+import {
+  buildRelatedProcessContext,
+  formatRelatedContextForPrompt,
+} from "@/lib/dossier/relatedContextPackage";
 
 /** Full-model budget — denser multi-pass harvest needs more headroom */
 export const MAX_EVIDENCE_CHARS_FULL = 32_000;
 /** Draft/fast model keeps a tighter package for latency */
 export const MAX_EVIDENCE_CHARS_FAST = 16_000;
+
+const ATOM_KIND_WEIGHT: Record<string, number> = {
+  condition: 50,
+  yield: 45,
+  purity: 42,
+  workup: 38,
+  isolation: 36,
+  "unit-op": 35,
+  material: 30,
+  "scale-note": 28,
+  "hazard-process": 22,
+  other: 10,
+  "open-gap": 0,
+};
 
 function processScore(title: string, body?: string): number {
   const t = `${title} ${body || ""}`;
@@ -31,7 +52,17 @@ function processScore(title: string, body?: string): number {
     s += 3;
   if (/example\s+\d+|procedure|°\s*C|equiv/i.test(t)) s += 2;
   if ((body?.length || 0) > 400) s += 1;
+  // Procedure-window markers elevate densified hits
+  s += Math.min(6, Math.floor(scoreProcedureWindow(body || title) / 4));
   return s;
+}
+
+function atomRank(kind: string | undefined, claim: string, quote?: string): number {
+  const k = (kind || "other").toLowerCase();
+  const base = ATOM_KIND_WEIGHT[k] ?? 12;
+  const q = quote?.length || 0;
+  const hasNum = /\d/.test(`${claim} ${quote || ""}`) ? 8 : 0;
+  return base + Math.min(15, Math.floor(q / 40)) + hasNum;
 }
 
 function jsonSize(obj: unknown): number {
@@ -40,6 +71,7 @@ function jsonSize(obj: unknown): number {
 
 /**
  * Build a structured evidence object with densified procedure windows first.
+ * Layers fill remaining budget in value order (drop low-value first).
  */
 export function buildEvidenceObject(
   ev: CompoundEvidence,
@@ -48,6 +80,7 @@ export function buildEvidenceObject(
   const maxChars = opts?.preferFast
     ? MAX_EVIDENCE_CHARS_FAST
     : MAX_EVIDENCE_CHARS_FULL;
+  const preferFast = Boolean(opts?.preferFast);
 
   // Prefer process/manufacturing lit for dual-view routes; clinical is context only
   const { process: processLit, clinical: clinicalLit } =
@@ -70,29 +103,51 @@ export function buildEvidenceObject(
   const patSorted = [...ev.patents].sort((a, b) => {
     const sa =
       processScore(a.title, a.procedureExcerpt || a.abstract) +
-      (a.procedureExcerpt ? 4 : 0);
+      (a.procedureExcerpt ? 4 : 0) +
+      scoreProcedureWindow(a.procedureExcerpt || a.abstract);
     const sb =
       processScore(b.title, b.procedureExcerpt || b.abstract) +
-      (b.procedureExcerpt ? 4 : 0);
+      (b.procedureExcerpt ? 4 : 0) +
+      scoreProcedureWindow(b.procedureExcerpt || b.abstract);
     return sb - sa;
   });
 
   const pf = ev.processFacts;
-  const procedureExcerpts = [...(ev.procedureExcerpts || [])]
-    .sort((a, b) => (b.chars || b.text.length) - (a.chars || a.text.length))
-    .slice(0, opts?.preferFast ? 12 : 24)
-    .map((p) => ({
-      id: p.id,
-      source: p.source,
-      label: p.label,
-      text: p.text.slice(0, opts?.preferFast ? 1200 : 2200),
-      url: p.url,
-      chars: p.chars || p.text.length,
-    }));
 
+  // Value-weighted procedure windows (procedure-score, not just length)
+  const rankedWindows = rankProcedureTextsForPack(
+    (ev.procedureExcerpts || []).map((p) => ({
+      id: p.id,
+      text: p.text,
+      label: p.label,
+      chars: p.chars || p.text.length,
+    }))
+  );
+  const byId = new Map((ev.procedureExcerpts || []).map((p) => [p.id, p]));
+  const procedureExcerpts = rankedWindows
+    .slice(0, preferFast ? 12 : 24)
+    .map((w) => {
+      const p = byId.get(w.id)!;
+      return {
+        id: p.id,
+        source: p.source,
+        label: p.label,
+        text: p.text.slice(0, preferFast ? 1200 : 2200),
+        url: p.url,
+        chars: p.chars || p.text.length,
+        procedureScore: scoreProcedureWindow(p.text),
+      };
+    });
+
+  // Conditions / yields first among atoms
   const atoms = (pf?.facts || [])
     .filter((f) => f.kind !== "open-gap")
-    .slice(0, opts?.preferFast ? 36 : 64)
+    .slice()
+    .sort(
+      (a, b) =>
+        atomRank(b.kind, b.claim, b.quote) - atomRank(a.kind, a.claim, a.quote)
+    )
+    .slice(0, preferFast ? 36 : 64)
     .map((f) => ({
       kind: f.kind,
       claim: f.claim,
@@ -107,6 +162,23 @@ export function buildEvidenceObject(
       sourceUrl: f.sourceUrl,
     }));
 
+  const relatedCtx = buildRelatedProcessContext(ev);
+  const relatedBlock = formatRelatedContextForPrompt(relatedCtx);
+
+  const processKnowledgeDigest = {
+    framing: pf?.framing || "evidence-lead-pack",
+    productionBriefEligible: pf?.productionBriefEligible || false,
+    sourcedConditionCount: pf?.sourcedConditionCount ?? 0,
+    unitOpCount: pf?.unitOpCount ?? 0,
+    openGaps: (pf?.openGaps || []).slice(0, 8),
+    managerRisks: (pf?.managerRisks || []).slice(0, 6),
+    exampleDenseSources: (pf?.exampleDenseSources || []).slice(0, 6),
+    ipPointers: (pf?.ipPointers || []).slice(0, 6),
+    instruction:
+      "Use processKnowledgeDigest only as structure cues (gaps, risks, dense sources). " +
+      "Do not invent plant setpoints or CPP numbers from gaps.",
+  };
+
   const core: Record<string, unknown> = {
     agenticBrief: {
       framing: pf?.framing || "evidence-lead-pack",
@@ -116,10 +188,12 @@ export function buildEvidenceObject(
         (n, p) => n + (p.chars || 0),
         0
       ),
+      packing: "value-weighted",
       instruction:
         "STRUCTURE the densest procedureExcerpts + processFacts.atoms into dual-view plant routes. " +
         "Ground every numeric condition on an atom quote or procedure excerpt. " +
         "Prefer fewer high-evidence steps over many thin ones. " +
+        "Use relatedProcessContext for impurity/intermediate awareness only. " +
         "Use externalAnnotations for identity/EHS/regulatory context only — not invented unit ops.",
     },
     processFacts: pf
@@ -137,6 +211,7 @@ export function buildEvidenceObject(
         }
       : undefined,
     procedureExcerpts,
+    processKnowledgeDigest,
     identity: ev.identity
       ? {
           name: ev.identity.name,
@@ -150,6 +225,21 @@ export function buildEvidenceObject(
         }
       : { cid: ev.cid },
   };
+
+  // Related CID / impurity context when present
+  if (relatedBlock) {
+    try {
+      const parsed = JSON.parse(relatedBlock) as Record<string, unknown>;
+      Object.assign(core, parsed);
+    } catch {
+      core.relatedProcessContext = {
+        summary: relatedCtx.summary,
+        entities: relatedCtx.relatedEntities.slice(0, 12),
+        impurityMentions: relatedCtx.impurityMentions,
+        processHints: relatedCtx.processHints,
+      };
+    }
+  }
 
   // Fill remaining budget with layered sections
   const layers: Array<{ key: string; value: unknown; minKeep?: boolean }> = [
@@ -278,7 +368,8 @@ export function buildEvidenceObject(
 
   packed.instruction =
     "Produce dual-view process routes for a plant-ready educational dossier. " +
-    "Use procedureExcerpts and processFacts.atoms as primary manufacturing signal. " +
+    "Use procedureExcerpts and processFacts.atoms as primary manufacturing signal (value-weighted pack). " +
+    "Use processKnowledgeDigest + relatedProcessContext only as structure/impurity cues. " +
     "Use all free-public sources (not only PubChem). Omit empty plant fields rather than placeholders.";
 
   // Final hard cap (should rarely hit if packing worked)

@@ -14,6 +14,7 @@ import {
   scoreProcessRelevance,
   isClinicalLiterature,
 } from "@/lib/literature/rank";
+import { planLiteratureDensifyTargets } from "@/lib/dossier/densifyBudgetPlanner";
 import type { SourceRef } from "@/lib/types/process";
 
 const EPMC = "https://www.ebi.ac.uk/europepmc/webservices/rest";
@@ -103,6 +104,7 @@ export async function densifyLiteratureHitMetadata(
 
 /**
  * Deep densify top process-ranked literature: metadata fill + OA full text budget.
+ * Budget order from densifyBudgetPlanner (thin high-score first).
  */
 export async function deepDensifyLiterature(
   hits: LiteratureHit[],
@@ -112,11 +114,10 @@ export async function deepDensifyLiterature(
   const maxOa = opts?.maxOa ?? 10;
   const traces: ApiFetchTrace[] = [];
 
-  // Process-first order for budget
-  const ordered = [...hits].sort((a, b) => {
-    const sa = scoreProcessRelevance(a.title, a.abstract || a.fullTextExcerpt);
-    const sb = scoreProcessRelevance(b.title, b.abstract || b.fullTextExcerpt);
-    return sb - sa;
+  // Thin high-value first, then process-ranked densify targets
+  const ordered = planLiteratureDensifyTargets(hits, {
+    max: Math.max(maxMeta + maxOa, 20),
+    minScore: 8,
   });
 
   const byId = new Map(hits.map((h) => [h.id, { ...h }]));
@@ -131,20 +132,29 @@ export async function deepDensifyLiterature(
     metaN += 1;
   }
 
+  // Prefer OA budget on planner-ranked thin/process hits
   let list = [...byId.values()];
+  const oaPriority = planLiteratureDensifyTargets(list, {
+    max: list.length,
+    minScore: 6,
+  });
+  const oaOrderIds = new Set(oaPriority.map((h) => h.id));
+  list = [
+    ...oaPriority,
+    ...list.filter((h) => !oaOrderIds.has(h.id)),
+  ];
   const oa = await enrichLiteratureWithOaFullText(list, { maxArticles: maxOa });
   list = oa.hits;
   traces.push(...oa.traces);
 
-  // Extra OA for process-ranked PMC with thin excerpt
+  // Extra OA for process-ranked PMC with thin excerpt (planner order)
   let extra = 0;
-  for (const h of list
-    .filter((x) => x.pmcid && !(x.fullTextExcerpt && x.fullTextExcerpt.length > 200))
-    .sort(
-      (a, b) =>
-        scoreProcessRelevance(b.title, b.abstract) -
-        scoreProcessRelevance(a.title, a.abstract)
-    )) {
+  for (const h of planLiteratureDensifyTargets(
+    list.filter(
+      (x) => x.pmcid && !(x.fullTextExcerpt && x.fullTextExcerpt.length > 200)
+    ),
+    { max: 8, minScore: 6 }
+  )) {
     if (extra >= 4) break;
     try {
       const ft = await fetchEuropePmcFullTextXml(h.pmcid!);

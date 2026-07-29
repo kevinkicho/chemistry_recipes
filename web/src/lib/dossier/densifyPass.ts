@@ -21,6 +21,12 @@ import {
   literatureToCapturedSourceRefs,
   patentToCapturedSourceRefs,
 } from "@/lib/dossier/deepDensify";
+import {
+  planLiteratureDensifyTargets,
+  planPatentDensifyTargets,
+  rankProcedureTextsForPack,
+} from "@/lib/dossier/densifyBudgetPlanner";
+import { promoteAnnotationsToProcedureExcerpts } from "@/lib/dossier/annotationExcerpts";
 
 /** Thresholds: below these, attempt densify pass */
 export const DENSIFY_MIN_PROCEDURE_CHARS = 1800;
@@ -105,7 +111,7 @@ export async function runDensifyPass(
     procedureExcerpts.push(p);
   };
 
-  // Rank literature by process/procedure density before OA budget spend
+  // Budget planner: thin high-score literature first for densify spend
   const processScore = (title: string, body?: string) => {
     const t = `${title} ${body || ""}`;
     let s = 0;
@@ -116,19 +122,30 @@ export async function runDensifyPass(
     if (/\b\d+\s*°\s*C\b/.test(t)) s += 2;
     return s;
   };
-  literature = [...literature].sort((a, b) => {
-    const sa =
-      processScore(a.title, a.fullTextExcerpt || a.abstract) +
-      (a.fullTextExcerpt ? 3 : 0) +
-      (a.pmcid ? 2 : 0);
-    const sb =
-      processScore(b.title, b.fullTextExcerpt || b.abstract) +
-      (b.fullTextExcerpt ? 3 : 0) +
-      (b.pmcid ? 2 : 0);
-    return sb - sa;
-  });
+  {
+    const planned = planLiteratureDensifyTargets(literature, {
+      max: literature.length,
+      minScore: 6,
+    });
+    const planIds = new Set(planned.map((h) => h.id));
+    literature = [
+      ...planned,
+      ...literature.filter((h) => !planIds.has(h.id)),
+    ];
+  }
 
-  // 1) Deep densify — metadata (EPMC/Crossref) + OA full text, process-ranked
+  // Promote process-relevant annotations → procedure windows before densify ranking
+  {
+    const promoted = promoteAnnotationsToProcedureExcerpts({
+      ...evidence,
+      literature,
+      patents,
+      procedureExcerpts,
+    });
+    for (const p of promoted.procedureExcerpts || []) pushExcerpt(p);
+  }
+
+  // 1) Deep densify — metadata (EPMC/Crossref) + OA full text, planner-ranked
   {
     const deep = await step(
       "deep-literature",
@@ -200,16 +217,17 @@ export async function runDensifyPass(
     (h) => (h.fullTextExcerpt?.length || 0) >= 80
   ).length;
   const oaSparse = oaWindows < 2;
-  // Process-rank patents so densify budget hits procedure-rich first
-  patents = [...patents].sort((a, b) => {
-    const sa =
-      processScore(a.title, a.procedureExcerpt || a.abstract) +
-      (a.procedureExcerpt ? 3 : 0);
-    const sb =
-      processScore(b.title, b.procedureExcerpt || b.abstract) +
-      (b.procedureExcerpt ? 3 : 0);
-    return sb - sa;
-  });
+  // Planner: thin/high-score patents first for densify budget
+  {
+    const plannedP = planPatentDensifyTargets(patents, {
+      max: patents.length || 12,
+    });
+    const planIds = new Set(plannedP.map((p) => p.id));
+    patents = [
+      ...plannedP,
+      ...patents.filter((p) => !planIds.has(p.id)),
+    ];
+  }
   const epmcPatMax = oaSparse ? 12 : 8;
   const usPatMax = oaSparse ? 10 : 6;
   try {
@@ -286,10 +304,23 @@ export async function runDensifyPass(
     });
   }
 
-  // Prefer densest procedure windows first in the package
-  procedureExcerpts.sort(
-    (a, b) => (b.chars || b.text.length) - (a.chars || a.text.length)
-  );
+  // Prefer highest procedure-window score (then length) for AI pack order
+  {
+    const ranked = rankProcedureTextsForPack(
+      procedureExcerpts.map((p) => ({
+        id: p.id,
+        text: p.text,
+        label: p.label,
+        chars: p.chars || p.text.length,
+      }))
+    );
+    const byId = new Map(procedureExcerpts.map((p) => [p.id, p]));
+    procedureExcerpts.length = 0;
+    for (const r of ranked) {
+      const p = byId.get(r.id);
+      if (p) procedureExcerpts.push(p);
+    }
+  }
 
   // Refresh lit/patent sourceRefs with densify captures for provenance
   const nonLitPat = (evidence.sourceRefs || []).filter(

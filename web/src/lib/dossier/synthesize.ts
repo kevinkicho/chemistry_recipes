@@ -37,11 +37,38 @@ import {
 const AI_TIMEOUT_MS = 120_000;
 const AI_TIMEOUT_FAST_MS = 75_000;
 
+/** Pass 1: extract quote-bound atoms / skeleton only (no dual-view invention). */
+const EXTRACT_SYSTEM = `You are a process-evidence extractor for Chemistry Recipes (educational, free-public only).
+
+Task: EXTRACT only what is explicitly present in the evidence package. Do NOT invent temperatures, yields, equipment IDs, or plant CPPs.
+
+Return ONE JSON object (no markdown fences):
+{
+  "extractedAtoms": [{"kind":"condition"|"yield"|"stoichiometry"|"unit-op"|"material"|"other","claim":string,"value":string|null,"unit":string|null,"quote":string,"sourceHint":string}],
+  "unitOps": string[],
+  "routeSkeleton": [{"order":number,"title":string,"description":string,"conditionHints":string[]}],
+  "materialsNamed": string[],
+  "impurityHints": string[],
+  "gaps": string[],
+  "notes": string
+}
+
+RULES:
+1. quote MUST be a short substring of procedureExcerpts / processFacts.atoms / densified abstracts in the package.
+2. Prefer procedureExcerpts and processFacts.atoms over titles.
+3. conditionHints only when the number appears in a quote.
+4. Prefer fewer high-confidence atoms over many thin ones.
+5. gaps[] lists missing plant detail that was NOT found (not invented fillers).
+6. relatedProcessContext is for impurity/intermediate awareness only.`;
+
+/** Pass 2 / single-pass: assemble dual-view from extract + densified package. */
 const SYSTEM = `You are a senior process chemist assembling ACCURACY-FIRST dual-view plant dossiers for Chemistry Recipes (educational public-evidence guides for MSAT / process teams — NOT GMP SOPs).
 
 INPUT (free public only — densified multi-API harvest):
 - processFacts.atoms[] with source labels/quotes (PRIMARY grounding for numbers)
 - procedureExcerpts[] OA full-text / patent / OrgSyn / ORD windows (PRIMARY manufacturing narrative)
+- optional pass1Extract (atoms/skeleton from extract pass) — prefer these when quote-bound
+- processKnowledgeDigest + relatedProcessContext (structure/impurity cues only)
 - literature[] (may include fullTextExcerpt) and patents[] (may include procedureExcerpt)
 - manufacturingTexts, GHS hazards, externalAnnotations (identity / regulatory / pathway)
 
@@ -49,10 +76,11 @@ OUTPUT: one JSON object (no markdown fences) with the schema below.
 
 AGENTIC PRIORITY:
 A. Structure the densest procedureExcerpts into ordered unit-op steps before inventing outline steps from titles alone.
-B. Attach every numeric condition only if it appears in processFacts.atoms or a procedure excerpt quote.
+B. Attach every numeric condition only if it appears in processFacts.atoms, pass1Extract, or a procedure excerpt quote.
 C. When framing is process-recipe / productionBriefEligible=true, produce a coherent preferred route; when evidence-lead-pack, keep ONE conservative lead and fill gaps[].
 D. Maximize useful plant language (charge / react / quench / isolate / dry) that is still evidence-backed.
 E. externalAnnotations are context (UNII, ChEBI, labels) — never invent unit ops from identity-only hits.
+F. When pass1Extract is present, assemble from it — do not contradict its quotes.
 
 HARD RULES (accuracy):
 1. NEVER invent numeric temperatures, pressures, times, yields, stoichiometry, or CAS. If not in evidence or processFacts, OMIT the field entirely (no "not specified", "N/A", "typical plant", "define IPC").
@@ -703,7 +731,8 @@ async function ollamaChatStream(
 
 /**
  * Call Ollama (Cloud or local) with evidence-only prompt.
- * Cloud uses .env key; local loopback needs no key.
+ * Full model: two-pass extract → assemble when densify package is rich.
+ * Fast/draft: single-pass assemble for latency.
  * Always attaches AiProvenanceRecord when a call is attempted (for AI chips).
  */
 export async function synthesizeDossierFromEvidence(
@@ -714,6 +743,8 @@ export async function synthesizeDossierFromEvidence(
     /** Browser-selected model (from AI settings); overrides env when set */
     model?: string;
     fastModel?: string;
+    /** Force single-pass even on full model */
+    singlePass?: boolean;
   } = {}
 ): Promise<AiSynthesis> {
   const env = getServerAiEnv();
@@ -739,11 +770,16 @@ export async function synthesizeDossierFromEvidence(
   const atomN =
     evidence.processFacts?.facts?.filter((f) => f.kind !== "open-gap").length ||
     0;
-  const userContent =
-    `Synthesize the dossier JSON from this densified free-public evidence only.\n` +
-    `Priority: (1) processFacts.atoms (2) procedureExcerpts (3) densified literature/patents (4) mfg/GHS/annotations.\n` +
-    `Package stats: ${evidenceBlock.length} chars · ${procN} procedure excerpt(s) · ${atomN} process atom(s) · ${dataSources.length} feed source(s).\n\n` +
-    evidenceBlock;
+  const procChars = (evidence.procedureExcerpts || []).reduce(
+    (n, p) => n + (p.chars || p.text.length),
+    0
+  );
+  // Two-pass when full model + enough densify body to make extract valuable
+  const useTwoPass =
+    !preferFast &&
+    !opts.singlePass &&
+    (procChars >= 600 || atomN >= 3 || procN >= 3);
+
   const startedAt = new Date().toISOString();
   const endpointUrl = `${host}/api/chat`;
 
@@ -754,12 +790,78 @@ export async function synthesizeDossierFromEvidence(
     organization: orgLabel,
     endpointUrl,
     method: "POST",
-    detail: `Model ${model} · evidence ${evidenceBlock.length} chars · ${procN} procedure · ${atomN} atoms · ${dataSources.length} feeds · stream+JSON · timeout ${timeoutMs / 1000}s · ${
+    detail: `Model ${model} · ${useTwoPass ? "two-pass extract→assemble" : "single-pass"} · evidence ${evidenceBlock.length} chars · ${procN} procedure · ${atomN} atoms · ${dataSources.length} feeds · stream+JSON · timeout ${timeoutMs / 1000}s · ${
       env.provider === "ollama-local"
         ? "local host (no key)"
         : `key from ${env.keySource || "env"}`
     }`,
   });
+
+  let pass1Extract: unknown | null = null;
+  let extractDurationMs = 0;
+  let extractContent = "";
+
+  if (useTwoPass) {
+    const extractUser =
+      `EXTRACT quote-bound process facts from this densified free-public evidence only.\n` +
+      `Priority: (1) procedureExcerpts (2) processFacts.atoms (3) densified lit/patents.\n` +
+      `Package stats: ${evidenceBlock.length} chars · ${procN} procedure · ${atomN} atoms.\n\n` +
+      evidenceBlock;
+
+    onProgress?.({
+      type: "log",
+      stepId: "ollama",
+      label: "Pass 1 · extract atoms",
+      organization: orgLabel,
+      detail: "Extract quote-bound conditions / unit ops / route skeleton (no dual-view yet)",
+    });
+
+    const extractTimeout = Math.min(
+      Math.floor(timeoutMs * 0.45),
+      preferFast ? 40_000 : 55_000
+    );
+    const extractRes = await ollamaChatStream(
+      host,
+      env.apiKey || null,
+      model,
+      [
+        { role: "system", content: EXTRACT_SYSTEM },
+        { role: "user", content: extractUser },
+      ],
+      onProgress,
+      orgLabel,
+      extractTimeout
+    );
+    extractDurationMs = extractRes.durationMs;
+    extractContent = extractRes.content || "";
+    if (extractRes.ok && extractRes.content) {
+      pass1Extract = extractJson(extractRes.content);
+    }
+    onProgress?.({
+      type: "log",
+      stepId: "ollama",
+      label: pass1Extract ? "Pass 1 · extract OK" : "Pass 1 · extract skipped/fail",
+      organization: orgLabel,
+      detail: pass1Extract
+        ? `Extract JSON parsed · ${extractDurationMs} ms — assembling dual-view`
+        : `Extract unavailable (${extractRes.error || "parse"}) — single-pass assemble fallback`,
+    });
+  }
+
+  const assembleTimeout = useTwoPass
+    ? Math.max(35_000, timeoutMs - extractDurationMs)
+    : timeoutMs;
+
+  const userContent =
+    `Synthesize the dossier JSON from this densified free-public evidence only.\n` +
+    `Priority: (1) processFacts.atoms (2) procedureExcerpts (3) pass1Extract when present (4) densified literature/patents (5) mfg/GHS/annotations.\n` +
+    `Package stats: ${evidenceBlock.length} chars · ${procN} procedure excerpt(s) · ${atomN} process atom(s) · ${dataSources.length} feed source(s)` +
+    (pass1Extract ? " · pass1Extract attached" : "") +
+    `.\n\n` +
+    (pass1Extract
+      ? `pass1Extract (quote-bound; assemble from these — do not invent beyond quotes):\n${JSON.stringify(pass1Extract).slice(0, 12_000)}\n\n`
+      : "") +
+    evidenceBlock;
 
   const first = await ollamaChatStream(
     host,
@@ -771,28 +873,40 @@ export async function synthesizeDossierFromEvidence(
     ],
     onProgress,
     orgLabel,
-    timeoutMs
+    assembleTimeout
   );
 
   const finishedAt = new Date().toISOString();
+  const totalDurationMs = first.durationMs + extractDurationMs;
+  const systemPromptForProv = useTwoPass
+    ? `[EXTRACT]\n${EXTRACT_SYSTEM}\n\n[ASSEMBLE]\n${SYSTEM}`
+    : SYSTEM;
   const baseProvenance: AiProvenanceRecord = {
     provider: env.provider,
     host,
     model,
     startedAt,
     finishedAt,
-    responseTimeMs: first.durationMs,
-    systemPrompt: SYSTEM,
+    responseTimeMs: totalDurationMs,
+    systemPrompt: systemPromptForProv,
     userPrompt: userContent,
     dataFed: evidenceBlock,
     dataSources,
     // Keep a large preview so AI provenance can paginate the real response
-    responsePreview: first.content
-      ? first.content.length > 48_000
-        ? first.content.slice(0, 48_000) + "\n…[truncated for storage]"
-        : first.content
-      : undefined,
-    responseChars: first.content?.length,
+    responsePreview: [
+      extractContent
+        ? `[pass1 extract]\n${extractContent.slice(0, 8_000)}\n\n`
+        : "",
+      first.content
+        ? first.content.length > 40_000
+          ? first.content.slice(0, 40_000) + "\n…[truncated for storage]"
+          : first.content
+        : "",
+    ]
+      .join("")
+      .slice(0, 48_000) || undefined,
+    responseChars:
+      (first.content?.length || 0) + (extractContent?.length || 0) || undefined,
     parsed: false,
     error: first.error,
     endpointUrl,

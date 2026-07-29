@@ -17,6 +17,7 @@ import {
   stripUncitedRouteDetails,
 } from "@/lib/dossier/processFacts";
 import { groundRoutesAgainstEvidence } from "@/lib/dossier/quoteGrounding";
+import { attachQuotesToRoutes } from "@/lib/dossier/attachQuotesToRoutes";
 import { applyPlantDeliverables } from "@/lib/dossier/plantDeliverables";
 import { applyTierABaseline } from "@/lib/dossier/tierABaseline";
 import { withRecipeReadiness } from "@/lib/dossier/recipeReadiness";
@@ -304,6 +305,9 @@ export async function buildLiveDossierWithProgress(
         procedureTexts: (evidence.procedureExcerpts || []).map((p) => p.text),
       });
       aiRoutes = grounded.routes;
+      // Bind step conditions to process-fact quotes when numeric tokens match
+      const quoteBound = attachQuotesToRoutes(aiRoutes, processFacts?.facts);
+      aiRoutes = quoteBound.routes;
       aiRoutes = preferRoutesForEvidence(aiRoutes, processFacts);
       const processRoutes = aiRoutes.length ? aiRoutes : dossier.processRoutes;
       const relatedEntities = withEntityLinks(
@@ -323,7 +327,10 @@ export async function buildLiveDossierWithProgress(
         relatedEntities,
         contradictions,
         modality: synthesis.modality || dossier.modality,
-        groundingReport: grounded.report,
+        groundingReport: {
+          ...grounded.report,
+          quoteBind: quoteBound.report,
+        },
         synthesis: {
           ...synthesis,
           confidence: synthesis.confidence || scored.confidence,
@@ -488,6 +495,32 @@ export async function buildLiveDossierWithProgress(
   dossier = applyTierABaseline(dossier);
   // Re-apply plant deliverables so BOM/related merge stays consistent
   dossier = applyPlantDeliverables(dossier);
+
+  // Final quote-bind: match step condition tokens to process-fact quotes (all build modes)
+  {
+    const facts =
+      dossier.processFacts?.facts || processFacts?.facts || evidence.processFacts?.facts;
+    if (facts?.length && dossier.processRoutes?.length) {
+      const qb = attachQuotesToRoutes(dossier.processRoutes, facts);
+      if (qb.report.boundSteps > 0 || !dossier.groundingReport?.quoteBind) {
+        dossier = {
+          ...dossier,
+          processRoutes: qb.routes,
+          groundingReport: {
+            checkedSteps: dossier.groundingReport?.checkedSteps ?? 0,
+            strippedConditions: dossier.groundingReport?.strippedConditions ?? 0,
+            ungroundedSnippets: dossier.groundingReport?.ungroundedSnippets ?? [],
+            grounded: dossier.groundingReport?.grounded ?? qb.report.boundSteps > 0,
+            summary: dossier.groundingReport?.summary
+              ? `${dossier.groundingReport.summary} · ${qb.report.summary}`
+              : qb.report.summary,
+            quoteBind: qb.report,
+          },
+        };
+      }
+    }
+  }
+
   // Product mode: scout-dossier vs recipe-draft (+ missing checklist)
   dossier = withRecipeReadiness(dossier);
   // Curated Tier-A ideal page depth score (north-star inventory)
