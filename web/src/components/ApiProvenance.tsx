@@ -6,6 +6,7 @@ import type { ApiFetchTrace } from "@/lib/api/trace";
 import { slimTraces } from "@/lib/api/trace";
 import { fetchPubChemProvenance } from "@/lib/api/pubchem";
 import {
+  mergeProvenanceRows,
   provenanceFromPublicSourceRefs,
   provenanceFromTraces,
   type ProvenanceItem,
@@ -154,16 +155,19 @@ export function ApiProvenance({
     setError(null);
   }, [pubchemCid]);
 
+  // Hydrate citation deeplinks with matching harvest API traces (no HTML scraping).
   const citationRows = provenanceFromPublicSourceRefs(
     sourceRefs,
-    title ?? "Citation"
+    title ?? "Citation",
+    traces
   );
   const staticRows = initialSources ?? [];
-  const displayRows = [
-    ...provenanceFromTraces(traces, { pubchemCid }),
-    ...staticRows,
-    ...citationRows,
-  ];
+  const displayRows = mergeProvenanceRows(
+    [...provenanceFromTraces(traces, { pubchemCid }), ...staticRows],
+    citationRows
+  );
+  const fetchedCount = displayRows.filter((r) => r.fetchedAt).length;
+  const citationOnlyCount = displayRows.filter((r) => r.citationOnly).length;
 
   const canOpen =
     displayRows.length > 0 ||
@@ -254,9 +258,19 @@ export function ApiProvenance({
                     <p className="mt-0.5 break-words text-sm text-slate-400">{title}</p>
                   )}
                   <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
-                    Government / research free sources (e.g. PubChem · NIH). Deep link · endpoint ·
-                    live response · time. No paid databases. No mock data.
+                    Government / research free sources (e.g. PubChem · NIH). Live rows show real
+                    harvest HTTP captures. Citation deeplinks are not re-fetched as HTML (API
+                    etiquette). No paid databases. No mock data.
                   </p>
+                  {displayRows.length > 0 ? (
+                    <p className="mt-1 text-[11px] tabular-nums text-slate-500">
+                      {fetchedCount} live API capture
+                      {fetchedCount === 1 ? "" : "s"}
+                      {citationOnlyCount
+                        ? ` · ${citationOnlyCount} citation deeplink${citationOnlyCount === 1 ? "" : "s"} (not HTML-scraped)`
+                        : ""}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[11px] tabular-nums text-slate-400 ring-1 ring-slate-800">
@@ -293,7 +307,9 @@ export function ApiProvenance({
 
               <footer className="shrink-0 border-t border-slate-800 px-4 py-2.5 text-[11px] leading-relaxed text-slate-600 sm:px-5">
                 Response bodies and timestamps appear only after a real HTTP request to a free
-                public API. Citation deeplinks without a fetch do not invent a response.
+                public JSON/API endpoint during harvest (polite delays + retries on 429/5xx). We
+                do not auto-scrape DOI landing pages, report-card HTML, or paywalled full text.
+                Force re-densify to re-query missing free APIs.
               </footer>
             </div>
           </div>,
@@ -450,7 +466,7 @@ function TimeBlock({
   if (!time && method == null && status == null) {
     return (
       <span className="text-slate-600">
-        — (not fetched)
+        — (citation deeplink · not an HTTP API capture)
       </span>
     );
   }
@@ -580,7 +596,7 @@ function ResponseBlock({
   if (!body) {
     return (
       <span className="text-slate-600">
-        — (no HTTP response captured; open endpoint for live data)
+        — (no harvest API body · open deep link for the public record; re-densify to re-query APIs)
       </span>
     );
   }

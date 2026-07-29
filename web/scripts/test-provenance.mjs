@@ -49,6 +49,135 @@ ok("ContentProvenance accepts traces + sourceRefs", /traces/.test(contentProv) &
 const apiProv = read("components/ApiProvenance.tsx");
 ok("ApiProvenance response pagination", /API_PAGE_CHARS/.test(apiProv));
 ok("ApiProvenance free public only", /free public/i.test(apiProv));
+ok(
+  "ApiProvenance hydrates citations from traces",
+  /mergeProvenanceRows|provenanceFromPublicSourceRefs\(/.test(apiProv)
+);
+ok(
+  "ApiProvenance does not claim HTML scrape",
+  /not re-fetched as HTML|not HTML-scraped|citation deeplink/i.test(apiProv)
+);
+
+const provLib = read("lib/provenance.ts");
+ok(
+  "matchTraceForSourceRef export",
+  /export function matchTraceForSourceRef/.test(provLib)
+);
+ok(
+  "mergeProvenanceRows export",
+  /export function mergeProvenanceRows/.test(provLib)
+);
+ok(
+  "hydrate citations with harvest traces",
+  /Harvested free-public API response|matchTraceForSourceRef/.test(provLib)
+);
+ok(
+  "no HTML scrape note on citations",
+  /do not auto-scrape|do not re-fetch HTML|citationOnly/i.test(provLib)
+);
+
+const aside = read("components/dossier/LiveDossierAside.tsx");
+ok(
+  "manufacturing provenance uses allTraces",
+  /allTraces\.length/.test(aside) && /apiTraces/.test(aside)
+);
+
+// Behavioral: id-prefix family wins (MyChem must not match ChEMBL HTML URL)
+function matchTraceForSourceRef(ref, traces) {
+  if (!traces.length) return undefined;
+  if (ref.type === "literature" || ref.type === "patent") return undefined;
+  const id = (ref.id || "").toLowerCase();
+  const family = (id.match(/^([a-z][a-z0-9-]*):/) || [])[1];
+  const preds = {
+    chembl: (e) => e.includes("chembl") && (e.includes("api") || e.includes("/data/")),
+    mychem: (e) => e.includes("mychem.info"),
+    openfda: (e) => e.includes("api.fda.gov"),
+    rxnorm: (e) => e.includes("rxnav.nlm.nih.gov"),
+  };
+  const pred = family && preds[family];
+  if (!pred) return undefined;
+  const hits = traces.filter((t) => pred(t.endpointUrl.toLowerCase()));
+  return hits.find((t) => t.ok && t.responseBody) || hits[0];
+}
+
+const sampleTraces = [
+  {
+    endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/CHEMBL154111.json",
+    method: "GET",
+    fetchedAt: "2026-07-28T12:00:00.000Z",
+    httpStatus: 200,
+    responseBody: '{"molecule_chembl_id":"CHEMBL154111"}',
+    ok: true,
+  },
+  {
+    endpointUrl: "https://mychem.info/v1/query?q=salsalate",
+    method: "GET",
+    fetchedAt: "2026-07-28T12:00:01.000Z",
+    httpStatus: 200,
+    responseBody: '{"hits":[]}',
+    ok: true,
+  },
+  {
+    endpointUrl: "https://api.fda.gov/drug/label.json?search=salsalate",
+    method: "GET",
+    fetchedAt: "2026-07-28T12:00:02.000Z",
+    httpStatus: 200,
+    responseBody: '{"meta":{}}',
+    ok: true,
+  },
+];
+
+ok(
+  "chembl report-card ref matches chembl API trace",
+  matchTraceForSourceRef(
+    {
+      type: "api",
+      id: "chembl:CHEMBL154111",
+      label: "ChEMBL CHEMBL154111",
+      url: "https://www.ebi.ac.uk/chembl/compound_report_card/CHEMBL154111/",
+    },
+    sampleTraces
+  )?.endpointUrl.includes("chembl/api")
+);
+
+ok(
+  "mychem ref matches mychem API not chembl HTML",
+  matchTraceForSourceRef(
+    {
+      type: "api",
+      id: "mychem:xxx",
+      label: "MyChem.info annotation",
+      url: "https://www.ebi.ac.uk/chembl/compound_report_card/CHEMBL154111/",
+    },
+    sampleTraces
+  )?.endpointUrl.includes("mychem.info")
+);
+
+ok(
+  "literature DOI does not match random API",
+  matchTraceForSourceRef(
+    {
+      type: "literature",
+      id: "doi:10.1000/foo",
+      label: "Some paper",
+      url: "https://doi.org/10.1000/foo",
+    },
+    sampleTraces
+  ) == null
+);
+
+ok(
+  "openFDA landing page matches api.fda.gov harvest",
+  matchTraceForSourceRef(
+    {
+      type: "api",
+      id: "openfda:5161",
+      label: "openFDA drug label / Drugs@FDA",
+      url: "https://open.fda.gov/",
+    },
+    sampleTraces
+  )?.endpointUrl.includes("api.fda.gov")
+);
 
 // --- Types ---
 const types = read("lib/dossier/types.ts");
@@ -99,7 +228,6 @@ ok(
 );
 ok("live processRoutesFromAi", /processRoutesFromAi/.test(liveDossier));
 
-const aside = read("components/dossier/LiveDossierAside.tsx");
 ok(
   "aside ContentProvenance manufacturing",
   /Manufacturing summary/.test(aside) && /ContentProvenance/.test(aside)

@@ -66,7 +66,14 @@ export function LiveDossierAside({
   onRegenerate?: () => void;
 }) {
   const hit = dossier.identity;
-  const apiTraces = pugViewTraces.length ? pugViewTraces : pubchemTraces;
+  // Prefer full harvest traces so multi-API sourceRefs (ChEMBL, RxNorm, EPMC, …)
+  // can hydrate with real HTTP captures. Fall back to PubChem-only if empty.
+  const apiTraces =
+    allTraces.length > 0
+      ? allTraces
+      : pugViewTraces.length
+        ? pugViewTraces
+        : pubchemTraces;
   const mfgAi = aiMfg || (mfgFromAi ? aiChip : null);
   const envAi = aiEnv || (envFromAi ? aiChip : null);
   const apparatusAi = aiApparatus || (apparatusFromAi ? aiChip : null);
