@@ -344,8 +344,8 @@ export function ApiProvenance({
           aria-haspopup="dialog"
           aria-label={tooltip}
           onClick={() => setOpen(true)}
-          className={`rounded border border-slate-600/60 bg-slate-900/80 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-300 transition-opacity hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-1 focus:ring-teal-500/50 ${
-            open ? "opacity-100 border-teal-500/40 text-teal-200" : "opacity-30 hover:opacity-100"
+          className={`rounded border border-sky-500/45 bg-sky-950/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sky-100 transition hover:border-sky-400/70 hover:bg-sky-900/50 focus:outline-none focus:ring-1 focus:ring-teal-500/50 ${
+            open ? "border-teal-400/70 text-teal-100 ring-1 ring-teal-500/30" : ""
           }`}
         >
           {label}

@@ -22,6 +22,11 @@ export type ContentProvenanceProps = {
   ai?: AiProvenanceRecord | null;
   /** When true, show AI chip even if caller already gated on field generation */
   showAi?: boolean;
+  /**
+   * When true and no AI record, show an explicit "no AI" marker so free-public
+   * surfaces still disclose that the content was not model-generated.
+   */
+  showNotAi?: boolean;
   onRegenerate?: () => void;
   className?: string;
   apiLabel?: string;
@@ -40,6 +45,7 @@ export function ContentProvenance({
   sourceRefs,
   ai,
   showAi = true,
+  showNotAi = false,
   onRegenerate,
   className = "",
   apiLabel = "API",
@@ -51,8 +57,9 @@ export function ContentProvenance({
     Boolean(sourceRefs && sourceRefs.some((r) => r.url));
 
   const showAiChip = Boolean(ai && showAi);
+  const showNotAiMark = Boolean(showNotAi && !showAiChip);
 
-  if (!hasApi && !showAiChip) return null;
+  if (!hasApi && !showAiChip && !showNotAiMark) return null;
 
   return (
     <span
@@ -75,6 +82,15 @@ export function ContentProvenance({
           label={aiLabel}
           onRegenerate={onRegenerate}
         />
+      ) : null}
+      {showNotAiMark ? (
+        <span
+          title="This block is free-public / rule-derived — not Ollama-generated. API chip lists harvest sources."
+          className="rounded border border-slate-600/70 bg-slate-900/80 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
+          data-content-provenance-not-ai=""
+        >
+          no AI
+        </span>
       ) : null}
     </span>
   );

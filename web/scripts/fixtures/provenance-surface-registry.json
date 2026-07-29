@@ -305,40 +305,40 @@
       "label": "Public condition atlas",
       "file": "components/frontier/ConditionAtlasPanel.tsx",
       "api": "required",
-      "ai": "optional",
-      "patterns": ["FreePublicProvenance", "condition-atlas"]
+      "ai": "when-parsed-or-not-ai",
+      "patterns": ["FreePublicProvenance", "condition-atlas", "aiMode"]
     },
     {
       "id": "frontier.route-hypotheses",
       "label": "Route hypotheses",
       "file": "components/frontier/RouteHypothesesPanel.tsx",
       "api": "required",
-      "ai": "when-field:routes",
-      "patterns": ["FreePublicProvenance", "aiField"]
+      "ai": "field-or-parsed",
+      "patterns": ["FreePublicProvenance", "aiField", "aiMode"]
     },
     {
       "id": "frontier.reaction-network",
       "label": "Reaction network",
       "file": "components/frontier/ReactionNetworkPanel.tsx",
       "api": "required",
-      "ai": "optional",
-      "patterns": ["FreePublicProvenance", "reaction-network"]
+      "ai": "field-or-parsed",
+      "patterns": ["FreePublicProvenance", "reaction-network", "aiMode"]
     },
     {
       "id": "frontier.evidence-science",
       "label": "Evidence science Q&A",
       "file": "components/frontier/EvidenceSciencePanel.tsx",
       "api": "required",
-      "ai": "optional",
-      "patterns": ["FreePublicProvenance", "evidence-science"]
+      "ai": "when-parsed-or-not-ai",
+      "patterns": ["FreePublicProvenance", "evidence-science", "aiMode"]
     },
     {
       "id": "frontier.science-agent",
       "label": "Science agent",
       "file": "components/frontier/ScienceAgentPanel.tsx",
       "api": "required",
-      "ai": "optional",
-      "patterns": ["FreePublicProvenance", "ContentProvenance", "science-agent"]
+      "ai": "when-parsed-or-not-ai",
+      "patterns": ["FreePublicProvenance", "ContentProvenance", "science-agent", "aiMode"]
     },
     {
       "id": "frontier.edge-compare",
@@ -352,9 +352,47 @@
       "id": "frontier.batch-densify",
       "label": "Batch densify",
       "file": "components/frontier/BatchDensifyPanel.tsx",
-      "api": "optional",
+      "api": "required",
+      "ai": "when-parsed-or-not-ai",
+      "patterns": ["FreePublicProvenance", "batch-densify"]
+    },
+    {
+      "id": "helper.free-public-provenance",
+      "label": "FreePublicProvenance dual API+AI modes",
+      "file": "components/FreePublicProvenance.tsx",
+      "api": "required",
+      "ai": "required",
+      "patterns": [
+        "field-or-parsed",
+        "when-parsed",
+        "showNotAi",
+        "aiProvenanceWhenParsed",
+        "ContentProvenance"
+      ]
+    },
+    {
+      "id": "helper.content-provenance-not-ai",
+      "label": "ContentProvenance no-AI marker",
+      "file": "components/ContentProvenance.tsx",
+      "api": "required",
+      "ai": "required",
+      "patterns": ["showNotAi", "no AI", "ApiProvenance", "AiProvenance"]
+    },
+    {
+      "id": "live.site-fill",
+      "label": "Site fill local blanks",
+      "file": "components/SiteFillPanel.tsx",
+      "api": "required",
       "ai": "none",
-      "patterns": ["FreePublicBadge", "batch-densify"]
+      "patterns": ["ContentProvenance", "showNotAi", "site-fill"]
+    },
+    {
+      "id": "live.ord-bulk",
+      "label": "ORD bulk hooks",
+      "file": "components/OrdBulkPanel.tsx",
+      "api": "required",
+      "ai": "none",
+      "patterns": ["ContentProvenance", "showNotAi", "ord-bulk"]
     },
     {
       "id": "frontier.campaign-agent",

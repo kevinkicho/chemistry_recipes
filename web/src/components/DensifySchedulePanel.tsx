@@ -11,6 +11,7 @@ import {
 import { warmLiveDossier } from "@/lib/dossier/warmCache";
 import { streamBatchDensifyCids } from "@/lib/dossier/batchClient";
 import { routes } from "@/lib/routes";
+import { FreePublicBadge } from "@/components/FreePublicProvenance";
 
 /**
  * Client densify schedule — recently viewed thin CIDs + warm-now / warm-due-all.
@@ -85,8 +86,12 @@ export function DensifySchedulePanel() {
     <div
       id="densify-schedule"
       className="print:hidden scroll-mt-24 rounded-xl border border-slate-800 bg-slate-900/40 p-4"
+      data-content-provenance="densify-schedule"
     >
-      <h2 className="text-sm font-semibold text-slate-100">Densify schedule (local)</h2>
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-sm font-semibold text-slate-100">Densify schedule (local)</h2>
+        <FreePublicBadge note="local schedule · free-public warm · not AI · not GMP" />
+      </div>
       <p className="mt-1 text-[11px] text-slate-500">
         Recently viewed thin CIDs — warm so Monday opens dense. Uses stream batch with
         cache + retries.

@@ -430,8 +430,8 @@ export function AiProvenance({
           aria-haspopup="dialog"
           aria-label={tooltip}
           onClick={() => setOpen(true)}
-          className={`rounded border border-violet-500/50 bg-violet-950/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-violet-200 transition-opacity hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-1 focus:ring-violet-500/50 ${
-            open ? "opacity-100 border-violet-400/70" : "opacity-30 hover:opacity-100"
+          className={`rounded border border-violet-400/55 bg-violet-950/60 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-violet-100 transition hover:border-violet-300/80 hover:bg-violet-900/50 focus:outline-none focus:ring-1 focus:ring-violet-500/50 ${
+            open ? "border-violet-300/80 ring-1 ring-violet-400/40" : ""
           }`}
         >
           {label}

@@ -14,12 +14,25 @@ import {
 } from "@/lib/frontier/campaignKnowledge";
 import Link from "next/link";
 import { routes } from "@/lib/routes";
-import { FreePublicBadge } from "@/components/FreePublicProvenance";
+import {
+  FreePublicBadge,
+  FreePublicProvenance,
+} from "@/components/FreePublicProvenance";
+import type { LiveDossier } from "@/lib/dossier/types";
 
 /**
  * Batch densify for science campaigns (server sequential builds).
  */
-export function BatchDensifyPanel({ seedCids }: { seedCids?: number[] }) {
+export function BatchDensifyPanel({
+  seedCids,
+  dossier,
+  onRegenerate,
+}: {
+  seedCids?: number[];
+  /** When mounted on a compound page, full API + AI provenance chips */
+  dossier?: LiveDossier;
+  onRegenerate?: () => void;
+}) {
   const [campaigns, setCampaigns] = useState<ScienceCampaign[]>([]);
   const [selected, setSelected] = useState<string>("");
   const [manual, setManual] = useState(
@@ -174,7 +187,16 @@ export function BatchDensifyPanel({ seedCids }: { seedCids?: number[] }) {
         <h2 className="text-sm font-semibold text-slate-50">
           Multi-CID densify (server)
         </h2>
-        <FreePublicBadge note="free-public multi-API densify · not GMP" />
+        {dossier ? (
+          <FreePublicProvenance
+            dossier={dossier}
+            title="Batch densify"
+            field="Batch densify"
+            onRegenerate={onRegenerate}
+          />
+        ) : (
+          <FreePublicBadge note="free-public multi-API densify · not GMP" />
+        )}
       </div>
       <p className="mt-1 text-[11px] text-slate-500">
         Sequential free-public builds (max 12). Caches dossiers locally when successful.

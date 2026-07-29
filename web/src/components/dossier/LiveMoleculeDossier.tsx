@@ -690,6 +690,8 @@ export function LiveMoleculeDossier({
                     dossier.cid,
                   ]
                 }
+                dossier={dossier}
+                onRegenerate={onRegenerate}
               />
             </div>
           ) : null}

@@ -16,6 +16,7 @@ import {
   ordBridgeInventory,
 } from "@/lib/frontier/ordCampaignBridge";
 import { routes } from "@/lib/routes";
+import { ContentProvenance } from "@/components/ContentProvenance";
 
 /**
  * ORD offline bulk hooks — deep links + local snippet index (user-controlled).
@@ -43,7 +44,15 @@ export function OrdBulkPanel({
       id="ord-bulk"
       className="print:hidden scroll-mt-24 rounded-xl border border-slate-800 bg-slate-900/40 p-4"
     >
-      <h2 className="text-sm font-semibold text-slate-100">ORD offline / bulk hooks</h2>
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-sm font-semibold text-slate-100">ORD offline / bulk hooks</h2>
+        <ContentProvenance
+          title="ORD bulk hooks"
+          field="ORD bulk"
+          pubchemCid={cid}
+          showNotAi
+        />
+      </div>
       <p className="mt-1 text-[11px] text-slate-500">{ORD_BULK.note}</p>
       <p className="mt-1 text-[10px] text-slate-600">{inv.summary}</p>
       <div className="mt-2 flex flex-wrap gap-2 text-xs">

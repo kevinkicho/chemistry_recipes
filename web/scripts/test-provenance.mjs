@@ -44,6 +44,18 @@ const contentProv = read("components/ContentProvenance.tsx");
 ok("ContentProvenance wires Api + Ai", /ApiProvenance/.test(contentProv) && /AiProvenance/.test(contentProv));
 ok("ContentProvenance accepts onRegenerate", /onRegenerate/.test(contentProv));
 ok("ContentProvenance accepts traces + sourceRefs", /traces/.test(contentProv) && /sourceRefs/.test(contentProv));
+ok("ContentProvenance showNotAi marker", /showNotAi/.test(contentProv) && /no AI/.test(contentProv));
+
+const freePub = read("components/FreePublicProvenance.tsx");
+ok(
+  "FreePublicProvenance field-or-parsed default",
+  /field-or-parsed/.test(freePub) && /when-parsed/.test(freePub)
+);
+ok(
+  "FreePublicProvenance resolves dossier AI",
+  /aiProvenanceWhenParsed/.test(freePub) && /aiProvenanceForField/.test(freePub)
+);
+ok("FreePublicProvenance showNotAi when no AI", /showNotAi/.test(freePub));
 
 // --- ApiProvenance pagination on responses ---
 const apiProv = read("components/ApiProvenance.tsx");

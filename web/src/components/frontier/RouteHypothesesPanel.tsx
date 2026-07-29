@@ -50,6 +50,7 @@ export function RouteHypothesesPanel({
           title="Route hypotheses"
           field="Route hypotheses"
           aiField="routes"
+          aiMode="field-or-parsed"
           onRegenerate={onRegenerate}
         />
       </div>

@@ -151,6 +151,8 @@ export function ReactionNetworkPanel({
           dossier={dossier}
           title="Process reaction network"
           field="Reaction network"
+          aiField="relatedEntities"
+          aiMode="field-or-parsed"
           onRegenerate={onRegenerate}
         />
       </div>

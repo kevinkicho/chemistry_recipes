@@ -109,6 +109,7 @@ export function EvidenceSciencePanel({
               dossier={dossier}
               title="Evidence science"
               field="Evidence science Q&A"
+              aiMode="when-parsed"
               onRegenerate={onForceRegather}
             />
           </div>

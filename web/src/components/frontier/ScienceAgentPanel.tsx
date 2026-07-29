@@ -245,6 +245,7 @@ export function ScienceAgentPanel({
           dossier={dossier}
           title="Science agent"
           field="Science agent"
+          aiMode="when-parsed"
           onRegenerate={onForceRegather}
         />
       </div>

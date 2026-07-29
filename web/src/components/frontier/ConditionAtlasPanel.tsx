@@ -94,6 +94,7 @@ export function ConditionAtlasPanel({
               dossier={dossier}
               title="Public condition atlas"
               field="Condition atlas"
+              aiMode="when-parsed"
               onRegenerate={onRegenerate}
             />
           </div>

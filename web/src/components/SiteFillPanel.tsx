@@ -10,6 +10,7 @@ import {
   type SiteFillRecord,
 } from "@/lib/idb/siteFill";
 import { siteFillFieldsForModality } from "@/lib/idb/siteFillTemplates";
+import { ContentProvenance } from "@/components/ContentProvenance";
 
 /**
  * Site-fill blanks — empty on purpose; sticky locally under QMS ownership.
@@ -64,7 +65,15 @@ export function SiteFillPanel({
       id="site-fill"
       className="print:hidden scroll-mt-24 rounded-xl border border-violet-500/25 bg-violet-500/5 p-4"
     >
-      <h2 className="text-sm font-semibold text-slate-100">Site fill (local only)</h2>
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-sm font-semibold text-slate-100">Site fill (local only)</h2>
+        <ContentProvenance
+          title="Site fill"
+          field="Site fill"
+          pubchemCid={cid}
+          showNotAi
+        />
+      </div>
       <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
         Empty by design — your plant owns validated ranges. Template:{" "}
         <strong className="font-medium text-slate-400">
