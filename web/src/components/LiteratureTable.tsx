@@ -7,9 +7,8 @@ import {
   evidenceFilterChipClass,
 } from "@/components/EvidenceDataTable";
 import {
-  attachLiteratureHitsToCid,
+  attachLiteratureHitsToCidWithOa,
   attachOneLiteratureHitToCid,
-  rematerializeCachesWithLocalPastes,
 } from "@/lib/frontier/literatureToPaste";
 
 type SortKey = "year" | "journal" | "title" | "process" | "source";
@@ -142,7 +141,10 @@ export function LiteratureTable({
       setPasteMsg(
         res.attached
           ? `Pasted “${(hit.title || "paper").slice(0, 48)}” · ${res.totalChars.toLocaleString()} chars` +
-              (res.rematerialized ? " · cache rematerialized" : " · will apply on re-extract")
+              (res.oaEnriched ? " · OA full-text" : "") +
+              (res.rematerialized
+                ? " · cache rematerialized"
+                : " · will apply on re-extract")
           : "Could not paste (need ~40+ chars of public text)"
       );
       if (res.attached) {
@@ -165,17 +167,21 @@ export function LiteratureTable({
     setPasteMsg(null);
     try {
       const processHits = hits.filter(isProcessy);
-      const res = attachLiteratureHitsToCid(cid, processHits.length ? processHits : hits, {
-        max: 5,
-        minChars: 60,
-        minScore: 2,
-      });
-      if (res.attached > 0) {
-        await rematerializeCachesWithLocalPastes([cid]);
-      }
+      const res = await attachLiteratureHitsToCidWithOa(
+        cid,
+        processHits.length ? processHits : hits,
+        {
+          max: 5,
+          minChars: 60,
+          minScore: 2,
+          maxOa: 4,
+        }
+      );
       setPasteMsg(
         res.attached
-          ? `Attached ${res.attached} process paper(s) · ${res.totalChars.toLocaleString()} chars as densify pastes`
+          ? `Attached ${res.attached} process paper(s) · ${res.totalChars.toLocaleString()} chars` +
+              (res.oaEnriched ? ` · OA full-text ${res.oaEnriched}` : "") +
+              (res.rematerialized ? " · cache rematerialized" : "")
           : "No procedure-rich abstracts to attach"
       );
       if (res.attached) {

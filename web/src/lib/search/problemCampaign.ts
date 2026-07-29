@@ -128,11 +128,13 @@ export async function createCampaignAndDensifyFromProblemHits(
   let literatureSummary: string | undefined;
 
   if (opts?.literatureHits?.length) {
-    opts.onProgress?.("Attaching free-public literature as densify pastes…");
-    const lit = attachLiteratureHitsToCampaignCids(
+    opts.onProgress?.(
+      "Enriching OA full text (PMCID) + attaching densify pastes…"
+    );
+    const lit = await attachLiteratureHitsToCampaignCids(
       queueCids,
       opts.literatureHits,
-      { maxPerCid: 3, maxCids: 8 }
+      { maxPerCid: 3, maxCids: 8, enrichOa: true }
     );
     literatureAttached = lit.totalAttached;
     literatureChars = lit.totalChars;

@@ -546,7 +546,7 @@ ok(
 );
 ok(
   "attachLiteratureHitsToCampaignCids",
-  /export function attachLiteratureHitsToCampaignCids/.test(
+  /export async function attachLiteratureHitsToCampaignCids/.test(
     read("lib/frontier/literatureToPaste.ts")
   )
 );
@@ -592,8 +592,36 @@ ok(
 );
 ok(
   "ProblemFirstSearch notebook export",
-  /exportDensifyNotebook|formatProblemDensifyRunMarkdown/.test(
+  /exportDensifyNotebook|exportProblemDensifyNotebookFromDraft|saveProblemDensifyNotebookDraft/.test(
     read("components/ProblemFirstSearch.tsx")
+  )
+);
+ok(
+  "enrichHitWithOaFullTextIfPossible",
+  /export async function enrichHitWithOaFullTextIfPossible/.test(
+    read("lib/frontier/literatureToPaste.ts")
+  )
+);
+ok(
+  "attachLiteratureHitsToCidWithOa",
+  /export async function attachLiteratureHitsToCidWithOa/.test(
+    read("lib/frontier/literatureToPaste.ts")
+  )
+);
+ok(
+  "problem densify notebook draft",
+  existsSync(join(root, "src/lib/search/problemDensifyNotebook.ts"))
+);
+ok(
+  "appendAgentAnswerToNotebookDraft",
+  /export function appendAgentAnswerToNotebookDraft/.test(
+    read("lib/search/problemDensifyNotebook.ts")
+  )
+);
+ok(
+  "CampaignAgent appends notebook answer",
+  /appendAgentAnswerToNotebookDraft/.test(
+    read("components/frontier/CampaignAgentPanel.tsx")
   )
 );
 ok(

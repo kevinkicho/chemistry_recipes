@@ -7,10 +7,9 @@ import {
   evidenceFilterChipClass,
 } from "@/components/EvidenceDataTable";
 import {
-  attachLiteratureHitsToCid,
+  attachLiteratureHitsToCidWithOa,
   attachOneLiteratureHitToCid,
   patentHitToLiterature,
-  rematerializeCachesWithLocalPastes,
 } from "@/lib/frontier/literatureToPaste";
 
 type SortKey = "date" | "number" | "title" | "assignee" | "process";
@@ -163,17 +162,16 @@ export function PatentsTable({
       const lit = (processHits.length ? processHits : hits).map(
         patentHitToLiterature
       );
-      const res = attachLiteratureHitsToCid(cid, lit, {
+      const res = await attachLiteratureHitsToCidWithOa(cid, lit, {
         max: 5,
         minChars: 60,
         minScore: 2,
+        maxOa: 2,
       });
-      if (res.attached > 0) {
-        await rematerializeCachesWithLocalPastes([cid]);
-      }
       setPasteMsg(
         res.attached
-          ? `Attached ${res.attached} process patent(s) · ${res.totalChars.toLocaleString()} chars`
+          ? `Attached ${res.attached} process patent(s) · ${res.totalChars.toLocaleString()} chars` +
+              (res.rematerialized ? " · cache rematerialized" : "")
           : "No procedure-rich patent text to attach"
       );
       if (res.attached) {

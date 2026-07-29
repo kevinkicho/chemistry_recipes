@@ -446,6 +446,11 @@ export function formatProblemDensifyRunMarkdown(opts: {
   if (agentAnswer) {
     parts.push(h(2, "Campaign agent answer"));
     parts.push(`${agentAnswer}\n`);
+  } else {
+    parts.push(h(2, "Campaign agent answer"));
+    parts.push(
+      "_No agent answer captured yet — run Spin + densify + agent, then re-export._\n"
+    );
   }
 
   parts.push(h(2, "Next steps"));
@@ -454,6 +459,7 @@ export function formatProblemDensifyRunMarkdown(opts: {
       "Open Workspace → campaign brief / ideal rollup",
       "Ask campaign agent edge / temperature questions",
       "Paste additional public procedure text on thin CIDs",
+      "Re-export notebook after agent handoff to include grounded Q&A",
     ])
   );
 

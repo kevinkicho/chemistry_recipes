@@ -85,6 +85,8 @@ Export: process-knowledge JSON from the Evidence science panel.
 | **Problem → brief + agent** | Handoff opens scientific brief then auto-runs campaign agent |
 | **Dossier lit/patent paste** | One-click densify paste from literature & patents tables |
 | **Problem densify notebook** | Markdown export of problem hits, lit pastes, densify results |
+| **OA full-text before paste** | Europe PMC OA fetch when PMCID present, denser densify pastes |
+| **Notebook + agent answer** | Session draft stores densify run; agent answer appended after handoff |
 | **Related-entity CID resolve** | Name/CAS → free-public PubChem fill for missing related CIDs |
 | **Campaign compare** | Side-by-side densify/ideal/lit-depth metrics for two campaigns |
 

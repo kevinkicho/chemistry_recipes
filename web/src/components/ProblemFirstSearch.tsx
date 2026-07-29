@@ -16,11 +16,12 @@ import type { ProblemMultiSearchResult } from "@/lib/search/problemMultiSource";
 import { setCampaignAgentHandoff } from "@/lib/workspace/campaigns";
 import { routes } from "@/lib/routes";
 import { useRouter } from "next/navigation";
-import {
-  downloadMarkdown,
-  formatProblemDensifyRunMarkdown,
-} from "@/lib/frontier/exportMarkdown";
 import type { ProblemCampaignDensifyResult } from "@/lib/search/problemCampaign";
+import {
+  exportProblemDensifyNotebookFromDraft,
+  loadProblemDensifyNotebookDraft,
+  saveProblemDensifyNotebookDraft,
+} from "@/lib/search/problemDensifyNotebook";
 
 /**
  * Home / search entry: problem or unit-op first, enriched with multi-source fan-out.
@@ -45,6 +46,23 @@ export function ProblemFirstSearch() {
   const localHits = useMemo(() => searchProblemFirst(q, 12), [q]);
   const hits = liveHits ?? localHits;
   const { cids } = useMemo(() => cidsFromProblemHits(hits), [hits]);
+
+  // Restore densify draft when returning from Workspace handoff
+  useEffect(() => {
+    const draft = loadProblemDensifyNotebookDraft();
+    if (draft?.result) {
+      setLastDensify(draft.result);
+      if (draft.problemQuery && !q.trim()) {
+        setQ(draft.problemQuery);
+      }
+      if (draft.agentAnswer) {
+        setCampMsg(
+          `Notebook draft ready with agent answer · campaign “${draft.campaignName}” · Export densify notebook .md`
+        );
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot restore
+  }, []);
 
   // Debounced multi-source problem search
   useEffect(() => {
@@ -129,6 +147,15 @@ export function ProblemFirstSearch() {
       }
       setLastDensify(res);
       const agentQ = `What free-public process conditions and unit-op evidence appear for “${q.trim()}” across this campaign? Any edge conflicts?`;
+      saveProblemDensifyNotebookDraft({
+        problemQuery: q.trim(),
+        campaignId: res.campaign.id,
+        campaignName: res.campaign.name,
+        result: res,
+        problemHits: hits,
+        literatureHits,
+        agentQuestion: agentQ,
+      });
       setCampMsg(
         [
           `Campaign “${res.campaign.name}” · densify ${res.densify.ok}ok/${res.densify.fail}fail · ${res.queueCids.length} CIDs`,
@@ -168,22 +195,30 @@ export function ProblemFirstSearch() {
   }
 
   function exportDensifyNotebook() {
+    const draft = loadProblemDensifyNotebookDraft();
+    if (draft && exportProblemDensifyNotebookFromDraft(draft)) {
+      setCampMsg(
+        draft.agentAnswer
+          ? `Exported notebook with agent answer · ${draft.campaignName}`
+          : `Exported densify notebook · ${draft.campaignName} (agent answer pending — re-export after handoff)`
+      );
+      return;
+    }
     if (!lastDensify) {
       setCampMsg("Run Spin + densify first, then export the notebook.");
       return;
     }
-    const md = formatProblemDensifyRunMarkdown({
+    saveProblemDensifyNotebookDraft({
       problemQuery: q.trim() || lastDensify.campaign.name,
+      campaignId: lastDensify.campaign.id,
+      campaignName: lastDensify.campaign.name,
       result: lastDensify,
       problemHits: hits,
       literatureHits,
     });
-    const slug = (q.trim() || "problem")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .slice(0, 40);
-    downloadMarkdown(`problem-densify-${slug}.md`, md);
-    setCampMsg(`Exported problem densify notebook · ${slug}.md`);
+    if (exportProblemDensifyNotebookFromDraft()) {
+      setCampMsg("Exported problem densify notebook .md");
+    }
   }
 
   return (

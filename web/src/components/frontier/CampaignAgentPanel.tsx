@@ -27,6 +27,11 @@ import {
   buildCampaignKnowledgeExport,
   downloadCampaignKnowledge,
 } from "@/lib/frontier/campaignExport";
+import {
+  appendAgentAnswerToNotebookDraft,
+  exportProblemDensifyNotebookFromDraft,
+  loadProblemDensifyNotebookDraft,
+} from "@/lib/search/problemDensifyNotebook";
 
 const DEFAULT_Q =
   "What condition ranges appear across this campaign? Any edge conflicts?";
@@ -139,6 +144,12 @@ export function CampaignAgentPanel() {
                 res.answer.answer,
               ].join("\n")
             );
+            appendAgentAnswerToNotebookDraft({
+              campaignId: camp.id,
+              question: ask,
+              answer: res.answer.answer,
+              insufficientEvidence: res.answer.insufficientEvidence,
+            });
             // After agent, jump to agent panel if brief was first
             if (handoff?.openBrief || searchParams.get("brief") === "1") {
               window.setTimeout(() => {
@@ -260,6 +271,12 @@ export function CampaignAgentPanel() {
             .slice(0, 5)
             .map((e) => `${e.priority}: ${e.question}`)
         );
+        appendAgentAnswerToNotebookDraft({
+          campaignId: camp.id,
+          question: q,
+          answer: agentRes.answer.answer,
+          insufficientEvidence: agentRes.answer.insufficientEvidence,
+        });
         setOut(
           [
             `mode: densify queue → auto-ask`,
@@ -335,6 +352,12 @@ export function CampaignAgentPanel() {
           .slice(0, 5)
           .map((e) => `${e.priority}: ${e.question}`)
       );
+      appendAgentAnswerToNotebookDraft({
+        campaignId: camp.id,
+        question: q,
+        answer: res.answer.answer,
+        insufficientEvidence: res.answer.insufficientEvidence,
+      });
       const densifyLine =
         densify && densify.length
           ? `densify ${densify.filter((d) => d.ok).length}/${densify.length}${
@@ -578,6 +601,35 @@ export function CampaignAgentPanel() {
             ? "Export knowledge + agent run"
             : "Export campaign-knowledge"}
         </button>
+        {loadProblemDensifyNotebookDraft()?.campaignId === selected ||
+        lastAgent ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              if (selected && lastAgent) {
+                appendAgentAnswerToNotebookDraft({
+                  campaignId: selected,
+                  question: q,
+                  answer: lastAgent.answer.answer,
+                  insufficientEvidence: lastAgent.answer.insufficientEvidence,
+                });
+              }
+              if (exportProblemDensifyNotebookFromDraft()) {
+                setExportMsg(
+                  "Exported problem densify notebook .md (with agent answer when available)"
+                );
+              } else {
+                setExportMsg(
+                  "No problem densify draft in session — run Spin + densify from home first"
+                );
+              }
+            }}
+            className="rounded-lg border border-sky-500/40 bg-sky-500/10 px-3 py-1.5 text-xs font-medium text-sky-100 disabled:opacity-40"
+          >
+            Export densify notebook .md
+          </button>
+        ) : null}
       </div>
       {camp && !useServer && missingCids.length === camp.cids.length ? (
         <p className="mt-1 text-[10px] text-amber-200/80">
