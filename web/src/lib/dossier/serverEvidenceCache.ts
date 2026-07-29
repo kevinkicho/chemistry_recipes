@@ -13,7 +13,8 @@ import path from "path";
 import type { CompoundEvidence } from "@/lib/dossier/types";
 
 /** Bump when gather shape / densify rules change */
-export const EVIDENCE_CACHE_SCHEMA = 4;
+/** Bump when gather durability / densify rules change */
+export const EVIDENCE_CACHE_SCHEMA = 5;
 
 const MEMORY_MAX = 48;
 const DEFAULT_TTL_MS = 6 * 60 * 60 * 1000; // 6h

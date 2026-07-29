@@ -70,9 +70,20 @@ for (const s of callOrder) {
 }
 
 // LIFE-02 soft-fail gather
-ok("LIFE-02 soft() helper", /function soft\s*</.test(gather) || /function soft\(/.test(gather));
-ok("LIFE-02 soft wraps Europe PMC", /soft\(\s*searchEuropePmc/.test(gather));
-ok("LIFE-02 soft wraps patents densify", /soft\(\s*enrichPatentHitsWithEpmc|soft\(\s*densifyUsPatentsWithPubchem/.test(gather));
+ok(
+  "LIFE-02 soft runner (createSoftRunner)",
+  /createSoftRunner/.test(gather) || /function soft\s*\(/.test(gather)
+);
+ok(
+  "LIFE-02 soft wraps Europe PMC",
+  /soft\(\s*[\"']europepmc[\"']\s*,\s*searchEuropePmc/.test(gather)
+);
+ok(
+  "LIFE-02 soft wraps patents densify",
+  /soft\(\s*[\"']patent-epmc-densify[\"']|soft\(\s*[\"']patent-uspto-densify[\"']/.test(
+    gather
+  )
+);
 ok("LIFE-02 durable wrapper gatherCompoundEvidence", /export async function gatherCompoundEvidence/.test(gather));
 ok("LIFE-02 live gather separate", /gatherCompoundEvidenceLive/.test(gather));
 

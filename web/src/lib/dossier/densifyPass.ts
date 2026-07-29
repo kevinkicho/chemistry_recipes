@@ -30,7 +30,21 @@ export function needsDensifyPass(evidence: CompoundEvidence): boolean {
     manufacturingTexts: evidence.view?.manufacturingTexts,
   });
   const excerpts = evidence.procedureExcerpts?.length || 0;
-  return chars < DENSIFY_MIN_PROCEDURE_CHARS || excerpts < DENSIFY_MIN_EXCERPTS;
+  if (chars < DENSIFY_MIN_PROCEDURE_CHARS || excerpts < DENSIFY_MIN_EXCERPTS) {
+    return true;
+  }
+  // Still densify when many lit hits lack abstracts/excerpts (missed free-API body)
+  const lit = evidence.literature || [];
+  if (lit.length >= 3) {
+    const thin = lit.filter(
+      (h) => !(h.fullTextExcerpt && h.fullTextExcerpt.length >= 80) && !(h.abstract && h.abstract.length >= 120)
+    ).length;
+    if (thin >= Math.ceil(lit.length * 0.5)) return true;
+  }
+  const softs = (evidence.fetchErrors || []).filter(
+    (e) => e.startsWith("soft-fail ·") || e.startsWith("api-fail ·")
+  ).length;
+  return softs >= 4;
 }
 
 /**
@@ -50,6 +64,28 @@ export async function runDensifyPass(
     ...(evidence.procedureExcerpts || []),
   ];
   const seenExcerpt = new Set(procedureExcerpts.map((p) => p.id));
+  /** Per-step durability: never throw out of densify steps */
+  async function step<T>(label: string, run: () => Promise<T>, fallback: T): Promise<T> {
+    try {
+      return await run();
+    } catch (e) {
+      fetchErrors.push(
+        `densify-step · ${label}: ${e instanceof Error ? e.message : "failed"}`.slice(
+          0,
+          220
+        )
+      );
+      traces.push({
+        endpointUrl: `densify-fail://${label}`,
+        method: "SOFT",
+        fetchedAt: new Date().toISOString(),
+        ok: false,
+        responseBody: "",
+        error: e instanceof Error ? e.message : String(e),
+      });
+      return fallback;
+    }
+  }
 
   const pushExcerpt = (p: ProcedureExcerpt) => {
     if (!p.text || p.text.length < 60) return;
@@ -89,10 +125,15 @@ export async function runDensifyPass(
   });
 
   // 1) OA full text — process-ranked, higher article budget
-  try {
-    const oa = await withSoftTimeout(
-      enrichLiteratureWithOaFullText(literature, { maxArticles: 10 }),
-      50_000,
+  {
+    const oa = await step(
+      "europepmc-oa",
+      () =>
+        withSoftTimeout(
+          enrichLiteratureWithOaFullText(literature, { maxArticles: 12 }),
+          55_000,
+          { hits: literature, traces: [] }
+        ),
       { hits: literature, traces: [] }
     );
     literature = oa.hits;
@@ -109,10 +150,6 @@ export async function runDensifyPass(
         });
       }
     }
-  } catch (e) {
-    fetchErrors.push(
-      `densify OA: ${e instanceof Error ? e.message : "failed"}`
-    );
   }
 
   // 2) Extra PMC full text for process-ranked OA with pmcid not yet densified
