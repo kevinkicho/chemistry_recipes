@@ -66,7 +66,27 @@ Config storage: `localStorage` key `cr-ai-config-v1`.
 - `qualityGateSynthesis` post-parse  
 - Full `AiProvenanceRecord` (provider, host, prompts, timing)  
 
+## Science & campaign agents (quote-bound)
+
+Beyond dossier synthesis, Ollama can structure answers over **densify packages only**:
+
+| Endpoint | Package context | Body flags |
+|----------|-----------------|------------|
+| `POST /api/ai/science` | `formatAiGuidanceContext` + process-knowledge | `useLlm`, `densifyNeighbors` |
+| `POST /api/ai/campaign` | `formatCampaignAiGuidanceContext` | `useLlm`, `force`, `cids[]` |
+
+Rules (shared):
+
+1. Answer only from package facts/windows.  
+2. Never invent temperatures, yields, equipment IDs, or plant CPPs.  
+3. Thin packages skip LLM and return densify-next guidance instead.  
+4. Prefer harvesting more free-public data over inventing numbers.
+
+Full densify-first design: [frontier-science.md](./frontier-science.md).
+
 ## Related
 
 - Security → [../security.md](../security.md)  
 - Pipeline → [dossier-pipeline.md](./dossier-pipeline.md)  
+- Frontier science → [frontier-science.md](./frontier-science.md)  
+

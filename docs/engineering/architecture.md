@@ -37,9 +37,12 @@
 | `/api/ai/chat` | Proxied chat (cloud or local allowlist) |
 | `/api/ai/models` | `/api/tags` proxy |
 | `/api/ai/status` | Non-secret readiness |
+| `/api/ai/science` | Quote-bound single-CID science agent |
+| `/api/ai/campaign` | Multi-CID densify + campaign agent |
 | `/api/diagnostics` | Env snapshot + optional probes |
 | `/compare` | Dual CID compare + dual export |
 | `/packages` | Curated catalog |
+| `/workspace` | Campaigns, frontier panels, densify telemetry |
 | `/sources` | `SourcesRegistry` client table |
 | `/diagnostics` | Operator UI |
 
@@ -49,9 +52,11 @@
 |------|----------------|
 | `lib/dossier/pipeline.ts` | Orchestration + SSE emits |
 | `lib/dossier/gather.ts` | Multi-API harvest |
+| `lib/dossier/densifyPass.ts` | Second-pass OA/patent densify |
 | `lib/dossier/evidenceScore.ts` | Score + AI gate |
 | `lib/dossier/synthesize.ts` | Ollama stream + quality gate |
 | `lib/dossier/sourceCoverage.ts` | Coverage slots for UI |
+| `lib/frontier/*` | Process-knowledge, AI guidance, campaign agents |
 | `lib/export/techTransfer.ts` | Export schema builders |
 | `lib/ai/serverEnv.ts` | Root `.env` resolve |
 | `lib/ai/config.ts` | Browser AI config + host allow helpers |

@@ -66,3 +66,22 @@ Console: https://console.firebase.google.com/project/chemistryrecipes/apphosting
 ## Uncommitted local work
 
 App Hosting only builds **pushed** GitHub commits. Local changes do not deploy until committed and pushed to `main` (or the connected branch).
+
+## Manual rollout (after push to main)
+
+```bash
+# Pre-flight
+cd web && npm test && npx tsc --noEmit
+cd .. && git push origin main
+
+# Create App Hosting rollout for backend chemrecipe from main
+npx -y firebase-tools@latest apphosting:rollouts:create chemrecipe \
+  --git-branch main \
+  --force \
+  --project chemistryrecipes
+
+# Status
+npm run status:deploy
+```
+
+Live: https://chemrecipe--chemistryrecipes.us-central1.hosted.app

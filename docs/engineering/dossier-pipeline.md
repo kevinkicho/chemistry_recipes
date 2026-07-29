@@ -12,18 +12,24 @@ Live builds run on the server and stream progress to the browser over **SSE**.
 1. gatherCompoundEvidence     durable multi-API harvest
    ├─ live wave (soft-fail per source; HTTP retries on 429/5xx/timeout)
    ├─ merge with server evidence cache (memory + .cache/evidence)
-   ├─ densify pass if procedure text thin (OA full text, patents, OrgSyn)
+   │    (skip cache when force=1 / refresh)
+   ├─ densify pass if procedure text thin
+   │    ├─ process-rank literature before OA budget
+   │    ├─ OA full text + extra PMC; patent densify
+   │    │    (higher patent budget when OA sparse)
+   │    └─ OrgSyn retry; process-dense abstracts as secondary windows
    └─ extractProcessFacts     condition/unit-op atoms from densified text
 2. scoreCompoundEvidence      0–100 score (weights process-fact density)
-3. buildScaffoldDossier       fact-enriched leads (no fake IPC)
+3. buildScaffoldDossier       fact-enriched leads + procedureExcerpts on LiveDossier
 4. partial SSE                UI usable early
 5. synthesize (if canCall && score gate)
    └─ qualityGateSynthesis    drop junk / invented plant language
    └─ stripUncitedRouteDetails  drop numeric conditions not aligned to facts
    └─ preferRoutesForEvidence   one route when thin; two when rich
 6. enrich                     modality, related entities, contradictions,
-                              unit-op fill, parameters, recipe readiness, audit
-7. complete SSE               full LiveDossier (+ processFacts)
+                              unit-op fill, plant deliverables, recipe readiness,
+                              ideal-page parity, process-knowledge package, audit
+7. complete SSE               full LiveDossier (+ processFacts + procedureExcerpts)
 8. client IndexedDB put       dossier cache + procedure vault + snapshot
 ```
 
@@ -46,7 +52,10 @@ System prompt prioritizes structuring densified procedure text into dual-view ro
 | Soft gather | `gather.ts` `soft()` | One source failure never aborts the wave |
 | Server cache | `serverEvidenceCache.ts` | Merge denser prior evidence across rebuilds |
 | Densify pass | `densifyPass.ts` | Second pass when procedure chars/excerpts thin |
+| Procedure excerpts on dossier | `scaffold.ts` / `types.ts` | Keep densify windows for AI ingest after build |
+| Force stream | `?force=1` on dossier stream | Skip durable server evidence cache |
 | Client vault | `idb/procedureVault.ts` | Browser-durable procedure windows across sessions |
+| AI guidance | `lib/frontier/aiGuidancePackage.ts` | Densify-first agent package (see [frontier-science.md](./frontier-science.md)) |
 
 ## Accuracy law
 

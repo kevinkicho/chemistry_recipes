@@ -37,6 +37,7 @@ Evidence-first process recipe hub (not GMP / not regulatory decision support).
 | [Bulk data & ORD](./engineering/data-bulk-and-ord.md) | Patent xrefs, ORD, bulk full-text strategy |
 | [Multi-source APIs](./engineering/multi-source-apis.md) | Wired free APIs, registry, probes |
 | [AI & Ollama](./engineering/ai-and-ollama.md) | Cloud + local hosts, proxies, quality gate |
+| [Frontier science](./engineering/frontier-science.md) | Densify-first AI guidance, campaigns, agents |
 | [Client storage](./engineering/client-storage.md) | IndexedDB cache, snapshots, health |
 | [Tech-transfer export](./engineering/tech-transfer-export.md) | Schema v2, MES/LIMS rows, validation checklist |
 | [Testing](./engineering/testing.md) | Unit contracts, API smoke, coverage commands |
@@ -64,8 +65,9 @@ Evidence-first process recipe hub (not GMP / not regulatory decision support).
 | `/compare` | Side-by-side recipes + dual export |
 | `/diagnostics` | API probes, Ollama readiness, IndexedDB health |
 | `/sources` | Expandable free-API registry (wired vs planned) |
-| `/workspace` | Local-only project pins |
+| `/workspace` | Local projects, science campaigns, densify graph/agents |
 | Header **AI** | Ollama Cloud or local Ollama settings |
+| Live dossier frontier panels | Condition atlas, science agent, AI guidance export (role-gated) |
 
 ---
 

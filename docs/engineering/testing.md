@@ -31,6 +31,7 @@ npm run test:lifecycle        # pipeline lifecycle, densify, cache, modes
 npm run test:prompt-qc        # AI package + response quality gates
 npm run test:resilience       # soft-fail, retries, vault
 npm run test:api-wiring       # product API list wired into gather
+npm run test:frontier         # densify-first AI guidance, campaigns, agents
 npm run test:smoke            # soft network probes
 npm run test:smoke:strict     # fail on skip/fail
 
@@ -55,6 +56,7 @@ npm run build
 | `test-prompt-qc.mjs` | Yes | **AI-*** / prompt & response QC |
 | `test-resilience.mjs` | Yes | Soft-fail, retries, vault, cache merge |
 | `test-api-wiring.mjs` | Yes | **API-*** product list wired |
+| `test-frontier.mjs` | Yes | Process-knowledge, AI guidance, densify queue, campaign agent |
 | `test-smoke-apis.mjs` | Needs net | API-09 live free endpoints |
 
 ## Smoke modes

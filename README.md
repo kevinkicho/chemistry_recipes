@@ -43,6 +43,7 @@ Free public chemical APIs + optional [Ollama Cloud](https://docs.ollama.com/clou
 | [Process facts & accuracy](docs/engineering/process-facts-accuracy.md) | Sourced manufacturing atoms, public process brief |
 | [Multi-source APIs](docs/engineering/multi-source-apis.md) | Wired free APIs, registry, probes |
 | [AI & Ollama](docs/engineering/ai-and-ollama.md) | Cloud + local hosts, proxies, quality gate |
+| [Frontier science](docs/engineering/frontier-science.md) | Densify-first AI guidance, campaigns, agents |
 | [Client storage](docs/engineering/client-storage.md) | IndexedDB cache, snapshots, health |
 | [Tech-transfer export](docs/engineering/tech-transfer-export.md) | Schema v2, MES/LIMS, validation checklist |
 | [Testing](docs/engineering/testing.md) | Contract tests |
@@ -89,14 +90,17 @@ Free public chemical APIs + optional [Ollama Cloud](https://docs.ollama.com/clou
 | Area | What you get |
 |------|----------------|
 | **Live dossiers** | Multi free APIs (PubChem, ChEMBL, openFDA, CompTox, DailyMed, Europe PMC, OpenAlex, Crossref, Semantic Scholar, patents, …) → evidence score → optional Ollama dual-view routes |
+| **Densify-first harvest** | Process-ranked OA full text, patent procedure windows, OrgSyn/ORD excerpts kept on the live dossier for AI ingest (not paper previews) |
+| **Frontier science** | Condition atlas, route hypotheses, reaction network, process-knowledge + **AI guidance** packages (`ingestScore`, densify-next) |
+| **Science / campaign agents** | Quote-bound Q&A over densified packages; optional Ollama; multi-CID campaign merge + densify queue |
 | **Trust UI** | Evidence score explainer, source coverage map, transfer readiness checklist, API + AI provenance chips |
 | **~100+ packages** | Educational packages (`/packages`) by modality & role + parameter frameworks |
 | **Tier-A examples** | Deep dual-view dossiers (aspirin, sitagliptin, penicillin G, amoxicillin, …) |
 | **Parameters** | Modality frameworks (mAb, fermentation, peptide, gene therapy, …) with fill-status honesty |
 | **Compare** | Side-by-side CIDs + dual tech-transfer export |
-| **Export** | Print/PDF, tech-transfer JSON **v2**, MES/LIMS-style rows |
-| **AI** | Ollama Cloud **or** local Ollama (no key on loopback) |
-| **Diagnostics** | Live API probes, Ollama readiness, IndexedDB health |
+| **Export** | Print/PDF, tech-transfer JSON **v2**, MES/LIMS-style rows, process-knowledge / AI guidance JSON for agents |
+| **AI** | Ollama Cloud **or** local Ollama (no key on loopback); agents never invent plant numbers |
+| **Diagnostics** | Live API probes, Ollama readiness, IndexedDB health, densify telemetry (ingest Δ) |
 
 ---
 
@@ -145,13 +149,15 @@ Step-by-step and troubleshooting: **[docs/getting-started.md](docs/getting-start
 | `/packages/[id]` | Package: unit ops + parameter framework |
 | `/catalog` | Faceted hub (examples + live pointers) |
 | `/search` | PubChem (browser-first; name, CAS, SMILES, InChIKey, UNII, CID) |
-| `/workspace` | Local project library (not multi-user collab) |
+| `/workspace` | Local projects, science campaigns, graph, agents, densify telemetry |
 | `/compare` | Side-by-side recipes + dual export |
 | `/diagnostics` | API probes, Ollama readiness, IndexedDB + Firebase health |
 | `/sources` | Free public API registry (wired expand/collapse) |
-| `/compounds/pubchem/[cid]` | Live dossier stream |
+| `/compounds/pubchem/[cid]` | Live dossier stream (+ frontier panels for chemist/MSAT/manager roles) |
 | `/examples/[id]` | Curated dual-view dossier (also linked from Info) |
 | Header **AI** | Ollama Cloud or local settings / model picker |
+| `POST /api/ai/science` | Quote-bound single-CID science agent (± densify neighbors, ± Ollama) |
+| `POST /api/ai/campaign` | Multi-CID densify + campaign agent (± Ollama over AI guidance) |
 
 ### Deploy (Firebase App Hosting)
 

@@ -18,6 +18,7 @@ Primary column (≈2/3):
 8. **Control points** — qualitative CPPs only when evidence-backed  
 9. **Multi-source annotations** — ChEMBL, openFDA, CompTox, …  
 10. Literature / patents / manufacturing excerpts  
+11. **Frontier science** (chemist / MSAT / manager roles) — condition atlas, hypotheses, network, evidence science (AI ingest + densify-next + queue), science agent  
 
 Secondary column:
 
@@ -45,9 +46,22 @@ Steps share IDs so the two views never drift.
 | Contradictions | `EvidenceContradictions` |
 | Build progress | SSE overlay (`ApiProgressOverlay`) |
 
+## Densify-first (not paper previews)
+
+Workers and agents need **procedure windows and sourced atoms in packages**, not in-app full-text reading panes. Users open PMC / patents / OrgSyn externally.
+
+| Pattern | Intent |
+|---------|--------|
+| `procedureExcerpts` on live dossier | Durable densify harvest for AI |
+| AI guidance export + densify-next | Grow free-public evidence efficiently |
+| Queue high densify | Force re-gather / neighbors without inventing numbers |
+| Science / campaign agents | Quote-bound structure over packages only |
+
+See [../engineering/frontier-science.md](../engineering/frontier-science.md).
+
 ## Interaction rules
 
-- **Refresh live data** clears IndexedDB for that CID and re-runs the pipeline.  
+- **Refresh live data** clears IndexedDB for that CID and re-runs the pipeline (`?refresh=1` also forces server densify via `force=1`).  
 - Early **shell** partial may appear before Ollama finishes.  
 - Thin evidence → AI skipped with an explicit gap message (no invented plant IPC).  
 - Print hides chrome (`print:hidden`) and keeps disclaimer + recipe body.
