@@ -109,10 +109,12 @@ export const CHEMISTRY_API_SOURCES: ApiSource[] = [
     name: "Rhea",
     organization: "SIB / EMBL-EBI",
     priority: "P1",
-    role: "Expert-curated enzyme-catalyzed reactions",
+    role: "Expert-curated enzyme-catalyzed reactions (biocatalytic context)",
     endpointUrl: "https://www.rhea-db.org/rhea",
     docsUrl: "https://www.rhea-db.org/help/rest-api",
     category: "reactions",
+    notes:
+      "Wired into live gather. Not a substitute for industrial organic routes.",
   },
   {
     id: "reactome",
@@ -129,10 +131,12 @@ export const CHEMISTRY_API_SOURCES: ApiSource[] = [
     name: "WikiPathways",
     organization: "WikiPathways",
     priority: "P1",
-    role: "Community pathway models",
-    endpointUrl: "https://webservice.wikipathways.org",
-    docsUrl: "https://webservice.wikipathways.org/",
+    role: "Community pathway models (via free Pathway Commons when legacy WS is down)",
+    endpointUrl: "https://www.pathwaycommons.org/pc2",
+    docsUrl: "https://www.wikipathways.org/",
     category: "pathways",
+    notes:
+      "Legacy webservice.wikipathways.org retired; live gather uses Pathway Commons PC2 + WP site deep links.",
   },
   {
     id: "pathway-commons",
@@ -155,17 +159,6 @@ export const CHEMISTRY_API_SOURCES: ApiSource[] = [
     category: "reactions",
     notes:
       "Live gather deep-links browse and attempts HTML snippets for process facts. Prefer bulk download for ML/offline ingest; not plant SOPs.",
-  },
-  {
-    id: "rhea",
-    name: "Rhea",
-    organization: "SIB / EMBL-EBI",
-    priority: "P1",
-    role: "Expert-curated enzyme-catalyzed reactions (biocatalytic context)",
-    endpointUrl: "https://www.rhea-db.org/rhea",
-    docsUrl: "https://www.rhea-db.org/help/rest-api",
-    category: "reactions",
-    notes: "Wired into live gather. Not a substitute for industrial organic routes.",
   },
   {
     id: "europepmc-oa",

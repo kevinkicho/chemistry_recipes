@@ -286,5 +286,22 @@ ok(
   exists("../scripts/test-api-health-full.mjs") ||
     fs.existsSync(path.join(__dirname, "test-api-health-full.mjs"))
 );
+ok(
+  "API coverage compare script exists",
+  fs.existsSync(path.join(__dirname, "compare-api-registration.mjs"))
+);
+const regSrc = read("lib/sources/registry.ts");
+const regIdList = [...regSrc.matchAll(/id:\s*"([^"]+)"/g)].map((m) => m[1]);
+const regDupes = regIdList.filter((id, i) => regIdList.indexOf(id) !== i);
+ok("registry has no duplicate ids", regDupes.length === 0);
+ok(
+  "health suite tags patent-literature + densify families",
+  /gather:\s*"patent-literature"/.test(
+    fs.readFileSync(path.join(__dirname, "test-api-health-full.mjs"), "utf8")
+  ) &&
+    /gather:\s*"patent-epmc-densify"/.test(
+      fs.readFileSync(path.join(__dirname, "test-api-health-full.mjs"), "utf8")
+    )
+);
 
 console.log(`\nAll lib-module integrity checks passed (${passed}).`);

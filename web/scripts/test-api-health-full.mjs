@@ -78,14 +78,14 @@ const PROBES = [
     notes: "Full classification tree is huge (~120MB); PubMedID xrefs are densify signal",
   },
   {
-    id: "pubchem-patent-record",
-    name: "PubChem PUG View patent densify",
+    id: "patent-uspto-densify",
+    name: "PubChem PUG View patent densify (gather soft family)",
     category: "densify",
     gather: "patent-uspto-densify",
     url: `https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/patent/US-10029448-B2/JSON`,
     body: /Record|Abstract|Patent/i,
     timeoutMs: 20000,
-    notes: "Gather densify uses pug_view (PUG /patent/ domain retired)",
+    notes: "densifyUsPatentsWithPubchem — pug_view (PUG /patent/ domain retired)",
   },
   {
     id: "unichem-v1-sources",
@@ -233,6 +233,24 @@ const PROBES = [
     body: /resultList|hitCount/i,
   },
   {
+    id: "patent-epmc-densify",
+    name: "Patent EPMC densify (SRC:PAT enrich path)",
+    category: "densify",
+    gather: "patent-epmc-densify",
+    url: `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=${encodeURIComponent(`SRC:PAT AND ("${Q}") AND (synthesis OR preparation OR process)`)}&resultType=core&pageSize=1&format=json`,
+    body: /resultList|hitCount/i,
+    notes: "enrichPatentHitsWithEpmc / densifyPass patent EPMC path",
+  },
+  {
+    id: "patent-literature",
+    name: "Patent-adjacent literature (gather soft family)",
+    category: "patents",
+    gather: "patent-literature",
+    url: `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=${encodeURIComponent(`(TITLE_ABS:"${Q}") AND (patent OR USPTO OR "process for preparing" OR "method of manufacturing")`)}&resultType=core&pageSize=1&format=json`,
+    body: /resultList|hitCount/i,
+    notes: "searchPatentLiterature soft family",
+  },
+  {
     id: "pubmed",
     name: "PubMed E-utilities",
     category: "literature",
@@ -301,12 +319,13 @@ const PROBES = [
   },
   {
     id: "rhea",
-    name: "Rhea JSON search",
+    name: "Rhea TSV search (gather soft family)",
     category: "reactions",
     gather: "rhea",
-    url: `https://www.rhea-db.org/rhea/?query=${encodeURIComponent(Q)}&columns=rhea-id,equation&format=json&limit=3`,
-    body: /results|equation|id/i,
-    timeoutMs: 20000,
+    // TSV is smaller/faster than JSON for health; client uses JSON with 18s timeout
+    url: `https://www.rhea-db.org/rhea/?query=${encodeURIComponent(Q)}&columns=rhea-id,equation&format=tsv&limit=3`,
+    body: /RHEA:|equation|Reaction/i,
+    timeoutMs: 25000,
   },
   {
     id: "reactome",
@@ -545,8 +564,54 @@ async function runOne(p) {
   }
 }
 
+/** Base soft() families from gather.ts — every one must have a gather= probe tag */
+const REQUIRED_GATHER_SOFT = [
+  "pubchem-identity",
+  "pubchem-view",
+  "europepmc",
+  "openalex",
+  "crossref",
+  "semanticscholar",
+  "pubmed",
+  "arxiv",
+  "patentsview",
+  "patent-literature",
+  "chembl",
+  "mychem",
+  "openfda",
+  "rxnorm",
+  "kegg",
+  "comptox",
+  "dailymed",
+  "pubchem-patents",
+  "europepmc-pat",
+  "rhea",
+  "unichem",
+  "chebi",
+  "gsrs",
+  "orgsyn",
+  "reactome",
+  "wikipathways",
+  "pathway-commons",
+  "massbank",
+  "drugcentral",
+  "clinicaltrials",
+  "pubchem-class",
+  // densify / secondary soft paths
+  "europepmc-oa",
+  "patent-epmc-densify",
+  "patent-uspto-densify",
+  "ord",
+];
+
 const list = INCLUDE_APP ? [...PROBES, ...APP_PROBES] : PROBES;
 const results = await mapPool(list, CONCURRENCY, runOne);
+
+// Coverage gate: every gather soft family has at least one probe
+const coveredGather = new Set(
+  results.map((r) => r.gather).filter(Boolean)
+);
+const missingGather = REQUIRED_GATHER_SOFT.filter((g) => !coveredGather.has(g));
 
 const counts = { ok: 0, degraded: 0, fail: 0, skip: 0 };
 const byCat = {};
@@ -565,6 +630,11 @@ if (AS_JSON) {
         includeApp: INCLUDE_APP,
         counts,
         byCategory: byCat,
+        gatherCoverage: {
+          required: REQUIRED_GATHER_SOFT.length,
+          covered: REQUIRED_GATHER_SOFT.length - missingGather.length,
+          missing: missingGather,
+        },
         results,
       },
       null,
@@ -608,11 +678,26 @@ if (AS_JSON) {
     }
   }
   console.log(
-    `\nCatalog notes: ${PROBES.length} free-public probes cover gather densify families.\n` +
-      `Previous smoke suite only hit 7 hosts; diagnostics had 15. This suite is the full wired set.`
+    `\nGather soft coverage: ${REQUIRED_GATHER_SOFT.length - missingGather.length}/${REQUIRED_GATHER_SOFT.length} families tagged`
+  );
+  if (missingGather.length) {
+    console.log("  MISSING gather= tags: " + missingGather.join(", "));
+  } else {
+    console.log("  All gather soft() families have at least one probe.");
+  }
+  console.log(
+    `\nCatalog: ${PROBES.length} free-public probes · product registry should be unique (no duplicate ids).`
   );
 }
 
-const hardFail = counts.fail > 0;
+const coverageFail = missingGather.length > 0;
+const hardFail = counts.fail > 0 || coverageFail;
+if (coverageFail && !AS_JSON) {
+  console.error(
+    "\nCoverage gate FAILED — add probes with gather= for: " +
+      missingGather.join(", ")
+  );
+}
 if (STRICT && hardFail) process.exit(1);
+if (coverageFail) process.exit(2);
 process.exit(0);
