@@ -2,6 +2,7 @@
 
 import type { LiveDossier } from "@/lib/dossier/types";
 import { buildTechTransferFromLive } from "@/lib/export/techTransfer";
+import { FreePublicProvenance } from "@/components/FreePublicProvenance";
 
 type ChecklistStatus = "ok" | "gap" | "review";
 
@@ -21,7 +22,13 @@ const STATUS_LABEL: Record<ChecklistStatus, string> = {
  * Pre-validation gap checklist for tech-transfer / print (not GMP claims).
  * Table layout keeps status badges and notes column-aligned.
  */
-export function ValidationChecklist({ dossier }: { dossier: LiveDossier }) {
+export function ValidationChecklist({
+  dossier,
+  onRegenerate,
+}: {
+  dossier: LiveDossier;
+  onRegenerate?: () => void;
+}) {
   const pack = buildTechTransferFromLive(dossier);
   const items = pack.validationChecklist || [];
   if (!items.length) return null;
@@ -39,9 +46,17 @@ export function ValidationChecklist({ dossier }: { dossier: LiveDossier }) {
       <div className="border-b border-slate-800/80 px-4 py-3 sm:px-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold tracking-tight text-slate-100">
-              Transfer readiness checklist
-            </h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-sm font-semibold tracking-tight text-slate-100">
+                Transfer readiness checklist
+              </h2>
+              <FreePublicProvenance
+                dossier={dossier}
+                title="Transfer readiness checklist"
+                field="Validation checklist"
+                onRegenerate={onRegenerate}
+              />
+            </div>
             <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">
               Educational pre-validation only — not a site batch record or GMP
               certificate. Included in tech-transfer JSON v2.

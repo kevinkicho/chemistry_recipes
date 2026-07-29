@@ -5,6 +5,7 @@ import {
   buildSourceCoverage,
   type SourceSlotStatus,
 } from "@/lib/dossier/sourceCoverage";
+import { FreePublicProvenance } from "@/components/FreePublicProvenance";
 
 const STATUS_STYLE: Record<SourceSlotStatus, string> = {
   ok: "bg-emerald-500/15 text-emerald-200 ring-emerald-500/30",
@@ -16,7 +17,13 @@ const STATUS_STYLE: Record<SourceSlotStatus, string> = {
 /**
  * Free-API coverage strip: N APIs · ok / empty / fail.
  */
-export function SourceCoverageMap({ dossier }: { dossier: LiveDossier }) {
+export function SourceCoverageMap({
+  dossier,
+  onRegenerate,
+}: {
+  dossier: LiveDossier;
+  onRegenerate?: () => void;
+}) {
   const report = buildSourceCoverage(dossier);
 
   return (
@@ -25,7 +32,15 @@ export function SourceCoverageMap({ dossier }: { dossier: LiveDossier }) {
       className="scroll-mt-24 rounded-xl border border-slate-800 bg-slate-900/50 p-4"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold text-slate-100">Source coverage</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-sm font-semibold text-slate-100">Source coverage</h2>
+          <FreePublicProvenance
+            dossier={dossier}
+            title="Source coverage"
+            field="Source coverage"
+            onRegenerate={onRegenerate}
+          />
+        </div>
         <p className="text-xs font-medium text-teal-300/90">{report.summary}</p>
       </div>
       <p className="mt-1 text-[11px] text-slate-500">

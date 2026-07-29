@@ -31,6 +31,7 @@ import {
 } from "@/lib/frontier/exportMarkdown";
 import { streamBatchDensifyCids } from "@/lib/dossier/batchClient";
 import { routes } from "@/lib/routes";
+import { FreePublicBadge } from "@/components/FreePublicProvenance";
 
 /**
  * Multi-CID scientific brief: condition landscape, cross-CID conflicts, experiments.
@@ -194,9 +195,12 @@ export function CampaignBriefPanel() {
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-indigo-300/90">
         Frontier · campaign scientific brief
       </p>
-      <h2 className="mt-1 text-sm font-semibold text-slate-50">
-        Multi-CID condition landscape
-      </h2>
+      <div className="mt-1 flex flex-wrap items-center gap-2">
+        <h2 className="text-sm font-semibold text-slate-50">
+          Multi-CID condition landscape
+        </h2>
+        <FreePublicBadge note="free-public multi-CID densify · not GMP" />
+      </div>
       <p className="mt-1 text-[11px] text-slate-500">
         Depth score, cross-CID range conflicts, and research experiments from
         densified free-public packages. Not plant setpoints. Problem densify can

@@ -659,9 +659,18 @@ export function LiveMoleculeDossier({
           workerRole === "msat" ||
           workerRole === "manager" ? (
             <div id="frontier-science" className="scroll-mt-24 space-y-4">
-              <ConditionAtlasPanel dossier={dossier} />
-              <RouteHypothesesPanel dossier={dossier} />
-              <ReactionNetworkPanel dossier={dossier} />
+              <ConditionAtlasPanel
+                dossier={dossier}
+                onRegenerate={onRegenerate}
+              />
+              <RouteHypothesesPanel
+                dossier={dossier}
+                onRegenerate={onRegenerate}
+              />
+              <ReactionNetworkPanel
+                dossier={dossier}
+                onRegenerate={onRegenerate}
+              />
               <EvidenceSciencePanel
                 dossier={dossier}
                 onForceRegather={onRegenerate}
@@ -695,7 +704,12 @@ export function LiveMoleculeDossier({
             <ShiftPackPanel dossier={dossier} onRegenerate={onRegenerate} />
           ) : null}
 
-          {show("framing") ? <ProcessFramingBanner dossier={dossier} /> : null}
+          {show("framing") ? (
+            <ProcessFramingBanner
+              dossier={dossier}
+              onRegenerate={onRegenerate}
+            />
+          ) : null}
           {show("readiness") ? (
             <RecipeReadinessPanel dossier={dossier} onRegenerate={onRegenerate} />
           ) : null}
@@ -730,6 +744,8 @@ export function LiveMoleculeDossier({
               <BiologicParametersPanel
                 parameterSet={paramSet}
                 title={`${modalityMeta?.label || modality} parameters`}
+                dossier={dossier}
+                onRegenerate={onRegenerate}
               />
             </section>
           ) : null}
@@ -874,6 +890,8 @@ export function LiveMoleculeDossier({
               <UnitOpFillPanel
                 fills={dossier.unitOpFills}
                 modalityLabel={modalityMeta?.label}
+                dossier={dossier}
+                onRegenerate={onRegenerate}
               />
             </section>
           ) : null}
@@ -895,8 +913,14 @@ export function LiveMoleculeDossier({
             <div className="space-y-6">
               {show("score-coverage") ? (
                 <>
-                  <EvidenceScoreExplainer dossier={dossier} />
-                  <SourceCoverageMap dossier={dossier} />
+                  <EvidenceScoreExplainer
+                    dossier={dossier}
+                    onRegenerate={onRegenerate}
+                  />
+                  <SourceCoverageMap
+                    dossier={dossier}
+                    onRegenerate={onRegenerate}
+                  />
                 </>
               ) : null}
               {show("manager-brief") ? (
@@ -1010,7 +1034,10 @@ export function LiveMoleculeDossier({
                 </>
               ) : null}
               {show("checklist") ? (
-                <ValidationChecklist dossier={dossier} />
+                <ValidationChecklist
+                  dossier={dossier}
+                  onRegenerate={onRegenerate}
+                />
               ) : null}
               {show("work-pack") ? (
                 <WorkPackPanel cid={cid} label={name} />
@@ -1031,6 +1058,15 @@ export function LiveMoleculeDossier({
             defaultOpen={(dossier.annotations?.length ?? 0) > 0}
             forceOpenWhen={(dossier.annotations?.length ?? 0) > 0}
           >
+            <div className="mb-3">
+              <ApiProvenance
+                pubchemCid={cid}
+                traces={traces}
+                sourceRefs={dossier.sourceRefs}
+                title="Multi-source free APIs"
+                label="API"
+              />
+            </div>
             {(dossier.annotations?.length ?? 0) > 0 ? (
               <ul className="grid gap-2 sm:grid-cols-2">
                 {dossier.annotations.map((a, i) => (
@@ -1045,6 +1081,16 @@ export function LiveMoleculeDossier({
                       <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-500">
                         {a.kind}
                       </span>
+                      {a.url ? (
+                        <a
+                          href={a.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[10px] text-teal-500/80 hover:underline"
+                        >
+                          source
+                        </a>
+                      ) : null}
                     </div>
                     <div className="mt-1.5 text-sm font-medium text-slate-100">
                       {a.url ? (

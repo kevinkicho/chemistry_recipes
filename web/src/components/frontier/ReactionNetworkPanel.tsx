@@ -13,12 +13,19 @@ import {
 } from "@/lib/workspace/campaigns";
 import { NetworkEdgeComparePanel } from "@/components/frontier/NetworkEdgeComparePanel";
 import { streamBatchDensifyCids } from "@/lib/dossier/batchClient";
+import { FreePublicProvenance } from "@/components/FreePublicProvenance";
 import { useState } from "react";
 
 /**
  * Multi-CID process network + impurity densify queue + campaign hooks.
  */
-export function ReactionNetworkPanel({ dossier }: { dossier: LiveDossier }) {
+export function ReactionNetworkPanel({
+  dossier,
+  onRegenerate,
+}: {
+  dossier: LiveDossier;
+  onRegenerate?: () => void;
+}) {
   const atlas =
     dossier.processKnowledge?.conditionAtlas || buildConditionAtlas(dossier);
   const net =
@@ -136,9 +143,17 @@ export function ReactionNetworkPanel({ dossier }: { dossier: LiveDossier }) {
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/90">
         Frontier · multi-CID network
       </p>
-      <h2 className="mt-1 text-sm font-semibold text-slate-50">
-        Process reaction network
-      </h2>
+      <div className="mt-1 flex flex-wrap items-center gap-2">
+        <h2 className="text-sm font-semibold text-slate-50">
+          Process reaction network
+        </h2>
+        <FreePublicProvenance
+          dossier={dossier}
+          title="Process reaction network"
+          field="Reaction network"
+          onRegenerate={onRegenerate}
+        />
+      </div>
       <p className="mt-1 text-[11px] text-slate-500">{net.disclaimer}</p>
       <p className="mt-2 text-xs text-slate-300">{net.summary}</p>
       <p className="mt-1 text-[11px] text-amber-100/80">{neighborGraph.summary}</p>

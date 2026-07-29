@@ -11,6 +11,7 @@ import {
   type CampaignCompareResult,
 } from "@/lib/frontier/campaignCompare";
 import { downloadJson } from "@/lib/export/techTransfer";
+import { FreePublicBadge } from "@/components/FreePublicProvenance";
 
 /**
  * Side-by-side campaign densify / ideal depth compare.
@@ -141,9 +142,12 @@ export function CampaignComparePanel() {
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-rose-300/90">
         Frontier · campaign compare
       </p>
-      <h2 className="mt-1 text-sm font-semibold text-slate-50">
-        Side-by-side densify depth
-      </h2>
+      <div className="mt-1 flex flex-wrap items-center gap-2">
+        <h2 className="text-sm font-semibold text-slate-50">
+          Side-by-side densify depth
+        </h2>
+        <FreePublicBadge note="free-public densify metrics · not GMP" />
+      </div>
       <p className="mt-1 text-[11px] text-slate-500">
         Compare two local science campaigns on Ideal score, atlas depth, and
         literature densify — free-public metrics only.

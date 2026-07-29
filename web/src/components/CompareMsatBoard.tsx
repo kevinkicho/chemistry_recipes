@@ -3,6 +3,10 @@
 import Link from "next/link";
 import type { LiveDossier } from "@/lib/dossier/types";
 import { routes } from "@/lib/routes";
+import {
+  FreePublicBadge,
+  FreePublicProvenance,
+} from "@/components/FreePublicProvenance";
 
 function sideMetrics(d: LiveDossier | null) {
   if (!d) return null;
@@ -115,7 +119,25 @@ export function CompareMsatBoard({
       id="compare-msat-board"
       className="mt-8 rounded-xl border border-sky-500/25 bg-sky-500/5 p-4"
     >
-      <h2 className="text-sm font-semibold text-slate-50">MSAT route-pick board</h2>
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-sm font-semibold text-slate-50">MSAT route-pick board</h2>
+        {a ? (
+          <FreePublicProvenance
+            dossier={a}
+            title="MSAT compare A"
+            field="MSAT compare"
+          />
+        ) : null}
+        {b ? (
+          <FreePublicProvenance
+            dossier={b}
+            title="MSAT compare B"
+            field="MSAT compare"
+          />
+        ) : (
+          <FreePublicBadge note="free-public density · not GMP selection" />
+        )}
+      </div>
       <p className="mt-1 text-[11px] text-slate-500">
         Side-by-side free-public density for tech transfer scouting — not a site process
         selection or GMP preference.

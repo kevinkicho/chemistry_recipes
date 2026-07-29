@@ -17,6 +17,10 @@ import { runDensifyActionQueue } from "@/lib/frontier/densifyActionQueue";
 import { warmLiveDossier } from "@/lib/dossier/warmCache";
 import { recordDensifyRun } from "@/lib/dossier/densifyTelemetry";
 import { routes } from "@/lib/routes";
+import { FreePublicProvenance } from "@/components/FreePublicProvenance";
+import { aiProvenanceWhenParsed } from "@/lib/dossier/aiFieldProvenance";
+import { ContentProvenance } from "@/components/ContentProvenance";
+import { slimTraces } from "@/lib/api/trace";
 
 /**
  * Quote-bound science agent — prefers local densify package (fast).
@@ -233,9 +237,17 @@ export function ScienceAgentPanel({
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-300/90">
         Frontier · science agent
       </p>
-      <h2 className="mt-1 text-sm font-semibold text-slate-50">
-        Quote-bound scientific agent
-      </h2>
+      <div className="mt-1 flex flex-wrap items-center gap-2">
+        <h2 className="text-sm font-semibold text-slate-50">
+          Quote-bound scientific agent
+        </h2>
+        <FreePublicProvenance
+          dossier={dossier}
+          title="Science agent"
+          field="Science agent"
+          onRegenerate={onForceRegather}
+        />
+      </div>
       <p className="mt-1 text-[11px] text-slate-500">
         Prefer local densify package (atoms + procedure windows). Server only when LLM or
         forced densify is needed. Never invents plant numbers — densify more free-public
@@ -313,9 +325,35 @@ export function ScienceAgentPanel({
         </ol>
       ) : null}
       {out ? (
-        <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded-lg border border-slate-800 bg-slate-950 p-2 font-sans text-[11px] text-slate-300">
-          {out}
-        </pre>
+        <div className="mt-2">
+          <div className="mb-1 flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+              Agent answer
+            </span>
+            <ContentProvenance
+              title="Science agent answer"
+              field="Science agent answer"
+              pubchemCid={dossier.cid}
+              traces={slimTraces(dossier.traces || [])}
+              sourceRefs={dossier.sourceRefs}
+              ai={useLlm ? aiProvenanceWhenParsed(dossier.synthesis) : null}
+              showAi={Boolean(useLlm && aiProvenanceWhenParsed(dossier.synthesis))}
+              onRegenerate={onForceRegather}
+            />
+            {useLlm ? (
+              <span className="rounded bg-violet-500/15 px-1.5 py-0.5 text-[9px] text-violet-200/90">
+                LLM over densify package
+              </span>
+            ) : (
+              <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-500">
+                retrieval-only · free-public package
+              </span>
+            )}
+          </div>
+          <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-lg border border-slate-800 bg-slate-950 p-2 font-sans text-[11px] text-slate-300">
+            {out}
+          </pre>
+        </div>
       ) : null}
     </div>
   );

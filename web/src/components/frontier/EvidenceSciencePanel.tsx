@@ -17,6 +17,7 @@ import {
   formatProcessKnowledgeMarkdown,
 } from "@/lib/frontier/exportMarkdown";
 import { routes } from "@/lib/routes";
+import { FreePublicProvenance } from "@/components/FreePublicProvenance";
 
 /**
  * Seed Q&A, free-form evidence query, next experiments, knowledge export.
@@ -100,9 +101,17 @@ export function EvidenceSciencePanel({
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300/90">
             Frontier · evidence science
           </p>
-          <h2 className="mt-1 text-sm font-semibold text-slate-50">
-            Q&amp;A · next experiments · export
-          </h2>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <h2 className="text-sm font-semibold text-slate-50">
+              Q&amp;A · next experiments · export
+            </h2>
+            <FreePublicProvenance
+              dossier={dossier}
+              title="Evidence science"
+              field="Evidence science Q&A"
+              onRegenerate={onForceRegather}
+            />
+          </div>
           <p className="mt-1 text-[11px] text-slate-500">
             Answers only from densified free-public package. Insufficient evidence is a
             valid result. Export feeds agents and notebooks.

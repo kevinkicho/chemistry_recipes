@@ -1,6 +1,7 @@
 "use client";
 
 import type { LiveDossier } from "@/lib/dossier/types";
+import { FreePublicProvenance } from "@/components/FreePublicProvenance";
 
 /**
  * North-star CTA: thin scout → densify → job aid. Always actionable.
@@ -31,6 +32,14 @@ export function ThinToUsefulBanner({
         id="thin-to-useful"
         className="print:hidden scroll-mt-24 rounded-xl border border-emerald-500/25 bg-emerald-500/5 px-4 py-3"
       >
+        <div className="mb-1">
+          <FreePublicProvenance
+            dossier={dossier}
+            title="Toward curated ideal"
+            field="Thin-to-useful"
+            onRegenerate={onRegenerate}
+          />
+        </div>
         <p className="text-xs text-emerald-100/90">
           <strong className="font-semibold">Toward curated ideal:</strong> evidence{" "}
           {score}/100 · ideal depth {ideal}/100 · {facts} process facts · {mode}. Save a shift
@@ -51,9 +60,17 @@ export function ThinToUsefulBanner({
       id="thin-to-useful"
       className="print:hidden scroll-mt-24 rounded-xl border-2 border-amber-500/40 bg-amber-500/10 px-4 py-3 ring-1 ring-amber-400/20"
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-200/90">
-        Thin → curated ideal (primary path)
-      </p>
+      <div className="mb-1 flex flex-wrap items-center gap-2">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-200/90">
+          Thin → curated ideal (primary path)
+        </p>
+        <FreePublicProvenance
+          dossier={dossier}
+          title="Thin to useful"
+          field="Thin-to-useful"
+          onRegenerate={onRegenerate}
+        />
+      </div>
       <p className="mt-1 text-sm text-slate-200">
         Live depth is below the Tier-A ideal page (evidence {score}/100 · ideal {ideal}/100 ·{" "}
         {facts} facts · {mode}). Curated dual-view is the goal — densify public procedure text

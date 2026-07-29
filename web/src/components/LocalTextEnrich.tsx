@@ -7,6 +7,8 @@ import {
   saveUserSupplement,
 } from "@/lib/idb/userSupplements";
 import { addWorkPackPaste } from "@/lib/workspace/workPacks";
+import { FreePublicBadge } from "@/components/FreePublicProvenance";
+import { ApiProvenance } from "@/components/ApiProvenance";
 
 type WizardStep = 1 | 2 | 3;
 
@@ -143,11 +145,19 @@ export function LocalTextEnrich({
           : "border border-slate-800 bg-slate-900/50"
       }`}
     >
-      <h2 className="text-sm font-semibold text-slate-100">
-        {emphasize
-          ? "Paste wizard · densify with public procedure text"
-          : "Paste wizard · local full-text enrich"}
-      </h2>
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-sm font-semibold text-slate-100">
+          {emphasize
+            ? "Paste wizard · densify with public procedure text"
+            : "Paste wizard · local full-text enrich"}
+        </h2>
+        <ApiProvenance
+          pubchemCid={cid}
+          title="Local public-text enrich"
+          label="API"
+        />
+        <FreePublicBadge note="local public paste · not AI invention · not GMP" />
+      </div>
       <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
         Step-through wizard for <strong className="font-medium text-slate-400">public</strong>{" "}
         patent / paper experimental text (.txt / .md). Stored only in this browser —

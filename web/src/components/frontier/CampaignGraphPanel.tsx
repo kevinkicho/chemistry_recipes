@@ -30,6 +30,7 @@ import {
 import { streamBatchDensifyCids } from "@/lib/dossier/batchClient";
 import { NetworkEdgeComparePanel } from "@/components/frontier/NetworkEdgeComparePanel";
 import { routes } from "@/lib/routes";
+import { FreePublicBadge } from "@/components/FreePublicProvenance";
 
 /**
  * Merge multi-CID campaign graph from IndexedDB caches; stream densify thin/missing.
@@ -252,9 +253,12 @@ export function CampaignGraphPanel() {
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-300/90">
         Frontier · campaign graph
       </p>
-      <h2 className="mt-1 text-sm font-semibold text-slate-50">
-        Multi-CID merged network
-      </h2>
+      <div className="mt-1 flex flex-wrap items-center gap-2">
+        <h2 className="text-sm font-semibold text-slate-50">
+          Multi-CID merged network
+        </h2>
+        <FreePublicBadge note="free-public densify packages · not GMP" />
+      </div>
       <p className="mt-1 text-[11px] text-slate-500">
         Loads IndexedDB caches for a science campaign, merges reaction networks and
         condition atlases. Stream-densify thin/missing CIDs with Ideal score deltas.

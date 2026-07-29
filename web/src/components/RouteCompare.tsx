@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ProcessRoute } from "@/lib/types/process";
+import { FreePublicBadge } from "@/components/FreePublicProvenance";
 
 function routeLabel(r: ProcessRoute): string {
   return `${r.name} · ${r.type} · ${r.scaleClass}`;
@@ -195,6 +196,9 @@ export function RouteCompare({ routes }: { routes: ProcessRoute[] }) {
 
   return (
     <div id="route-compare" className="scroll-mt-24 space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <FreePublicBadge note="route compare · free-public / AI structure · not GMP" />
+      </div>
       <div className="flex flex-wrap items-end gap-4">
         <label className="block text-xs">
           <span className="font-semibold uppercase tracking-wider text-slate-500">

@@ -7,6 +7,7 @@ import {
   buildScientificConflicts,
 } from "@/lib/frontier/routeHypotheses";
 import type { RouteHypothesis } from "@/lib/frontier/types";
+import { FreePublicProvenance } from "@/components/FreePublicProvenance";
 
 const STATUS_STYLE: Record<RouteHypothesis["status"], string> = {
   "evidence-backed": "bg-emerald-500/15 text-emerald-100 ring-emerald-500/35",
@@ -18,7 +19,13 @@ const STATUS_STYLE: Record<RouteHypothesis["status"], string> = {
 /**
  * Competing public process hypotheses with kill criteria.
  */
-export function RouteHypothesesPanel({ dossier }: { dossier: LiveDossier }) {
+export function RouteHypothesesPanel({
+  dossier,
+  onRegenerate,
+}: {
+  dossier: LiveDossier;
+  onRegenerate?: () => void;
+}) {
   const pack = dossier.processKnowledge;
   const atlas = pack?.conditionAtlas || buildConditionAtlas(dossier);
   const hypotheses =
@@ -34,9 +41,18 @@ export function RouteHypothesesPanel({ dossier }: { dossier: LiveDossier }) {
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-300/90">
         Frontier · route hypotheses
       </p>
-      <h2 className="mt-1 text-sm font-semibold text-slate-50">
-        Competing public process hypotheses
-      </h2>
+      <div className="mt-1 flex flex-wrap items-center gap-2">
+        <h2 className="text-sm font-semibold text-slate-50">
+          Competing public process hypotheses
+        </h2>
+        <FreePublicProvenance
+          dossier={dossier}
+          title="Route hypotheses"
+          field="Route hypotheses"
+          aiField="routes"
+          onRegenerate={onRegenerate}
+        />
+      </div>
       <p className="mt-1 text-[11px] text-slate-500">
         Research structures from free-public evidence — kill criteria included. Not a site
         process selection.

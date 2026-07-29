@@ -299,6 +299,158 @@
         "model",
         "responseTimeMs"
       ]
+    },
+    {
+      "id": "frontier.condition-atlas",
+      "label": "Public condition atlas",
+      "file": "components/frontier/ConditionAtlasPanel.tsx",
+      "api": "required",
+      "ai": "optional",
+      "patterns": ["FreePublicProvenance", "condition-atlas"]
+    },
+    {
+      "id": "frontier.route-hypotheses",
+      "label": "Route hypotheses",
+      "file": "components/frontier/RouteHypothesesPanel.tsx",
+      "api": "required",
+      "ai": "when-field:routes",
+      "patterns": ["FreePublicProvenance", "aiField"]
+    },
+    {
+      "id": "frontier.reaction-network",
+      "label": "Reaction network",
+      "file": "components/frontier/ReactionNetworkPanel.tsx",
+      "api": "required",
+      "ai": "optional",
+      "patterns": ["FreePublicProvenance", "reaction-network"]
+    },
+    {
+      "id": "frontier.evidence-science",
+      "label": "Evidence science Q&A",
+      "file": "components/frontier/EvidenceSciencePanel.tsx",
+      "api": "required",
+      "ai": "optional",
+      "patterns": ["FreePublicProvenance", "evidence-science"]
+    },
+    {
+      "id": "frontier.science-agent",
+      "label": "Science agent",
+      "file": "components/frontier/ScienceAgentPanel.tsx",
+      "api": "required",
+      "ai": "optional",
+      "patterns": ["FreePublicProvenance", "ContentProvenance", "science-agent"]
+    },
+    {
+      "id": "frontier.edge-compare",
+      "label": "Network edge compare",
+      "file": "components/frontier/NetworkEdgeComparePanel.tsx",
+      "api": "required",
+      "ai": "none",
+      "patterns": ["FreePublicProvenance|FreePublicBadge", "edge-compare"]
+    },
+    {
+      "id": "frontier.batch-densify",
+      "label": "Batch densify",
+      "file": "components/frontier/BatchDensifyPanel.tsx",
+      "api": "optional",
+      "ai": "none",
+      "patterns": ["FreePublicBadge", "batch-densify"]
+    },
+    {
+      "id": "frontier.campaign-agent",
+      "label": "Campaign agent",
+      "file": "components/frontier/CampaignAgentPanel.tsx",
+      "api": "optional",
+      "ai": "none",
+      "patterns": ["FreePublicBadge", "campaign-agent"]
+    },
+    {
+      "id": "frontier.campaign-graph",
+      "label": "Campaign graph",
+      "file": "components/frontier/CampaignGraphPanel.tsx",
+      "api": "optional",
+      "ai": "none",
+      "patterns": ["FreePublicBadge", "campaign-graph"]
+    },
+    {
+      "id": "frontier.campaign-brief",
+      "label": "Campaign scientific brief",
+      "file": "components/frontier/CampaignBriefPanel.tsx",
+      "api": "optional",
+      "ai": "none",
+      "patterns": ["FreePublicBadge", "campaign-brief"]
+    },
+    {
+      "id": "live.source-coverage",
+      "label": "Source coverage map",
+      "file": "components/SourceCoverageMap.tsx",
+      "api": "required",
+      "ai": "none",
+      "patterns": ["FreePublicProvenance", "source-coverage"]
+    },
+    {
+      "id": "live.evidence-score",
+      "label": "Evidence score explainer",
+      "file": "components/EvidenceScoreExplainer.tsx",
+      "api": "required",
+      "ai": "none",
+      "patterns": ["FreePublicProvenance", "evidence-explainer"]
+    },
+    {
+      "id": "live.process-framing",
+      "label": "Process framing banner",
+      "file": "components/ProcessFramingBanner.tsx",
+      "api": "required",
+      "ai": "none",
+      "patterns": ["FreePublicProvenance", "process-framing"]
+    },
+    {
+      "id": "live.unit-op-panel",
+      "label": "Unit op fill panel body",
+      "file": "components/UnitOpFillPanel.tsx",
+      "api": "required",
+      "ai": "when-field:unitOpFills",
+      "patterns": ["FreePublicProvenance", "unitOpFills"]
+    },
+    {
+      "id": "live.biologic-params",
+      "label": "Educational parameters table",
+      "file": "components/BiologicParametersPanel.tsx",
+      "api": "required",
+      "ai": "none",
+      "patterns": ["FreePublicProvenance|literature-typical", "process-parameters"]
+    },
+    {
+      "id": "live.validation-checklist",
+      "label": "Transfer readiness checklist",
+      "file": "components/ValidationChecklist.tsx",
+      "api": "required",
+      "ai": "none",
+      "patterns": ["FreePublicProvenance", "validation-checklist"]
+    },
+    {
+      "id": "live.local-enrich",
+      "label": "Local public-text paste wizard",
+      "file": "components/LocalTextEnrich.tsx",
+      "api": "required",
+      "ai": "none",
+      "patterns": ["ApiProvenance", "FreePublicBadge", "local-text-enrich"]
+    },
+    {
+      "id": "live.multi-source-annotations",
+      "label": "Multi-source annotations section",
+      "file": "components/dossier/LiveMoleculeDossier.tsx",
+      "api": "required",
+      "ai": "none",
+      "patterns": ["multi-source", "ApiProvenance"]
+    },
+    {
+      "id": "helper.free-public-strip",
+      "label": "FreePublicProvenance helper",
+      "file": "components/FreePublicProvenance.tsx",
+      "api": "required",
+      "ai": "optional",
+      "patterns": ["ContentProvenance", "aiProvenanceForField", "FreePublicBadge"]
     }
   ]
 }

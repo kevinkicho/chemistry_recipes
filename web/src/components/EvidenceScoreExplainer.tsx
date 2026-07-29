@@ -1,11 +1,18 @@
 "use client";
 
 import type { LiveDossier } from "@/lib/dossier/types";
+import { FreePublicProvenance } from "@/components/FreePublicProvenance";
 
 /**
  * Human-readable evidence score breakdown for trust / AI gating.
  */
-export function EvidenceScoreExplainer({ dossier }: { dossier: LiveDossier }) {
+export function EvidenceScoreExplainer({
+  dossier,
+  onRegenerate,
+}: {
+  dossier: LiveDossier;
+  onRegenerate?: () => void;
+}) {
   const es = dossier.evidenceScore;
   if (!es) return null;
 
@@ -24,6 +31,12 @@ export function EvidenceScoreExplainer({ dossier }: { dossier: LiveDossier }) {
     >
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-sm font-semibold text-slate-100">Evidence score</h2>
+        <FreePublicProvenance
+          dossier={dossier}
+          title="Evidence score"
+          field="Evidence score"
+          onRegenerate={onRegenerate}
+        />
         <span
           className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${
             es.confidence === "high"

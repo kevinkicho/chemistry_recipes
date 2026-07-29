@@ -1,5 +1,6 @@
 import type { ParameterSet, ProcessParameterSpec } from "@/lib/modality/biologicParameters";
 import { PARAMETER_DISCLAIMER } from "@/lib/modality/biologicParameters";
+import { FreePublicProvenance } from "@/components/FreePublicProvenance";
 
 const CAT: Record<string, string> = {
   cpp: "CPP",
@@ -64,18 +65,36 @@ function Row({ p }: { p: ProcessParameterSpec }) {
 export function BiologicParametersPanel({
   parameterSet,
   title,
+  dossier,
+  onRegenerate,
 }: {
   parameterSet: ParameterSet;
   title?: string;
+  dossier?: import("@/lib/dossier/types").LiveDossier;
+  onRegenerate?: () => void;
 }) {
   return (
     <div
       id="process-parameters"
       className="scroll-mt-24 rounded-xl border border-violet-500/25 bg-violet-500/5 p-4"
     >
-      <h2 className="text-lg font-semibold text-slate-100">
-        {title || parameterSet.label}
-      </h2>
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-lg font-semibold text-slate-100">
+          {title || parameterSet.label}
+        </h2>
+        {dossier ? (
+          <FreePublicProvenance
+            dossier={dossier}
+            title={title || parameterSet.label}
+            field="Educational parameters"
+            onRegenerate={onRegenerate}
+          />
+        ) : (
+          <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-500">
+            literature-typical · not plant limits
+          </span>
+        )}
+      </div>
       <p className="mt-1 text-xs leading-relaxed text-slate-500">{parameterSet.summary}</p>
       <div
         role="note"

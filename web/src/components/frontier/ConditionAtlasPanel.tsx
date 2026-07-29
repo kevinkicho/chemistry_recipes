@@ -3,6 +3,7 @@
 import type { LiveDossier } from "@/lib/dossier/types";
 import { buildConditionAtlas } from "@/lib/frontier/conditionAtlas";
 import type { ConditionDistribution } from "@/lib/frontier/types";
+import { FreePublicProvenance } from "@/components/FreePublicProvenance";
 
 function DistCard({ d }: { d: ConditionDistribution }) {
   return (
@@ -63,7 +64,13 @@ function DistCard({ d }: { d: ConditionDistribution }) {
 /**
  * Public condition-space atlas — distributions with quotes, not plant setpoints.
  */
-export function ConditionAtlasPanel({ dossier }: { dossier: LiveDossier }) {
+export function ConditionAtlasPanel({
+  dossier,
+  onRegenerate,
+}: {
+  dossier: LiveDossier;
+  onRegenerate?: () => void;
+}) {
   const atlas =
     dossier.processKnowledge?.conditionAtlas || buildConditionAtlas(dossier);
 
@@ -77,9 +84,17 @@ export function ConditionAtlasPanel({ dossier }: { dossier: LiveDossier }) {
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/90">
             Frontier · condition space
           </p>
-          <h2 className="mt-1 text-sm font-semibold text-slate-50">
-            Public condition atlas
-          </h2>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <h2 className="text-sm font-semibold text-slate-50">
+              Public condition atlas
+            </h2>
+            <FreePublicProvenance
+              dossier={dossier}
+              title="Public condition atlas"
+              field="Condition atlas"
+              onRegenerate={onRegenerate}
+            />
+          </div>
           <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-slate-500">
             {atlas.disclaimer}
           </p>

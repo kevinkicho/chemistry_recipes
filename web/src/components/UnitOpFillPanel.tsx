@@ -1,11 +1,17 @@
-import type { UnitOpFill } from "@/lib/dossier/types";
+import type { UnitOpFill, LiveDossier } from "@/lib/dossier/types";
+import { FreePublicProvenance } from "@/components/FreePublicProvenance";
 
 export function UnitOpFillPanel({
   fills,
   modalityLabel,
+  dossier,
+  onRegenerate,
 }: {
   fills: UnitOpFill[];
   modalityLabel?: string;
+  /** When provided, attach free-public (+ AI unit-op) provenance */
+  dossier?: LiveDossier;
+  onRegenerate?: () => void;
 }) {
   if (!fills?.length) return null;
 
@@ -18,14 +24,25 @@ export function UnitOpFillPanel({
       id="unit-op-fill"
       className="scroll-mt-24 rounded-xl border border-slate-800 bg-slate-900/40 p-4"
     >
-      <h2 className="text-lg font-semibold text-slate-100">
-        Modality slot fill
-        {modalityLabel ? (
-          <span className="ml-2 text-sm font-normal text-slate-500">
-            · {modalityLabel}
-          </span>
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-lg font-semibold text-slate-100">
+          Modality slot fill
+          {modalityLabel ? (
+            <span className="ml-2 text-sm font-normal text-slate-500">
+              · {modalityLabel}
+            </span>
+          ) : null}
+        </h2>
+        {dossier ? (
+          <FreePublicProvenance
+            dossier={dossier}
+            title="Modality unit ops"
+            field="Modality unit ops"
+            aiField="unitOpFills"
+            onRegenerate={onRegenerate}
+          />
         ) : null}
-      </h2>
+      </div>
       <p className="mt-1 text-xs text-slate-500">
         Template unit ops matched to evidence-backed steps only. Empty slots stay empty
         (no invented parameters).

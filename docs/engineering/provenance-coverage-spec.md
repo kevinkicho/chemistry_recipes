@@ -114,7 +114,7 @@ Each surface:
 | **PROV-SCAN-20–23** | Live + aside field bindings + helper field list |
 | **PROV-SCAN-24** | Registry `when-field:*` keys known to helper |
 | **PROV-SCAN-30** | Spec docs present |
-| **PROV-SCAN-40** | Minimum surface count (≥ 28) |
+| **PROV-SCAN-40** | Minimum surface count (≥ 45) |
 
 ## Adding a new content card
 

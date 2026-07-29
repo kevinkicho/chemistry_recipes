@@ -135,12 +135,14 @@ for (const surface of registry.surfaces) {
   else if (byAiPolicy[ai] != null) byAiPolicy[ai] += 1;
   else byAiPolicy.optional += 1;
 
-  // API-required surfaces must mention an API chip or ContentProvenance
+  // API-required surfaces must mention an API chip, Content strip, or FreePublic helper
   if (surface.api === "required") {
     ok(
       `PROV-SCAN-12 ${surface.id} has API path`,
-      /ApiProvenance|ContentProvenance/.test(body),
-      "missing Api/Content provenance"
+      /ApiProvenance|ContentProvenance|FreePublicProvenance|FreePublicBadge/.test(
+        body
+      ),
+      "missing Api/Content/FreePublic provenance"
     );
   }
 
@@ -154,7 +156,7 @@ for (const surface of registry.surfaces) {
   ) {
     ok(
       `PROV-SCAN-13 ${surface.id} has AI path`,
-      /AiProvenance|ContentProvenance|aiProvenanceForField|aiProvenanceWhenParsed|aiAttempt|aiProvenance|fieldsGenerated|synthesisHasAiField|processRoutesFromAi/.test(
+      /AiProvenance|ContentProvenance|FreePublicProvenance|aiField|aiProvenanceForField|aiProvenanceWhenParsed|aiAttempt|aiProvenance|fieldsGenerated|synthesisHasAiField|processRoutesFromAi/.test(
         body
       ),
       "missing AI provenance wiring"
@@ -236,8 +238,8 @@ ok("PROV-SCAN-30 test-spec mentions PROV", existsSync(testSpec) && /PROV-/.test(
 // Summary stats
 const surfaceCount = registry.surfaces.length;
 ok(
-  `PROV-SCAN-40 coverage ≥ 28 surfaces (have ${surfaceCount})`,
-  surfaceCount >= 28
+  `PROV-SCAN-40 coverage ≥ 45 surfaces (have ${surfaceCount})`,
+  surfaceCount >= 45
 );
 
 console.log("\n  AI policy counts:", JSON.stringify(byAiPolicy));

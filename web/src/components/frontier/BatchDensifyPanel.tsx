@@ -14,6 +14,7 @@ import {
 } from "@/lib/frontier/campaignKnowledge";
 import Link from "next/link";
 import { routes } from "@/lib/routes";
+import { FreePublicBadge } from "@/components/FreePublicProvenance";
 
 /**
  * Batch densify for science campaigns (server sequential builds).
@@ -169,9 +170,12 @@ export function BatchDensifyPanel({ seedCids }: { seedCids?: number[] }) {
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-200/90">
         Frontier · batch densify
       </p>
-      <h2 className="mt-1 text-sm font-semibold text-slate-50">
-        Multi-CID densify (server)
-      </h2>
+      <div className="mt-1 flex flex-wrap items-center gap-2">
+        <h2 className="text-sm font-semibold text-slate-50">
+          Multi-CID densify (server)
+        </h2>
+        <FreePublicBadge note="free-public multi-API densify · not GMP" />
+      </div>
       <p className="mt-1 text-[11px] text-slate-500">
         Sequential free-public builds (max 12). Caches dossiers locally when successful.
         Not GMP.

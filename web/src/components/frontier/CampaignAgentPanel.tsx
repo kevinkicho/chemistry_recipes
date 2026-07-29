@@ -32,6 +32,7 @@ import {
   exportProblemDensifyNotebookFromDraft,
   loadProblemDensifyNotebookDraft,
 } from "@/lib/search/problemDensifyNotebook";
+import { FreePublicBadge } from "@/components/FreePublicProvenance";
 
 const DEFAULT_Q =
   "What condition ranges appear across this campaign? Any edge conflicts?";
@@ -476,13 +477,17 @@ export function CampaignAgentPanel() {
     <div
       id="campaign-agent"
       className="scroll-mt-24 rounded-xl border border-violet-500/25 bg-violet-500/5 p-4"
+      data-content-provenance="campaign-agent"
     >
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-300/90">
         Frontier · campaign agent
       </p>
-      <h2 className="mt-1 text-sm font-semibold text-slate-50">
-        Multi-CID science agent
-      </h2>
+      <div className="mt-1 flex flex-wrap items-center gap-2">
+        <h2 className="text-sm font-semibold text-slate-50">
+          Multi-CID science agent
+        </h2>
+        <FreePublicBadge note="quote-bound · free-public densify packages · not GMP" />
+      </div>
       <p className="mt-1 text-[11px] text-slate-500">
         Answers only from campaign densify (merged atlas + network). No plant
         invention. Stream densify thin/missing from preflight, or use server mode.

@@ -9,6 +9,10 @@ import {
   suggestEdgePairs,
 } from "@/lib/frontier/edgeCompare";
 import { buildEdgePairExperiments } from "@/lib/frontier/edgeExperiments";
+import {
+  FreePublicBadge,
+  FreePublicProvenance,
+} from "@/components/FreePublicProvenance";
 
 /**
  * Side-by-side evidence for two network edges.
@@ -57,9 +61,20 @@ export function NetworkEdgeComparePanel({
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-orange-200/90">
         Frontier · edge evidence
       </p>
-      <h2 className="mt-1 text-sm font-semibold text-slate-50">
-        Compare two network edges
-      </h2>
+      <div className="mt-1 flex flex-wrap items-center gap-2">
+        <h2 className="text-sm font-semibold text-slate-50">
+          Compare two network edges
+        </h2>
+        {dossiers[0] ? (
+          <FreePublicProvenance
+            dossier={dossiers[0]}
+            title="Network edge compare"
+            field="Network edge compare"
+          />
+        ) : (
+          <FreePublicBadge note="free-public edge evidence · not GMP" />
+        )}
+      </div>
       <p className="mt-1 text-[11px] text-slate-500">
         Side-by-side free-public evidence on graph relations — not a route selection
         decision.
