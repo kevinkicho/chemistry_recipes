@@ -62,9 +62,17 @@ Config storage: `localStorage` key `cr-ai-config-v1`.
 
 - Streaming `/api/chat` with `format: "json"`  
 - Bearer header only if key present  
-- Evidence-only system prompt (no inventing plant limits)  
-- `qualityGateSynthesis` post-parse  
-- Full `AiProvenanceRecord` (provider, host, prompts, timing)  
+- **Value-weighted** evidence package from `aiEvidencePackage.ts` (procedure windows + atoms first)  
+- **Two-pass** on full model when densify body is rich:  
+  1. **Extract** — quote-bound atoms, unit ops, route skeleton only  
+  2. **Assemble** — dual-view routes from extract + package  
+- Draft/fast model: single-pass assemble for latency  
+- Evidence-only system prompts (no inventing plant limits)  
+- Pipeline merges quote-grounded pass1 atoms into `processFacts` before strip/ground  
+- `qualityGateSynthesis` post-parse; `attachQuotesToRoutes` binds conditions to fact quotes  
+- Full `AiProvenanceRecord` (provider, host, prompts, timing, optional extract preview)  
+
+AI gate (`evidenceScore.ts`): identity + process signal + **procedure-density** (soft block for abstract-only packages).
 
 ## Science & campaign agents (quote-bound)
 

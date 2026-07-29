@@ -25,6 +25,7 @@ import {
   buildRelatedProcessContext,
   formatRelatedContextForPrompt,
 } from "@/lib/dossier/relatedContextPackage";
+import { buildProcessKnowledgeDigest } from "@/lib/dossier/processKnowledgeDigest";
 
 /** Full-model budget — denser multi-pass harvest needs more headroom */
 export const MAX_EVIDENCE_CHARS_FULL = 32_000;
@@ -165,19 +166,8 @@ export function buildEvidenceObject(
   const relatedCtx = buildRelatedProcessContext(ev);
   const relatedBlock = formatRelatedContextForPrompt(relatedCtx);
 
-  const processKnowledgeDigest = {
-    framing: pf?.framing || "evidence-lead-pack",
-    productionBriefEligible: pf?.productionBriefEligible || false,
-    sourcedConditionCount: pf?.sourcedConditionCount ?? 0,
-    unitOpCount: pf?.unitOpCount ?? 0,
-    openGaps: (pf?.openGaps || []).slice(0, 8),
-    managerRisks: (pf?.managerRisks || []).slice(0, 6),
-    exampleDenseSources: (pf?.exampleDenseSources || []).slice(0, 6),
-    ipPointers: (pf?.ipPointers || []).slice(0, 6),
-    instruction:
-      "Use processKnowledgeDigest only as structure cues (gaps, risks, dense sources). " +
-      "Do not invent plant setpoints or CPP numbers from gaps.",
-  };
+  // Full condition/unit-op summaries for structure (not invented CPPs)
+  const processKnowledgeDigest = buildProcessKnowledgeDigest(ev);
 
   const core: Record<string, unknown> = {
     agenticBrief: {

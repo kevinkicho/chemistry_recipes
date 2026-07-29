@@ -18,6 +18,7 @@ import {
 } from "@/lib/dossier/processFacts";
 import { groundRoutesAgainstEvidence } from "@/lib/dossier/quoteGrounding";
 import { attachQuotesToRoutes } from "@/lib/dossier/attachQuotesToRoutes";
+import { mergeExtractAtomsIntoFacts } from "@/lib/dossier/mergeExtractAtoms";
 import { applyPlantDeliverables } from "@/lib/dossier/plantDeliverables";
 import { applyTierABaseline } from "@/lib/dossier/tierABaseline";
 import { withRecipeReadiness } from "@/lib/dossier/recipeReadiness";
@@ -187,7 +188,7 @@ export async function buildLiveDossierWithProgress(
     stepsTotal: STEPS_TOTAL,
   });
   const tSc = Date.now();
-  const processFacts = evidence.processFacts ?? extractProcessFacts(evidence);
+  let processFacts = evidence.processFacts ?? extractProcessFacts(evidence);
   evidence.processFacts = processFacts;
   const scored = scoreCompoundEvidence(evidence);
   let dossier = buildScaffoldDossier(evidence);
@@ -286,29 +287,43 @@ export async function buildLiveDossierWithProgress(
     });
 
     if (synthesis.parsed && synthesis.routes && synthesis.routes.length > 0) {
+      // Merge quote-grounded pass1 extract atoms into facts before strip/ground
+      let factsForGround = processFacts;
+      if (synthesis.pass1Extract) {
+        const merged = mergeExtractAtomsIntoFacts(
+          processFacts,
+          synthesis.pass1Extract,
+          evidence
+        );
+        if (merged.added > 0 && merged.bundle) {
+          factsForGround = merged.bundle;
+          processFacts = merged.bundle;
+          evidence.processFacts = merged.bundle;
+        }
+      }
       const editorialRef = [
         {
           type: "editorial" as const,
           id: `ollama-synthesis:${cid}`,
           label: `${orgLabel} synthesis from public evidence`,
           note: synthesis.model
-            ? `Model ${synthesis.model} — structure only; uncited numbers stripped`
+            ? `Model ${synthesis.model} · ${synthesis.synthesisPath || "single-pass"} — structure only; uncited numbers stripped`
             : "AI synthesis — structure only; uncited numbers stripped",
         },
       ];
       let aiRoutes = aiRoutesToProcessRoutes(synthesis.routes, editorialRef);
-      aiRoutes = stripUncitedRouteDetails(aiRoutes, processFacts);
+      aiRoutes = stripUncitedRouteDetails(aiRoutes, factsForGround);
       const grounded = groundRoutesAgainstEvidence(aiRoutes, {
-        facts: processFacts?.facts,
+        facts: factsForGround?.facts,
         dataFed: synthesis.provenance?.dataFed,
         mfgTexts: dossier.manufacturingTexts,
         procedureTexts: (evidence.procedureExcerpts || []).map((p) => p.text),
       });
       aiRoutes = grounded.routes;
       // Bind step conditions to process-fact quotes when numeric tokens match
-      const quoteBound = attachQuotesToRoutes(aiRoutes, processFacts?.facts);
+      const quoteBound = attachQuotesToRoutes(aiRoutes, factsForGround?.facts);
       aiRoutes = quoteBound.routes;
-      aiRoutes = preferRoutesForEvidence(aiRoutes, processFacts);
+      aiRoutes = preferRoutesForEvidence(aiRoutes, factsForGround);
       const processRoutes = aiRoutes.length ? aiRoutes : dossier.processRoutes;
       const relatedEntities = withEntityLinks(
         mergeRelatedEntities(

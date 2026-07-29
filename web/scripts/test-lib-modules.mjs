@@ -68,6 +68,8 @@ const critical = [
   "lib/dossier/attachQuotesToRoutes.ts",
   "lib/dossier/relatedContextPackage.ts",
   "lib/dossier/annotationExcerpts.ts",
+  "lib/dossier/processKnowledgeDigest.ts",
+  "lib/dossier/mergeExtractAtoms.ts",
   "components/ValidationChecklist.tsx",
   "components/SourceCoverageMap.tsx",
   "components/EvidenceScoreExplainer.tsx",

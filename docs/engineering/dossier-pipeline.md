@@ -14,17 +14,25 @@ Live builds run on the server and stream progress to the browser over **SSE**.
    ├─ merge with server evidence cache (memory + .cache/evidence)
    │    (skip cache when force=1 / refresh)
    ├─ densify pass if procedure text thin
-   │    ├─ process-rank literature before OA budget
+   │    ├─ densifyBudgetPlanner (thin high-score lit/pat first)
    │    ├─ OA full text + extra PMC; patent densify
    │    │    (higher patent budget when OA sparse)
+   │    ├─ annotations → procedureExcerpts (process-relevant only)
    │    └─ OrgSyn retry; process-dense abstracts as secondary windows
+   ├─ auto recovery (when still thin + soft-fails)
+   │    ├─ retryFailedFamilies for soft/api-fail labels
+   │    └─ second densify pass after successful retry
    └─ extractProcessFacts     condition/unit-op atoms from densified text
-2. scoreCompoundEvidence      0–100 score (weights process-fact density)
+2. scoreCompoundEvidence      0–100 score + procedure-density AI gate
 3. buildScaffoldDossier       fact-enriched leads + procedureExcerpts on LiveDossier
 4. partial SSE                UI usable early
-5. synthesize (if canCall && score gate)
-   └─ qualityGateSynthesis    drop junk / invented plant language
-   └─ stripUncitedRouteDetails  drop numeric conditions not aligned to facts
+5. synthesize (if canCall && score + densify gate)
+   ├─ value-weighted evidence package (atoms + ranked windows first)
+   ├─ two-pass full model: extract quote-bound atoms → assemble dual-view
+   ├─ qualityGateSynthesis    drop junk / invented plant language
+   ├─ mergeExtractAtoms       quote-grounded pass1 atoms into processFacts
+   ├─ stripUncitedRouteDetails  drop numeric conditions not aligned to facts
+   ├─ groundRoutes + attachQuotesToRoutes  bind conditions to fact quotes
    └─ preferRoutesForEvidence   one route when thin; two when rich
 6. enrich                     modality, related entities, contradictions,
                               unit-op fill, plant deliverables, recipe readiness,
@@ -35,14 +43,15 @@ Live builds run on the server and stream progress to the browser over **SSE**.
 
 ## Agentic AI evidence package
 
-`lib/dossier/aiEvidencePackage.ts` builds a **budgeted** prompt feed (up to ~32k chars full model / ~16k fast):
+`lib/dossier/aiEvidencePackage.ts` builds a **budgeted, value-weighted** prompt feed (up to ~32k chars full model / ~16k fast):
 
-1. `processFacts.atoms` (numeric grounding)  
-2. `procedureExcerpts` (OA / patent / OrgSyn densify)  
-3. densified literature + patents  
-4. manufacturing / GHS / multi-API annotations  
+1. `processFacts.atoms` (conditions/yields first — numeric grounding)  
+2. `procedureExcerpts` ranked by procedure-window score  
+3. `processKnowledgeDigest` + `relatedProcessContext` (structure / impurity cues)  
+4. densified process literature + patents (clinical context last)  
+5. manufacturing / GHS / multi-API annotations  
 
-System prompt prioritizes structuring densified procedure text into dual-view routes; uncited numbers still stripped post-AI.
+Full model uses **two-pass** extract→assemble when densify body is rich; draft model stays single-pass. Uncited numbers are still stripped post-AI; quote-bind attaches process-fact refs to matching step conditions.
 
 ## Durability (breaking free-API ceilings)
 

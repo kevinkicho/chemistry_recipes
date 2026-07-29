@@ -81,6 +81,18 @@ ok("impurityFirstCampaignCids", /impurityFirstCampaignCids/.test(neigh));
 
 const densify = read("lib/dossier/densifyPass.ts");
 ok("densify uses deepDensifyLiterature", /deepDensifyLiterature/.test(densify));
+ok(
+  "auto-retry soft-fail families in gather",
+  /retryFailedFamilies|auto-retry|auto-redensify/.test(read("lib/dossier/gather.ts"))
+);
+ok(
+  "mergeExtractAtoms module",
+  existsSync(src("lib/dossier/mergeExtractAtoms.ts"))
+);
+ok(
+  "processKnowledgeDigest module",
+  existsSync(src("lib/dossier/processKnowledgeDigest.ts"))
+);
 
 // Executable: circuit + delta format
 function formatDensifyDelta(before, after) {

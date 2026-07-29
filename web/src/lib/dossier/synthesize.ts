@@ -943,6 +943,8 @@ export async function synthesizeDossierFromEvidence(
   const synthesis = qualityGateSynthesis(parseSynthesis(parsed, model));
   return {
     ...synthesis,
+    pass1Extract: pass1Extract ?? undefined,
+    synthesisPath: useTwoPass ? "two-pass" : "single-pass",
     provenance: {
       ...baseProvenance,
       model,

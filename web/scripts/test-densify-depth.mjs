@@ -137,6 +137,23 @@ ok("DENS-11 gather promotes annotations", /annotationsToProcedureExcerpts/.test(
 ok("DENS-11 two-pass extract system", /EXTRACT_SYSTEM|pass1Extract|two-pass/.test(synth));
 ok("DENS-11 densifyNext thin hits", /listThinHighValueTargets|act:thin-hits|thin high-value/.test(guide));
 ok("DENS-11 procedure-density gate", /hasProcedureDensity|PROC_DENSITY/.test(score));
+ok(
+  "DENS-11 auto-retry densify chain",
+  /retryFailedFamilies|auto-retry|auto-redensify/.test(gather)
+);
+ok(
+  "DENS-11 processKnowledgeDigest module",
+  exists("lib/dossier/processKnowledgeDigest.ts")
+);
+ok(
+  "DENS-11 mergeExtractAtoms",
+  exists("lib/dossier/mergeExtractAtoms.ts") &&
+    /mergeExtractAtomsIntoFacts/.test(pipeline)
+);
+ok(
+  "DENS-11 two-pass path field",
+  /synthesisPath|pass1Extract/.test(synth)
+);
 
 // Module presence for densify ecosystem
 const densifyMods = [

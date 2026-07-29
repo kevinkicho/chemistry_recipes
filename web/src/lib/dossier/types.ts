@@ -171,6 +171,13 @@ export interface AiSynthesis {
   parsed?: boolean;
   /** Ollama call provenance for AI chips on generated content */
   provenance?: AiProvenanceRecord;
+  /**
+   * Two-pass extract JSON (quote-bound atoms / route skeleton).
+   * Used for assemble context and optional fact merge — not plant invention.
+   */
+  pass1Extract?: unknown;
+  /** Wall-clock path: single-pass vs two-pass extract→assemble */
+  synthesisPath?: "single-pass" | "two-pass";
 }
 
 /** Non-PubChem free-public annotations shown on the dossier + fed to AI. */

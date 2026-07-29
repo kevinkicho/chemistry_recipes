@@ -82,6 +82,17 @@ ok(
   /hasProcedureDensity|PROC_DENSITY/.test(score)
 );
 ok("pipeline attachQuotesToRoutes", /attachQuotesToRoutes/.test(pipe));
+ok("pipeline mergeExtractAtoms", /mergeExtractAtomsIntoFacts/.test(pipe));
+ok(
+  "gather auto-retry soft-fails",
+  /retryFailedFamilies|auto-redensify/.test(read("lib/dossier/gather.ts"))
+);
+ok(
+  "knowledge digest builder",
+  /export function buildProcessKnowledgeDigest/.test(
+    read("lib/dossier/processKnowledgeDigest.ts")
+  )
+);
 
 // Quality gate heuristics (mirrored executable)
 const JUNK_STEP =
