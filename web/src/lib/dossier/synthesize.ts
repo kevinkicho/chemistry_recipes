@@ -119,13 +119,18 @@ function fieldsFromSynthesis(s: AiSynthesis): string[] {
   if (s.overview) fields.push("overview");
   if (s.applications?.length) fields.push("applications");
   if (s.manufacturingSummary) fields.push("manufacturingSummary");
-  if (s.routes?.length) fields.push("routes");
+  if (s.routes?.length) {
+    fields.push("routes");
+    // Critical-params board and dual-view steps are derived from AI routes
+    fields.push("criticalParameters");
+  }
   if (s.apparatusCatalog?.length) fields.push("apparatusCatalog");
   if (s.environmentBaseline) fields.push("environmentBaseline");
   if (s.ehsHighlights?.length) fields.push("ehsHighlights");
   if (s.relatedEntities?.length) fields.push("relatedEntities");
   if (s.contradictions?.length) fields.push("contradictions");
   if (s.modality) fields.push("modality");
+  if (s.unitOpFills?.length) fields.push("unitOpFills");
   if (s.gaps?.length) fields.push("gaps");
   if (s.disclaimer) fields.push("disclaimer");
   return fields;

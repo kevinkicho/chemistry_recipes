@@ -2,6 +2,22 @@
 
 Full requirement IDs and matrix: **[test-spec.md](./test-spec.md)**.
 
+## Pre-commit (do this before every commit)
+
+```bash
+# From repo root (preferred)
+npm run precommit
+
+# Or from web/
+cd web
+npm run precommit
+# same as:
+npm run test:precommit
+```
+
+Runs **all offline unit contracts** + **TypeScript** + **ESLint**.  
+Do not commit if precommit fails — the app has many soft-fail paths; contracts catch wiring regressions that feel like “brittleness” in the UI.
+
 ## Commands
 
 ```bash
@@ -11,6 +27,9 @@ cd web
 npm test
 # same:
 npm run test:unit
+
+# Pre-commit gate (unit + tsc + eslint)
+npm run precommit
 
 # Unit + free-API smoke + tsc + eslint
 npm run test:coverage
@@ -32,6 +51,15 @@ npm run test:prompt-qc        # AI package + response quality gates
 npm run test:resilience       # soft-fail, retries, vault
 npm run test:api-wiring       # product API list wired into gather
 npm run test:frontier         # densify-first AI guidance, campaigns, agents
+npm run test:nav-abort        # browser Back / leave abort
+npm run test:search-contracts # multi-source + problem search
+npm run test:densify-depth    # densify harvest quality
+npm run test:diagnostics-honesty  # Ollama vs free-public content
+npm run test:suite-inventory  # meta: suites wired + test-spec families
+npm run test:worker-ux
+npm run test:provenance
+npm run test:roadmap
+npm run test:ideal-page
 npm run test:smoke            # soft network probes
 npm run test:smoke:strict     # fail on skip/fail
 
@@ -56,13 +84,32 @@ npm run build
 | `test-prompt-qc.mjs` | Yes | **AI-*** / prompt & response QC |
 | `test-resilience.mjs` | Yes | Soft-fail, retries, vault, cache merge |
 | `test-api-wiring.mjs` | Yes | **API-*** product list wired |
-| `test-frontier.mjs` | Yes | Process-knowledge, AI guidance, densify queue, campaign agent |
+| `test-frontier.mjs` | Yes | **FRN-*** process-knowledge, AI guidance, campaigns |
+| `test-nav-abort.mjs` | Yes | **NAV-*** leave-page abort densify/SSE/search |
+| `test-search-contracts.mjs` | Yes | **SEARCH-*** multi-source + problem densify |
+| `test-densify-depth.mjs` | Yes | **DENS-*** process-rank, OA-sparse, excerpts |
+| `test-diagnostics-honesty.mjs` | Yes | **DIAG-*** Ollama vs free-public shells |
+| `test-suite-inventory.mjs` | Yes | **INV-*** suite wiring + test-spec families |
+| `test-worker-ux.mjs` | Yes | Worker role surfaces |
+| `test-provenance.mjs` | Yes | Provenance chips / honesty |
+| `test-roadmap.mjs` | Yes | Roadmap feature flags / mounts |
+| `test-ideal-page.mjs` | Yes | Ideal page parity |
 | `test-smoke-apis.mjs` | Needs net | API-09 live free endpoints |
 
 ## Smoke modes
 
 - **Soft (default):** network errors → `skip`, exit 0.  
 - **Strict (`--strict` / `SMOKE_STRICT=1`):** any skip/fail fails the process.
+
+## Why the app can feel brittle
+
+Many paths are **soft-fail by design** (one free API down must not blank the page). That means:
+
+- Diagnostics can show probe fails while dossiers still have content.  
+- Ollama “not ready” still allows evidence-shell / densify-structured routes.  
+- Leaving mid-densify cancels the **client** stream; the server may finish work already started.
+
+Contracts exist so **wiring regressions** (missing abort, lost densify ranking, silent AI invention paths) fail offline before commit — even when live behavior is soft.
 
 ## Manual QC (Ollama configured)
 
@@ -71,15 +118,19 @@ See [test-spec.md](./test-spec.md) § Prompt response quality control.
 1. Live CID `?refresh=1` with densify — check AI provenance feed counts.  
 2. Conditions only when processFacts / procedure text support them.  
 3. Recipe readiness blockers honest when thin.  
-4. Local full-text enrich densifies facts without inventing site CPPs.
+4. Local full-text enrich densifies facts without inventing site CPPs.  
+5. Browser Back mid-search / mid-dossier / mid-densify does not hang the UI.
 
 ## CI
 
 `.github/workflows/ci.yml`: `npm run test:unit` + `tsc` + eslint on `main` push/PR.
 
+Locally, prefer **`npm run precommit`** so you run the same gates as CI before pushing.
+
 ## Related
 
-- [test-spec.md](./test-spec.md) — REQ matrix  
+- [test-spec.md](./test-spec.md) — full REQ matrix (ACC…DIAG + INV)  
+- [frontier-science.md](./frontier-science.md)  
 - [process-facts-accuracy.md](./process-facts-accuracy.md)  
 - [dossier-pipeline.md](./dossier-pipeline.md)  
 - [multi-source-apis.md](./multi-source-apis.md)  

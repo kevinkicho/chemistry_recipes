@@ -3,6 +3,10 @@
 import { ContentProvenance } from "@/components/ContentProvenance";
 import type { LiveDossier } from "@/lib/dossier/types";
 import { slimTraces } from "@/lib/api/trace";
+import {
+  aiProvenanceForField,
+  processRoutesFromAi,
+} from "@/lib/dossier/aiFieldProvenance";
 
 /**
  * MSAT / manager planning brief — preferred path, alternatives, risks, IP pointers, gaps.
@@ -35,6 +39,11 @@ export function ManagerBriefPanel({
       )
     )
     .slice(0, 10);
+  // Brief is AI-structured when Ollama produced routes used as preferred path
+  const aiBrief =
+    aiProvenanceForField(dossier.synthesis, "routes") ||
+    (processRoutesFromAi(dossier) ? dossier.synthesis.provenance : null) ||
+    null;
 
   return (
     <div
@@ -53,10 +62,15 @@ export function ManagerBriefPanel({
               pubchemCid={dossier.cid}
               traces={slimTraces(dossier.traces || [])}
               sourceRefs={dossier.sourceRefs}
-              ai={dossier.synthesis.provenance}
-              showAi={Boolean(dossier.synthesis.provenance)}
+              ai={aiBrief}
+              showAi={Boolean(aiBrief)}
               onRegenerate={onRegenerate}
             />
+            {!aiBrief ? (
+              <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-500">
+                free-public structure
+              </span>
+            ) : null}
           </div>
           <p className="mt-0.5 text-[11px] text-slate-500">
             Planning handout from free-public evidence — not a batch record, not legal

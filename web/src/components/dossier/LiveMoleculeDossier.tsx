@@ -6,6 +6,13 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { AiProvenance } from "@/components/AiProvenance";
+import { ContentProvenance } from "@/components/ContentProvenance";
+import {
+  aiAttemptProvenance,
+  aiProvenanceForField,
+  aiProvenanceWhenParsed,
+  processRoutesFromAi,
+} from "@/lib/dossier/aiFieldProvenance";
 import { ApiProvenance } from "@/components/ApiProvenance";
 import { RoutePanel } from "@/components/RoutePanel";
 import { RouteCompare } from "@/components/RouteCompare";
@@ -184,17 +191,30 @@ export function LiveMoleculeDossier({
   const name = hit?.name || `CID ${cid}`;
   const traces = slimTraces(dossier.traces);
   const ai = dossier.synthesis;
-  const prov = ai.provenance;
-  const aiChip = ai.parsed && prov ? prov : null;
-  const aiAttempt = prov ?? null;
+  /** Full successful parse chip (dossier-level) */
+  const aiChip = aiProvenanceWhenParsed(ai);
+  /** Any attempt including failed parse (error modal) */
+  const aiAttempt = aiAttemptProvenance(ai);
+  /** Per-field AI chips — always prefer field-specific so users can disseminate */
+  const aiOverview = aiProvenanceForField(ai, "overview");
+  const aiApplications = aiProvenanceForField(ai, "applications");
+  const aiMfg = aiProvenanceForField(ai, "manufacturingSummary");
+  const aiApparatus = aiProvenanceForField(ai, "apparatusCatalog");
+  const aiEnv = aiProvenanceForField(ai, "environmentBaseline");
+  const aiEhs = aiProvenanceForField(ai, "ehsHighlights");
+  const aiRelated = aiProvenanceForField(ai, "relatedEntities");
+  const aiUnitOps = aiProvenanceForField(ai, "unitOpFills");
+  const aiRoutesField = aiProvenanceForField(ai, "routes");
+  const aiCritical = aiProvenanceForField(ai, "criticalParameters");
+  const aiDisclaimer = aiProvenanceForField(ai, "disclaimer");
   /** Re-run free APIs + Ollama — exposed on every AI provenance modal */
   const onRegenerate = chrome?.onRefresh;
 
-  const overviewFromAi = Boolean(ai.parsed && ai.overview);
+  const overviewFromAi = Boolean(aiOverview);
   const overview =
     ai.overview || dossier.descriptionTexts[0] || null;
 
-  const mfgFromAi = Boolean(ai.parsed && ai.manufacturingSummary);
+  const mfgFromAi = Boolean(aiMfg);
   const manufacturingSummary =
     ai.manufacturingSummary ||
     (dossier.manufacturingTexts.length
@@ -211,25 +231,21 @@ export function LiveMoleculeDossier({
   );
 
   const applications = ai.applications ?? [];
-  const appsFromAi = Boolean(ai.parsed && applications.length > 0);
 
   const apparatusCatalog = ai.apparatusCatalog ?? [];
-  const apparatusFromAi = Boolean(
-    ai.parsed && ai.provenance?.fieldsGenerated?.includes("apparatusCatalog")
-  );
+  const apparatusFromAi = Boolean(aiApparatus);
 
   const environmentBaseline = ai.environmentBaseline;
-  const envFromAi = Boolean(
-    ai.parsed && ai.provenance?.fieldsGenerated?.includes("environmentBaseline")
-  );
+  const envFromAi = Boolean(aiEnv);
 
-  const ehsFromAi = Boolean(ai.parsed && ai.ehsHighlights && ai.ehsHighlights.length > 0);
+  const ehsFromAi = Boolean(aiEhs);
   const ehs =
     ai.ehsHighlights && ai.ehsHighlights.length > 0
       ? ai.ehsHighlights
       : dossier.hazards.hazardStatements?.slice(0, 8) ?? [];
 
-  const routesFromAi = Boolean(ai.parsed && ai.routes && ai.routes.length > 0);
+  const routesFromAi =
+    Boolean(aiRoutesField) || processRoutesFromAi(dossier);
 
   const litTraces = traces.filter(
     (t) =>
@@ -505,19 +521,29 @@ export function LiveMoleculeDossier({
           {/* Overview as clean prose — like example dossiers */}
           <div id="overview" className="scroll-mt-24 max-w-3xl">
             {overview ? (
-              <p className="leading-relaxed text-slate-300">
-                {overviewFromAi && aiChip ? (
-                  <span className="mr-2 inline-flex align-middle">
-                    <AiProvenance
-                      provenance={aiChip}
-                      field="Overview"
-                      label="AI"
-                      onRegenerate={onRegenerate}
-                    />
+              <>
+                <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                    Overview
                   </span>
-                ) : null}
-                {overview}
-              </p>
+                  <ContentProvenance
+                    title="Overview"
+                    field="Overview"
+                    pubchemCid={cid}
+                    traces={pubchemTraces}
+                    sourceRefs={dossier.sourceRefs}
+                    ai={aiOverview}
+                    showAi={Boolean(aiOverview)}
+                    onRegenerate={onRegenerate}
+                  />
+                  {!overviewFromAi ? (
+                    <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-500">
+                      free-public text
+                    </span>
+                  ) : null}
+                </div>
+                <p className="leading-relaxed text-slate-300">{overview}</p>
+              </>
             ) : (
               <p className="text-sm leading-relaxed text-slate-500">
                 Overview appears when PubChem description or Ollama synthesis is available.
@@ -527,23 +553,32 @@ export function LiveMoleculeDossier({
           </div>
 
           {applications.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-1.5">
-              {appsFromAi && aiChip ? (
-                <AiProvenance
-                  provenance={aiChip}
+            <div>
+              <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                  Applications
+                </span>
+                <ContentProvenance
+                  title="Applications"
                   field="Applications"
-                  label="AI"
+                  pubchemCid={cid}
+                  traces={traces}
+                  sourceRefs={dossier.sourceRefs}
+                  ai={aiApplications}
+                  showAi={Boolean(aiApplications)}
                   onRegenerate={onRegenerate}
                 />
-              ) : null}
-              {applications.map((a) => (
-                <span
-                  key={a}
-                  className="rounded-full bg-slate-800 px-2.5 py-0.5 text-xs text-slate-400"
-                >
-                  {a}
-                </span>
-              ))}
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {applications.map((a) => (
+                  <span
+                    key={a}
+                    className="rounded-full bg-slate-800 px-2.5 py-0.5 text-xs text-slate-400"
+                  >
+                    {a}
+                  </span>
+                ))}
+              </div>
             </div>
           ) : null}
 
@@ -671,7 +706,7 @@ export function LiveMoleculeDossier({
               pubchemCid={cid}
               traces={traces}
               onRegenerate={onRegenerate}
-              ai={aiChip}
+              ai={aiCritical || (routesFromAi ? aiChip : null)}
             />
           ) : null}
 
@@ -702,7 +737,7 @@ export function LiveMoleculeDossier({
           {show("routes") ? (
             <section id="routes" className="scroll-mt-24">
               <SectionTitle
-                ai={routesFromAi && aiChip ? aiChip : undefined}
+                ai={routesFromAi ? aiRoutesField || aiChip : undefined}
                 field="Process recipe"
                 pubchemCid={cid}
                 traces={traces}
@@ -715,8 +750,8 @@ export function LiveMoleculeDossier({
                 Ingredients, method steps, dual plant / chemistry view — same structure as
                 curated examples. Numbers only when public facts support them
                 {routesFromAi
-                  ? " (Ollama structures evidence; uncited values stripped)."
-                  : " (evidence / fact-derived leads)."}{" "}
+                  ? " (Ollama structures evidence; uncited values stripped — open AI chip for prompts/data)."
+                  : " (evidence / fact-derived leads — not Ollama dual-view)."}{" "}
                 Not a GMP batch record.
                 {dossier.processFraming === "evidence-lead-pack" ? (
                   <span className="text-amber-200/80">
@@ -727,7 +762,9 @@ export function LiveMoleculeDossier({
               </p>
               <RoutePanel
                 routes={dossier.processRoutes}
-                aiProvenance={routesFromAi ? aiChip : null}
+                aiProvenance={
+                  routesFromAi ? aiRoutesField || aiChip : null
+                }
                 processFacts={dossier.processFacts?.facts}
                 onRegenerate={onRegenerate}
                 pubchemCid={cid}
@@ -750,7 +787,9 @@ export function LiveMoleculeDossier({
                 pubchemCid={cid}
                 traces={traces}
                 sourceRefs={dossier.sourceRefs}
-                showAi={false}
+                ai={routesFromAi ? aiRoutesField || aiChip : undefined}
+                showAi={routesFromAi}
+                onRegenerate={onRegenerate}
               >
                 Route compare
               </SectionTitle>
@@ -763,12 +802,7 @@ export function LiveMoleculeDossier({
           dossier.relatedEntities.length > 0 ? (
             <section id="related-entities" className="scroll-mt-24">
               <SectionTitle
-                ai={
-                  aiChip &&
-                  ai.provenance?.fieldsGenerated?.includes("relatedEntities")
-                    ? aiChip
-                    : undefined
-                }
+                ai={aiRelated || undefined}
                 field="Related materials"
                 pubchemCid={cid}
                 traces={traces}
@@ -830,12 +864,7 @@ export function LiveMoleculeDossier({
             <section id="unit-op-fill" className="scroll-mt-24">
               <SectionTitle
                 field="Modality unit ops"
-                ai={
-                  aiChip &&
-                  ai.provenance?.fieldsGenerated?.includes("unitOpFills")
-                    ? aiChip
-                    : undefined
-                }
+                ai={aiUnitOps || undefined}
                 pubchemCid={cid}
                 traces={traces}
                 onRegenerate={onRegenerate}
@@ -1188,6 +1217,10 @@ export function LiveMoleculeDossier({
             ehsFromAi={ehsFromAi}
             plantProps={plantProps}
             aiChip={aiChip}
+            aiMfg={aiMfg}
+            aiEnv={aiEnv}
+            aiApparatus={aiApparatus}
+            aiEhs={aiEhs}
             aiAttempt={aiAttempt}
             pugViewTraces={pugViewTraces}
             pubchemTraces={pubchemTraces}
@@ -1197,7 +1230,19 @@ export function LiveMoleculeDossier({
         ) : (
           <aside className="space-y-4 print:hidden">
             <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
-              <h3 className="text-sm font-semibold text-teal-300">EHS highlights</h3>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-semibold text-teal-300">EHS highlights</h3>
+                <ContentProvenance
+                  title="EHS highlights"
+                  field="EHS highlights"
+                  pubchemCid={cid}
+                  traces={pubchemTraces}
+                  sourceRefs={dossier.hazards.sourceRefs}
+                  ai={aiEhs}
+                  showAi={Boolean(aiEhs)}
+                  onRegenerate={onRegenerate}
+                />
+              </div>
               {ehs.length ? (
                 <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-slate-300">
                   {ehs.slice(0, 8).map((x) => (
@@ -1301,9 +1346,9 @@ export function LiveMoleculeDossier({
       >
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-sm font-semibold text-slate-300">Disclaimer</h2>
-          {ai.parsed && ai.disclaimer && aiChip ? (
+          {ai.parsed && ai.disclaimer && (aiDisclaimer || aiChip) ? (
             <AiProvenance
-              provenance={aiChip}
+              provenance={aiDisclaimer || aiChip!}
               field="Disclaimer"
               label="AI"
               onRegenerate={onRegenerate}

@@ -9,6 +9,10 @@
     "build": "npm run build --prefix web",
     "start": "npm run start --prefix web",
     "lint": "npm run lint --prefix web",
+    "test": "npm run test --prefix web",
+    "test:unit": "npm run test:unit --prefix web",
+    "test:precommit": "npm run test:precommit --prefix web",
+    "precommit": "npm run precommit --prefix web",
     "status:deploy": "node web/scripts/status-deploy.mjs",
     "status:deploy:json": "node web/scripts/status-deploy.mjs --json"
   }

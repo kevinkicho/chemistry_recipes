@@ -25,11 +25,5 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Unit contracts
-        run: npm run test:unit
-
-      - name: Typecheck
-        run: npx tsc --noEmit
-
-      - name: ESLint
-        run: npx eslint src --max-warnings 0
+      - name: Precommit gate (unit + typecheck + lint)
+        run: npm run test:precommit

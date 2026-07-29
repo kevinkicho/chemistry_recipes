@@ -1,5 +1,6 @@
 "use client";
 
+import { ContentProvenance } from "@/components/ContentProvenance";
 import { AiProvenance } from "@/components/AiProvenance";
 import { ApiProvenance } from "@/components/ApiProvenance";
 import type { LiveDossier } from "@/lib/dossier/types";
@@ -29,6 +30,10 @@ export function LiveDossierAside({
   ehsFromAi,
   plantProps,
   aiChip,
+  aiMfg,
+  aiEnv,
+  aiApparatus,
+  aiEhs,
   aiAttempt,
   pugViewTraces,
   pubchemTraces,
@@ -49,6 +54,11 @@ export function LiveDossierAside({
   ehsFromAi: boolean;
   plantProps: PlantProps;
   aiChip: AiProvenanceRecord | null;
+  /** Field-specific AI provenance (preferred over generic aiChip) */
+  aiMfg?: AiProvenanceRecord | null;
+  aiEnv?: AiProvenanceRecord | null;
+  aiApparatus?: AiProvenanceRecord | null;
+  aiEhs?: AiProvenanceRecord | null;
   aiAttempt: AiProvenanceRecord | null;
   pugViewTraces: ApiFetchTrace[];
   pubchemTraces: ApiFetchTrace[];
@@ -56,8 +66,11 @@ export function LiveDossierAside({
   onRegenerate?: () => void;
 }) {
   const hit = dossier.identity;
-  const ai = dossier.synthesis;
   const apiTraces = pugViewTraces.length ? pugViewTraces : pubchemTraces;
+  const mfgAi = aiMfg || (mfgFromAi ? aiChip : null);
+  const envAi = aiEnv || (envFromAi ? aiChip : null);
+  const apparatusAi = aiApparatus || (apparatusFromAi ? aiChip : null);
+  const ehsAi = aiEhs || (ehsFromAi ? aiChip : null);
 
   return (
     <aside className="space-y-4">
@@ -67,19 +80,20 @@ export function LiveDossierAside({
       >
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <h3 className="text-sm font-semibold text-teal-300">Manufacturing summary</h3>
-          <ApiProvenance
+          <ContentProvenance
+            title="Manufacturing summary"
+            field="Manufacturing summary"
             pubchemCid={cid}
             traces={apiTraces}
-            title="Manufacturing summary"
-            label="API"
+            sourceRefs={dossier.sourceRefs}
+            ai={mfgAi}
+            showAi={Boolean(mfgAi)}
+            onRegenerate={onRegenerate}
           />
-          {mfgFromAi && aiChip ? (
-            <AiProvenance
-              provenance={aiChip}
-              field="Manufacturing summary"
-              label="AI"
-              onRegenerate={onRegenerate}
-            />
+          {!mfgAi && manufacturingSummary ? (
+            <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-500">
+              free-public / PubChem
+            </span>
           ) : null}
         </div>
         {manufacturingSummary || mfgPanelLead ? (
@@ -112,20 +126,16 @@ export function LiveDossierAside({
             <h3 className="text-sm font-semibold text-teal-300">
               Plant environment baseline
             </h3>
-            <ApiProvenance
+            <ContentProvenance
+              title="Plant environment baseline"
+              field="Plant environment baseline"
               pubchemCid={cid}
               traces={apiTraces}
-              title="Plant environment baseline"
-              label="API"
+              sourceRefs={dossier.sourceRefs}
+              ai={envAi}
+              showAi={Boolean(envAi)}
+              onRegenerate={onRegenerate}
             />
-            {envFromAi && aiChip ? (
-              <AiProvenance
-                provenance={aiChip}
-                field="Plant environment baseline"
-                label="AI"
-                onRegenerate={onRegenerate}
-              />
-            ) : null}
           </div>
           {environmentBaseline.atmosphere ? (
             <p className="text-sm text-slate-300">
@@ -163,20 +173,16 @@ export function LiveDossierAside({
         >
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <h3 className="text-sm font-semibold text-teal-300">Apparatus catalog</h3>
-            <ApiProvenance
+            <ContentProvenance
+              title="Apparatus catalog"
+              field="Apparatus catalog"
               pubchemCid={cid}
               traces={apiTraces}
-              title="Apparatus catalog"
-              label="API"
+              sourceRefs={dossier.sourceRefs}
+              ai={apparatusAi}
+              showAi={Boolean(apparatusAi)}
+              onRegenerate={onRegenerate}
             />
-            {aiChip && (apparatusFromAi || ai.parsed) ? (
-              <AiProvenance
-                provenance={aiChip}
-                field="Apparatus catalog"
-                label="AI"
-                onRegenerate={onRegenerate}
-              />
-            ) : null}
           </div>
           <ul className="space-y-2 text-sm">
             {apparatusCatalog.map((a, i) => (
@@ -199,20 +205,20 @@ export function LiveDossierAside({
         >
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <h3 className="text-sm font-semibold text-rose-300">EHS highlights</h3>
-            <ApiProvenance
+            <ContentProvenance
+              title="EHS / GHS"
+              field="EHS highlights"
               pubchemCid={cid}
               traces={apiTraces}
               sourceRefs={dossier.hazards.sourceRefs}
-              title="EHS / GHS"
-              label="API"
+              ai={ehsAi}
+              showAi={Boolean(ehsAi)}
+              onRegenerate={onRegenerate}
             />
-            {ehsFromAi && aiChip ? (
-              <AiProvenance
-                provenance={aiChip}
-                field="EHS highlights"
-                label="AI"
-                onRegenerate={onRegenerate}
-              />
+            {!ehsAi && ehs.length ? (
+              <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-500">
+                PubChem GHS / free-public
+              </span>
             ) : null}
           </div>
           <ul className="list-inside list-disc space-y-1 text-sm text-slate-300">
@@ -368,11 +374,27 @@ export function LiveDossierAside({
         </div>
       </div>
 
-      {ai.gaps && ai.gaps.length > 0 ? (
+      {dossier.synthesis.gaps && dossier.synthesis.gaps.length > 0 ? (
         <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
-          <h3 className="text-sm font-semibold text-slate-400">Evidence gaps</h3>
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <h3 className="text-sm font-semibold text-slate-400">Evidence gaps</h3>
+            <ContentProvenance
+              title="Evidence gaps"
+              field="Evidence gaps"
+              pubchemCid={cid}
+              traces={allTraces}
+              sourceRefs={dossier.sourceRefs}
+              ai={
+                aiChip && dossier.synthesis.parsed
+                  ? aiChip
+                  : null
+              }
+              showAi={Boolean(aiChip && dossier.synthesis.parsed)}
+              onRegenerate={onRegenerate}
+            />
+          </div>
           <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-slate-600">
-            {ai.gaps.map((g, i) => (
+            {dossier.synthesis.gaps.map((g: string, i: number) => (
               <li key={i}>{g}</li>
             ))}
           </ul>

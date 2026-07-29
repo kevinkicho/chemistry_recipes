@@ -46,7 +46,8 @@ Free public chemical APIs + optional [Ollama Cloud](https://docs.ollama.com/clou
 | [Frontier science](docs/engineering/frontier-science.md) | Densify-first AI guidance, campaigns, agents |
 | [Client storage](docs/engineering/client-storage.md) | IndexedDB cache, snapshots, health |
 | [Tech-transfer export](docs/engineering/tech-transfer-export.md) | Schema v2, MES/LIMS, validation checklist |
-| [Testing](docs/engineering/testing.md) | Contract tests |
+| [Testing](docs/engineering/testing.md) | Precommit gate + contract suites |
+| [Test specification](docs/engineering/test-spec.md) | REQ matrix (ACC…DIAG, densify, nav abort) |
 
 ---
 

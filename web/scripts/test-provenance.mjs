@@ -78,16 +78,64 @@ for (const p of panels) {
 
 // --- Horizon surfaces exist ---
 ok("ProblemUnitOpSearch exists", existsSync(src("components/ProblemUnitOpSearch.tsx")));
+
+// --- Per-field AI provenance on live compound dossier ---
+const fieldProv = read("lib/dossier/aiFieldProvenance.ts");
+ok("aiFieldProvenance helper module", true);
+ok("synthesisHasAiField export", /export function synthesisHasAiField/.test(fieldProv));
+ok("aiProvenanceForField export", /export function aiProvenanceForField/.test(fieldProv));
+ok("processRoutesFromAi export", /export function processRoutesFromAi/.test(fieldProv));
+
+const liveDossier = read("components/dossier/LiveMoleculeDossier.tsx");
+ok("live dossier uses aiProvenanceForField", /aiProvenanceForField/.test(liveDossier));
+ok(
+  "live overview ContentProvenance",
+  /field=\"Overview\"/.test(liveDossier) ||
+    (/Overview/.test(liveDossier) && /ContentProvenance/.test(liveDossier))
+);
+ok(
+  "live applications ContentProvenance",
+  /Applications/.test(liveDossier) && /ContentProvenance/.test(liveDossier)
+);
+ok("live processRoutesFromAi", /processRoutesFromAi/.test(liveDossier));
+
+const aside = read("components/dossier/LiveDossierAside.tsx");
+ok(
+  "aside ContentProvenance manufacturing",
+  /Manufacturing summary/.test(aside) && /ContentProvenance/.test(aside)
+);
+ok("aside field-specific aiMfg prop", /aiMfg/.test(aside));
+ok("aside free-public label when not AI", /free-public/.test(aside));
+
+ok("fieldsFromSynthesis includes unitOpFills", /unitOpFills/.test(synth));
+ok(
+  "fieldsFromSynthesis includes criticalParameters",
+  /criticalParameters/.test(synth)
+);
+
+const mgr = read("components/ManagerBriefPanel.tsx");
+ok(
+  "manager brief field-aware AI",
+  /processRoutesFromAi|aiProvenanceForField/.test(mgr)
+);
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
 ok("PdfWorkerPack exists", existsSync(src("components/PdfWorkerPack.tsx")));
 ok("Paste wizard steps in LocalTextEnrich", /WizardStep|Paste wizard/.test(read("components/LocalTextEnrich.tsx")));
 
 // --- Live dossier wires onRegenerate ---
-const live = read("components/dossier/LiveMoleculeDossier.tsx");
-ok("LiveMoleculeDossier defines onRegenerate", /onRegenerate\s*=\s*chrome\?\.onRefresh/.test(live));
-ok("LiveMoleculeDossier passes onRegenerate to AiProvenance", /onRegenerate=\{onRegenerate\}/.test(live));
-ok("LiveMoleculeDossier mounts horizon panels", /ProblemUnitOpSearch/.test(live) && /EvidenceCritiquePanel/.test(live));
+ok(
+  "LiveMoleculeDossier defines onRegenerate",
+  /onRegenerate\s*=\s*chrome\?\.onRefresh/.test(liveDossier)
+);
+ok(
+  "LiveMoleculeDossier passes onRegenerate to AiProvenance",
+  /onRegenerate=\{onRegenerate\}/.test(liveDossier)
+);
+ok(
+  "LiveMoleculeDossier mounts horizon panels",
+  /ProblemUnitOpSearch/.test(liveDossier) && /EvidenceCritiquePanel/.test(liveDossier)
+);
 
 // --- DossierSectionTitle dual provenance ---
 const section = read("components/dossier/DossierSectionTitle.tsx");
