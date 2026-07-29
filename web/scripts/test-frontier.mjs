@@ -877,4 +877,161 @@ ok(
     )
 );
 
+// --- Atmosphere extraction quality (CID 5161 BUN spam regression) ---
+ok(
+  "isAtmosphereFalsePositive export",
+  /export function isAtmosphereFalsePositive/.test(atlas)
+);
+ok(
+  "dedupeConditionObservations export",
+  /export function dedupeConditionObservations/.test(atlas)
+);
+ok(
+  "atmRe not bare optional-under nitrogen",
+  !/\\b\(under\\s\+\)\?\(N2\|N₂\|nitrogen/.test(atlas)
+);
+ok(
+  "atmRe phrase under nitrogen",
+  /under\\s\+\(\?:an\?\\s\+\)\?\(\?:N2\|N₂\|nitrogen/.test(atlas)
+);
+ok(
+  "window text dedupe for duplicate abstracts",
+  /seenText|same abstract/.test(atlas)
+);
+ok(
+  "panel recomputes atlas for extraction fixes",
+  /buildConditionAtlas\(dossier\)/.test(
+    read("components/frontier/ConditionAtlasPanel.tsx")
+  ) &&
+    !/processKnowledge\?\.conditionAtlas\s*\|\|/.test(
+      read("components/frontier/ConditionAtlasPanel.tsx")
+    )
+);
+
+/** Mirror conditionAtlas atmRe + FP filter for behavioral checks (no TS import). */
+const ATM_RE =
+  /\b(?:under\s+(?:an?\s+)?(?:N2|N₂|nitrogen|argon|Ar|H2|H₂|hydrogen|air|CO2|CO₂|O2|O₂|inert(?:\s+gas)?)\b|(?:N2|N₂|nitrogen|argon|Ar|H2|H₂|hydrogen|air|CO2|CO₂|O2|O₂)\s+atmosphere|inert\s+atmosphere|forming\s+gas|under\s+vacuum|vacuum\s+(?:distill|filtr|filtrations?)|N2\s*\/\s*H2)\b/gi;
+
+function isAtmosphereFalsePositive(quote, raw) {
+  const c = `${quote} ${raw}`.toLowerCase().replace(/\s+/g, " ");
+  if (
+    /urea\s+nitrogen|blood\s+urea|\bbun\b|nitrogen\s+oxide|nitric\s+oxide|nitroso|nitrogen\s+content|total\s+nitrogen|kjeldahl|nitrate|nitrite|amino\s+nitrogen|serum\s+nitrogen|nitrogen\s+balance|nitrogen\s+metabol|nitrogen\s+excret|nitrogen\s+retent|urinary\s+nitrogen|nitrogen\s+levels?|nitrogen\s+after|cystic\s+index/.test(
+      c
+    )
+  ) {
+    return true;
+  }
+  const bare = raw
+    .toLowerCase()
+    .replace(/^under\s+(an?\s+)?/, "")
+    .replace(/\s+atmosphere$/, "")
+    .trim();
+  if (/^(nitrogen|hydrogen|argon|air|n2|h2|ar|o2|co2)$/i.test(bare)) {
+    if (
+      !/under|atmosphere|purge|inert|blanket|sparge|stream|balloon|flushed|bubbled|headspace|gas\b|atm\b|psi|bar|MPa|forming\s+gas|N2\s*\/\s*H2|hydrogenation/.test(
+        c
+      )
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function extractAtmosphere(text) {
+  const out = [];
+  const seen = new Set();
+  ATM_RE.lastIndex = 0;
+  let m;
+  while ((m = ATM_RE.exec(text))) {
+    const raw = m[0].replace(/\s+/g, " ").trim();
+    const start = Math.max(0, m.index - 60);
+    const end = Math.min(text.length, m.index + raw.length + 80);
+    const quote = text.slice(start, end).replace(/\s+/g, " ").trim();
+    if (isAtmosphereFalsePositive(quote, raw)) continue;
+    const key = raw.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ raw, quote });
+  }
+  return out;
+}
+
+function dedupeObs(obs) {
+  const seen = new Set();
+  const out = [];
+  for (const o of obs) {
+    const q = o.quote.slice(0, 100).toLowerCase().replace(/\s+/g, " ").trim();
+    const key = `${o.kind}|${o.raw.toLowerCase()}|${q}|${(o.sourceLabel || "")
+      .slice(0, 48)
+      .toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(o);
+  }
+  return out;
+}
+
+const bunSnippet =
+  "served a reduction in 2KW/BW%, cystic index, and blood urea nitrogen (BUN) levels after salsalate treatment. To further evaluate";
+ok("BUN text yields zero atmosphere hits", extractAtmosphere(bunSnippet).length === 0);
+
+const bareN = "The sample contained nitrogen and carbon.";
+ok("bare nitrogen word yields zero hits", extractAtmosphere(bareN).length === 0);
+
+const underN =
+  "The intermediate was heated under nitrogen at 80 °C for 2 h, then cooled.";
+const underHits = extractAtmosphere(underN);
+ok(
+  "under nitrogen is true positive",
+  underHits.length === 1 && /under nitrogen/i.test(underHits[0].raw)
+);
+
+const n2Atm = "Reaction run under an N2 atmosphere overnight.";
+ok(
+  "N2 atmosphere phrase matches",
+  extractAtmosphere(n2Atm).some((h) => /N2|nitrogen|atmosphere/i.test(h.raw))
+);
+
+const nitAtm = "Purge the vessel and maintain nitrogen atmosphere during addition.";
+ok(
+  "nitrogen atmosphere phrase matches",
+  extractAtmosphere(nitAtm).some((h) => /nitrogen atmosphere/i.test(h.raw))
+);
+
+const vac = "Concentrate under vacuum to a residue.";
+ok(
+  "under vacuum matches",
+  extractAtmosphere(vac).some((h) => /under vacuum/i.test(h.raw))
+);
+
+const multiSame =
+  bunSnippet + " " + bunSnippet + " blood urea nitrogen (BUN) again.";
+ok(
+  "duplicate BUN still zero atmosphere",
+  extractAtmosphere(multiSame).length === 0
+);
+
+const dupObs = dedupeObs([
+  {
+    kind: "atmosphere",
+    raw: "nitrogen",
+    quote: bunSnippet,
+    sourceLabel: "Short salsalate administration affects c",
+  },
+  {
+    kind: "atmosphere",
+    raw: "nitrogen",
+    quote: bunSnippet,
+    sourceLabel: "Short salsalate administration affects c",
+  },
+  {
+    kind: "atmosphere",
+    raw: "under nitrogen",
+    quote: underN,
+    sourceLabel: "Example procedure",
+  },
+]);
+ok("dedupe collapses identical atmosphere rows", dupObs.length === 2);
+
 console.log(`\n${n} frontier checks passed`);

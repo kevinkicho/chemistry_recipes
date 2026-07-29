@@ -81,6 +81,62 @@ function contextSlice(text: string, index: number, len: number): string {
   return text.slice(start, end).replace(/\s+/g, " ").trim();
 }
 
+/**
+ * Reject clinical / analytical "nitrogen" (and similar) false positives.
+ * True process atmosphere needs gas/headspace language, not BUN / urea N.
+ */
+export function isAtmosphereFalsePositive(quote: string, raw: string): boolean {
+  const c = `${quote} ${raw}`.toLowerCase().replace(/\s+/g, " ");
+  // Clinical / analytical nitrogen (very common in PubMed for drug papers)
+  if (
+    /urea\s+nitrogen|blood\s+urea|\bbun\b|nitrogen\s+oxide|nitric\s+oxide|nitroso|nitrogen\s+content|total\s+nitrogen|kjeldahl|nitrate|nitrite|amino\s+nitrogen|serum\s+nitrogen|nitrogen\s+balance|nitrogen\s+metabol|nitrogen\s+excret|nitrogen\s+retent|urinary\s+nitrogen|nitrogen\s+levels?|nitrogen\s+after|cystic\s+index/.test(
+      c
+    )
+  ) {
+    return true;
+  }
+  // Bare element words without process-gas context
+  const bare = raw
+    .toLowerCase()
+    .replace(/^under\s+(an?\s+)?/, "")
+    .replace(/\s+atmosphere$/, "")
+    .trim();
+  if (/^(nitrogen|hydrogen|argon|air|n2|h2|ar|o2|co2)$/i.test(bare)) {
+    if (
+      !/under|atmosphere|purge|inert|blanket|sparge|stream|balloon|flushed|bubbled|headspace|gas\b|atm\b|psi|bar|MPa|forming\s+gas|N2\s*\/\s*H2|hydrogenation/.test(
+        c
+      )
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Collapse duplicate mentions of the same cue/quote/source. */
+export function dedupeConditionObservations(
+  obs: ConditionObservation[]
+): ConditionObservation[] {
+  const seen = new Set<string>();
+  const out: ConditionObservation[] = [];
+  for (const o of obs) {
+    const q = o.quote
+      .slice(0, 100)
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+    const key = `${o.kind}|${o.raw.toLowerCase().replace(/\s+/g, " ")}|${q}|${(
+      o.sourceLabel || o.sourceId
+    )
+      .slice(0, 48)
+      .toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(o);
+  }
+  return out;
+}
+
 function pushObs(
   out: ConditionObservation[],
   o: Omit<ConditionObservation, "id">,
@@ -281,20 +337,33 @@ function extractFromWindow(
     );
   }
 
+  // Process atmosphere / headspace gas only — not clinical "blood urea nitrogen", etc.
+  // Prefer phrases: "under nitrogen", "N2 atmosphere", "nitrogen atmosphere", "inert atmosphere", "under vacuum".
+  // Never match bare "nitrogen" / "hydrogen" (those hit BUN, nitroso, amino N, etc.).
   const atmRe =
-    /\b(under\s+)?(N2|N₂|nitrogen|argon|Ar\b|H2|H₂|hydrogen|air|CO2|CO₂|O2|O₂|inert atmosphere|vacuum|N2\/H2|forming gas)\b/gi;
+    /\b(?:under\s+(?:an?\s+)?(?:N2|N₂|nitrogen|argon|Ar|H2|H₂|hydrogen|air|CO2|CO₂|O2|O₂|inert(?:\s+gas)?)\b|(?:N2|N₂|nitrogen|argon|Ar|H2|H₂|hydrogen|air|CO2|CO₂|O2|O₂)\s+atmosphere|inert\s+atmosphere|forming\s+gas|under\s+vacuum|vacuum\s+(?:distill|filtr|filtrations?)|N2\s*\/\s*H2)\b/gi;
+  const seenAtm = new Set<string>();
   while ((m = atmRe.exec(t))) {
-    const raw = m[0];
-    pushObs(out, {
-      kind: "atmosphere",
-      raw,
-      quote: contextSlice(t, m.index, raw.length),
-      sourceKind: w.sourceKind,
-      sourceId: w.sourceId,
-      sourceLabel: w.sourceLabel,
-      sourceUrl: w.sourceUrl,
-      documentTitle: w.documentTitle,
-    }, out.length);
+    const raw = m[0].replace(/\s+/g, " ").trim();
+    const quote = contextSlice(t, m.index, raw.length);
+    if (isAtmosphereFalsePositive(quote, raw)) continue;
+    const key = raw.toLowerCase();
+    if (seenAtm.has(key)) continue;
+    seenAtm.add(key);
+    pushObs(
+      out,
+      {
+        kind: "atmosphere",
+        raw,
+        quote,
+        sourceKind: w.sourceKind,
+        sourceId: w.sourceId,
+        sourceLabel: w.sourceLabel,
+        sourceUrl: w.sourceUrl,
+        documentTitle: w.documentTitle,
+      },
+      out.length
+    );
   }
 
   // Solvents (lightweight lexicon — observation, not plant choice)
@@ -341,6 +410,20 @@ function extractFromWindow(
 
 function windowsFromDossier(d: LiveDossier): TextWindow[] {
   const windows: TextWindow[] = [];
+  // Avoid extracting the same abstract 5× when it appears as excerpt + lit + fact
+  const seenText = new Set<string>();
+
+  const pushWin = (w: TextWindow) => {
+    const key = w.text
+      .slice(0, 400)
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+    if (key.length < 20) return;
+    if (seenText.has(key)) return;
+    seenText.add(key);
+    windows.push(w);
+  };
 
   // Prefer procedure-rich OA / patent / mfg windows (literature densify depth)
   for (const w of rankDossierTextWindows(d)) {
@@ -352,7 +435,7 @@ function windowsFromDossier(d: LiveDossier): TextWindow[] {
           : w.kind === "patent"
             ? "patent"
             : "other";
-    windows.push({
+    pushWin({
       text: w.text,
       sourceKind,
       sourceId: w.sourceId,
@@ -365,7 +448,7 @@ function windowsFromDossier(d: LiveDossier): TextWindow[] {
   for (const a of d.annotations || []) {
     const blob = [a.title, a.summary].filter(Boolean).join("\n");
     if (blob.length < 20) continue;
-    windows.push({
+    pushWin({
       text: blob,
       sourceKind: "annotation",
       sourceId: a.source + ":" + a.title,
@@ -380,7 +463,7 @@ function windowsFromDossier(d: LiveDossier): TextWindow[] {
     if (f.kind === "open-gap") continue;
     const blob = [f.claim, f.quote, f.value, f.unit].filter(Boolean).join(" ");
     if (blob.length < 8) continue;
-    windows.push({
+    pushWin({
       text: blob,
       sourceKind: "process-fact",
       sourceId: f.id,
@@ -405,7 +488,12 @@ function fromProcessFactConditions(facts: ProcessFact[]): ConditionObservation[]
     else if (/pH/i.test(raw + f.claim)) kind = "ph";
     else if (/equiv|eq\b/i.test(raw)) kind = "equiv";
     else if (/%|yield/i.test(raw + f.claim)) kind = "yield";
-    else if (/N2|argon|hydrogen|inert/i.test(raw + f.claim)) kind = "atmosphere";
+    else if (
+      /under\s+(?:an?\s+)?(?:N2|N₂|nitrogen|argon|Ar|H2|H₂|hydrogen)|(?:N2|N₂|nitrogen|argon|hydrogen)\s+atmosphere|inert\s+atmosphere|under\s+vacuum/i.test(
+        raw + " " + f.claim
+      )
+    )
+      kind = "atmosphere";
 
     const { low, high } = parseRange(raw);
     out.push({
@@ -535,17 +623,22 @@ export function buildConditionAtlas(dossier: LiveDossier): ConditionAtlas {
   // Prefer process-fact rows as additional grounded rows (de-dupe by quote+kind)
   const fromFacts = fromProcessFactConditions(dossier.processFacts?.facts || []);
   const seen = new Set(
-    observations.map((o) => `${o.kind}|${o.raw}|${o.sourceId}`)
+    observations.map(
+      (o) =>
+        `${o.kind}|${o.raw.toLowerCase()}|${o.quote.slice(0, 80).toLowerCase()}`
+    )
   );
   for (const f of fromFacts) {
-    const k = `${f.kind}|${f.raw}|${f.sourceId}`;
+    const k = `${f.kind}|${f.raw.toLowerCase()}|${f.quote.slice(0, 80).toLowerCase()}`;
     if (seen.has(k)) continue;
     seen.add(k);
     observations.push(f);
   }
 
-  // Cap total + ensure base units
-  const capped = observations.map(attachBaseUnits).slice(0, 200);
+  // Cap total + ensure base units; collapse duplicate atmosphere/cue spam
+  const capped = dedupeConditionObservations(
+    observations.map(attachBaseUnits)
+  ).slice(0, 200);
   const byKind = new Map<ConditionKind, ConditionObservation[]>();
   for (const o of capped) {
     const list = byKind.get(o.kind) || [];

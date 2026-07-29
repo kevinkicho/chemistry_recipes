@@ -71,8 +71,10 @@ export function ConditionAtlasPanel({
   dossier: LiveDossier;
   onRegenerate?: () => void;
 }) {
-  const atlas =
-    dossier.processKnowledge?.conditionAtlas || buildConditionAtlas(dossier);
+  // Always recompute from free-public windows so extraction quality fixes
+  // (e.g. BUN≠atmosphere, quote dedupe) apply without forcing re-densify.
+  // processKnowledge.conditionAtlas remains for export/agent packages until next densify.
+  const atlas = buildConditionAtlas(dossier);
 
   return (
     <div
