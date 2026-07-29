@@ -16,6 +16,8 @@ import type { CampaignRouteHypothesesPackage } from "@/lib/frontier/campaignRout
 import { buildCampaignRouteHypotheses } from "@/lib/frontier/campaignRouteHypotheses";
 import type { CampaignIdealRollup } from "@/lib/frontier/campaignIdealRollup";
 import { buildCampaignIdealRollup } from "@/lib/frontier/campaignIdealRollup";
+import type { CampaignAiGuidancePackage } from "@/lib/frontier/campaignAiGuidance";
+import { buildCampaignAiGuidanceFromMerged } from "@/lib/frontier/campaignAiGuidance";
 
 export const CAMPAIGN_KNOWLEDGE_SCHEMA =
   "chemistry-recipes.campaign-knowledge.v1" as const;
@@ -63,6 +65,8 @@ export interface CampaignKnowledgeExport {
   routeHypotheses?: CampaignRouteHypothesesPackage;
   /** Ideal-page parity rollup across densified CIDs */
   idealRollup?: CampaignIdealRollup;
+  /** Densify-first multi-CID AI guidance (ingest scores + densify queue) */
+  aiGuidance?: CampaignAiGuidancePackage;
 }
 
 const DISCLAIMER =
@@ -105,6 +109,9 @@ export async function buildCampaignKnowledgeExport(
         requestedCount: campaign.cids.length,
       })
     : undefined;
+  const aiGuidance = includeBrief
+    ? buildCampaignAiGuidanceFromMerged(merged, campaign)
+    : undefined;
 
   return {
     schema: CAMPAIGN_KNOWLEDGE_SCHEMA,
@@ -143,6 +150,7 @@ export async function buildCampaignKnowledgeExport(
     scientificBrief,
     routeHypotheses,
     idealRollup,
+    aiGuidance,
   };
 }
 

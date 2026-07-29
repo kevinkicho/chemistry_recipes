@@ -68,10 +68,12 @@ export function DossierClientLoader({ cid }: { cid: number }) {
     }, 200);
 
     // Pass browser-selected models so server synthesis uses the same choice as Settings → AI
+    // force=1 skips durable server evidence cache (pairs with client cache delete on refresh)
     const ai = readAiConfig();
     const qs = new URLSearchParams();
     if (ai.model?.trim()) qs.set("model", ai.model.trim());
     if (ai.fastModel?.trim()) qs.set("fastModel", ai.fastModel.trim());
+    if (forceRefresh) qs.set("force", "1");
     const q = qs.toString();
     const url = `/api/dossier/${cid}/stream${q ? `?${q}` : ""}`;
     const es = new EventSource(url);
@@ -147,7 +149,7 @@ export function DossierClientLoader({ cid }: { cid: number }) {
       es.close();
       esRef.current = null;
     };
-  }, [cid, pushEvent, stripRefreshParam]);
+  }, [cid, pushEvent, stripRefreshParam, forceRefresh]);
 
   useEffect(() => {
     let cancelled = false;

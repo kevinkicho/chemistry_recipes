@@ -18,6 +18,11 @@ import {
   downloadCampaignKnowledge,
 } from "@/lib/frontier/campaignExport";
 import {
+  buildCampaignAiGuidanceFromMerged,
+  downloadCampaignAiGuidance,
+} from "@/lib/frontier/campaignAiGuidance";
+import { runCampaignDensifyQueue } from "@/lib/frontier/densifyActionQueue";
+import {
   downloadMarkdown,
   formatCampaignKnowledgeMarkdown,
 } from "@/lib/frontier/exportMarkdown";
@@ -36,6 +41,7 @@ export function CampaignGraphPanel() {
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<string[]>([]);
   const [idealDeltaMsg, setIdealDeltaMsg] = useState<string | null>(null);
+  const [ingestSummary, setIngestSummary] = useState<string | null>(null);
 
   const reloadList = useCallback(() => {
     const rows = listCampaigns();
@@ -53,6 +59,14 @@ export function CampaignGraphPanel() {
     const m = await buildMergedCampaignKnowledge(camp.cids, camp.labels);
     setMerged(m);
     setStatus(m.summary);
+    if (m.cachedCount > 0) {
+      const g = buildCampaignAiGuidanceFromMerged(m, camp);
+      setIngestSummary(
+        `AI ingest mean ${g.meanIngestScore}/100 · min ${g.minIngestScore} · queue ${g.densifyQueueCids.length} CID(s)`
+      );
+    } else {
+      setIngestSummary(null);
+    }
   }, []);
 
   useEffect(() => {
@@ -98,6 +112,55 @@ export function CampaignGraphPanel() {
       );
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Markdown export failed");
+    }
+  }
+
+  async function exportCampaignAiGuidance() {
+    const camp = campaigns.find((c) => c.id === selected);
+    if (!camp || !merged) return;
+    try {
+      const g = buildCampaignAiGuidanceFromMerged(merged, camp);
+      downloadCampaignAiGuidance(g);
+      setStatus(
+        `Exported campaign-ai-guidance.v1 · mean ingest ${g.meanIngestScore}/100 · queue ${g.densifyQueueCids.length}`
+      );
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "AI guidance export failed");
+    }
+  }
+
+  async function queueAiGuidanceDensify() {
+    const camp = campaigns.find((c) => c.id === selected);
+    if (!camp || !merged) return;
+    const g = buildCampaignAiGuidanceFromMerged(merged, camp);
+    const queue =
+      g.densifyQueueCids.length > 0
+        ? g.densifyQueueCids
+        : thinOrMissingCids(merged.statuses);
+    if (!queue.length) {
+      setStatus("AI guidance densify queue empty — packages look dense");
+      return;
+    }
+    setBusy(true);
+    setLog([]);
+    setStatus(`Queue AI densify: ${queue.join(", ")}`);
+    try {
+      const res = await runCampaignDensifyQueue(queue, {
+        force: false,
+        onProgress: (m) => setStatus(m),
+      });
+      setLog((prev) => [
+        ...prev,
+        res.detail,
+        ...res.densifiedCids.map((c) => `ok CID ${c}`),
+        ...res.failedCids.map((c) => `fail CID ${c}`),
+      ]);
+      await loadMerge(camp);
+      setStatus(res.detail);
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "Queue densify failed");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -231,12 +294,32 @@ export function CampaignGraphPanel() {
         >
           Export notebook Markdown
         </button>
+        <button
+          type="button"
+          disabled={!selected || (merged?.cachedCount ?? 0) === 0}
+          onClick={() => void exportCampaignAiGuidance()}
+          className="rounded-lg border border-cyan-500/40 bg-cyan-950/40 px-2.5 py-1 text-[11px] font-medium text-cyan-100 disabled:opacity-40"
+          title="Multi-CID densify package for AI agents"
+        >
+          Export AI guidance.v1
+        </button>
+        <button
+          type="button"
+          disabled={busy || !selected || (merged?.cachedCount ?? 0) === 0}
+          onClick={() => void queueAiGuidanceDensify()}
+          className="rounded-lg border border-cyan-500/50 bg-cyan-900/40 px-2.5 py-1 text-[11px] font-semibold text-cyan-50 hover:bg-cyan-800/40 disabled:opacity-40"
+        >
+          Queue AI densify
+        </button>
       </div>
 
       {status ? (
         <p className="mt-2 text-[11px] text-slate-400" role="status">
           {status}
         </p>
+      ) : null}
+      {ingestSummary ? (
+        <p className="mt-1 text-[10px] text-cyan-200/80">{ingestSummary}</p>
       ) : null}
       {idealDeltaMsg ? (
         <p

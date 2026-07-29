@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { LiveDossier } from "@/lib/dossier/types";
 import { buildProcessKnowledgePackage } from "@/lib/frontier/buildKnowledge";
 import { answerFromEvidencePackage } from "@/lib/frontier/evidenceQa";
@@ -10,16 +11,26 @@ import {
   buildAiGuidancePackage,
   downloadAiGuidancePackage,
 } from "@/lib/frontier/aiGuidancePackage";
+import { runDensifyActionQueue } from "@/lib/frontier/densifyActionQueue";
 import {
   downloadMarkdown,
   formatProcessKnowledgeMarkdown,
 } from "@/lib/frontier/exportMarkdown";
+import { routes } from "@/lib/routes";
 
 /**
  * Seed Q&A, free-form evidence query, next experiments, knowledge export.
  * Densify-first: export AI guidance package for agent ingest (not full-text UI).
  */
-export function EvidenceSciencePanel({ dossier }: { dossier: LiveDossier }) {
+export function EvidenceSciencePanel({
+  dossier,
+  onForceRegather,
+}: {
+  dossier: LiveDossier;
+  /** Parent hard refresh (?refresh=1) for primary force densify */
+  onForceRegather?: () => void;
+}) {
+  const router = useRouter();
   const pack = useMemo(
     () => dossier.processKnowledge || buildProcessKnowledgePackage(dossier),
     [dossier]
@@ -35,6 +46,8 @@ export function EvidenceSciencePanel({ dossier }: { dossier: LiveDossier }) {
   const [q, setQ] = useState("");
   const [liveAnswer, setLiveAnswer] = useState<string | null>(null);
   const [liveInsufficient, setLiveInsufficient] = useState(false);
+  const [queueBusy, setQueueBusy] = useState(false);
+  const [queueStatus, setQueueStatus] = useState<string | null>(null);
 
   function ask() {
     const a = answerFromEvidencePackage(
@@ -45,6 +58,30 @@ export function EvidenceSciencePanel({ dossier }: { dossier: LiveDossier }) {
     );
     setLiveAnswer(a.answer);
     setLiveInsufficient(a.insufficientEvidence);
+  }
+
+  async function queueHighDensify() {
+    setQueueBusy(true);
+    setQueueStatus("Planning densify queue…");
+    try {
+      const res = await runDensifyActionQueue(dossier, guidance.densifyNext, {
+        onlyHigh: true,
+        maxNeighbors: 4,
+        onProgress: (m) => setQueueStatus(m),
+      });
+      setQueueStatus(res.detail);
+      if (res.needsPageRefresh) {
+        if (onForceRegather) {
+          onForceRegather();
+        } else {
+          router.push(`${routes.pubchem(dossier.cid)}?refresh=1`);
+        }
+      }
+    } catch (e) {
+      setQueueStatus(e instanceof Error ? e.message : "Densify queue failed");
+    } finally {
+      setQueueBusy(false);
+    }
   }
 
   return (
@@ -137,12 +174,26 @@ export function EvidenceSciencePanel({ dossier }: { dossier: LiveDossier }) {
 
       {guidance.densifyNext.length > 0 ? (
         <div className="mt-3 rounded-lg border border-cyan-500/20 bg-cyan-950/20 p-3">
-          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-cyan-300/80">
-            Densify next · improve AI guidance
-          </h3>
-          <p className="mt-0.5 text-[10px] text-slate-500">
-            Actions that bring more free-public process data into the package — not paper previews.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h3 className="text-[10px] font-semibold uppercase tracking-wider text-cyan-300/80">
+                Densify next · improve AI guidance
+              </h3>
+              <p className="mt-0.5 text-[10px] text-slate-500">
+                Queue free-public harvest (OA/patents/neighbors/re-gather) — not paper previews.
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={queueBusy}
+              onClick={() => void queueHighDensify()}
+              className="rounded-lg bg-cyan-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-cyan-500 disabled:opacity-40"
+            >
+              {queueBusy
+                ? "Queuing densify…"
+                : `Queue high densify (${guidance.densifyNext.filter((d) => d.priority === "high").length})`}
+            </button>
+          </div>
           <ul className="mt-2 space-y-1.5">
             {guidance.densifyNext.slice(0, 5).map((a) => (
               <li key={a.id} className="text-[11px] text-slate-300">
@@ -161,6 +212,11 @@ export function EvidenceSciencePanel({ dossier }: { dossier: LiveDossier }) {
               </li>
             ))}
           </ul>
+          {queueStatus ? (
+            <p className="mt-2 text-[10px] text-cyan-100/80" role="status">
+              {queueStatus}
+            </p>
+          ) : null}
         </div>
       ) : null}
 

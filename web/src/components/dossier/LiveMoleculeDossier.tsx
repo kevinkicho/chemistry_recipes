@@ -627,7 +627,10 @@ export function LiveMoleculeDossier({
               <ConditionAtlasPanel dossier={dossier} />
               <RouteHypothesesPanel dossier={dossier} />
               <ReactionNetworkPanel dossier={dossier} />
-              <EvidenceSciencePanel dossier={dossier} />
+              <EvidenceSciencePanel
+                dossier={dossier}
+                onForceRegather={onRegenerate}
+              />
               <ScienceAgentPanel dossier={dossier} />
               <BatchDensifyPanel
                 seedCids={

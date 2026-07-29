@@ -754,4 +754,60 @@ ok(
   )
 );
 
+// Campaign AI guidance + densify action queue
+ok(
+  "campaignAiGuidance module",
+  existsSync(join(root, "src/lib/frontier/campaignAiGuidance.ts"))
+);
+ok(
+  "buildCampaignAiGuidanceFromMerged",
+  /export function buildCampaignAiGuidanceFromMerged/.test(
+    read("lib/frontier/campaignAiGuidance.ts")
+  )
+);
+ok(
+  "campaign-ai-guidance.v1 schema",
+  /campaign-ai-guidance\.v1/.test(read("lib/frontier/campaignAiGuidance.ts"))
+);
+ok(
+  "densifyActionQueue module",
+  existsSync(join(root, "src/lib/frontier/densifyActionQueue.ts"))
+);
+ok(
+  "planDensifyActions",
+  /export function planDensifyActions/.test(
+    read("lib/frontier/densifyActionQueue.ts")
+  )
+);
+ok(
+  "runDensifyActionQueue",
+  /export async function runDensifyActionQueue/.test(
+    read("lib/frontier/densifyActionQueue.ts")
+  )
+);
+ok(
+  "campaign export includes aiGuidance",
+  /aiGuidance/.test(read("lib/frontier/campaignExport.ts"))
+);
+ok(
+  "OA-sparse patent densify boost",
+  /oaSparse|epmcPatMax/.test(read("lib/dossier/densifyPass.ts"))
+);
+ok(
+  "stream route force densify",
+  /force/.test(read("app/api/dossier/[cid]/stream/route.ts"))
+);
+ok(
+  "EvidenceScience queue high densify",
+  /Queue high densify|runDensifyActionQueue/.test(
+    read("components/frontier/EvidenceSciencePanel.tsx")
+  )
+);
+ok(
+  "CampaignGraph AI densify queue",
+  /Queue AI densify|exportCampaignAiGuidance|runCampaignDensifyQueue/.test(
+    read("components/frontier/CampaignGraphPanel.tsx")
+  )
+);
+
 console.log(`\n${n} frontier checks passed`);

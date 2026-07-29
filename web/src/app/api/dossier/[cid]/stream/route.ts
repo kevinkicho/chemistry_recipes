@@ -24,6 +24,11 @@ export async function GET(req: Request, ctx: Ctx) {
   const url = new URL(req.url);
   const modelParam = url.searchParams.get("model")?.trim() || undefined;
   const fastModelParam = url.searchParams.get("fastModel")?.trim() || undefined;
+  // Skip durable server evidence cache when client requests force densify
+  const force =
+    url.searchParams.get("force") === "1" ||
+    url.searchParams.get("force") === "true" ||
+    url.searchParams.get("refresh") === "1";
   // Basic sanitization — model ids are alphanumeric + : . - _
   const safeModel = (m?: string) =>
     m && /^[a-zA-Z0-9_.:/-]{1,128}$/.test(m) ? m : undefined;
@@ -63,7 +68,7 @@ export async function GET(req: Request, ctx: Ctx) {
               t: partial.t ?? 0,
             } as DossierProgressEvent);
           },
-          { model, fastModel }
+          { model, fastModel, force }
         );
       } catch (e) {
         send({

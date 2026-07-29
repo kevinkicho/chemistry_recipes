@@ -13,6 +13,7 @@ import { buildEdgePairExperiments } from "@/lib/frontier/edgeExperiments";
 import { buildCampaignScientificBrief } from "@/lib/frontier/campaignBrief";
 import type { EvidenceAnswer, NextExperiment } from "@/lib/frontier/types";
 import { suggestEdgePairs, compareNetworkEdges } from "@/lib/frontier/edgeCompare";
+import { buildCampaignAiGuidanceFromMerged } from "@/lib/frontier/campaignAiGuidance";
 
 export interface CampaignAgentStep {
   id: string;
@@ -35,6 +36,10 @@ export interface CampaignAgentResult {
     networkNodes: number;
     networkEdges: number;
   };
+  /** Mean AI ingest readiness across cached CIDs */
+  meanIngestScore?: number;
+  /** CIDs recommended for densify queue */
+  densifyQueueCids?: number[];
 }
 
 /**
@@ -176,6 +181,21 @@ export function answerCampaignQuestion(
 ): CampaignAgentResult {
   const steps = [...priorSteps];
   const q = question.trim();
+  const guidance = buildCampaignAiGuidanceFromMerged(merged, {
+    id: meta.campaignId,
+    name: meta.campaignName,
+    cids: merged.cids,
+    labels: Object.fromEntries(
+      merged.statuses
+        .filter((s) => s.label)
+        .map((s) => [String(s.cid), s.label!])
+    ),
+  });
+  steps.push({
+    id: "s1b",
+    role: "retrieve",
+    detail: `AI guidance · mean ingest ${guidance.meanIngestScore}/100 · queue ${guidance.densifyQueueCids.length} CID(s)`,
+  });
   const edgeExps = buildEdgePairExperiments(
     merged.network,
     merged.dossiers,
@@ -189,8 +209,16 @@ export function answerCampaignQuestion(
     });
   }
 
+  const withGuidance = (
+    r: Omit<CampaignAgentResult, "meanIngestScore" | "densifyQueueCids">
+  ): CampaignAgentResult => ({
+    ...r,
+    meanIngestScore: guidance.meanIngestScore,
+    densifyQueueCids: guidance.densifyQueueCids,
+  });
+
   if (merged.cachedCount === 0) {
-    return {
+    return withGuidance({
       schema: "chemistry-recipes.campaign-agent.v1",
       campaignId: meta.campaignId,
       campaignName: meta.campaignName,
@@ -199,7 +227,11 @@ export function answerCampaignQuestion(
         id: `camp:${Date.now()}`,
         question: q,
         answer:
-          "Insufficient free-public evidence: no campaign CIDs densified yet. Run stream densify, then re-ask.",
+          "Insufficient free-public evidence: no campaign CIDs densified yet. Run stream densify, then re-ask.\n\n" +
+          guidance.densifyNext
+            .slice(0, 3)
+            .map((a) => `• [${a.priority}] ${a.title}: ${a.how}`)
+            .join("\n"),
         grounded: false,
         citations: [],
         insufficientEvidence: true,
@@ -223,7 +255,7 @@ export function answerCampaignQuestion(
         ...edgeExps,
       ],
       metrics: metricsOf(merged, meta.requestedCount),
-    };
+    });
   }
 
   const tokens = q
@@ -250,7 +282,7 @@ export function answerCampaignQuestion(
           role: "cite",
           detail: "Answered from edge evidence compare",
         });
-        return {
+        return withGuidance({
           schema: "chemistry-recipes.campaign-agent.v1",
           campaignId: meta.campaignId,
           campaignName: meta.campaignName,
@@ -274,7 +306,7 @@ export function answerCampaignQuestion(
           steps,
           nextExperiments: edgeExps,
           metrics: metricsOf(merged, meta.requestedCount),
-        };
+        });
       }
     }
   }
@@ -310,7 +342,7 @@ export function answerCampaignQuestion(
                 : "—"
             } (n=${s.n})`
         );
-      return {
+      return withGuidance({
         schema: "chemistry-recipes.campaign-agent.v1",
         campaignId: meta.campaignId,
         campaignName: meta.campaignName,
@@ -319,7 +351,7 @@ export function answerCampaignQuestion(
           id: `camp:atlas:${Date.now()}`,
           question: q,
           answer: [
-            `Campaign scientific brief · depth ${brief.depthScore}/100 · ${merged.totalObservations} obs · ${merged.cachedCount} CID(s)`,
+            `Campaign scientific brief · depth ${brief.depthScore}/100 · AI ingest mean ${guidance.meanIngestScore}/100 · ${merged.totalObservations} obs · ${merged.cachedCount} CID(s)`,
             lines.length ? `Condition landscape:\n${lines.join("\n")}` : null,
             spanLines.length
               ? `Per-CID spans:\n${spanLines.join("\n")}`
@@ -348,7 +380,7 @@ export function answerCampaignQuestion(
           ...edgeExps,
         ].slice(0, 10),
         metrics: metricsOf(merged, meta.requestedCount),
-      };
+      });
     }
   }
 
@@ -358,7 +390,11 @@ export function answerCampaignQuestion(
       role: "refuse",
       detail: "No token hits in campaign package — refused to invent",
     });
-    return {
+    const tips = guidance.densifyNext
+      .slice(0, 3)
+      .map((a) => `• [${a.priority}] ${a.title}: ${a.how}`)
+      .join("\n");
+    return withGuidance({
       schema: "chemistry-recipes.campaign-agent.v1",
       campaignId: meta.campaignId,
       campaignName: meta.campaignName,
@@ -367,7 +403,8 @@ export function answerCampaignQuestion(
         id: `camp:${Date.now()}`,
         question: q,
         answer:
-          "Insufficient free-public evidence in the campaign package for this question. Densify more CIDs, paste public procedure text, or narrow to temperatures, edges, impurities, or network relations.",
+          "Insufficient free-public evidence in the campaign package for this question. Densify more CIDs, paste public procedure text, or narrow to temperatures, edges, impurities, or network relations." +
+          (tips ? `\n\nDensify next:\n${tips}` : ""),
         grounded: false,
         citations: [],
         insufficientEvidence: true,
@@ -384,7 +421,7 @@ export function answerCampaignQuestion(
         },
       ],
       metrics: metricsOf(merged, meta.requestedCount),
-    };
+    });
   }
 
   const quoteLines = citations
@@ -397,7 +434,7 @@ export function answerCampaignQuestion(
     detail: `Keyword retrieval · ${citations.length} citation(s)`,
   });
 
-  return {
+  return withGuidance({
     schema: "chemistry-recipes.campaign-agent.v1",
     campaignId: meta.campaignId,
     campaignName: meta.campaignName,
@@ -405,7 +442,7 @@ export function answerCampaignQuestion(
     answer: {
       id: `camp:${Date.now()}`,
       question: q,
-      answer: `Campaign retrieval (not complete scientific answer):\n${quoteLines.join("\n")}\n\n${merged.cachedCount}/${meta.requestedCount} CIDs · ${merged.totalObservations} condition obs. Validate against primary sources.`,
+      answer: `Campaign retrieval (not complete scientific answer):\n${quoteLines.join("\n")}\n\n${merged.cachedCount}/${meta.requestedCount} CIDs · ${merged.totalObservations} condition obs · AI ingest mean ${guidance.meanIngestScore}/100. Validate against primary sources.`,
       grounded: true,
       citations,
       insufficientEvidence: citations.length < 2,
@@ -413,7 +450,7 @@ export function answerCampaignQuestion(
     steps,
     nextExperiments: edgeExps,
     metrics: metricsOf(merged, meta.requestedCount),
-  };
+  });
 }
 
 /**

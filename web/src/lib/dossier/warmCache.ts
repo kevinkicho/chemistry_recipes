@@ -26,7 +26,8 @@ export async function warmLiveDossier(
   }
 
   opts?.onStatus?.(`Building CID ${cid}…`);
-  const url = `/api/dossier/${cid}/stream`;
+  const qs = opts?.force ? "?force=1" : "";
+  const url = `/api/dossier/${cid}/stream${qs}`;
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok || !res.body) {
     opts?.onStatus?.(`Stream failed HTTP ${res.status}`);

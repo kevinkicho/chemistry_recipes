@@ -145,18 +145,34 @@ export async function runDensifyPass(
     }
   }
 
-  // 3) Patent densify
+  // 3) Patent densify — boost budget when OA literature is sparse
+  const oaWindows = literature.filter(
+    (h) => (h.fullTextExcerpt?.length || 0) >= 80
+  ).length;
+  const oaSparse = oaWindows < 2;
+  // Process-rank patents so densify budget hits procedure-rich first
+  patents = [...patents].sort((a, b) => {
+    const sa =
+      processScore(a.title, a.procedureExcerpt || a.abstract) +
+      (a.procedureExcerpt ? 3 : 0);
+    const sb =
+      processScore(b.title, b.procedureExcerpt || b.abstract) +
+      (b.procedureExcerpt ? 3 : 0);
+    return sb - sa;
+  });
+  const epmcPatMax = oaSparse ? 12 : 8;
+  const usPatMax = oaSparse ? 10 : 6;
   try {
     const pe = await withSoftTimeout(
-      enrichPatentHitsWithEpmc(patents, { max: 8 }),
-      40_000,
+      enrichPatentHitsWithEpmc(patents, { max: epmcPatMax }),
+      oaSparse ? 50_000 : 40_000,
       { hits: patents, traces: [] }
     );
     patents = pe.hits;
     traces.push(...pe.traces);
     const us = await withSoftTimeout(
-      densifyUsPatentsWithPubchem(patents, { max: 6 }),
-      30_000,
+      densifyUsPatentsWithPubchem(patents, { max: usPatMax }),
+      oaSparse ? 40_000 : 30_000,
       { hits: patents, traces: [] }
     );
     patents = us.hits;
@@ -173,6 +189,11 @@ export async function runDensifyPass(
           chars: body.length,
         });
       }
+    }
+    if (oaSparse) {
+      fetchErrors.push(
+        `densify patents: OA-sparse boost · epmc max ${epmcPatMax} · US max ${usPatMax} · oaWindows ${oaWindows}`
+      );
     }
   } catch (e) {
     fetchErrors.push(
