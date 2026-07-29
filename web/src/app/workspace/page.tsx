@@ -151,6 +151,18 @@ export default function WorkspacePage() {
 
       <section className="mt-8 space-y-4">
         <h2 className="text-lg font-semibold text-slate-100">
+          Science index · densify home
+        </h2>
+        <p className="text-xs text-slate-500">
+          Cross-campaign inventory and thin CID queue first — densify here before diving into
+          project pins. Local-first; free-public only.
+        </p>
+        <WorkspaceScienceIndexPanel />
+        <DensifyTelemetryPanel />
+      </section>
+
+      <section className="mt-10 space-y-4">
+        <h2 className="text-lg font-semibold text-slate-100">
           Science campaigns (multi-CID)
         </h2>
         <p className="text-xs text-slate-500">
@@ -195,7 +207,6 @@ export default function WorkspacePage() {
             Save as science campaign.
           </p>
         )}
-        <WorkspaceScienceIndexPanel />
         <CampaignGraphPanel />
         <CampaignComparePanel />
         <Suspense
@@ -217,7 +228,6 @@ export default function WorkspacePage() {
           <CampaignAgentPanel />
         </Suspense>
         <BatchDensifyPanel />
-        <DensifyTelemetryPanel />
       </section>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[16rem_1fr]">

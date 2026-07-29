@@ -40,6 +40,12 @@ import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { navigateToSection } from "@/lib/tocNavigate";
 import { impurityFirstCampaignCids } from "@/lib/frontier/neighborDensifyGraph";
 import { DossierDiagnostics } from "@/components/DossierDiagnostics";
+import { DensifyDeltaStrip } from "@/components/DensifyDeltaStrip";
+import {
+  formatDensifyDelta,
+  snapshotFromDossier,
+  type DensifySnapshot,
+} from "@/lib/dossier/densifyDelta";
 import { SourceCoverageMap } from "@/components/SourceCoverageMap";
 import { EvidenceScoreExplainer } from "@/components/EvidenceScoreExplainer";
 import { ValidationChecklist } from "@/components/ValidationChecklist";
@@ -115,11 +121,16 @@ export function LiveMoleculeDossier({
   const [vaultDossier, setVaultDossier] = useState<LiveDossier | null>(null);
   const [workerRole, setWorkerRole] = useState<WorkerRole>("chemist");
   const [pasteDeltaMsg, setPasteDeltaMsg] = useState<string | null>(null);
+  const [densifyDelta, setDensifyDelta] = useState<{
+    before: DensifySnapshot;
+    after: DensifySnapshot;
+  } | null>(null);
   const pendingPasteDelta = useRef<{
     ideal: number;
     facts: number;
     chars: number;
   } | null>(null);
+  const densifyBeforeRef = useRef<DensifySnapshot | null>(null);
 
   useEffect(() => {
     setWorkerRole(readWorkerRole());
@@ -180,23 +191,43 @@ export function LiveMoleculeDossier({
     const pending = pendingPasteDelta.current;
     if (!pending) return;
     pendingPasteDelta.current = null;
-    const afterIdeal = dossier.idealParity?.score ?? 0;
-    const afterFacts =
-      dossier.processFacts?.facts?.filter((f) => f.kind !== "open-gap").length ??
-      0;
-    const dIdeal = afterIdeal - pending.ideal;
-    const dFacts = afterFacts - pending.facts;
-    const sign = (n: number) => (n > 0 ? `+${n}` : String(n));
+    const afterSnap = snapshotFromDossier(dossier);
+    const beforeSnap: DensifySnapshot = {
+      ...afterSnap,
+      idealScore: pending.ideal,
+      processFactConditions: pending.facts,
+      procedureChars: pending.chars,
+    };
+    setDensifyDelta({ before: beforeSnap, after: afterSnap });
     setPasteDeltaMsg(
-      `Paste densify · ${pending.chars.toLocaleString()} chars → Ideal ${pending.ideal}→${afterIdeal} (${sign(dIdeal)}) · process facts ${pending.facts}→${afterFacts} (${sign(dFacts)}). Not GMP.`
+      `Paste densify · ${formatDensifyDelta(beforeSnap, afterSnap)}. Not GMP.`
     );
   }, [dossier, enrichTick]);
+
+  // After force densify reload, compare to pre-refresh snapshot
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const key = `cr-densify-before:${dossierIn.cid}`;
+    try {
+      const raw = sessionStorage.getItem(key);
+      if (!raw || chrome?.phase !== "ready") return;
+      const before = JSON.parse(raw) as DensifySnapshot;
+      sessionStorage.removeItem(key);
+      const after = snapshotFromDossier(dossier);
+      setDensifyDelta({ before, after });
+      setPasteDeltaMsg(`Force densify · ${formatDensifyDelta(before, after)}. Not GMP.`);
+    } catch {
+      /* ignore */
+    }
+  }, [dossier, dossierIn.cid, chrome?.phase]);
 
   const hit = dossier.identity;
   const cid = dossier.cid;
   const name = hit?.name || `CID ${cid}`;
   const traces = slimTraces(dossier.traces);
   const ai = dossier.synthesis;
+
+
   /** Full successful parse chip (dossier-level) */
   const aiChip = aiProvenanceWhenParsed(ai);
   /** Any attempt including failed parse (error modal) */
@@ -213,8 +244,19 @@ export function LiveMoleculeDossier({
   const aiRoutesField = aiProvenanceForField(ai, "routes");
   const aiCritical = aiProvenanceForField(ai, "criticalParameters");
   const aiDisclaimer = aiProvenanceForField(ai, "disclaimer");
-  /** Re-run free APIs + Ollama — exposed on every AI provenance modal */
-  const onRegenerate = chrome?.onRefresh;
+  /** Re-run free APIs + Ollama — snapshot densify metrics for outcome strip */
+  const onRegenerate = () => {
+    try {
+      densifyBeforeRef.current = snapshotFromDossier(dossier);
+      sessionStorage.setItem(
+        `cr-densify-before:${cid}`,
+        JSON.stringify(densifyBeforeRef.current)
+      );
+    } catch {
+      /* ignore */
+    }
+    chrome?.onRefresh?.();
+  };
 
   const overviewFromAi = Boolean(aiOverview);
   const overview =
@@ -648,6 +690,22 @@ export function LiveMoleculeDossier({
             onRegenerate={onRegenerate}
           />
 
+          {densifyDelta ? (
+            <DensifyDeltaStrip
+              before={densifyDelta.before}
+              after={densifyDelta.after}
+              title="Densify outcome"
+            />
+          ) : null}
+          {pasteDeltaMsg && !densifyDelta ? (
+            <p
+              className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-2 text-[11px] text-emerald-100/90"
+              role="status"
+            >
+              {pasteDeltaMsg}
+            </p>
+          ) : null}
+
           {show("readiness") ||
           show("framing") ||
           workerRole === "chemist" ||
@@ -660,37 +718,62 @@ export function LiveMoleculeDossier({
             />
           ) : null}
 
-          {/* Frontier science engine — condition space, hypotheses, Q&A */}
+          {/* Frontier science — collapsed while thin so Monday path stays primary */}
           {workerRole === "chemist" ||
           workerRole === "msat" ||
           workerRole === "manager" ? (
-            <div id="frontier-science" className="scroll-mt-24 space-y-4">
-              <ConditionAtlasPanel
-                dossier={dossier}
-                onRegenerate={onRegenerate}
-              />
-              <RouteHypothesesPanel
-                dossier={dossier}
-                onRegenerate={onRegenerate}
-              />
-              <ReactionNetworkPanel
-                dossier={dossier}
-                onRegenerate={onRegenerate}
-              />
-              <EvidenceSciencePanel
-                dossier={dossier}
-                onForceRegather={onRegenerate}
-              />
-              <ScienceAgentPanel
-                dossier={dossier}
-                onForceRegather={onRegenerate}
-              />
-              <BatchDensifyPanel
-                seedCids={impurityFirstCampaignCids(dossier, 8)}
-                dossier={dossier}
-                onRegenerate={onRegenerate}
-              />
-            </div>
+            (() => {
+              const ideal = dossier.idealParity?.score ?? 0;
+              const facts =
+                dossier.processFacts?.facts?.filter((f) => f.kind !== "open-gap")
+                  .length ?? 0;
+              const researchThin =
+                ideal < 55 ||
+                facts < 3 ||
+                dossier.processFraming === "evidence-lead-pack";
+              const frontier = (
+                <div id="frontier-science" className="scroll-mt-24 space-y-4">
+                  <ConditionAtlasPanel
+                    dossier={dossier}
+                    onRegenerate={onRegenerate}
+                  />
+                  <RouteHypothesesPanel
+                    dossier={dossier}
+                    onRegenerate={onRegenerate}
+                  />
+                  <ReactionNetworkPanel
+                    dossier={dossier}
+                    onRegenerate={onRegenerate}
+                  />
+                  <EvidenceSciencePanel
+                    dossier={dossier}
+                    onForceRegather={onRegenerate}
+                  />
+                  <ScienceAgentPanel
+                    dossier={dossier}
+                    onForceRegather={onRegenerate}
+                  />
+                  <BatchDensifyPanel
+                    seedCids={impurityFirstCampaignCids(dossier, 8)}
+                    dossier={dossier}
+                    onRegenerate={onRegenerate}
+                  />
+                </div>
+              );
+              if (!researchThin) return frontier;
+              return (
+                <details className="scroll-mt-24 rounded-xl border border-violet-500/20 bg-violet-500/5 p-3">
+                  <summary className="cursor-pointer text-sm font-semibold text-violet-100">
+                    Research mode · frontier science (secondary while density is thin)
+                  </summary>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Prefer Monday path densify above first. Expand for atlas, hypotheses,
+                    network, and agents when you need research depth.
+                  </p>
+                  <div className="mt-3 space-y-4">{frontier}</div>
+                </details>
+              );
+            })()
           ) : null}
 
           {show("monday-pack") ? (

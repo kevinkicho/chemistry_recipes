@@ -6,6 +6,11 @@ import type { LiveDossier } from "@/lib/dossier/types";
 import { summarizeDossierDiagnostics } from "@/lib/diagnostics/clientAnalytics";
 import { routes } from "@/lib/routes";
 import { failedFamiliesFromErrors } from "@/lib/dossier/densifyDelta";
+import {
+  humanFamilyLabel,
+  humanizeSoftFailList,
+} from "@/lib/dossier/softFailHuman";
+import { sourceFamilyReportFromDossier } from "@/lib/dossier/sourceFamilyReport";
 
 /**
  * Compact per-dossier health strip for operators / power users.
@@ -20,6 +25,8 @@ export function DossierDiagnostics({
   const d = summarizeDossierDiagnostics(dossier);
   const healthy = d.apiFail === 0 && (d.apiOk > 0 || d.literatureCount > 0);
   const failed = failedFamiliesFromErrors(dossier.fetchErrors);
+  const humanFails = humanizeSoftFailList(dossier.fetchErrors);
+  const familyReport = sourceFamilyReportFromDossier(dossier);
   const [retryBusy, setRetryBusy] = useState(false);
   const [retryMsg, setRetryMsg] = useState<string | null>(null);
 
@@ -169,11 +176,16 @@ export function DossierDiagnostics({
 
       {failed.length > 0 ? (
         <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
-          <p className="text-[11px] text-amber-100/90">
-            Soft-failed free-public families (other sources continued):{" "}
-            <span className="font-mono text-[10px] text-slate-400">
-              {failed.map((f) => f.label).join(", ")}
-            </span>
+          <p className="text-[11px] font-medium text-amber-100/90">
+            Free-API soft-fails (other sources continued)
+          </p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[10px] text-slate-400">
+            {humanFails.slice(0, 6).map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+          <p className="mt-1 font-mono text-[10px] text-slate-600">
+            {failed.map((f) => humanFamilyLabel(f.label)).join(" · ")}
           </p>
           <button
             type="button"
@@ -191,7 +203,47 @@ export function DossierDiagnostics({
         </div>
       ) : null}
 
-      {d.hosts.length > 0 ? (
+      {familyReport.length > 0 ? (
+        <div className="mt-3 overflow-x-auto">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+            Source family completeness
+          </p>
+          <table className="w-full min-w-[22rem] text-left text-[11px] text-slate-400">
+            <thead className="text-[10px] uppercase tracking-wider text-slate-600">
+              <tr>
+                <th className="py-1 pr-2">Family</th>
+                <th className="py-1 pr-2">Status</th>
+                <th className="py-1 pr-2">OK</th>
+                <th className="py-1 pr-2">Fail</th>
+                <th className="py-1">Payload</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/80">
+              {familyReport.slice(0, 14).map((row) => (
+                <tr key={row.family}>
+                  <td className="py-1 pr-2 text-slate-300">{row.label}</td>
+                  <td
+                    className={`py-1 pr-2 ${
+                      row.status === "ok"
+                        ? "text-emerald-400/90"
+                        : row.status === "fail"
+                          ? "text-rose-400/90"
+                          : "text-slate-500"
+                    }`}
+                  >
+                    {row.status}
+                  </td>
+                  <td className="py-1 pr-2">{row.okTraces}</td>
+                  <td className="py-1 pr-2">{row.failTraces}</td>
+                  <td className="py-1 text-[10px] text-slate-600">
+                    {row.payloadHint}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : d.hosts.length > 0 ? (
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[20rem] text-left text-[11px] text-slate-400">
             <thead className="text-[10px] uppercase tracking-wider text-slate-600">

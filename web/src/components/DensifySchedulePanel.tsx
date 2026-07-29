@@ -54,11 +54,27 @@ export function DensifySchedulePanel() {
   }
 
   async function warmAllDue() {
-    const cids = due.map((e) => e.cid).slice(0, 12);
+    const cids = due.map((e) => e.cid).slice(0, 8);
     if (!cids.length) return;
     setBatchBusy(true);
-    setStatus(`Streaming densify for ${cids.length} due CID(s)…`);
+    setStatus(`Server warm-queue for ${cids.length} due CID(s)…`);
     try {
+      // Prefer durable server warm (gather + cache), then client stream for local IDB
+      const warmRes = await fetch("/api/dossier/warm-queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cids, force: true, concurrency: 2 }),
+      });
+      const warmJson = (await warmRes.json()) as {
+        ok?: boolean;
+        detail?: string;
+        error?: string;
+      };
+      if (!warmRes.ok) {
+        setStatus(warmJson.error || "Warm-queue failed — falling back to stream");
+      } else {
+        setStatus(warmJson.detail || "Server warm done · streaming to local cache…");
+      }
       const res = await streamBatchDensifyCids(cids, {
         force: true,
         cacheLocal: true,
@@ -70,7 +86,7 @@ export function DensifySchedulePanel() {
         if (r.ok) markDensifyWarmed(r.cid);
       }
       setStatus(
-        `Due densify done · ${res.ok} ok · ${res.fail} fail · ${res.skipped ?? 0} skipped`
+        `Due densify done · ${res.ok} ok · ${res.fail} fail · server: ${warmJson.detail || "—"}`
       );
       reload();
     } catch (e) {

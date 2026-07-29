@@ -91,4 +91,48 @@ ok(
   formatDensifyDelta({ idealScore: 10 }, { idealScore: 40 }).includes("10→40")
 );
 
+ok(
+  "softFailHuman module",
+  existsSync(src("lib/dossier/softFailHuman.ts"))
+);
+ok(
+  "sourceFamilyReport module",
+  existsSync(src("lib/dossier/sourceFamilyReport.ts"))
+);
+ok(
+  "warm-queue API",
+  existsSync(src("app/api/dossier/warm-queue/route.ts"))
+);
+ok(
+  "diagnostics source family completeness",
+  /Source family completeness|sourceFamilyReportFromDossier/.test(
+    read("components/DossierDiagnostics.tsx")
+  )
+);
+ok(
+  "live densify outcome strip",
+  /DensifyDeltaStrip/.test(read("components/dossier/LiveMoleculeDossier.tsx"))
+);
+ok(
+  "research mode collapse while thin",
+  /Research mode · frontier science/.test(
+    read("components/dossier/LiveMoleculeDossier.tsx")
+  )
+);
+ok(
+  "workspace science index first",
+  /Science index · densify home/.test(read("app/workspace/page.tsx"))
+);
+
+// Plain English soft-fail
+function humanize(raw) {
+  const m = raw.match(/^(soft-fail|api-fail) · ([a-z0-9-]+):\s*(.*)$/i);
+  if (!m) return raw;
+  return `Could not reach ${m[2]}`;
+}
+ok(
+  "executable human soft-fail",
+  humanize("soft-fail · europepmc: timeout").includes("europepmc")
+);
+
 console.log(`\n${n} smoke-gather checks passed`);

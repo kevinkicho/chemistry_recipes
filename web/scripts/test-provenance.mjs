@@ -266,7 +266,8 @@ ok("Paste wizard steps in LocalTextEnrich", /WizardStep|Paste wizard/.test(read(
 // --- Live dossier wires onRegenerate ---
 ok(
   "LiveMoleculeDossier defines onRegenerate",
-  /onRegenerate\s*=\s*chrome\?\.onRefresh/.test(liveDossier)
+  /const onRegenerate\s*=\s*\(\)\s*=>/.test(liveDossier) ||
+    /onRegenerate\s*=\s*chrome\?\.onRefresh/.test(liveDossier)
 );
 ok(
   "LiveMoleculeDossier passes onRegenerate to AiProvenance",
