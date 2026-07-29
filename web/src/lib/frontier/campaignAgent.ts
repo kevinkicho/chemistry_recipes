@@ -13,11 +13,14 @@ import { buildEdgePairExperiments } from "@/lib/frontier/edgeExperiments";
 import { buildCampaignScientificBrief } from "@/lib/frontier/campaignBrief";
 import type { EvidenceAnswer, NextExperiment } from "@/lib/frontier/types";
 import { suggestEdgePairs, compareNetworkEdges } from "@/lib/frontier/edgeCompare";
-import { buildCampaignAiGuidanceFromMerged } from "@/lib/frontier/campaignAiGuidance";
+import {
+  buildCampaignAiGuidanceFromMerged,
+  formatCampaignAiGuidanceContext,
+} from "@/lib/frontier/campaignAiGuidance";
 
 export interface CampaignAgentStep {
   id: string;
-  role: "retrieve" | "merge" | "cite" | "refuse" | "edge" | "densify";
+  role: "retrieve" | "merge" | "cite" | "refuse" | "edge" | "densify" | "reason";
   detail: string;
 }
 
@@ -40,7 +43,25 @@ export interface CampaignAgentResult {
   meanIngestScore?: number;
   /** CIDs recommended for densify queue */
   densifyQueueCids?: number[];
+  usedLlm?: boolean;
+  modelUsed?: string;
 }
+
+export type CampaignChatFn = (args: {
+  system: string;
+  user: string;
+  model?: string;
+}) => Promise<{ ok: boolean; content?: string; model?: string; error?: string }>;
+
+const CAMPAIGN_AGENT_SYSTEM = `You are a multi-CID process-chemistry research assistant for free-public evidence only.
+RULES:
+1. Answer ONLY using the CAMPAIGN AI GUIDANCE package below. If unsupported, say "Insufficient free-public evidence."
+2. NEVER invent temperatures, yields, equipment IDs, plant CPPs, or stoichiometry not present in the package.
+3. Prefer short answers with explicit CID + source labels from the package.
+4. Suggest experiments as research questions, not site setpoints.
+5. Cross-CID atoms and procedure windows are free-public densify — not validated multi-product processes.
+6. When densify-next actions are listed, prefer recommending those harvest steps over inventing numbers.
+7. Not GMP advice. Not legal/IP advice.`;
 
 /**
  * Dense multi-CID text for token retrieval — process atoms + procedure
@@ -490,7 +511,90 @@ export async function runCampaignAgent(
   );
 }
 
+/**
+ * Optional Ollama over densify-first campaign AI guidance package.
+ * Falls back to deterministic retrieval when LLM unavailable or package too thin.
+ */
+export async function runCampaignAgentWithLlm(
+  merged: MergedCampaignKnowledge,
+  meta: { campaignId: string; campaignName: string; requestedCount: number },
+  question: string,
+  chat: CampaignChatFn,
+  priorSteps: CampaignAgentStep[] = []
+): Promise<CampaignAgentResult> {
+  const base = answerCampaignQuestion(merged, meta, question, priorSteps);
+  const guidance = buildCampaignAiGuidanceFromMerged(merged, {
+    id: meta.campaignId,
+    name: meta.campaignName,
+    cids: merged.cids,
+    labels: Object.fromEntries(
+      merged.statuses
+        .filter((s) => s.label)
+        .map((s) => [String(s.cid), s.label!])
+    ),
+  });
+
+  // Too thin to ground a model call
+  if (merged.cachedCount === 0 || guidance.meanIngestScore < 8) {
+    base.steps.push({
+      id: "s4",
+      role: "refuse",
+      detail: "Skipped LLM — campaign densify package too thin to ground",
+    });
+    return { ...base, usedLlm: false };
+  }
+
+  const ctx = formatCampaignAiGuidanceContext(guidance, 32_000);
+  const user = `CAMPAIGN EVIDENCE PACKAGE (free-public densify only):\n${ctx}\n\nSCIENTIST QUESTION:\n${question}\n\nRespond with: (1) answer or insufficient evidence (2) which CID/package facts you used. If thin, recommend densify-next actions already listed.`;
+
+  try {
+    const res = await chat({ system: CAMPAIGN_AGENT_SYSTEM, user });
+    if (!res.ok || !res.content?.trim()) {
+      base.steps.push({
+        id: "s4",
+        role: "reason",
+        detail: `LLM unavailable: ${res.error || "empty"} — using retrieval only`,
+      });
+      return { ...base, usedLlm: false };
+    }
+    const content = res.content.trim();
+    const modelRefuses =
+      /insufficient free-public evidence|not (present|supported) in the (package|evidence)/i.test(
+        content
+      );
+    base.steps.push({
+      id: "s4",
+      role: modelRefuses ? "refuse" : "reason",
+      detail: `LLM over campaign-ai-guidance · ${res.model || "model"} · mean ingest ${guidance.meanIngestScore}`,
+    });
+    return {
+      ...base,
+      usedLlm: true,
+      modelUsed: res.model,
+      answer: {
+        id: `camp:llm:${Date.now()}`,
+        question,
+        answer: content.slice(0, 4000),
+        grounded:
+          !modelRefuses &&
+          (base.answer.citations.length > 0 || guidance.crossCidAtoms.length > 0),
+        citations: base.answer.citations,
+        insufficientEvidence: modelRefuses,
+      },
+    };
+  } catch (e) {
+    base.steps.push({
+      id: "s4",
+      role: "reason",
+      detail: `LLM error: ${e instanceof Error ? e.message : "fail"}`,
+    });
+    return { ...base, usedLlm: false };
+  }
+}
+
 /** Prefetch export (ensures packages exist) */
 export async function ensureCampaignExport(campaign: ScienceCampaign) {
   return buildCampaignKnowledgeExport(campaign);
 }
+
+export { CAMPAIGN_AGENT_SYSTEM, formatCampaignAiGuidanceContext };

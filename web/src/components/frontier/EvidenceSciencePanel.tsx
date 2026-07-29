@@ -67,9 +67,15 @@ export function EvidenceSciencePanel({
       const res = await runDensifyActionQueue(dossier, guidance.densifyNext, {
         onlyHigh: true,
         maxNeighbors: 4,
+        ingestBefore: guidance.ingestScore,
         onProgress: (m) => setQueueStatus(m),
       });
-      setQueueStatus(res.detail);
+      setQueueStatus(
+        res.detail +
+          (res.needsPageRefresh
+            ? ` · pre-refresh ingest ${guidance.ingestScore}/100`
+            : "")
+      );
       if (res.needsPageRefresh) {
         if (onForceRegather) {
           onForceRegather();

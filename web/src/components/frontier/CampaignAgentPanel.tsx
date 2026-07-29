@@ -51,6 +51,7 @@ export function CampaignAgentPanel() {
   const [steps, setSteps] = useState<string[]>([]);
   const [exps, setExps] = useState<string[]>([]);
   const [useServer, setUseServer] = useState(false);
+  const [useLlm, setUseLlm] = useState(false);
   const [force, setForce] = useState(false);
   const [health, setHealth] = useState<CampaignCidStatus[] | null>(null);
   const [healthMsg, setHealthMsg] = useState<string | null>(null);
@@ -310,7 +311,9 @@ export function CampaignAgentPanel() {
     try {
       let res: CampaignAgentResult;
       let densify: Array<{ cid: number; ok: boolean; error?: string }> | undefined;
-      if (useServer) {
+      // LLM requires server path (Ollama over campaign-ai-guidance package)
+      const serverMode = useServer || useLlm;
+      if (serverMode) {
         const r = await fetch("/api/ai/campaign", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -320,11 +323,13 @@ export function CampaignAgentPanel() {
             name: camp.name,
             concurrency: 2,
             force,
+            useLlm,
           }),
         });
         const data = (await r.json()) as CampaignAgentResult & {
           error?: string;
           densify?: Array<{ cid: number; ok: boolean; error?: string }>;
+          note?: string;
         };
         if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
         res = data;
@@ -338,9 +343,16 @@ export function CampaignAgentPanel() {
           ok,
           fail,
           durationMs: Date.now() - t0,
-          detail: force
-            ? "force densify + campaign answer"
-            : "campaign densify + answer",
+          detail: [
+            force ? "force densify" : "campaign densify",
+            useLlm ? "llm-guidance" : "retrieval",
+            res.meanIngestScore != null
+              ? `mean ingest ${res.meanIngestScore}`
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" + "),
+          meanIngestAfter: res.meanIngestScore,
         });
       } else {
         res = await runCampaignAgent(camp, q);
@@ -371,14 +383,25 @@ export function CampaignAgentPanel() {
           : null;
       setOut(
         [
-          useServer
-            ? `mode: server densify + merge${force ? " (force)" : ""}`
+          serverMode
+            ? `mode: server densify + merge${force ? " (force)" : ""}${useLlm ? " · LLM over campaign-ai-guidance" : ""}`
             : "mode: local IndexedDB cache",
           densifyLine,
+          res.usedLlm
+            ? `LLM: ${res.modelUsed || "yes"}`
+            : useLlm
+              ? "retrieval-only (LLM skipped or unavailable)"
+              : "retrieval-only",
           res.answer.insufficientEvidence
             ? "⚠ insufficient free-public evidence"
             : "✓ campaign-grounded",
-          `cached ${res.metrics.cachedCount}/${res.metrics.requestedCount} · obs ${res.metrics.totalObservations} · edges ${res.metrics.networkEdges}`,
+          `cached ${res.metrics.cachedCount}/${res.metrics.requestedCount} · obs ${res.metrics.totalObservations} · edges ${res.metrics.networkEdges}` +
+            (res.meanIngestScore != null
+              ? ` · AI ingest mean ${res.meanIngestScore}/100`
+              : ""),
+          res.densifyQueueCids?.length
+            ? `densify queue: ${res.densifyQueueCids.join(", ")}`
+            : "",
           "",
           res.answer.answer,
         ]
@@ -386,7 +409,7 @@ export function CampaignAgentPanel() {
           .join("\n")
       );
       // Warm local IndexedDB from server batch (uses evidence cache when possible)
-      if (useServer && densify?.some((d) => d.ok)) {
+      if (serverMode && densify?.some((d) => d.ok)) {
         const warmCids = densify.filter((d) => d.ok).map((d) => d.cid);
         setSteps((prev) => [
           ...prev,
@@ -567,6 +590,17 @@ export function CampaignAgentPanel() {
           onChange={(e) => setUseServer(e.target.checked)}
         />
         Server densify CIDs then answer (slower, fresher free-public data)
+      </label>
+      <label className="mt-1 flex items-center gap-2 text-[11px] text-slate-400">
+        <input
+          type="checkbox"
+          checked={useLlm}
+          onChange={(e) => {
+            setUseLlm(e.target.checked);
+            if (e.target.checked) setUseServer(true);
+          }}
+        />
+        Use Ollama over campaign-ai-guidance package (server; quote-bound)
       </label>
       {useServer ? (
         <label className="mt-1 flex items-center gap-2 text-[11px] text-slate-400">

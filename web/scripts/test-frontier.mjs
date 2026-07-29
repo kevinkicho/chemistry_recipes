@@ -810,4 +810,49 @@ ok(
   )
 );
 
+// Science agent queue densify + campaign LLM guidance + ingest telemetry
+ok(
+  "ScienceAgent queue densify button",
+  /Queue densify|runDensifyActionQueue/.test(
+    read("components/frontier/ScienceAgentPanel.tsx")
+  )
+);
+ok(
+  "runCampaignAgentWithLlm",
+  /export async function runCampaignAgentWithLlm/.test(
+    read("lib/frontier/campaignAgent.ts")
+  )
+);
+ok(
+  "formatCampaignAiGuidanceContext in campaign agent",
+  /formatCampaignAiGuidanceContext/.test(read("lib/frontier/campaignAgent.ts"))
+);
+ok(
+  "campaign API useLlm",
+  /useLlm/.test(read("app/api/ai/campaign/route.ts")) &&
+    /runCampaignAgentWithLlm/.test(read("app/api/ai/campaign/route.ts"))
+);
+ok(
+  "CampaignAgentPanel useLlm",
+  /useLlm|campaign-ai-guidance/.test(
+    read("components/frontier/CampaignAgentPanel.tsx")
+  )
+);
+ok(
+  "recordIngestDeltaRun",
+  /export function recordIngestDeltaRun/.test(
+    read("lib/dossier/densifyTelemetry.ts")
+  )
+);
+ok(
+  "telemetry guidance-queue kind",
+  /guidance-queue/.test(read("lib/dossier/densifyTelemetry.ts"))
+);
+ok(
+  "telemetry panel ingest delta",
+  /Avg ingest|ingestDelta|meanIngestDelta/.test(
+    read("components/frontier/DensifyTelemetryPanel.tsx")
+  )
+);
+
 console.log(`\n${n} frontier checks passed`);

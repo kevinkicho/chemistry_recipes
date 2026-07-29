@@ -22,6 +22,7 @@ import {
   downloadCampaignAiGuidance,
 } from "@/lib/frontier/campaignAiGuidance";
 import { runCampaignDensifyQueue } from "@/lib/frontier/densifyActionQueue";
+import { recordIngestDeltaRun } from "@/lib/dossier/densifyTelemetry";
 import {
   downloadMarkdown,
   formatCampaignKnowledgeMarkdown,
@@ -132,10 +133,10 @@ export function CampaignGraphPanel() {
   async function queueAiGuidanceDensify() {
     const camp = campaigns.find((c) => c.id === selected);
     if (!camp || !merged) return;
-    const g = buildCampaignAiGuidanceFromMerged(merged, camp);
+    const gBefore = buildCampaignAiGuidanceFromMerged(merged, camp);
     const queue =
-      g.densifyQueueCids.length > 0
-        ? g.densifyQueueCids
+      gBefore.densifyQueueCids.length > 0
+        ? gBefore.densifyQueueCids
         : thinOrMissingCids(merged.statuses);
     if (!queue.length) {
       setStatus("AI guidance densify queue empty — packages look dense");
@@ -143,20 +144,41 @@ export function CampaignGraphPanel() {
     }
     setBusy(true);
     setLog([]);
-    setStatus(`Queue AI densify: ${queue.join(", ")}`);
+    setStatus(
+      `Queue AI densify: ${queue.join(", ")} · mean ingest ${gBefore.meanIngestScore}/100`
+    );
     try {
+      // Stream densify first; re-measure mean ingest after merge for telemetry delta
       const res = await runCampaignDensifyQueue(queue, {
         force: false,
+        meanIngestBefore: gBefore.meanIngestScore,
         onProgress: (m) => setStatus(m),
       });
+      await loadMerge(camp);
+      const mAfter = await buildMergedCampaignKnowledge(camp.cids, camp.labels);
+      const gAfter = buildCampaignAiGuidanceFromMerged(mAfter, camp);
+      // Complete record with after score (queue helper logs start without after)
+      recordIngestDeltaRun({
+        kind: "guidance-queue",
+        cids: queue,
+        ok: res.densifiedCids.length,
+        fail: res.failedCids.length,
+        durationMs: res.durationMs,
+        detail: "campaign-ai-guidance-queue-complete",
+        meanIngestBefore: gBefore.meanIngestScore,
+        meanIngestAfter: gAfter.meanIngestScore,
+      });
+      const delta = gAfter.meanIngestScore - gBefore.meanIngestScore;
       setLog((prev) => [
         ...prev,
         res.detail,
+        `mean ingest ${gBefore.meanIngestScore}→${gAfter.meanIngestScore} (Δ${delta >= 0 ? "+" : ""}${delta})`,
         ...res.densifiedCids.map((c) => `ok CID ${c}`),
         ...res.failedCids.map((c) => `fail CID ${c}`),
       ]);
-      await loadMerge(camp);
-      setStatus(res.detail);
+      setStatus(
+        `${res.detail} · mean ingest ${gBefore.meanIngestScore}→${gAfter.meanIngestScore} (Δ${delta >= 0 ? "+" : ""}${delta})`
+      );
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Queue densify failed");
     } finally {

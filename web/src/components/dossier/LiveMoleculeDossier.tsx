@@ -631,7 +631,10 @@ export function LiveMoleculeDossier({
                 dossier={dossier}
                 onForceRegather={onRegenerate}
               />
-              <ScienceAgentPanel dossier={dossier} />
+              <ScienceAgentPanel
+                dossier={dossier}
+                onForceRegather={onRegenerate}
+              />
               <BatchDensifyPanel
                 seedCids={
                   dossier.processKnowledge?.reactionNetwork?.campaignCids || [

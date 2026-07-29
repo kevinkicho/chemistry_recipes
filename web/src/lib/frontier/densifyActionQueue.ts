@@ -7,7 +7,10 @@ import type { LiveDossier } from "@/lib/dossier/types";
 import type { DensifyNextAction } from "@/lib/frontier/aiGuidancePackage";
 import { prioritizedNeighborCids } from "@/lib/frontier/neighborDensifyGraph";
 import { streamBatchDensifyCids } from "@/lib/dossier/batchClient";
-import { recordDensifyRun } from "@/lib/dossier/densifyTelemetry";
+import {
+  recordDensifyRun,
+  recordIngestDeltaRun,
+} from "@/lib/dossier/densifyTelemetry";
 
 export type DensifyQueueMode =
   | "force-primary"
@@ -110,6 +113,7 @@ export interface RunDensifyQueueResult {
   /** True when caller should hard-refresh primary page (?refresh=1) */
   needsPageRefresh: boolean;
   detail: string;
+  durationMs?: number;
 }
 
 /**
@@ -125,6 +129,8 @@ export async function runDensifyActionQueue(
     maxNeighbors?: number;
     /** If true, stream primary with force instead of only signaling page refresh */
     streamPrimary?: boolean;
+    /** AI ingest score before queue (for telemetry delta) */
+    ingestBefore?: number;
     onProgress?: (msg: string) => void;
   }
 ): Promise<RunDensifyQueueResult> {
@@ -132,6 +138,7 @@ export async function runDensifyActionQueue(
     onlyHigh: opts?.onlyHigh !== false,
     maxNeighbors: opts?.maxNeighbors,
   });
+  const ingestBefore = opts?.ingestBefore;
 
   if (plan.modes.includes("noop") && plan.cids.length === 0) {
     return {
@@ -141,6 +148,7 @@ export async function runDensifyActionQueue(
       failedCids: [],
       needsPageRefresh: false,
       detail: plan.summary,
+      durationMs: 0,
     };
   }
 
@@ -149,6 +157,7 @@ export async function runDensifyActionQueue(
     const neighbors = plan.cids.filter((c) => c !== dossier.cid);
     let densified: number[] = [];
     let failed: number[] = [];
+    let durationMs = 0;
     if (neighbors.length) {
       opts?.onProgress?.(`Densifying ${neighbors.length} neighbor CID(s)…`);
       const t0 = Date.now();
@@ -160,13 +169,26 @@ export async function runDensifyActionQueue(
       });
       densified = res.results.filter((r) => r.ok).map((r) => r.cid);
       failed = res.results.filter((r) => !r.ok).map((r) => r.cid);
-      recordDensifyRun({
-        kind: "agent-neighbor",
+      durationMs = Date.now() - t0;
+      recordIngestDeltaRun({
+        kind: "guidance-queue",
         cids: neighbors,
         ok: densified.length,
         fail: failed.length,
-        durationMs: Date.now() - t0,
-        detail: "densify-action-queue-neighbors",
+        durationMs,
+        detail: "densify-action-queue-neighbors-before-primary-refresh",
+        ingestBefore,
+      });
+    } else if (ingestBefore != null) {
+      // Primary-only force: record start so post-refresh can pair if needed
+      recordDensifyRun({
+        kind: "guidance-queue",
+        cids: [dossier.cid],
+        ok: 0,
+        fail: 0,
+        durationMs: 0,
+        detail: "primary-force-refresh-pending",
+        ingestBefore,
       });
     }
     return {
@@ -175,6 +197,7 @@ export async function runDensifyActionQueue(
       densifiedCids: densified,
       failedCids: failed,
       needsPageRefresh: true,
+      durationMs,
       detail: `${plan.summary}${neighbors.length ? ` · neighbors ok ${densified.length}` : ""} · page refresh for primary force densify`,
     };
   }
@@ -191,6 +214,7 @@ export async function runDensifyActionQueue(
       densifiedCids: [],
       failedCids: [],
       needsPageRefresh: false,
+      durationMs: 0,
       detail: plan.manualHints[0] || plan.summary,
     };
   }
@@ -205,13 +229,16 @@ export async function runDensifyActionQueue(
   });
   const densified = res.results.filter((r) => r.ok).map((r) => r.cid);
   const failed = res.results.filter((r) => !r.ok).map((r) => r.cid);
-  recordDensifyRun({
-    kind: "batch-stream",
+  const durationMs = Date.now() - t0;
+  // ingestAfter filled by caller when they re-read guidance after densify
+  recordIngestDeltaRun({
+    kind: "guidance-queue",
     cids: queue,
     ok: densified.length,
     fail: failed.length,
-    durationMs: Date.now() - t0,
+    durationMs,
     detail: "densify-action-queue",
+    ingestBefore,
   });
 
   return {
@@ -220,6 +247,7 @@ export async function runDensifyActionQueue(
     densifiedCids: densified,
     failedCids: failed,
     needsPageRefresh: plan.forcePrimary && densified.includes(dossier.cid),
+    durationMs,
     detail: `Densified ${densified.length}/${queue.length} · ${plan.summary}`,
   };
 }
@@ -231,6 +259,8 @@ export async function runCampaignDensifyQueue(
   cids: number[],
   opts?: {
     force?: boolean;
+    meanIngestBefore?: number;
+    meanIngestAfter?: number;
     onProgress?: (msg: string) => void;
   }
 ): Promise<{
@@ -238,6 +268,7 @@ export async function runCampaignDensifyQueue(
   densifiedCids: number[];
   failedCids: number[];
   detail: string;
+  durationMs: number;
 }> {
   const queue = [...new Set(cids.filter((c) => c > 0))].slice(0, 12);
   if (!queue.length) {
@@ -246,6 +277,7 @@ export async function runCampaignDensifyQueue(
       densifiedCids: [],
       failedCids: [],
       detail: "Empty densify queue",
+      durationMs: 0,
     };
   }
   const t0 = Date.now();
@@ -257,18 +289,22 @@ export async function runCampaignDensifyQueue(
   });
   const densified = res.results.filter((r) => r.ok).map((r) => r.cid);
   const failed = res.results.filter((r) => !r.ok).map((r) => r.cid);
-  recordDensifyRun({
-    kind: "batch-stream",
+  const durationMs = Date.now() - t0;
+  recordIngestDeltaRun({
+    kind: "guidance-queue",
     cids: queue,
     ok: densified.length,
     fail: failed.length,
-    durationMs: Date.now() - t0,
+    durationMs,
     detail: "campaign-ai-guidance-queue",
+    meanIngestBefore: opts?.meanIngestBefore,
+    meanIngestAfter: opts?.meanIngestAfter,
   });
   return {
     ok: failed.length === 0,
     densifiedCids: densified,
     failedCids: failed,
     detail: `Campaign densify ${densified.length}/${queue.length} ok`,
+    durationMs,
   };
 }

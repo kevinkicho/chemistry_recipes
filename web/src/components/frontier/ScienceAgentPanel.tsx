@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { LiveDossier } from "@/lib/dossier/types";
 import {
   runScienceAgentLocal,
@@ -12,14 +13,23 @@ import {
   packageIsUsable,
 } from "@/lib/frontier/knowledgeFingerprint";
 import { buildAiGuidancePackage } from "@/lib/frontier/aiGuidancePackage";
+import { runDensifyActionQueue } from "@/lib/frontier/densifyActionQueue";
 import { warmLiveDossier } from "@/lib/dossier/warmCache";
 import { recordDensifyRun } from "@/lib/dossier/densifyTelemetry";
+import { routes } from "@/lib/routes";
 
 /**
  * Quote-bound science agent — prefers local densify package (fast).
- * Surfaces densify-next actions so users grow evidence, not paper previews.
+ * Surfaces densify-next + queue densify so users grow evidence, not paper previews.
  */
-export function ScienceAgentPanel({ dossier }: { dossier: LiveDossier }) {
+export function ScienceAgentPanel({
+  dossier,
+  onForceRegather,
+}: {
+  dossier: LiveDossier;
+  onForceRegather?: () => void;
+}) {
+  const router = useRouter();
   const [q, setQ] = useState(
     "What temperature ranges appear in free-public process text?"
   );
@@ -27,9 +37,11 @@ export function ScienceAgentPanel({ dossier }: { dossier: LiveDossier }) {
   const [densifyNeighbors, setDensifyNeighbors] = useState(false);
   const [forceServer, setForceServer] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [queueBusy, setQueueBusy] = useState(false);
   const [out, setOut] = useState<string | null>(null);
   const [steps, setSteps] = useState<string[]>([]);
   const [lastIngest, setLastIngest] = useState<number | null>(null);
+  const [queueStatus, setQueueStatus] = useState<string | null>(null);
   const guidance = useMemo(
     () => buildAiGuidancePackage(dossier),
     [dossier]
@@ -92,6 +104,35 @@ export function ScienceAgentPanel({ dossier }: { dossier: LiveDossier }) {
     };
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
     return data;
+  }
+
+  async function queueHighDensify() {
+    setQueueBusy(true);
+    setQueueStatus("Planning densify queue…");
+    try {
+      const before = guidance.ingestScore;
+      const res = await runDensifyActionQueue(dossier, guidance.densifyNext, {
+        onlyHigh: true,
+        maxNeighbors: 4,
+        ingestBefore: before,
+        onProgress: (m) => setQueueStatus(m),
+      });
+      setQueueStatus(res.detail);
+      setSteps((prev) =>
+        [...prev, `[densify] queue: ${res.detail}`].slice(-20)
+      );
+      if (res.needsPageRefresh) {
+        if (onForceRegather) {
+          onForceRegather();
+        } else {
+          router.push(`${routes.pubchem(dossier.cid)}?refresh=1`);
+        }
+      }
+    } catch (e) {
+      setQueueStatus(e instanceof Error ? e.message : "Densify queue failed");
+    } finally {
+      setQueueBusy(false);
+    }
   }
 
   async function run() {
@@ -181,6 +222,9 @@ export function ScienceAgentPanel({ dossier }: { dossier: LiveDossier }) {
     }
   }
 
+  const highCount = guidance.densifyNext.filter((d) => d.priority === "high")
+    .length;
+
   return (
     <div
       id="science-agent"
@@ -200,8 +244,7 @@ export function ScienceAgentPanel({ dossier }: { dossier: LiveDossier }) {
       <p className="mt-1 text-[10px] text-violet-300/80">
         AI ingest readiness: {lastIngest ?? guidance.ingestScore}/100 ·{" "}
         {guidance.metrics.harvestedExcerpts} excerpts ·{" "}
-        {guidance.metrics.processFactConditions} conditions ·{" "}
-        {guidance.densifyNext.filter((d) => d.priority === "high").length} high densify
+        {guidance.metrics.processFactConditions} conditions · {highCount} high densify
         action(s)
       </p>
       <textarea
@@ -236,14 +279,32 @@ export function ScienceAgentPanel({ dossier }: { dossier: LiveDossier }) {
           Force server rebuild (ignore local-fast path)
         </label>
       </div>
-      <button
-        type="button"
-        disabled={busy || q.trim().length < 4}
-        onClick={() => void run()}
-        className="mt-2 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 disabled:opacity-40"
-      >
-        {busy ? "Running agent…" : "Run agent loop"}
-      </button>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={busy || queueBusy || q.trim().length < 4}
+          onClick={() => void run()}
+          className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 disabled:opacity-40"
+        >
+          {busy ? "Running agent…" : "Run agent loop"}
+        </button>
+        <button
+          type="button"
+          disabled={busy || queueBusy || highCount === 0}
+          onClick={() => void queueHighDensify()}
+          className="rounded-lg border border-cyan-500/40 bg-cyan-950/40 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:bg-cyan-900/40 disabled:opacity-40"
+          title="Run high densify-next actions to grow free-public package for AI"
+        >
+          {queueBusy
+            ? "Queuing densify…"
+            : `Queue densify (${highCount})`}
+        </button>
+      </div>
+      {queueStatus ? (
+        <p className="mt-1 text-[10px] text-cyan-100/80" role="status">
+          {queueStatus}
+        </p>
+      ) : null}
       {steps.length > 0 ? (
         <ol className="mt-2 list-decimal space-y-0.5 pl-4 text-[10px] text-slate-500">
           {steps.map((s) => (
