@@ -75,7 +75,6 @@ export function BiologicParametersPanel({
 }) {
   return (
     <div
-      id="process-parameters"
       className="scroll-mt-24 rounded-xl border border-violet-500/25 bg-violet-500/5 p-4"
     >
       <div className="flex flex-wrap items-center gap-2">

@@ -3,18 +3,31 @@
 import { usePathname } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { matchExampleId, matchPubchemCid } from "@/lib/routes";
+import {
+  assessTocSection,
+  navigateToSection,
+} from "@/lib/tocNavigate";
 
 export interface TocLink {
   id: string;
   href: string;
   label: string;
+  /** Section node exists in the DOM */
+  present: boolean;
+  /** Section has real content (not empty placeholder) */
+  hasContent: boolean;
+  /** Clickable — present and has content */
+  enabled: boolean;
 }
+
+// Re-export for callers that imported from this module
+export { navigateToSection, assessTocSection, TOC_NAVIGATE_EVENT } from "@/lib/tocNavigate";
 
 /**
  * Canonical section anchors on live + example molecule pages.
- * Only links whose targets exist in the DOM are shown.
+ * Always listed; empty/missing targets are dimmed and disabled.
  */
-const LIVE_SECTIONS: Omit<TocLink, "href">[] = [
+const LIVE_SECTIONS: Omit<TocLink, "href" | "present" | "hasContent" | "enabled">[] = [
   { id: "identity", label: "Identity" },
   { id: "structure", label: "Structure" },
   { id: "overview", label: "Overview" },
@@ -26,6 +39,7 @@ const LIVE_SECTIONS: Omit<TocLink, "href">[] = [
   { id: "related-entities", label: "Related entities" },
   { id: "unit-op-fill", label: "Modality slots" },
   { id: "industry-briefs", label: "Industry briefs" },
+  { id: "frontier-science", label: "Frontier science" },
   { id: "multi-source", label: "Multi-source APIs" },
   { id: "contradictions", label: "Evidence tensions" },
   { id: "pubchem-manufacturing", label: "Manufacturing text" },
@@ -43,7 +57,10 @@ const LIVE_SECTIONS: Omit<TocLink, "href">[] = [
   { id: "disclaimer", label: "Disclaimer" },
 ];
 
-const EXAMPLE_SECTIONS: Omit<TocLink, "href">[] = [
+const EXAMPLE_SECTIONS: Omit<
+  TocLink,
+  "href" | "present" | "hasContent" | "enabled"
+>[] = [
   { id: "identity", label: "Identity" },
   { id: "structure", label: "Structure" },
   { id: "overview", label: "Overview" },
@@ -62,30 +79,24 @@ const EXAMPLE_SECTIONS: Omit<TocLink, "href">[] = [
   { id: "disclaimer", label: "Disclaimer" },
 ];
 
-function collectPresentSections(
-  candidates: Omit<TocLink, "href">[]
+function collectSections(
+  candidates: Omit<TocLink, "href" | "present" | "hasContent" | "enabled">[]
 ): TocLink[] {
-  if (typeof document === "undefined") return [];
-  return candidates
-    .filter((c) => document.getElementById(c.id) != null)
-    .map((c) => ({ ...c, href: `#${c.id}` }));
-}
-
-function scrollToSection(id: string): boolean {
-  const el = document.getElementById(id);
-  if (!el) return false;
-  el.scrollIntoView({ behavior: "smooth", block: "start" });
-  try {
-    window.history.replaceState(null, "", `#${id}`);
-  } catch {
-    /* ignore */
-  }
-  return true;
+  return candidates.map((c) => {
+    const { present, hasContent } = assessTocSection(c.id);
+    return {
+      ...c,
+      href: `#${c.id}`,
+      present,
+      hasContent,
+      enabled: present && hasContent,
+    };
+  });
 }
 
 /**
  * Table of contents — only on molecule/compound and example views.
- * Discovers which section ids are actually in the page (client-loaded dossiers).
+ * Lists all canonical sections; missing/empty ones are dimmed and non-interactive.
  */
 function TocInner() {
   const pathname = usePathname() || "/";
@@ -101,7 +112,7 @@ function TocInner() {
       setItems([]);
       return;
     }
-    setItems(collectPresentSections(candidates));
+    setItems(collectSections(candidates));
   }, [onMoleculePage, candidates]);
 
   useEffect(() => {
@@ -114,26 +125,32 @@ function TocInner() {
     syncHash();
     window.addEventListener("hashchange", syncHash);
 
-    // Dossier body mounts asynchronously (cache / SSE) — watch for section nodes
     refreshItems();
     const root = document.querySelector("main") ?? document.body;
-    const mo = new MutationObserver(() => refreshItems());
-    mo.observe(root, { childList: true, subtree: true });
+    const mo = new MutationObserver(() => {
+      window.requestAnimationFrame(refreshItems);
+    });
+    mo.observe(root, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-toc-empty", "id", "hidden"],
+    });
 
-    // Also re-check a few times after navigation (IndexedDB / stream)
     const t1 = window.setTimeout(refreshItems, 200);
     const t2 = window.setTimeout(refreshItems, 800);
     const t3 = window.setTimeout(refreshItems, 2000);
+    const t4 = window.setTimeout(refreshItems, 5000);
 
-    // If URL already has a hash, scroll once sections exist
     const tryInitialHash = () => {
       const h = window.location.hash.replace(/^#/, "");
-      if (h && document.getElementById(h)) {
-        scrollToSection(h);
+      if (!h) return;
+      if (document.getElementById(h)) {
+        navigateToSection(h);
         setHash(`#${h}`);
       }
     };
-    const tHash = window.setTimeout(tryInitialHash, 300);
+    const tHash = window.setTimeout(tryInitialHash, 400);
 
     return () => {
       window.removeEventListener("hashchange", syncHash);
@@ -141,11 +158,14 @@ function TocInner() {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
       window.clearTimeout(t3);
+      window.clearTimeout(t4);
       window.clearTimeout(tHash);
     };
   }, [onMoleculePage, pathname, refreshItems]);
 
   if (!onMoleculePage) return null;
+
+  const enabledCount = items.filter((i) => i.enabled).length;
 
   return (
     <aside
@@ -159,6 +179,11 @@ function TocInner() {
         <div className="text-[10px] text-slate-600">
           {exampleId ? `Example · ${exampleId}` : `Live dossier · CID ${cid}`}
         </div>
+        {items.length > 0 ? (
+          <div className="mt-1 text-[10px] tabular-nums text-slate-600">
+            {enabledCount}/{items.length} with content
+          </div>
+        ) : null}
       </div>
 
       <nav className="flex-1 overflow-y-auto px-2 py-3">
@@ -170,30 +195,49 @@ function TocInner() {
           <ul className="space-y-0.5">
             {items.map((item) => {
               const isActive =
-                hash === item.href || (!hash && item.id === "identity");
+                item.enabled &&
+                (hash === item.href || (!hash && item.id === "identity"));
+              const title = !item.present
+                ? "Section not on this page (role view or still loading)"
+                : !item.hasContent
+                  ? "No content for this section yet"
+                  : item.label;
+
               return (
                 <li key={item.id}>
-                  <a
-                    href={item.href}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (scrollToSection(item.id)) {
-                        setHash(item.href);
-                      } else {
-                        // Retry shortly (section still mounting)
-                        window.setTimeout(() => {
-                          if (scrollToSection(item.id)) setHash(item.href);
-                        }, 100);
-                      }
-                    }}
-                    className={`block rounded-md px-2 py-1.5 text-sm transition-colors ${
-                      isActive
-                        ? "bg-teal-500/15 text-teal-200"
-                        : "text-slate-400 hover:bg-slate-900 hover:text-slate-100"
-                    }`}
-                  >
-                    {item.label}
-                  </a>
+                  {item.enabled ? (
+                    <a
+                      href={item.href}
+                      title={title}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (navigateToSection(item.id)) {
+                          setHash(item.href);
+                        } else {
+                          window.setTimeout(() => {
+                            if (navigateToSection(item.id)) {
+                              setHash(item.href);
+                            }
+                          }, 120);
+                        }
+                      }}
+                      className={`block rounded-md px-2 py-1.5 text-sm transition-colors ${
+                        isActive
+                          ? "bg-teal-500/15 text-teal-200"
+                          : "text-slate-400 hover:bg-slate-900 hover:text-slate-100"
+                      }`}
+                    >
+                      {item.label}
+                    </a>
+                  ) : (
+                    <span
+                      title={title}
+                      aria-disabled="true"
+                      className="block cursor-not-allowed select-none rounded-md px-2 py-1.5 text-sm text-slate-500 opacity-30"
+                    >
+                      {item.label}
+                    </span>
+                  )}
                 </li>
               );
             })}

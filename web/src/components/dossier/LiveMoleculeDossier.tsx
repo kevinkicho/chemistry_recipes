@@ -37,6 +37,7 @@ import {
 } from "@/lib/modality/biologicParameters";
 import { BiologicParametersPanel } from "@/components/BiologicParametersPanel";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
+import { navigateToSection } from "@/lib/tocNavigate";
 import { DossierDiagnostics } from "@/components/DossierDiagnostics";
 import { SourceCoverageMap } from "@/components/SourceCoverageMap";
 import { EvidenceScoreExplainer } from "@/components/EvidenceScoreExplainer";
@@ -145,7 +146,11 @@ export function LiveMoleculeDossier({
     sectionVisible(workerRole, id);
 
   const scrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!navigateToSection(id)) {
+      document
+        .getElementById(id)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   // Durable procedure vault hydrate (async IndexedDB)
@@ -751,7 +756,13 @@ export function LiveMoleculeDossier({
           ) : null}
 
           {show("routes") ? (
-            <section id="routes" className="scroll-mt-24">
+            <section
+              id="routes"
+              className="scroll-mt-24"
+              data-toc-empty={
+                (dossier.processRoutes?.length ?? 0) > 0 ? "0" : "1"
+              }
+            >
               <SectionTitle
                 ai={routesFromAi ? aiRoutesField || aiChip : undefined}
                 field="Process recipe"
@@ -797,7 +808,13 @@ export function LiveMoleculeDossier({
           ) : null}
 
           {show("route-compare") ? (
-            <section id="route-compare" className="scroll-mt-24">
+            <section
+              id="route-compare"
+              className="scroll-mt-24"
+              data-toc-empty={
+                (dossier.processRoutes?.length ?? 0) > 1 ? "0" : "1"
+              }
+            >
               <SectionTitle
                 field="Route compare"
                 pubchemCid={cid}
@@ -1057,6 +1074,7 @@ export function LiveMoleculeDossier({
             badge={String(dossier.annotations?.length ?? 0)}
             defaultOpen={(dossier.annotations?.length ?? 0) > 0}
             forceOpenWhen={(dossier.annotations?.length ?? 0) > 0}
+            hasContent={(dossier.annotations?.length ?? 0) > 0}
           >
             <div className="mb-3">
               <ApiProvenance
@@ -1151,6 +1169,7 @@ export function LiveMoleculeDossier({
             badge="API"
             defaultOpen={mfgTableRows.length > 0}
             forceOpenWhen={mfgTableRows.length > 0}
+            hasContent={mfgTableRows.length > 0}
           >
             <div className="mb-3">
               <ApiProvenance
@@ -1184,6 +1203,7 @@ export function LiveMoleculeDossier({
             badge="API"
             defaultOpen={dossier.literature.length > 0}
             forceOpenWhen={dossier.literature.length > 0}
+            hasContent={dossier.literature.length > 0}
           >
             <div className="mb-3">
               <ApiProvenance
@@ -1216,6 +1236,7 @@ export function LiveMoleculeDossier({
             badge="API"
             defaultOpen={dossier.patents.length > 0}
             forceOpenWhen={dossier.patents.length > 0}
+            hasContent={dossier.patents.length > 0}
           >
             <div className="mb-3">
               <ApiProvenance
