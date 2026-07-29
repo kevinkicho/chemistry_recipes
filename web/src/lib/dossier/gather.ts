@@ -242,25 +242,24 @@ export async function gatherCompoundEvidenceLive(
   await politeDelay(40);
 
   // Wave 2: multi-source free public APIs (identity + process literature + patents)
-  // `let` — durable retry wave may reassign critical families without aborting others
-  let [
-    litResult,
-    openAlexResult,
-    crossrefResult,
+  const [
+    litResult0,
+    openAlexResult0,
+    crossrefResult0,
     semanticResult,
-    pubmedResult,
+    pubmedResult0,
     arxivResult,
     pvResult,
     patentLitResult,
-    chemblResult,
+    chemblResult0,
     mychemResult,
-    openFdaResult,
+    openFdaResult0,
     rxnormResult,
     keggResult,
     comptoxResult,
     dailyMedResult,
     pubchemPatentIds,
-    epmcPatResult,
+    epmcPatResult0,
     rheaResult,
     unichemResult,
     chebiResult,
@@ -431,6 +430,15 @@ export async function gatherCompoundEvidenceLive(
       traces: [],
     }),
   ]);
+
+  // Mutable copies only for families the durable retry wave may reassign
+  let litResult = litResult0;
+  let openAlexResult = openAlexResult0;
+  let crossrefResult = crossrefResult0;
+  let pubmedResult = pubmedResult0;
+  let chemblResult = chemblResult0;
+  let openFdaResult = openFdaResult0;
+  let epmcPatResult = epmcPatResult0;
 
   // Durable retry wave — only critical families that soft-failed / empty payload
   await politeDelay(100);

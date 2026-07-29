@@ -129,9 +129,8 @@ export async function withSoftTimeoutSignal<T>(
   fallback: T
 ): Promise<{ value: T; timedOut: boolean }> {
   const ac = new AbortController();
-  let timer: ReturnType<typeof setTimeout> | undefined;
   let timedOut = false;
-  timer = setTimeout(() => {
+  const timer = setTimeout(() => {
     timedOut = true;
     ac.abort();
   }, ms);
