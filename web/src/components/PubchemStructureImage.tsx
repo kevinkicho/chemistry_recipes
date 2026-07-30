@@ -1,14 +1,15 @@
 "use client";
 
 /**
- * PubChem structure PNG with soft failure (503-safe).
- * Avoids broken-image spam: placeholder on error, one delayed retry.
+ * PubChem structure image via same-origin proxy.
+ * Browser never calls NIH PNG endpoints (no console 503 spam).
+ * Proxy retries + returns SVG placeholder on upstream failure.
  */
 
-import { useCallback, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { pubchemStructureUrl } from "@/lib/api/pubchem";
 
-export function PubchemStructureImage({
+function PubchemStructureImageInner({
   cid,
   size = "large",
   alt,
@@ -19,21 +20,17 @@ export function PubchemStructureImage({
   alt: string;
   className?: string;
 }) {
-  const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
 
-  const src =
-    pubchemStructureUrl(cid, size) +
-    (attempt > 0 ? `&_retry=${attempt}` : "");
+  useEffect(() => {
+    setFailed(false);
+  }, [cid, size]);
 
   const onError = useCallback(() => {
-    if (attempt < 1) {
-      // One polite retry after PubChem cool-down
-      window.setTimeout(() => setAttempt((a) => a + 1), 1200 + Math.random() * 800);
-      return;
-    }
+    // Proxy normally always returns 200 (PNG or SVG). This is a last resort
+    // for network blips to our own origin.
     setFailed(true);
-  }, [attempt]);
+  }, []);
 
   if (failed || !Number.isFinite(cid) || cid <= 0) {
     return (
@@ -58,13 +55,14 @@ export function PubchemStructureImage({
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={src}
+      src={pubchemStructureUrl(cid, size)}
       alt={alt}
       className={className}
       loading="lazy"
       decoding="async"
       onError={onError}
-      referrerPolicy="no-referrer"
     />
   );
 }
+
+export const PubchemStructureImage = memo(PubchemStructureImageInner);

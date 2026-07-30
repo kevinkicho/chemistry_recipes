@@ -1,10 +1,11 @@
 /**
- * Full free-public API probe catalog for Chemistry Recipes.
+ * Full free-public API probe catalog for Chemistry Recipes diagnostics.
  *
- * Source of truth for what gather / densify actually call — not a marketing list.
- * Each row uses a concrete GET that mirrors the live client path (aspirin / CID 2244).
+ * Must mirror live gather clients (not retired URLs). Keep in sync with:
+ * - gather soft() families
+ * - scripts/test-api-health-full.mjs
  *
- * Optional-key services (PatentsView) may return skip, not fail.
+ * Optional-key / offline hosts (PatentsView ODP migration) use optionalKey.
  */
 
 export type PublicProbeCategory =
@@ -19,35 +20,26 @@ export type PublicProbeCategory =
   | "densify";
 
 export type PublicProbeDef = {
-  /** Stable id — aligned with gather soft() family when possible */
   id: string;
   name: string;
   organization: string;
   category: PublicProbeCategory;
-  /** Concrete GET URL used for health */
   url: string;
-  /** gather soft() labels this supports */
   gatherFamilies?: string[];
-  /** Notes for operators */
   notes?: string;
-  /** HTTP statuses treated as "reachable / configured-as-expected" */
   acceptStatus?: number[];
-  /** Optional: body must match for ok (case-insensitive substring or regex source) */
   bodyMustMatch?: string;
-  /** If true, 401/403 become skip (optional key) */
   optionalKey?: boolean;
 };
 
-/** Aspirin / CID 2244 probe fixtures — same anchors used in production gather. */
 const Q = "aspirin";
 const CID = 2244;
 
 /**
- * Every free-public HTTP dependency wired into live gather / densify / search.
- * Keep in sync when adding soft() families in gather.ts.
+ * Working free-public GET probes (aspirin / CID 2244 fixtures).
  */
 export const PUBLIC_API_PROBE_DEFS: PublicProbeDef[] = [
-  // ── Identity / PubChem family ───────────────────────────────────
+  // ── Identity / PubChem ──────────────────────────────────────────
   {
     id: "pubchem-pug",
     name: "PubChem PUG REST · identity",
@@ -59,7 +51,7 @@ export const PUBLIC_API_PROBE_DEFS: PublicProbeDef[] = [
   },
   {
     id: "pubchem-pug-view",
-    name: "PubChem PUG View · GHS / manufacturing",
+    name: "PubChem PUG View · manufacturing",
     organization: "NCBI (NIH)",
     category: "hazards",
     url: `https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/${CID}/JSON?heading=${encodeURIComponent("Use and Manufacturing")}`,
@@ -74,7 +66,6 @@ export const PUBLIC_API_PROBE_DEFS: PublicProbeDef[] = [
     url: `https://pubchem.ncbi.nlm.nih.gov/rest/autocomplete/compound/${encodeURIComponent("asp")}/json?limit=5`,
     gatherFamilies: ["search-suggest"],
     bodyMustMatch: "dictionary_terms|total",
-    notes: "Used by /api/search/suggest and SearchForm",
   },
   {
     id: "pubchem-patents",
@@ -86,13 +77,14 @@ export const PUBLIC_API_PROBE_DEFS: PublicProbeDef[] = [
     bodyMustMatch: "PatentID|InformationList",
   },
   {
-    id: "pubchem-classification",
-    name: "PubChem classification / MeSH xrefs",
+    id: "pubchem-class",
+    name: "PubChem PubMedID xrefs (class densify)",
     organization: "NCBI (NIH)",
     category: "identity",
-    url: `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${CID}/classification/JSON`,
+    url: `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${CID}/xrefs/PubMedID/JSON`,
     gatherFamilies: ["pubchem-class"],
-    bodyMustMatch: "Hierarchies|Section",
+    bodyMustMatch: "InformationList|PubMedID",
+    notes: "Full /classification tree is huge; gather uses PubMedID xrefs",
   },
   {
     id: "patent-uspto-densify",
@@ -102,7 +94,6 @@ export const PUBLIC_API_PROBE_DEFS: PublicProbeDef[] = [
     url: `https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/patent/US-10029448-B2/JSON`,
     gatherFamilies: ["patent-uspto-densify"],
     bodyMustMatch: "Record|Abstract|Patent",
-    notes: "densifyUsPatentsWithPubchem uses pug_view (PUG /patent/ domain retired)",
   },
   {
     id: "unichem-v1-sources",
@@ -112,20 +103,20 @@ export const PUBLIC_API_PROBE_DEFS: PublicProbeDef[] = [
     url: "https://www.ebi.ac.uk/unichem/api/v1/sources",
     gatherFamilies: ["unichem"],
     bodyMustMatch: "sources|response",
-    notes: "Live UniChem v1 — sources inventory",
   },
   {
-    id: "unichem-legacy-rest",
-    name: "UniChem legacy REST (gather path)",
+    id: "unichem-inchikey",
+    name: "UniChem InChIKey map (gather path)",
     organization: "EMBL-EBI",
     category: "identity",
-    url: `https://www.ebi.ac.uk/unichem/rest/src_compound_id/${CID}/22`,
-    gatherFamilies: ["unichem"],
-    notes: "gather unichem.ts still uses legacy REST (often 404 after UniChem migration)",
+    url: "https://www.ebi.ac.uk/unichem/rest/verbose_inchikey/BSYNRYMUTXBXSQ-UHFFFAOYSA-N",
+    gatherFamilies: ["unichem", "drugcentral"],
+    bodyMustMatch: "src_compound_id|name|drugcentral",
+    notes: "Primary map after CID REST retirement; also resolves DrugCentral",
   },
   {
     id: "chebi-ols",
-    name: "ChEBI via OLS4 search",
+    name: "ChEBI via OLS4",
     organization: "EMBL-EBI",
     category: "identity",
     url: `https://www.ebi.ac.uk/ols4/api/search?q=${encodeURIComponent(Q)}&ontology=chebi&rows=1`,
@@ -133,12 +124,13 @@ export const PUBLIC_API_PROBE_DEFS: PublicProbeDef[] = [
     bodyMustMatch: "response|docs",
   },
   {
-    id: "chebi-backend",
-    name: "ChEBI backend compounds",
+    id: "chebi-backend-by-id",
+    name: "ChEBI backend by id",
     organization: "EMBL-EBI",
     category: "identity",
-    url: `https://www.ebi.ac.uk/chebi/backend/api/public/compounds?search=${encodeURIComponent(Q)}&size=3`,
+    url: "https://www.ebi.ac.uk/chebi/backend/api/public/compounds?chebi_ids=15365",
     gatherFamilies: ["chebi"],
+    bodyMustMatch: "15365|CHEBI|primary",
   },
   {
     id: "mychem",
@@ -176,12 +168,14 @@ export const PUBLIC_API_PROBE_DEFS: PublicProbeDef[] = [
     bodyMustMatch: "idGroup|rxnormId",
   },
   {
-    id: "drugcentral",
-    name: "DrugCentral structures",
+    id: "drugcentral-card",
+    name: "DrugCentral drugcard page",
     organization: "UNM / DrugCentral",
     category: "identity",
-    url: `https://drugcentral.org/api/v1/structures/?filter=name,${encodeURIComponent(Q)}&page_size=3`,
+    url: "https://drugcentral.org/drugcard/74",
     gatherFamilies: ["drugcentral"],
+    acceptStatus: [200, 301, 302, 303, 307, 308],
+    notes: "REST API retired; gather maps via UniChem → drugcard",
   },
 
   // ── Hazards / regulatory ────────────────────────────────────────
@@ -247,7 +241,6 @@ export const PUBLIC_API_PROBE_DEFS: PublicProbeDef[] = [
     url: "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC13289645/fullTextXML",
     gatherFamilies: ["europepmc-oa"],
     bodyMustMatch: "article|full-text|xml",
-    notes: "Known OA PMC with full text (aspirin-related)",
   },
   {
     id: "europepmc-patents",
@@ -255,8 +248,9 @@ export const PUBLIC_API_PROBE_DEFS: PublicProbeDef[] = [
     organization: "EMBL-EBI",
     category: "patents",
     url: `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=${encodeURIComponent(`(SRC:PAT) ${Q}`)}&pageSize=1&format=json`,
-    gatherFamilies: ["europepmc-pat"],
+    gatherFamilies: ["europepmc-pat", "patentsview"],
     bodyMustMatch: "resultList|hitCount",
+    notes: "Also free fallback when PatentsView host is offline (USPTO ODP migration)",
   },
   {
     id: "patent-epmc-densify",
@@ -311,6 +305,7 @@ export const PUBLIC_API_PROBE_DEFS: PublicProbeDef[] = [
     url: `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(Q + " synthesis")}&limit=1&fields=title`,
     gatherFamilies: ["semanticscholar"],
     bodyMustMatch: "data|total|paperId|title",
+    notes: "429 is degraded (service up); optional SEMANTIC_SCHOLAR_API_KEY",
   },
   {
     id: "arxiv",
@@ -322,17 +317,16 @@ export const PUBLIC_API_PROBE_DEFS: PublicProbeDef[] = [
     bodyMustMatch: "feed|entry|arxiv",
   },
 
-  // ── Patents ─────────────────────────────────────────────────────
+  // ── PatentsView (optional / may be offline) ─────────────────────
   {
-    id: "patentsview",
-    name: "PatentsView patent search",
+    id: "patentsview-host",
+    name: "PatentsView host (optional / ODP migration)",
     organization: "USPTO / PatentsView",
     category: "patents",
-    url: `https://search.patentsview.org/api/v1/patent/?q=${encodeURIComponent(JSON.stringify({ patent_title: Q }))}&f=${encodeURIComponent(JSON.stringify(["patent_id"]))}&o=${encodeURIComponent(JSON.stringify({ size: 1 }))}`,
+    url: `https://search.patentsview.org/api/v1/patent/?q=${encodeURIComponent(JSON.stringify({ patent_id: "10029448" }))}&f=${encodeURIComponent(JSON.stringify(["patent_id"]))}&o=${encodeURIComponent(JSON.stringify({ size: 1 }))}`,
     gatherFamilies: ["patentsview"],
     optionalKey: true,
-    acceptStatus: [200, 401, 403],
-    notes: "401/403 expected without PATENTSVIEW_API_KEY — marked skip",
+    notes: "ENOTFOUND common during USPTO ODP migration — gather free-falls to EPMC",
   },
 
   // ── Pathways / reactions ────────────────────────────────────────
@@ -346,11 +340,12 @@ export const PUBLIC_API_PROBE_DEFS: PublicProbeDef[] = [
   },
   {
     id: "rhea",
-    name: "Rhea reaction search",
+    name: "Rhea TSV search",
     organization: "SIB / EMBL-EBI",
     category: "reactions",
     url: `https://www.rhea-db.org/rhea/?query=${encodeURIComponent(Q)}&columns=rhea-id,equation&format=tsv&limit=3`,
     gatherFamilies: ["rhea"],
+    bodyMustMatch: "RHEA:|equation|Reaction",
   },
   {
     id: "reactome",
@@ -361,12 +356,14 @@ export const PUBLIC_API_PROBE_DEFS: PublicProbeDef[] = [
     gatherFamilies: ["reactome"],
   },
   {
-    id: "wikipathways",
-    name: "WikiPathways findPathwaysByText",
-    organization: "WikiPathways",
+    id: "wikipathways-via-pc",
+    name: "WikiPathways-class pathways via PC2",
+    organization: "WikiPathways / Pathway Commons",
     category: "pathways",
-    url: `https://webservice.wikipathways.org/findPathwaysByText?query=${encodeURIComponent(Q)}&format=json`,
+    url: `https://www.pathwaycommons.org/pc2/search?q=${encodeURIComponent(Q)}&type=Pathway&page=0`,
     gatherFamilies: ["wikipathways"],
+    bodyMustMatch: "searchHit|numHits",
+    notes: "Legacy WikiPathways webservice retired",
   },
   {
     id: "pathway-commons",
@@ -376,7 +373,6 @@ export const PUBLIC_API_PROBE_DEFS: PublicProbeDef[] = [
     url: `https://www.pathwaycommons.org/pc2/search?q=${encodeURIComponent(Q)}&type=Pathway&page=0`,
     gatherFamilies: ["pathway-commons"],
     bodyMustMatch: "searchHit|numHits",
-    notes: "No .json suffix — PC2 returns JSON from /search",
   },
   {
     id: "ord-site",
@@ -386,7 +382,6 @@ export const PUBLIC_API_PROBE_DEFS: PublicProbeDef[] = [
     url: "https://open-reaction-database.org/",
     gatherFamilies: ["ord"],
     acceptStatus: [200, 301, 302, 303, 307, 308],
-    notes: "SPA browse; reachability only (no bulk JSON API)",
   },
   {
     id: "orgsyn",
@@ -396,21 +391,28 @@ export const PUBLIC_API_PROBE_DEFS: PublicProbeDef[] = [
     url: `https://www.orgsyn.org/search.aspx?q=${encodeURIComponent(Q)}`,
     gatherFamilies: ["orgsyn"],
     acceptStatus: [200, 301, 302, 303, 307, 308],
-    notes: "HTML extract path — no bulk API",
   },
-
-  // ── Supporting ──────────────────────────────────────────────────
   {
-    id: "massbank",
-    name: "MassBank EU search",
+    id: "massbank-pubchem",
+    name: "MassBank-class via PubChem identity",
+    organization: "PubChem / MassBank",
+    category: "supporting",
+    url: `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encodeURIComponent(Q)}/property/MolecularFormula,Title,InChIKey/JSON`,
+    gatherFamilies: ["massbank"],
+    bodyMustMatch: "PropertyTable|MolecularFormula|InChIKey",
+    notes: "MassBank REST retired; gather uses PubChem + site deep link",
+  },
+  {
+    id: "massbank-site",
+    name: "MassBank EU site",
     organization: "MassBank",
     category: "supporting",
-    url: `https://massbank.eu/MassBank-api/search?compound.name=${encodeURIComponent(Q)}`,
+    url: "https://massbank.eu/MassBank/Search",
     gatherFamilies: ["massbank"],
+    acceptStatus: [200, 301, 302, 303, 307, 308],
   },
 ];
 
-/** Unique gather soft families covered by at least one probe def */
 export function coveredGatherFamilies(): string[] {
   const s = new Set<string>();
   for (const p of PUBLIC_API_PROBE_DEFS) {

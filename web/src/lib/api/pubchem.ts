@@ -424,9 +424,28 @@ export async function fetchPubChemProvenance(cid: number): Promise<{
   return { hit: result.hits[0] ?? null, traces: result.traces };
 }
 
-export function pubchemStructureUrl(cid: number, size: "small" | "large" = "large"): string {
+export type PubchemStructureSize = "small" | "large";
+
+/** Direct NIH PUG PNG URL (server-side proxy / diagnostics only). */
+export function pubchemStructureUpstreamUrl(
+  cid: number,
+  size: PubchemStructureSize = "large"
+): string {
   const dim = size === "small" ? "150x150" : "300x300";
   return `${PUG}/compound/cid/${cid}/PNG?image_size=${dim}`;
+}
+
+/**
+ * Browser-facing structure image URL.
+ * Goes through /api/pubchem/structure so the client never hits PubChem PNG
+ * (avoids console 503 spam when NIH is ServerBusy).
+ */
+export function pubchemStructureUrl(
+  cid: number,
+  size: PubchemStructureSize = "large"
+): string {
+  const s = size === "small" ? "small" : "large";
+  return `/api/pubchem/structure/${cid}?size=${s}`;
 }
 
 export function pubchemDeepLink(cid: number): string {
