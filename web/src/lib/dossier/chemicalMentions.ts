@@ -53,31 +53,78 @@ const KNOWN: Array<{
 const ROLE_NEAR =
   /\b(starting\s*material|substrate|reagent|solvent|catalyst|impurity|intermediate|base|acid|quench|antisolvent)\b/i;
 
+/** Process / manufacturing language near a mention */
+const PROCESS_CTX =
+  /\b(synthesis|synthesi[sz]|preparation|preparing|manufactur|reaction|reacted|solvent|reagent|catalyst|hydrogenat|crystalliz|equiv|eq\.|°\s*C|mmol|mol\b|work[\s-]?up|quench|starting material|intermediate|reflux|distill|extract|charge|batch|process chemistry|example\s+\d)\b/i;
+
+/**
+ * Common words that appear in clinical/biology prose without process meaning.
+ * Require process context window before accepting.
+ */
+const REQUIRE_PROCESS_CTX = new Set([
+  "glucose",
+  "dextrose",
+  "ethanol",
+  "ethyl alcohol",
+  "methanol",
+  "acetone",
+  "platinum",
+  "pt/c",
+  "hydrogen",
+  "h2 gas",
+  "lactose",
+]);
+
+function hasProcessContextNear(
+  hay: string,
+  matchIndex: number,
+  matchLen: number
+): boolean {
+  const start = Math.max(0, matchIndex - 100);
+  const end = Math.min(hay.length, matchIndex + matchLen + 100);
+  return PROCESS_CTX.test(hay.slice(start, end));
+}
+
 export function extractChemicalMentions(
   text: string,
-  opts?: { excludeName?: string }
+  opts?: { excludeName?: string; requireProcessContext?: boolean }
 ): RelatedEntity[] {
   if (!text || text.length < 12) return [];
   const hay = text.toLowerCase();
   const exclude = (opts?.excludeName || "").toLowerCase().trim();
+  const strict = opts?.requireProcessContext !== false;
   const out: RelatedEntity[] = [];
   const seen = new Set<string>();
 
   for (const k of KNOWN) {
     let hitName: string | null = null;
+    let matchIndex = -1;
+    let matchLen = 0;
     for (const n of k.names) {
       if (exclude && (n === exclude || exclude.includes(n))) continue;
       // word-boundary-ish match
       const re = new RegExp(
-        `(?:^|[^a-z0-9])${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[^a-z0-9]|$)`,
+        `(?:^|[^a-z0-9])(${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})(?:[^a-z0-9]|$)`,
         "i"
       );
-      if (re.test(hay)) {
+      const m = re.exec(hay);
+      if (m) {
         hitName = k.names[0];
+        matchIndex = m.index + (m[0].length - (m[1]?.length || n.length));
+        matchLen = (m[1] || n).length;
         break;
       }
     }
-    if (!hitName) continue;
+    if (!hitName || matchIndex < 0) continue;
+
+    // Noisy commons (glucose, ethanol, platinum…) need process context
+    const needsCtx =
+      strict &&
+      k.names.some((n) => REQUIRE_PROCESS_CTX.has(n.toLowerCase()));
+    if (needsCtx && !hasProcessContextNear(hay, matchIndex, matchLen)) {
+      continue;
+    }
+
     const key = `${k.role}:${hitName}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -122,21 +169,27 @@ export function materialsFromMentions(entities: RelatedEntity[]): Material[] {
     .slice(0, 16);
 }
 
-/** Pull free-public blobs for mention scan. */
+/** Pull free-public blobs for mention scan (prefer process-dense sources). */
 export function evidenceTextBlob(parts: {
   manufacturingTexts?: string[];
   literature?: Array<{ title: string; abstract?: string }>;
   patents?: Array<{ title?: string; abstract?: string }>;
   processFactQuotes?: string[];
+  procedureExcerpts?: Array<{ text?: string } | string>;
 }): string {
+  const excerpts = (parts.procedureExcerpts || []).map((e) =>
+    typeof e === "string" ? e : e.text || ""
+  );
   return [
     ...(parts.manufacturingTexts || []),
-    ...(parts.literature || [])
-      .slice(0, 12)
-      .map((h) => `${h.title} ${h.abstract || ""}`),
+    ...excerpts.slice(0, 16),
+    ...(parts.processFactQuotes || []).slice(0, 24),
+    // Patents first (structured process IP), then literature
     ...(parts.patents || [])
-      .slice(0, 12)
+      .slice(0, 10)
       .map((p) => `${p.title || ""} ${p.abstract || ""}`),
-    ...(parts.processFactQuotes || []),
+    ...(parts.literature || [])
+      .slice(0, 8)
+      .map((h) => `${h.title} ${h.abstract || ""}`),
   ].join("\n");
 }

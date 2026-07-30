@@ -12,7 +12,7 @@
 
 import { fetchJsonWithTrace, type ApiFetchTrace } from "@/lib/api/trace";
 import { politeDelay } from "@/lib/api/rateLimit";
-import type { PatentHit } from "@/lib/api/patentsView";
+import { isStructuredPatentHit, type PatentHit } from "@/lib/api/patentsView";
 import { extractProcessWindowsFromFullText } from "@/lib/api/europePmc";
 import {
   rankByProcedureWindow,
@@ -21,10 +21,13 @@ import {
 
 /**
  * Normalize patent numbers to PubChem PUG View accession form, e.g. US-10029448-B2.
+ * Reject bare PMIDs (6–9 digits with no US/authority prefix).
  */
 export function normalizePubChemPatentAccession(raw: string): string | null {
   const s = raw.replace(/\s+/g, "").toUpperCase();
   if (!s) return null;
+  // Never treat PubMed / MED ids as US patents
+  if (/^MED[:\s-]?\d+$/i.test(s) || /^PMID[:\s-]?\d+$/i.test(s)) return null;
   // Already US-1234567-A1
   if (/^US-\d+[A-Z0-9-]*$/i.test(s)) return s;
   // US10029448B2 or US10029448
@@ -33,8 +36,10 @@ export function normalizePubChemPatentAccession(raw: string): string | null {
     const kind = m[2] || "A";
     return `US-${m[1]}-${kind}`;
   }
-  // 10029448.pn style
-  const n = s.match(/^(\d{6,})([A-Z]\d*)?$/);
+  // Bare 6–9 digit numbers are often PMIDs mislabeled as patents — refuse
+  if (/^\d{6,9}$/.test(s)) return null;
+  // Longer digit runs with optional kind suffix (true patent serials)
+  const n = s.match(/^(\d{7,})([A-Z]\d*)?$/);
   if (n) return `US-${n[1]}-${n[2] || "A"}`;
   return null;
 }
@@ -72,14 +77,18 @@ export async function densifyUsPatentsWithPubchem(
 ): Promise<{ hits: PatentHit[]; traces: ApiFetchTrace[] }> {
   const max = opts.max ?? 4;
   const traces: ApiFetchTrace[] = [];
-  const ranked = rankByProcedureWindow(hits, (h) =>
+  const structured = hits.filter((h) => isStructuredPatentHit(h));
+  const ranked = rankByProcedureWindow(structured, (h) =>
     [h.procedureExcerpt, h.abstract, h.title].filter(Boolean).join("\n")
   );
-  const out = ranked.map((h) => ({ ...h }));
+  // Preserve full hit list; only densify structured US patents
+  const out = hits.map((h) => ({ ...h }));
   let n = 0;
 
-  for (let i = 0; i < out.length && n < max; i++) {
-    const h = out[i]!;
+  for (let i = 0; i < ranked.length && n < max; i++) {
+    const rankedHit = ranked[i]!;
+    const h = out.find((x) => x.id === rankedHit.id);
+    if (!h || !isStructuredPatentHit(h)) continue;
     if (h.procedureExcerpt && h.procedureExcerpt.length > 400) continue;
     if (
       scoreProcedureWindow(`${h.title}\n${h.abstract || ""}`) < 0 &&
@@ -88,12 +97,15 @@ export async function densifyUsPatentsWithPubchem(
       continue;
     }
     const num = (h.patentNumber || h.id || "").replace(/\s+/g, "");
-    if (!/^US/i.test(num) && !/^\d{6,}/.test(num)) continue;
+    // Require US authority for PubChem PUG View patent densify
+    if (!/^US/i.test(num) && !/US[-_]?\d/i.test(h.id || "")) continue;
 
     const accession =
       normalizePubChemPatentAccession(num) ||
       normalizePubChemPatentAccession(h.patentNumber || "") ||
-      normalizePubChemPatentAccession(h.id);
+      normalizePubChemPatentAccession(
+        (h.id || "").replace(/^pubchem-patent:/i, "")
+      );
     if (!accession) continue;
 
     // PUG View patent record (free public; works when PUG /patent/ domain fails)

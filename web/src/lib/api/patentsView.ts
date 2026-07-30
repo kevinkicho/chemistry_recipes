@@ -28,6 +28,54 @@ export interface PatentHit {
   url: string;
 }
 
+/**
+ * True when hit is a real patent / patent-family record, not clinical literature
+ * mis-bucketed as a patent (epmc-patlit:MED:…, bare PMIDs).
+ */
+export function isStructuredPatentHit(p: {
+  id?: string;
+  patentNumber?: string;
+  title?: string;
+}): boolean {
+  const id = String(p.id || "");
+  const num = String(p.patentNumber || "").trim();
+  // Explicit literature-adjacent path — never a patent
+  if (/epmc-patlit/i.test(id)) return false;
+  if (/:MED:|\/MED\//i.test(id) || /^MED:/i.test(num)) return false;
+  // PubChem compound patent xrefs
+  if (/^pubchem-patent:/i.test(id)) return true;
+  // Europe PMC patent corpus
+  if (/^epmc-pat:PAT/i.test(id) || /^epmc-pat:/i.test(id)) {
+    // Only if number looks like an authority patent id, not a bare PMID
+    if (/^(US|EP|WO|CN|JP|KR|AU|CA|IN|PAT)[-\s_]?\d/i.test(num)) return true;
+    if (/^PAT/i.test(num) || /[A-Z]{2}\d{5,}/i.test(num.replace(/[^A-Za-z0-9]/g, "")))
+      return true;
+    // SRC:PAT records sometimes use PAT:CN… as id already
+    if (/PAT[:\s]/i.test(id) && /[A-Z]{2}/i.test(num)) return true;
+    // Reject pure numeric "patent numbers" (PubMed IDs)
+    if (/^\d{5,9}$/.test(num.replace(/\D/g, "")) && !/[A-Za-z]{2}/.test(num)) {
+      return false;
+    }
+  }
+  // Authority-prefixed numbers (USPTO, EPO, WIPO, CNIPA, …)
+  if (/^(US|EP|WO|CN|JP|KR|AU|CA|IN)[-\s_]?\d/i.test(num)) return true;
+  if (/^US[-\s]?\d{6,}/i.test(num.replace(/\s+/g, ""))) return true;
+  // PatentsView-style ids
+  if (/patentsview|patent_id/i.test(id)) return true;
+  // Last resort: reject bare 6–9 digit PMIDs dressed as patents
+  if (/^\d{6,9}$/.test(num) && !/[A-Za-z]/.test(num)) return false;
+  // Keep unknown non-MED ids (may be PV or other free backends)
+  if (id && !/MED/i.test(id)) return true;
+  return false;
+}
+
+/** Filter patent-bucket arrays to structured patents only. */
+export function filterStructuredPatents<T extends { id?: string; patentNumber?: string }>(
+  hits: T[]
+): T[] {
+  return hits.filter((h) => isStructuredPatentHit(h));
+}
+
 export interface PatentSearchResult {
   query: string;
   hits: PatentHit[];

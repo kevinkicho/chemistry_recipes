@@ -11,6 +11,8 @@ import type {
 } from "@/lib/types/process";
 import { routes } from "@/lib/routes";
 import { extractChemicalMentions } from "@/lib/dossier/chemicalMentions";
+import { looksLikeProcessLiterature } from "@/lib/dossier/evidenceFilter";
+import { isStructuredPatentHit } from "@/lib/api/patentsView";
 
 const ROLE_MAP: Record<string, EntityRole> = {
   "starting-material": "starting-material",
@@ -124,10 +126,18 @@ export function relatedFromRoutes(processRoutes: ProcessRoute[]): RelatedEntity[
 export function relatedFromEvidenceText(
   evidence: CompoundEvidence
 ): RelatedEntity[] {
+  // Prefer manufacturing + process literature/patents — clinical abstracts
+  // were flooding related entities with Glucose / Ethanol / Platinum noise.
+  const processLit = evidence.literature
+    .filter((h) => looksLikeProcessLiterature(h.title, h.abstract))
+    .slice(0, 10);
+  const processPatents = evidence.patents
+    .filter((p) => isStructuredPatentHit(p))
+    .slice(0, 10);
   const texts = [
     ...(evidence.view?.manufacturingTexts || []),
-    ...evidence.literature.slice(0, 10).map((h) => `${h.title} ${h.abstract || ""}`),
-    ...evidence.patents.slice(0, 10).map((p) => `${p.title || ""} ${p.abstract || ""}`),
+    ...processLit.map((h) => `${h.title} ${h.abstract || ""}`),
+    ...processPatents.map((p) => `${p.title || ""} ${p.abstract || ""}`),
   ].join("\n");
 
   const out: RelatedEntity[] = [];
@@ -136,6 +146,7 @@ export function relatedFromEvidenceText(
   // Named process chemicals (known public teaching set — only if text contains them)
   for (const e of extractChemicalMentions(texts, {
     excludeName: evidence.identity?.name,
+    requireProcessContext: true,
   })) {
     const key = `${e.role}:${e.name.toLowerCase()}`;
     if (seen.has(key)) continue;
@@ -143,10 +154,14 @@ export function relatedFromEvidenceText(
     out.push(e);
   }
 
-  // CAS RN mentions
+  // CAS RN mentions — only from manufacturing / process patent windows
+  const casBlob = [
+    ...(evidence.view?.manufacturingTexts || []),
+    ...processPatents.map((p) => `${p.title || ""} ${p.abstract || ""}`),
+  ].join("\n");
   const casRe = /\b(\d{2,7}-\d{2}-\d)\b/g;
   let m: RegExpExecArray | null;
-  while ((m = casRe.exec(texts)) !== null) {
+  while ((m = casRe.exec(casBlob)) !== null) {
     const cas = m[1];
     if (seen.has(cas)) continue;
     if (evidence.identity?.cas && cas === evidence.identity.cas) continue;
@@ -155,7 +170,7 @@ export function relatedFromEvidenceText(
       role: "other",
       name: `CAS ${cas}`,
       cas,
-      notes: "CAS mentioned in public manufacturing, literature, or patent text",
+      notes: "CAS mentioned in public manufacturing or patent text",
     });
     if (out.length >= 16) break;
   }

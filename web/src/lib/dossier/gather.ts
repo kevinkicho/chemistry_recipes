@@ -16,6 +16,8 @@ import { searchOpenAlexProcess } from "@/lib/api/openAlex";
 import {
   searchPatentsView,
   searchPatentLiterature,
+  isStructuredPatentHit,
+  filterStructuredPatents,
 } from "@/lib/api/patentsView";
 import { fetchChemblByName } from "@/lib/api/chembl";
 import { fetchMyChemByName } from "@/lib/api/mychem";
@@ -680,21 +682,24 @@ export async function gatherCompoundEvidenceLive(
   traces.push(...oaEnrich.traces);
 
   const patentMap = new Map<string, (typeof pvResult.hits)[0]>();
-  for (const p of pvResult.hits) patentMap.set(p.id, p);
-  for (const p of patentLitResult.hits) {
-    if (!patentMap.has(p.id)) patentMap.set(p.id, p);
+  // Real patents only — do NOT merge patent-adjacent literature (epmc-patlit:MED:…)
+  // into the patents bucket (pollutes densify + "28 patents" UI).
+  // patentLitResult stays traced for soft-family health; process lit already covers papers.
+  for (const p of pvResult.hits) {
+    if (isStructuredPatentHit(p)) patentMap.set(p.id, p);
   }
   for (const p of epmcPatResult.hits) {
-    if (!patentMap.has(p.id)) patentMap.set(p.id, p);
+    if (isStructuredPatentHit(p) && !patentMap.has(p.id)) patentMap.set(p.id, p);
   }
   // PubChem patent xrefs (always free) fill IP coverage when PatentsView key is absent
   for (const p of patentHitsFromPubchemIds(pubchemPatentIds.ids, name)) {
+    if (!isStructuredPatentHit(p)) continue;
     const key = p.patentNumber || p.id;
     if (![...patentMap.values()].some((x) => x.patentNumber === key || x.id === p.id)) {
       patentMap.set(p.id, p);
     }
   }
-  let patents = [...patentMap.values()].slice(0, 28);
+  let patents = filterStructuredPatents([...patentMap.values()]).slice(0, 28);
   const patentEnrich = await soft(
     "patent-epmc-densify",
     enrichPatentHitsWithEpmc(patents, { max: 8 }),

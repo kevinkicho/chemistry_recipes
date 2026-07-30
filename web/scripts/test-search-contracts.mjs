@@ -81,5 +81,9 @@ ok("SEARCH-05 densify uses streamBatchDensifyCids", /streamBatchDensifyCids/.tes
 // SEARCH-06 no invent / openable honesty
 ok("SEARCH-06 MultiSourceHit openable field", /openable/.test(multi));
 ok("SEARCH-06 results separate openable vs identity-only", /openable|identityOnly/.test(results));
+ok(
+  "SEARCH-06 consolidate case/identity clones into openable CIDs",
+  /consolidateIdentityHits|Fold case|identity-only clones/i.test(multi)
+);
 
 console.log(`\n${passed} search-contract checks passed`);

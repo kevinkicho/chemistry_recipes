@@ -97,6 +97,23 @@ function keyOf(h: {
   return `name:${h.name.toLowerCase().trim()}`;
 }
 
+function normName(n: string): string {
+  return n.toLowerCase().trim().replace(/\s+/g, " ");
+}
+
+function mergeSources(
+  a: MultiSourceRef[],
+  b: MultiSourceRef[]
+): MultiSourceRef[] {
+  const out = [...a];
+  for (const s of b) {
+    if (!out.some((x) => x.source === s.source && x.externalId === s.externalId)) {
+      out.push(s);
+    }
+  }
+  return out;
+}
+
 function mergeHit(
   map: Map<string, MultiSourceHit>,
   partial: MultiSourceHit
@@ -107,12 +124,7 @@ function mergeHit(
     map.set(k, partial);
     return;
   }
-  const sources = [...prev.sources];
-  for (const s of partial.sources) {
-    if (!sources.some((x) => x.source === s.source && x.externalId === s.externalId)) {
-      sources.push(s);
-    }
-  }
+  const sources = mergeSources(prev.sources, partial.sources);
   map.set(k, {
     cid: prev.cid || partial.cid,
     name: prev.name.length >= partial.name.length ? prev.name : partial.name,
@@ -130,6 +142,58 @@ function mergeHit(
     ) || undefined,
     note: prev.note || partial.note,
   });
+}
+
+/**
+ * Fold identity-only rows (case variants / same InChIKey without CID) into
+ * openable CID rows. Keeps salt/form variants that have their own CID.
+ */
+function consolidateIdentityHits(hits: MultiSourceHit[]): MultiSourceHit[] {
+  const openable = hits
+    .filter((h) => h.cid && h.cid > 0)
+    .map((h) => ({
+      ...h,
+      sources: [...h.sources],
+      openable: true as boolean,
+    }));
+  const identityOnly = hits.filter((h) => !h.cid || h.cid <= 0);
+
+  function findTarget(h: MultiSourceHit): MultiSourceHit | undefined {
+    if (h.inchiKey) {
+      const ik = h.inchiKey.toUpperCase();
+      const byIk = openable.find(
+        (o) => o.inchiKey && o.inchiKey.toUpperCase() === ik
+      );
+      if (byIk) return byIk;
+    }
+    const nn = normName(h.name);
+    if (!nn) return undefined;
+    return openable.find((o) => normName(o.name) === nn);
+  }
+
+  const leftover: MultiSourceHit[] = [];
+  for (const h of identityOnly) {
+    const t = findTarget(h);
+    if (!t) {
+      leftover.push(h);
+      continue;
+    }
+    t.sources = mergeSources(t.sources, h.sources);
+    t.score = Math.max(t.score, h.score) + 2;
+    t.processLiteratureCount =
+      Math.max(t.processLiteratureCount || 0, h.processLiteratureCount || 0) ||
+      undefined;
+    t.note = t.note || h.note;
+    t.formula = t.formula || h.formula;
+    t.molecularWeight = t.molecularWeight ?? h.molecularWeight;
+    t.cas = t.cas || h.cas;
+    t.inchiKey = t.inchiKey || h.inchiKey;
+    t.unii = t.unii || h.unii;
+    // Prefer Title Case / longer display name from PubChem when available
+    if (h.name.length > t.name.length) t.name = h.name;
+  }
+
+  return [...openable, ...leftover];
 }
 
 function fromPubChem(h: PubChemHit, boost = 0): MultiSourceHit {
@@ -699,14 +763,26 @@ export async function multiSourceSearch(
       }
     }
     if (!attached) {
-      mergeHit(map, {
-        name: q,
-        sources: [ref],
-        score: 12 + Math.min(10, nLit),
-        openable: false,
-        processLiteratureCount: nLit,
-        note: top.title.slice(0, 120),
-      });
+      // Prefer attaching to best openable hit — never spawn a dead name-only row
+      // from literature alone (that caused case-variant search clutter).
+      const best = [...map.values()]
+        .filter((h) => h.cid && h.cid > 0)
+        .sort((a, b) => b.score - a.score)[0];
+      if (best) {
+        const k = keyOf(best);
+        const cur = map.get(k) || best;
+        map.set(k, {
+          ...cur,
+          processLiteratureCount: Math.max(
+            cur.processLiteratureCount || 0,
+            nLit
+          ),
+          score: cur.score + Math.min(10, nLit * 2),
+          sources: cur.sources.some((s) => s.source === source)
+            ? cur.sources
+            : [...cur.sources, ref],
+        });
+      }
     }
     sourceStatus.push({
       source,
@@ -824,8 +900,8 @@ export async function multiSourceSearch(
     });
   }
 
-  // Prefer openable CIDs; still surface multi-source identity rows without CID
-  const hits = [...map.values()]
+  // Fold case / InChIKey identity-only clones into openable CID rows
+  const hits = consolidateIdentityHits([...map.values()])
     .map((h) => ({
       ...h,
       openable: Boolean(h.cid && h.cid > 0),
