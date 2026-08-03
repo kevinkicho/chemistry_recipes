@@ -10,14 +10,14 @@ export function Footer() {
           sources such as PubChem (NIH). Not regulatory decision support.
         </p>
         <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-500">
-          <Link href={routes.info()} className="hover:text-amber-300/90">
-            Info · demos & mock data
+          <Link href={routes.search()} className="hover:text-teal-400">
+            Live search
           </Link>
           <Link href={routes.sources()} className="hover:text-teal-400">
             Free API registry
           </Link>
-          <Link href={routes.search()} className="hover:text-teal-400">
-            Search
+          <Link href={routes.diagnostics()} className="hover:text-teal-400">
+            Diagnostics
           </Link>
           <Link href={routes.aiSettings()} className="hover:text-teal-400">
             AI settings

@@ -137,13 +137,9 @@ export default function WorkspacePage() {
       </h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
         Local-first project library for process teams. Pin{" "}
-        <strong className="font-medium text-slate-300">live</strong> dossiers from Search,
-        add tech-transfer notes, export project JSON, and compare two pins. (Optional demo
-        pins from{" "}
-        <Link href={routes.info()} className="text-amber-300/90 hover:underline">
-          Info
-        </Link>{" "}
-        stay labeled as for-show.) Data stays in this browser (localStorage).
+        <strong className="font-medium text-slate-300">live</strong> densify dossiers from
+        Search, add tech-transfer notes, export project JSON, and compare two pins. Data stays
+        in this browser (localStorage). No mock example pins.
       </p>
       <div className="mt-4">
         <RegulatoryDisclaimer compact />
@@ -285,11 +281,7 @@ export default function WorkspacePage() {
               <Link href={routes.search()} className="text-teal-400 hover:underline">
                 live Search
               </Link>{" "}
-              to pin real dossiers. Optional teaching demos are under{" "}
-              <Link href={routes.info()} className="text-amber-300/90 hover:underline">
-                Info
-              </Link>
-              .
+              to pin free-public densify dossiers.
             </div>
           ) : (
             <div className="space-y-4">

@@ -52,9 +52,10 @@ ok("enrich emphasizes scout", /emphasize/.test(enrich));
 ok("enrich logs paste to work pack", /addWorkPackPaste/.test(enrich));
 ok(
   "home live densify primary",
-  /live AI densify|Live AI densify|Open live search|free-public densify/i.test(home)
+  /live densify|Open live search|free-public densify|AI dual-view/i.test(home)
 );
 ok("home densify step", /Densify|Paste public patent|dual-view/i.test(home));
+ok("home has no Training/Info mock CTA", !/Training packs|Info hub \(demos/i.test(home));
 ok("print CSS operator floor", /monday-pack|operator-job-aid/.test(css));
 
 // Executable role visibility

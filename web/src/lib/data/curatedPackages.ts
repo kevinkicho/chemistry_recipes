@@ -1,6 +1,6 @@
 /**
- * Single curated teaching package entry (Aspirin) pointing at LIVE densify.
- * Not a mock dossier body — links to free-public PubChem CID only.
+ * Curated / teaching packages retired from the live product.
+ * Live work is free-public densify + AI dual-view for any CID.
  */
 
 import type {
@@ -12,8 +12,7 @@ import type {
 import { routes } from "@/lib/routes";
 
 export const PACKAGE_CATALOG_DISCLAIMER =
-  "Single teaching pointer (Aspirin → live PubChem densify). Not GMP, not a mock plant package. " +
-  "Live work is free-public multi-API densify + AI dual-view for any CID.";
+  "No curated mock packages in the live app. Use Search → free-public densify + AI dual-view.";
 
 export type PackageDepth = "deep" | "standard" | "pointer";
 
@@ -40,46 +39,16 @@ export interface CuratedPackage {
   }>;
 }
 
-const PACKAGES: CuratedPackage[] = [
-  {
-    id: "pkg-aspirin",
-    name: "Aspirin",
-    tier: "B",
-    depth: "standard",
-    modality: "small-molecule",
-    entityRole: "api",
-    cas: "50-78-2",
-    formula: "C9H8O4",
-    pubchemCid: 2244,
-    tags: ["teaching-pointer", "live-densify"],
-    summary:
-      "Teaching pointer only — opens live free-public densify + AI dual-view for PubChem CID 2244 (not a mock dossier body).",
-    scaleHints: ["kilo", "pilot", "commercial"],
-    parameterSetId: "small-molecule",
-    related: [
-      {
-        role: "starting-material",
-        name: "Salicylic acid",
-        cas: "69-72-7",
-        pubchemCid: 338,
-      },
-      {
-        role: "reagent",
-        name: "Acetic anhydride",
-        cas: "108-24-7",
-        pubchemCid: 7918,
-      },
-    ],
-  },
-];
+/** Empty — no teaching mock catalog on the live product. */
+const PACKAGES: CuratedPackage[] = [];
 
 export function getAllCuratedPackages(): CuratedPackage[] {
   return PACKAGES;
 }
 
 export function getCuratedPackageById(id: string): CuratedPackage | undefined {
-  const key = id.trim().toLowerCase();
-  return PACKAGES.find((p) => p.id.toLowerCase() === key);
+  void id;
+  return undefined;
 }
 
 export function filterCuratedPackages(
@@ -91,21 +60,11 @@ export function filterCuratedPackages(
     depth?: string;
   } = {}
 ): CuratedPackage[] {
-  const q = opts.q?.trim().toLowerCase() || "";
-  return PACKAGES.filter((p) => {
-    if (opts.modality && p.modality !== opts.modality) return false;
-    if (opts.role && p.entityRole !== opts.role) return false;
-    if (opts.tier && p.tier !== opts.tier) return false;
-    if (opts.depth && p.depth !== opts.depth) return false;
-    if (!q) return true;
-    const hay = [p.name, p.cas, p.summary, p.formula, ...(p.tags || [])]
-      .join(" ")
-      .toLowerCase();
-    return hay.includes(q);
-  });
+  void opts;
+  return [];
 }
 
-/** Always live PubChem densify — never mock example routes. */
+/** Always live PubChem densify — never mock package bodies. */
 export function packageHref(p: CuratedPackage): string {
   if (p.pubchemCid) return routes.pubchem(p.pubchemCid);
   return routes.search(p.name);

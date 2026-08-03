@@ -29,10 +29,6 @@ export default async function SearchPage({ searchParams }: Props) {
         </strong>
         . Hits merge toward openable{" "}
         <strong className="font-medium text-slate-300">live multi-API dossiers</strong>
-        . Teaching packages live under{" "}
-        <Link href={routes.info()} className="text-amber-300/90 hover:underline">
-          Info
-        </Link>
         .
       </p>
       <div className="mt-6 max-w-xl">

@@ -1,6 +1,6 @@
 /**
  * Problem-first search expanded with free-public multi-source fan-out.
- * Local hub/packages first; then molecule multi-search + process literature.
+ * Live hub (empty by default) + multi-search + process literature — no teaching packages.
  */
 
 import {
@@ -21,7 +21,7 @@ export const PROBLEM_MULTI_SCHEMA =
 export interface ProblemMultiSearchResult {
   schema: typeof PROBLEM_MULTI_SCHEMA;
   q: string;
-  /** Local hub + package + training hits */
+  /** Local hub hits (empty unless hub resilience index is populated) */
   localHits: ProblemSearchHit[];
   /** Openable multi-source molecule hits */
   moleculeHits: MultiSourceHit[];
@@ -37,7 +37,7 @@ export interface ProblemMultiSearchResult {
 function litToProblemHit(h: LiteratureHit, score: number): ProblemSearchHit {
   return {
     id: `lit-${h.id}`,
-    kind: "package", // closest existing kind for teaching/process lit
+    kind: "literature",
     title: h.title.slice(0, 120),
     subtitle: [
       h.source,

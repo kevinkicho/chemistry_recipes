@@ -65,13 +65,6 @@ export function Header() {
           >
             Science lab
           </Link>
-          <Link
-            href={routes.info()}
-            className="rounded-md border border-slate-600/60 bg-slate-900/50 px-2.5 py-1.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800"
-            title="Curated demos and teaching data — not live densify results"
-          >
-            Training
-          </Link>
           <GoogleSignInButton />
           <Suspense
             fallback={

@@ -31,10 +31,15 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
-      // Legacy About → Info hub (curated / mock only)
-      { source: "/about", destination: "/info", permanent: true },
-      // Catalog is teaching index; keep path for Info deep-links (no longer top-nav)
-      // Old redirect to search removed so /catalog stays under "for show"
+      // Mock / teaching hubs retired — live densify only
+      { source: "/info", destination: "/search", permanent: false },
+      { source: "/about", destination: "/search", permanent: false },
+      { source: "/catalog", destination: "/search", permanent: false },
+      { source: "/catalog/:path*", destination: "/search", permanent: false },
+      { source: "/packages", destination: "/search", permanent: false },
+      { source: "/packages/:path*", destination: "/search", permanent: false },
+      { source: "/examples", destination: "/search", permanent: false },
+      { source: "/examples/:path*", destination: "/search", permanent: false },
       { source: "/molecules/:slug*", destination: "/search", permanent: false },
       { source: "/molecule/cid/:cid", destination: "/compounds/pubchem/:cid", permanent: true },
       { source: "/molecule/:id", destination: "/search", permanent: false },

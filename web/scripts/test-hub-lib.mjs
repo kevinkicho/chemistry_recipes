@@ -99,21 +99,16 @@ const packagesSrc = readFileSync(
   join(__dir, "../src/lib/data/curatedPackages.ts"),
   "utf8"
 );
-// Product: one teaching package (Aspirin) → live CID only (no mock body).
+// Product: no curated mock packages on the live app.
 ok(
-  "curated package catalog is minimal teaching pointer (Aspirin)",
-  packagesSrc.includes('name: "Aspirin"') &&
-    packagesSrc.includes("pubchemCid: 2244") &&
-    packagesSrc.includes("Teaching pointer")
+  "curated package catalog empty (no mocks)",
+  packagesSrc.includes("PACKAGES: CuratedPackage[] = []") ||
+    packagesSrc.includes("const PACKAGES: CuratedPackage[] = []")
 );
 ok(
   "curated package catalog is not a 100+ mock farm",
   !packagesSrc.includes("Master seed list (~100)") &&
-    (packagesSrc.match(/name:\s*"/g) || []).length <= 8
-);
-ok(
-  "no exampleId mock path on aspirin package",
-  !packagesSrc.includes('exampleId: "aspirin"')
+    !packagesSrc.includes('name: "Aspirin"')
 );
 
 const bioSrc = readFileSync(

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type { LiveDossier } from "@/lib/dossier/types";
 import {
   assessIdealPageParity,
@@ -9,7 +8,6 @@ import {
 } from "@/lib/dossier/idealPage";
 import { ContentProvenance } from "@/components/ContentProvenance";
 import { slimTraces } from "@/lib/api/trace";
-import { routes } from "@/lib/routes";
 
 const SOURCE_STYLE: Record<IdealFillSource, string> = {
   empty: "bg-slate-800 text-slate-500 ring-slate-700",
@@ -55,10 +53,10 @@ export function IdealPageParityPanel({
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-200/90">
-            Ideal page · curated Tier-A goal
+            Ideal page · live densify depth
           </p>
           <h2 className="mt-1 text-sm font-semibold text-slate-50">
-            Depth toward teaching dual-view complete
+            Depth toward process dual-view complete
           </h2>
           <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-slate-500">
             {parity.goal}
@@ -105,27 +103,9 @@ export function IdealPageParityPanel({
       <p className="mt-2 text-xs text-slate-300">{parity.summary}</p>
       <p className="mt-1 text-[11px] text-slate-500">
         {parity.filledCount}/{parity.totalCount} ideal sections with content
-        {parity.preferredIsTeaching
-          ? " · preferred route is Tier-A teaching (labeled)"
-          : ""}
       </p>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        {parity.hubExampleHref ? (
-          <Link
-            href={parity.hubExampleHref}
-            className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-100 hover:bg-amber-500/20"
-          >
-            Open curated ideal twin →
-          </Link>
-        ) : (
-          <Link
-            href={routes.info()}
-            className="rounded-lg border border-slate-700 px-2.5 py-1 text-[11px] text-slate-400 hover:border-amber-500/30"
-          >
-            Browse Tier-A ideals (Info)
-          </Link>
-        )}
         {onScroll ? (
           <>
             <button

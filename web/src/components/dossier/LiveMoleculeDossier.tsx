@@ -1470,13 +1470,6 @@ export function LiveMoleculeDossier({
           <Link href={routes.search()} className="text-sm text-teal-400 hover:underline">
             ← Back to search
           </Link>
-          <span className="mx-2 text-slate-700">·</span>
-          <Link
-            href={routes.info()}
-            className="text-sm text-amber-300/80 hover:text-amber-200"
-          >
-            Info · demos &amp; mock packages
-          </Link>
         </div>
       </div>
     </div>

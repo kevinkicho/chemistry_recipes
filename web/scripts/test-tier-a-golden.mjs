@@ -46,8 +46,12 @@ const catalog = read("lib/data/hubCatalog.ts");
 ok("hub catalog has no sample LIVE_HUB entries", /const LIVE_HUB[\s\S]*=\s*\[\s*\];/.test(catalog) || /LIVE_HUB[\s\S]*=\s*\[\]/.test(catalog));
 
 const packages = read("lib/data/curatedPackages.ts");
-ok("one teaching pointer Aspirin", packages.includes('name: "Aspirin"') && packages.includes("pubchemCid: 2244"));
-ok("packages point live not mock exampleId", !packages.includes('exampleId: "aspirin"'));
+ok(
+  "curated packages empty on live product",
+  packages.includes("const PACKAGES: CuratedPackage[] = []") ||
+    packages.includes("PACKAGES: CuratedPackage[] = []")
+);
+ok("no aspirin mock package entry", !packages.includes('name: "Aspirin"'));
 
 // Accuracy policy still present
 ok(

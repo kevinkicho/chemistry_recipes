@@ -1,30 +1,23 @@
 /**
- * Canonical app routes.
- *
- * | Path | Purpose |
- * |------|---------|
- * | `/` | Home (live tools) |
- * | `/info` | **For show** — curated dossiers, mock pages, packages, teaching data |
- * | `/search` | PubChem (NIH) free public search — **live** |
- * | `/workspace` | Local-first project library — **live** |
- * | `/sources` | Free public API registry — **live** |
- * | `/compounds/pubchem/[cid]` | Live PubChem + API dossier |
- * | `/examples/[id]` | Curated example dossiers (Info hub) |
- * | `/packages` | Educational packages (Info hub) |
+ * Canonical app routes — live densify only.
+ * Mock/teaching paths (/info, /examples, /packages, /catalog) redirect to /search.
  */
 
 export const routes = {
   home: () => "/",
-  /**
-   * Info hub: all curated / mock / teaching content.
-   * Prefer this over scattered Catalog/Packages top-nav links.
-   */
-  info: () => "/info",
-  /** @deprecated use routes.info() — kept for old links */
-  about: () => "/info",
-  catalog: () => "/catalog",
-  packages: () => "/packages",
-  package: (id: string) => `/packages/${encodeURIComponent(id)}`,
+  /** @deprecated mock hub retired — redirects to search */
+  info: () => "/search",
+  /** @deprecated */
+  about: () => "/search",
+  /** @deprecated mock catalog retired */
+  catalog: () => "/search",
+  /** @deprecated mock packages retired */
+  packages: () => "/search",
+  /** @deprecated */
+  package: (id: string) => {
+    void id;
+    return "/search";
+  },
   /**
    * Workspace. Optional deep-links:
    * - campaign: select science campaign id
@@ -64,8 +57,11 @@ export const routes = {
   aiSettings: () => "/?ai=1",
   /** Free PubChem (NIH) live compound page */
   pubchem: (cid: number | string) => `/compounds/pubchem/${cid}`,
-  /** Curated example dossier (demo only — under Info) */
-  example: (id: string) => `/examples/${id}`,
+  /** @deprecated mock examples retired — redirects to search */
+  example: (id: string) => {
+    void id;
+    return "/search";
+  },
 } as const;
 
 /** Match PubChem card: `/compounds/pubchem/2244` */

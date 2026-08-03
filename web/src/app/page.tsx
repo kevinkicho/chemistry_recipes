@@ -29,36 +29,21 @@ export default function HomePage() {
             .
           </p>
 
-          {/* Primary journey: live AI dossier first */}
-          <div className="mt-8 grid max-w-3xl gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-teal-500/35 bg-teal-500/10 p-4 ring-1 ring-teal-400/20">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-teal-200">
-                Primary · live AI dossier
-              </p>
-              <p className="mt-1 text-sm text-slate-200">
-                Search any drug → open CID → free-public densify + AI dual-view process pack.
-              </p>
-              <Link
-                href={routes.search()}
-                className="mt-3 inline-flex rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-500"
-              >
-                Open live search →
-              </Link>
-            </div>
-            <div className="rounded-xl border border-slate-600/50 bg-slate-900/50 p-4 ring-1 ring-slate-600/30">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                Optional · teaching pointer
-              </p>
-              <p className="mt-1 text-sm text-slate-300">
-                One Aspirin package → opens live PubChem densify (CID 2244), not a mock dossier.
-              </p>
-              <Link
-                href={routes.pubchem(2244)}
-                className="mt-3 inline-flex rounded-lg border border-slate-600 bg-slate-800/80 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
-              >
-                Try Aspirin live densify →
-              </Link>
-            </div>
+          {/* Primary journey: live AI dossier */}
+          <div className="mt-8 max-w-xl rounded-xl border border-teal-500/35 bg-teal-500/10 p-4 ring-1 ring-teal-400/20">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-teal-200">
+              Live densify + AI dual-view
+            </p>
+            <p className="mt-1 text-sm text-slate-200">
+              Search any drug → open CID → free-public multi-API densify + AI dual-view process pack.
+              No mock plant dossiers.
+            </p>
+            <Link
+              href={routes.search()}
+              className="mt-3 inline-flex rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-500"
+            >
+              Open live search →
+            </Link>
           </div>
 
           <div className="mt-8 max-w-xl">
@@ -82,12 +67,6 @@ export default function HomePage() {
               className="rounded-lg border border-teal-500/30 bg-teal-500/10 px-4 py-2.5 text-sm font-semibold text-teal-100 hover:bg-teal-500/15"
             >
               AI settings
-            </Link>
-            <Link
-              href={routes.info()}
-              className="rounded-lg border border-slate-600 bg-slate-900/60 px-4 py-2.5 text-sm font-semibold text-slate-300 hover:bg-slate-800"
-            >
-              Pipeline info
             </Link>
             <Link
               href={routes.workspace()}
@@ -178,13 +157,10 @@ export default function HomePage() {
               No mock plant dossiers
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-400">
-              Sample Tier-A JSON and hub catalogs were removed. Every compound page is a{" "}
+              Mock Tier-A JSON, sample hub catalogs, and teaching packages are not in the live
+              product. Every compound page is{" "}
               <strong className="font-medium text-teal-100/90">live free-public densify</strong>{" "}
-              with optional AI dual-view. One teaching pointer (Aspirin → CID 2244) lives under{" "}
-              <Link href={routes.info()} className="font-medium text-teal-200 hover:underline">
-                Info
-              </Link>
-              .
+              with AI dual-view when configured.
             </p>
             <Link
               href={routes.search()}
@@ -201,11 +177,11 @@ export default function HomePage() {
           {[
             {
               title: "Evidence-scored live dossiers",
-              body: "PubChem + multi-query literature + OpenAlex + patents. AI runs when process evidence is rich enough; confidence is labeled.",
+              body: "PubChem + multi-query literature + OpenAlex + patents. AI dual-view structures densified free-public evidence; confidence is labeled.",
             },
             {
-              title: "Info hub (demos only)",
-              body: "All mock dossiers, packages, and teaching catalogs live under the amber Info tab — never mixed into Search.",
+              title: "API harvest agent",
+              body: "Soft-fail multi-API densify with agent-orchestrated retry/densify/compliance — no hardcoded mock routes.",
             },
             {
               title: "Provenance & export",

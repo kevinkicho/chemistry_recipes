@@ -1,13 +1,12 @@
 /**
- * Problem-first / unit-op search over hub catalog + curated packages.
+ * Problem-first / unit-op search over live hub index only (no teaching packages).
  * Free-text ranking only — no invented plant answers.
  */
 
 import { HUB_INDEX } from "@/lib/data/hubIndex";
-import { getAllCuratedPackages } from "@/lib/data/curatedPackages";
 import { routes } from "@/lib/routes";
 
-export type ProblemHitKind = "hub-live" | "package";
+export type ProblemHitKind = "hub-live" | "literature" | "multi-source";
 
 export interface ProblemSearchHit {
   id: string;
@@ -88,21 +87,6 @@ export function searchProblemFirst(query: string, limit = 16): ProblemSearchHit[
         tags: ["live", e.kind],
       });
     }
-  }
-
-  for (const p of getAllCuratedPackages()) {
-    const hay = `${p.name} ${p.id} ${p.modality || ""} ${(p.tags || []).join(" ")} ${p.summary || ""}`;
-    const sc = scoreText(hay, needles);
-    if (sc < 4) continue;
-    hits.push({
-      id: `pkg-${p.id}`,
-      kind: "package",
-      title: p.name,
-      subtitle: `${p.modality || "package"} · educational unit ops`,
-      href: routes.package(p.id),
-      score: sc + 3,
-      tags: [p.modality || "package", "teaching"],
-    });
   }
 
   hits.sort((a, b) => b.score - a.score);
