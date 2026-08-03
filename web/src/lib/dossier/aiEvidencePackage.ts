@@ -26,6 +26,11 @@ import {
   formatRelatedContextForPrompt,
 } from "@/lib/dossier/relatedContextPackage";
 import { buildProcessKnowledgeDigest } from "@/lib/dossier/processKnowledgeDigest";
+import {
+  formatSegmentsForPrompt,
+  segmentCoverage,
+  segmentProcedureExcerpts,
+} from "@/lib/literature/procedureSegments";
 
 /** Full-model budget — denser multi-pass harvest needs more headroom */
 export const MAX_EVIDENCE_CHARS_FULL = 28_000;
@@ -152,6 +157,22 @@ export function buildEvidenceObject(
       };
     });
 
+  // Plant-phase segmentation before AI (charge→react→quench→workup→isolate→dry)
+  const procedureSegments = segmentProcedureExcerpts(
+    procedureExcerpts.map((p) => ({
+      id: p.id,
+      text: p.text,
+      label: p.label,
+      chars: p.chars,
+    })),
+    { maxTotal: preferFast ? 20 : 36, maxPerExcerpt: preferFast ? 5 : 8 }
+  );
+  const procedureSegmentCoverage = segmentCoverage(procedureSegments);
+  const procedureSegmentsPrompt = formatSegmentsForPrompt(
+    procedureSegments,
+    preferFast ? 3_500 : 6_000
+  );
+
   // Conditions / yields first among atoms
   const atoms = (pf?.facts || [])
     .filter((f) => f.kind !== "open-gap")
@@ -193,11 +214,12 @@ export function buildEvidenceObject(
       packing: "value-weighted",
       instruction:
         "You are the integral AI for a free-public densify dashboard. " +
-        "STRUCTURE the densest procedureExcerpts + processFacts.atoms into dual-view plant routes. " +
-        "Ground every numeric condition on an atom quote or procedure excerpt. " +
+        "STRUCTURE procedureSegments (charge/react/quench/workup/isolate/dry) + processFacts.atoms into dual-view plant routes. " +
+        "Prefer ordered unit-op steps that match procedureSegments phases when present. " +
+        "Ground every numeric condition on an atom quote or procedure excerpt/segment quote. " +
         "overview MUST open with process class / synthesis / manufacturing leads " +
         "(route type, key unit ops, patent or OA process papers) — NOT clinical MoA first. " +
-        "manufacturingSummary is plant-facing narrative from procedureExcerpts + patents only. " +
+        "manufacturingSummary is plant-facing narrative from procedureSegments + procedureExcerpts + patents only. " +
         "Mechanism notes go in step.mechanismNotes / applications, not the overview lead. " +
         "When procedureExcerpts are empty: ONE conservative evidence-lead route from process lit titles + patent abstracts; gaps[] must say densify was thin. " +
         "Prefer fewer high-evidence steps over many thin ones. " +
@@ -207,7 +229,18 @@ export function buildEvidenceObject(
       processLitCount: litProcessSorted.length,
       clinicalLitCount: clinicalLit.length,
       coldStart: procedureExcerpts.length === 0 && atoms.length < 3,
+      procedureSegmentCoverage,
+      hasProcedureSegments: procedureSegments.length > 0,
     },
+    procedureSegments: procedureSegments.slice(0, preferFast ? 16 : 28).map((s) => ({
+      unitOp: s.unitOp,
+      quote: s.quote,
+      text: s.text.slice(0, preferFast ? 280 : 420),
+      sourceId: s.sourceId,
+      label: s.label,
+      order: s.order,
+    })),
+    procedureSegmentsText: procedureSegmentsPrompt || undefined,
     processFacts: pf
       ? {
           summary: pf.summary,

@@ -45,8 +45,62 @@ import {
   mergeContradictions,
 } from "@/lib/dossier/contradictions";
 import { fillModalityUnitOps } from "@/lib/dossier/unitOpFill";
+import { executeIdealDensifyPlan } from "@/lib/dossier/idealDensifyPlan";
+import { assessIdealPageParity } from "@/lib/dossier/idealPage";
+import type { CompoundEvidence } from "@/lib/dossier/types";
 
 const STEPS_TOTAL = 5;
+
+/**
+ * After quality-gate / AI failure: one ideal-section densify pass, then re-AI once.
+ * Etiquette rails stay inside tools; never invent plant numbers.
+ */
+async function recoverEvidenceAfterQualityGate(
+  evidence: CompoundEvidence,
+  shell: LiveDossier,
+  emit: ProgressEmitter
+): Promise<CompoundEvidence> {
+  const parity = assessIdealPageParity(shell);
+  const weak = parity.sections.filter((s) => !s.filled || s.depth < 45);
+  if (!weak.length) return evidence;
+
+  emit({
+    type: "log",
+    stepId: "recover",
+    label: "Ideal-close densify recovery",
+    detail: `Weak sections: ${weak
+      .slice(0, 6)
+      .map((s) => `${s.id}(${s.depth})`)
+      .join(", ")} — one etiquette-aware densify pass before re-AI`,
+  });
+
+  const result = await executeIdealDensifyPlan(evidence, parity.sections, {
+    onStep: (detail) =>
+      emit({
+        type: "log",
+        stepId: "recover",
+        label: "Ideal-close tool",
+        detail,
+      }),
+  });
+
+  emit({
+    type: "log",
+    stepId: "recover",
+    label: "Ideal-close complete",
+    detail: result.summary,
+  });
+
+  return {
+    ...result.evidence,
+    processFacts:
+      result.evidence.processFacts ?? extractProcessFacts(result.evidence),
+    fetchErrors: [
+      ...(result.evidence.fetchErrors || []),
+      `pipeline · ideal-close recovery · ${result.toolsRun.join("→") || "none"}`,
+    ].slice(0, 80),
+  };
+}
 
 function summarizeTraces(traces: ApiFetchTrace[]): {
   endpointUrl?: string;
@@ -147,7 +201,7 @@ export async function buildLiveDossierWithProgress(
     stepsTotal: STEPS_TOTAL,
   });
   const tGather = Date.now();
-  const evidence = await gatherCompoundEvidence(cid, {
+  let evidence = await gatherCompoundEvidence(cid, {
     force: Boolean(opts.force),
   });
   const gSum = summarizeTraces(evidence.traces);
@@ -208,7 +262,7 @@ export async function buildLiveDossierWithProgress(
   const tSc = Date.now();
   let processFacts = evidence.processFacts ?? extractProcessFacts(evidence);
   evidence.processFacts = processFacts;
-  const scored = scoreCompoundEvidence(evidence);
+  let scored = scoreCompoundEvidence(evidence);
   let dossier = buildScaffoldDossier(evidence);
   dossier = {
     ...dossier,
@@ -301,25 +355,37 @@ export async function buildLiveDossierWithProgress(
     });
 
     const tAi = Date.now();
-    const synthesis = await synthesizeDossierFromEvidence(evidence, emit, {
-      preferFastModel: scored.preferFastModel,
-      model: opts.model,
-      fastModel: opts.fastModel,
-    });
+    let workingEvidence = evidence;
+    let workingFacts = processFacts;
+    let workingScored = scored;
 
-    if (synthesis.parsed && synthesis.routes && synthesis.routes.length > 0) {
-      // Merge quote-grounded pass1 extract atoms into facts before strip/ground
-      let factsForGround = processFacts;
+    const runSynthesis = () =>
+      synthesizeDossierFromEvidence(workingEvidence, emit, {
+        preferFastModel: workingScored.preferFastModel,
+        model: opts.model,
+        fastModel: opts.fastModel,
+      });
+
+    const applyAiRoutes = (
+      synthesis: Awaited<ReturnType<typeof synthesizeDossierFromEvidence>>
+    ): { ok: boolean; emptiedByGate: boolean } => {
+      if (!synthesis.parsed || !synthesis.routes?.length) {
+        return { ok: false, emptiedByGate: false };
+      }
+      let factsForGround = workingFacts;
       if (synthesis.pass1Extract) {
         const merged = mergeExtractAtomsIntoFacts(
-          processFacts,
+          workingFacts,
           synthesis.pass1Extract,
-          evidence
+          workingEvidence
         );
         if (merged.added > 0 && merged.bundle) {
           factsForGround = merged.bundle;
-          processFacts = merged.bundle;
-          evidence.processFacts = merged.bundle;
+          workingFacts = merged.bundle;
+          workingEvidence = {
+            ...workingEvidence,
+            processFacts: merged.bundle,
+          };
         }
       }
       const editorialRef = [
@@ -338,28 +404,33 @@ export async function buildLiveDossierWithProgress(
         facts: factsForGround?.facts,
         dataFed: synthesis.provenance?.dataFed,
         mfgTexts: dossier.manufacturingTexts,
-        procedureTexts: (evidence.procedureExcerpts || []).map((p) => p.text),
+        procedureTexts: (workingEvidence.procedureExcerpts || []).map(
+          (p) => p.text
+        ),
       });
       aiRoutes = grounded.routes;
-      // Bind step conditions to process-fact quotes when numeric tokens match
       const quoteBound = attachQuotesToRoutes(aiRoutes, factsForGround?.facts);
       aiRoutes = quoteBound.routes;
       aiRoutes = preferRoutesForEvidence(aiRoutes, factsForGround);
-      const processRoutes = aiRoutes.length ? aiRoutes : dossier.processRoutes;
+      if (!aiRoutes.length) {
+        return { ok: false, emptiedByGate: true };
+      }
+      const processRoutes = aiRoutes;
       const relatedEntities = withEntityLinks(
         mergeRelatedEntities(
           synthesis.relatedEntities || [],
           relatedFromRoutes(processRoutes),
-          relatedFromEvidenceText(evidence)
+          relatedFromEvidenceText(workingEvidence)
         )
       );
       const contradictions = mergeContradictions(
         synthesis.contradictions || [],
-        detectEvidenceContradictions(evidence, processRoutes)
+        detectEvidenceContradictions(workingEvidence, processRoutes)
       );
       dossier = {
         ...dossier,
         processRoutes,
+        processFacts: factsForGround,
         relatedEntities,
         contradictions,
         modality: synthesis.modality || dossier.modality,
@@ -369,13 +440,14 @@ export async function buildLiveDossierWithProgress(
         },
         synthesis: {
           ...synthesis,
-          confidence: synthesis.confidence || scored.confidence,
+          confidence: synthesis.confidence || workingScored.confidence,
           apparatusCatalog:
             synthesis.apparatusCatalog?.length
               ? synthesis.apparatusCatalog
               : dossier.synthesis.apparatusCatalog,
           environmentBaseline:
-            synthesis.environmentBaseline || dossier.synthesis.environmentBaseline,
+            synthesis.environmentBaseline ||
+            dossier.synthesis.environmentBaseline,
           ehsHighlights:
             synthesis.ehsHighlights?.length
               ? synthesis.ehsHighlights
@@ -388,7 +460,78 @@ export async function buildLiveDossierWithProgress(
         generatedAt: new Date().toISOString(),
         buildMode: "ai",
       };
-    } else {
+      return { ok: true, emptiedByGate: false };
+    };
+
+    let synthesis = await runSynthesis();
+    let applied = applyAiRoutes(synthesis);
+
+    // Horizon A: one ideal-close densify + re-AI when quality gate rejects or AI fails
+    if (!applied.ok) {
+      const reason = applied.emptiedByGate
+        ? "Quality gate emptied AI routes"
+        : synthesis.rawError || "AI dual-view incomplete";
+      emit({
+        type: "log",
+        stepId: "ollama",
+        label: "AI dual-view deferred — ideal-close recovery",
+        detail: `${reason} · densify weak ideal sections once, then re-AI`,
+      });
+      try {
+        workingEvidence = await recoverEvidenceAfterQualityGate(
+          workingEvidence,
+          dossier,
+          emit
+        );
+        workingFacts =
+          workingEvidence.processFacts ?? extractProcessFacts(workingEvidence);
+        workingEvidence = {
+          ...workingEvidence,
+          processFacts: workingFacts,
+        };
+        workingScored = scoreCompoundEvidence(workingEvidence);
+        processFacts = workingFacts;
+        evidence = workingEvidence;
+        scored = workingScored;
+        dossier = {
+          ...dossier,
+          processFacts: workingFacts,
+          evidenceScore: {
+            ...dossier.evidenceScore!,
+            score: workingScored.score,
+            confidence: workingScored.confidence,
+            shouldSynthesize: workingScored.shouldSynthesize,
+            preferFastModel: workingScored.preferFastModel,
+            reasons: workingScored.reasons,
+            processLitCount: workingScored.processLitCount,
+            processPatentCount: workingScored.processPatentCount,
+            processFactConditions: workingScored.processFactConditions,
+            unitOpFacts: workingScored.unitOpFacts,
+            productionBriefEligible: workingScored.productionBriefEligible,
+            explainer: workingScored.explainer,
+            aiRecommendation: workingScored.aiRecommendation,
+          },
+        };
+        emit({
+          type: "partial",
+          label: "Recovery densify ready",
+          detail: "Re-running AI dual-view on ideal-close package…",
+          evidenceScore: workingScored.score,
+          dossier,
+        });
+        synthesis = await runSynthesis();
+        applied = applyAiRoutes(synthesis);
+      } catch (e) {
+        emit({
+          type: "log",
+          stepId: "recover",
+          label: "Ideal-close recovery failed",
+          detail: e instanceof Error ? e.message : "recovery error",
+        });
+      }
+    }
+
+    if (!applied.ok) {
       dossier = {
         ...dossier,
         buildMode: "evidence-shell",
@@ -399,34 +542,36 @@ export async function buildLiveDossierWithProgress(
           rawError: synthesis.rawError,
           parsed: false,
           provenance: synthesis.provenance ?? dossier.synthesis.provenance,
-          confidence: scored.confidence,
+          confidence: workingScored.confidence,
           gaps: [
             ...(dossier.synthesis.gaps || []),
-            synthesis.rawError ||
-              "Ollama did not return quality-gated routes — literature/patent leads only",
+            applied.emptiedByGate
+              ? "Quality gate rejected AI routes after ideal-close recovery — literature/patent leads only"
+              : synthesis.rawError ||
+                "Ollama did not return quality-gated routes — literature/patent leads only",
           ],
         },
       };
     }
 
     emit({
-      type: synthesis.parsed ? "step_done" : "step_error",
+      type: applied.ok ? "step_done" : "step_error",
       stepId: "ollama",
       label: `${orgLabel} synthesis`,
       organization: orgLabel,
       endpointUrl: `${aiEnv.host}/api/chat`,
       method: "POST",
-      ok: Boolean(synthesis.parsed),
+      ok: applied.ok,
       durationMs: Date.now() - tAi,
       responsePreview: previewText(
         synthesis.overview ||
           synthesis.rawError ||
-          (synthesis.parsed ? "JSON OK" : ""),
+          (applied.ok ? "JSON OK" : ""),
         320
       ),
-      detail: synthesis.parsed
-        ? `Dual-view routes ready · AI confidence ${synthesis.confidence ?? "?"} · evidence ${scored.score} · ${synthesis.model}`
-        : `${synthesis.rawError || "AI incomplete"} — evidence shell kept`,
+      detail: applied.ok
+        ? `Dual-view routes ready · AI confidence ${synthesis.confidence ?? "?"} · evidence ${workingScored.score} · ${synthesis.model}`
+        : `${synthesis.rawError || "AI incomplete"} — evidence shell kept (recovery attempted)`,
       hits: synthesis.routes?.length,
       ...tickDone(),
     });

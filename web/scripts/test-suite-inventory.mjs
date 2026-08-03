@@ -48,6 +48,7 @@ const UNIT_SUITES = [
   "test-smoke-gather.mjs",
   "test-api-agent.mjs",
   "test-api-etiquette.mjs",
+  "test-horizon-a.mjs",
   "test-provenance.mjs",
   "test-provenance-coverage.mjs",
   "test-suite-inventory.mjs",

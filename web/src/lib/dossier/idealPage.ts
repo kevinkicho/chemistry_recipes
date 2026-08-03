@@ -68,8 +68,8 @@ export type IdealPageParity = {
 };
 
 const GOAL =
-  "Goal: approach curated Tier-A dual-view depth (complete plant guide scaffold) " +
-  "using free-public evidence + labeled teaching baselines — never invent site limits.";
+  "Goal: approach live dual-view process depth (recipe, BOM, apparatus, environment, EHS) " +
+  "via free-public densify + grounded AI — never invent site limits.";
 
 function routeDepth(route: ProcessRoute | undefined): {
   depth: number;
