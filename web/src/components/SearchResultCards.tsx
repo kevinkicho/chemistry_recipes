@@ -99,6 +99,19 @@ export function MultiSourceResultCard({
             {hit.inchiKey}
           </div>
         ) : null}
+        {hit.formKind && hit.formKind !== "parent" ? (
+          <div className="mt-0.5">
+            <span className="inline-flex rounded-full bg-violet-500/15 px-2 py-0.5 text-[10px] font-medium text-violet-200 ring-1 ring-inset ring-violet-500/30">
+              {hit.formKind === "salt"
+                ? "Salt / form"
+                : hit.formKind === "hydrate"
+                  ? "Hydrate"
+                  : hit.formKind === "ester"
+                    ? "Ester"
+                    : "Related form"}
+            </span>
+          </div>
+        ) : null}
         {hit.note ? (
           <div className="mt-0.5 truncate text-[10px] text-slate-500">
             {hit.note}

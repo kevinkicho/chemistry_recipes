@@ -95,7 +95,8 @@ const CATEGORY_LABEL: Record<ApiSource["category"], string> = {
 export function SourcesRegistry({ sources }: { sources: ApiSource[] }) {
   const [openIds, setOpenIds] = useState<Set<string>>(() => new Set());
   const [filter, setFilter] = useState("");
-  const [wiredOnly, setWiredOnly] = useState(false);
+  /** Default to live-wired sources — catalog aspirational IDs are opt-in */
+  const [wiredOnly, setWiredOnly] = useState(true);
   const [recipeFocus, setRecipeFocus] = useState(false);
 
   const priorities = ["P0", "P1", "P2"] as const;
@@ -147,8 +148,16 @@ export function SourcesRegistry({ sources }: { sources: ApiSource[] }) {
     });
   }
 
+  const wiredCount = sources.filter((s) => WIRED_SOURCE_IDS.has(s.id)).length;
+
   return (
     <div className="space-y-8">
+      <div className="rounded-xl border border-teal-500/25 bg-teal-500/5 px-4 py-3 text-sm text-slate-300">
+        <strong className="font-semibold text-teal-200">Live wired:</strong>{" "}
+        {wiredCount} of {sources.length} registry rows feed gather / search / densify today.
+        Uncheck “Live wired only” to browse the full catalog (aspirational / docs-era entries are not
+        automatically online). AI dual-view structures densified data from wired free-public sources.
+      </div>
       <div className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-800 bg-slate-900/40 p-3">
         <label className="min-w-[12rem] flex-1 text-xs">
           <span className="font-semibold uppercase tracking-wider text-slate-500">

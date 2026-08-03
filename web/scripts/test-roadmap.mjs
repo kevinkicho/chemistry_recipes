@@ -56,7 +56,12 @@ ok("FieldRegenerateBar", existsSync(join(root, "src/components/FieldRegenerateBa
 ok("operator role floor-first", /Floor-first/.test(read("lib/worker/roleMode.ts")));
 ok("site fill templates", existsSync(join(root, "src/lib/idb/siteFillTemplates.ts")));
 ok("SiteFillPanel modality", /modality/.test(read("components/SiteFillPanel.tsx")));
-ok("home training vs live", /Live · plant scout|Training · demos/.test(read("app/page.tsx")));
+ok(
+  "home primary AI dossier vs training",
+  /Primary · live AI dossier|Secondary · training|AI dual-view|densify/i.test(
+    read("app/page.tsx")
+  )
+);
 ok("print write-in CSS", /print-write-in/.test(readFileSync(join(root, "src/app/globals.css"), "utf8")));
 
 // T5

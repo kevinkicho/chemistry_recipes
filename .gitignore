@@ -77,6 +77,12 @@ yarn-error.log*
 *.log
 logs/
 
+# ── Agent tooling (local only) ───────────────────────────────────
+.agents/
+.claude/
+skills-lock.json
+.grok/
+
 # ── OS / editor ──────────────────────────────────────────────────
 .DS_Store
 Thumbs.db

@@ -66,10 +66,19 @@ ok("DIAG-04 no Ollama model when not ai mode", /no Ollama model/.test(dossierDia
 ok("DIAG-05 EnvChecklist canCall", /canCall/.test(envCheck));
 ok("DIAG-05 optional Ollama hint", /Optional|free-public shells/i.test(envCheck));
 
-// DIAG-06 pipeline can build shell without AI
+// DIAG-06 pipeline: densify shell always; AI dual-view when canCall
 ok("DIAG-06 evidence-shell buildMode", /evidence-shell/.test(pipeline));
-ok("DIAG-06 AI skipped thin evidence mode", /ai-skipped-thin-evidence/.test(pipeline));
-ok("DIAG-06 runAi gated on canCall && shouldSynthesize", /canCall.*shouldSynthesize|runAi/.test(pipeline));
+ok(
+  "DIAG-06 AI dual-view unavailable path when no key",
+  /AI dual-view unavailable|AI is integral|OLLAMA_CLOUD_API_KEY/.test(pipeline)
+);
+ok(
+  "DIAG-06 runAi gated on canCall (AI-integral when key present)",
+  /canCall|runAi/.test(pipeline) &&
+    /AI dual-view|AI-integral|canCall && Boolean|runAi = aiEnv\.canCall/.test(
+      pipeline
+    )
+);
 ok("DIAG-06 scaffold without AI routes", /buildScaffoldDossier|evidence-shell|processRoutes/.test(scaffold));
 
 // DIAG-07 probes separate from content

@@ -1,5 +1,10 @@
 # Firebase App Hosting — Next.js app root is `web/` (see firebase.json rootDir).
 # Docs: https://firebase.google.com/docs/app-hosting/configure
+#
+# AI is INTEGRAL: dual-view Ollama synthesis structures densified free-public harvest.
+# Set the cloud key once:
+#   npx firebase-tools@latest apphosting:secrets:set OLLAMA_CLOUD_API_KEY --project chemistryrecipes
+# then grant the backend access when prompted / via Console → App Hosting → Secrets.
 
 runConfig:
   minInstances: 0
@@ -26,9 +31,28 @@ env:
     availability:
       - BUILD
       - RUNTIME
-  # Set remaining NEXT_PUBLIC_FIREBASE_* and OLLAMA_* via Console secrets or:
-  # firebase apphosting:secrets:set OLLAMA_CLOUD_API_KEY
-  # - variable: OLLAMA_CLOUD_API_KEY
-  #   secret: OLLAMA_CLOUD_API_KEY
-  #   availability:
-  #     - RUNTIME
+  # Optional: complete client Firebase if Auth UI is enabled on App Hosting
+  # - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+  #   secret: NEXT_PUBLIC_FIREBASE_API_KEY
+  #   availability: [BUILD, RUNTIME]
+  # - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+  #   secret: NEXT_PUBLIC_FIREBASE_APP_ID
+  #   availability: [BUILD, RUNTIME]
+  # - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+  #   secret: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+  #   availability: [BUILD, RUNTIME]
+
+  # ── AI (integral dual-view) ──────────────────────────────────────
+  # Uncomment after: firebase apphosting:secrets:set OLLAMA_CLOUD_API_KEY --project chemistryrecipes
+  - variable: OLLAMA_CLOUD_API_KEY
+    secret: OLLAMA_CLOUD_API_KEY
+    availability:
+      - RUNTIME
+  - variable: OLLAMA_CLOUD_HOST
+    value: https://ollama.com
+    availability:
+      - RUNTIME
+  - variable: OLLAMA_CLOUD_MODEL
+    value: gpt-oss:120b
+    availability:
+      - RUNTIME

@@ -66,6 +66,8 @@ export interface MultiSourceHit {
   processLiteratureCount?: number;
   /** Short free-public note (e.g. KEGG pathway, openFDA form) */
   note?: string;
+  /** Salt / form / parent label for search UI honesty */
+  formKind?: "parent" | "salt" | "hydrate" | "ester" | "other-form";
 }
 
 export interface MultiSourceSearchResult {
@@ -99,6 +101,26 @@ function keyOf(h: {
 
 function normName(n: string): string {
   return n.toLowerCase().trim().replace(/\s+/g, " ");
+}
+
+const SALT_FORM_RE =
+  /\b(maleate|hydrochloride|hcl|sodium|potassium|mesylate|besylate|tosylate|tartrate|citrate|phosphate|sulfate|sulphate|fumarate|succinate|acetate|hydrate|dihydrate|monohydrate|hemihydrate|besilate|bromide|chloride|iodide|besylate)\b/i;
+
+/** Classify salt/form vs parent for UI chips (no invention — name tokens only). */
+export function classifyFormKind(
+  name: string,
+  query?: string
+): MultiSourceHit["formKind"] {
+  const n = name.toLowerCase();
+  if (SALT_FORM_RE.test(n)) {
+    if (/\bhydrate|dihydrate|monohydrate|hemihydrate\b/i.test(n)) return "hydrate";
+    return "salt";
+  }
+  if (/\bester\b/i.test(n)) return "ester";
+  const q = (query || "").toLowerCase().trim();
+  if (q && n === q) return "parent";
+  if (q && n.startsWith(q) && n.length > q.length + 2) return "other-form";
+  return undefined;
 }
 
 function mergeSources(
@@ -902,17 +924,41 @@ export async function multiSourceSearch(
 
   // Fold case / InChIKey identity-only clones into openable CID rows
   const hits = consolidateIdentityHits([...map.values()])
-    .map((h) => ({
-      ...h,
-      openable: Boolean(h.cid && h.cid > 0),
-      score:
-        h.score +
-        (h.cid ? 15 : 0) +
-        h.sources.length * 2 +
-        Math.min(10, (h.processLiteratureCount || 0) * 1.5),
-    }))
+    .map((h) => {
+      const formKind = classifyFormKind(h.name, q);
+      const parentBoost =
+        formKind === "parent" || (!formKind && normName(h.name) === normName(q))
+          ? 8
+          : formKind === "salt" || formKind === "hydrate"
+            ? -4
+            : 0;
+      return {
+        ...h,
+        formKind,
+        note:
+          h.note ||
+          (formKind === "salt"
+            ? "Salt / form variant"
+            : formKind === "hydrate"
+              ? "Hydrate form"
+              : formKind === "ester"
+                ? "Ester form"
+                : undefined),
+        openable: Boolean(h.cid && h.cid > 0),
+        score:
+          h.score +
+          (h.cid ? 15 : 0) +
+          h.sources.length * 2 +
+          Math.min(10, (h.processLiteratureCount || 0) * 1.5) +
+          parentBoost,
+      };
+    })
     .sort((a, b) => {
       if (a.openable !== b.openable) return a.openable ? -1 : 1;
+      // Prefer parent drug name matching query over salts
+      const ap = a.formKind === "salt" || a.formKind === "hydrate" ? 1 : 0;
+      const bp = b.formKind === "salt" || b.formKind === "hydrate" ? 1 : 0;
+      if (ap !== bp) return ap - bp;
       return b.score - a.score || (a.cid || 0) - (b.cid || 0);
     })
     .slice(0, limit);

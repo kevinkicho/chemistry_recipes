@@ -121,7 +121,26 @@ export function SearchResults({ query }: { query: string }) {
             setHits(data.hits);
             setSourceStatus(data.sourceStatus || []);
             setError(null);
-            setNote(data.note || null);
+            setNote(
+              data.note
+                ? `${data.note} · AI dual-view densifies free-public evidence on open.`
+                : "Multi-source free-public hits — open a CID for AI dual-view dossier."
+            );
+            // Latency: warm top openable CIDs in background (server densify cache)
+            const warmCids = data.hits
+              .filter((h) => h.openable && h.cid && h.cid > 0)
+              .slice(0, 2)
+              .map((h) => h.cid as number);
+            if (warmCids.length) {
+              void fetch("/api/dossier/warm-queue", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ cids: warmCids }),
+                keepalive: true,
+              }).catch(() => {
+                /* best-effort */
+              });
+            }
             return;
           }
         }

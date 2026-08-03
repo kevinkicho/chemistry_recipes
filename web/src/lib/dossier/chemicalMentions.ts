@@ -73,6 +73,21 @@ const REQUIRE_PROCESS_CTX = new Set([
   "hydrogen",
   "h2 gas",
   "lactose",
+  "toluene",
+  "dichloromethane",
+  "methylene chloride",
+  "dcm",
+  "isopropanol",
+  "ipa",
+  "2-propanol",
+  "dimethylformamide",
+  "dmf",
+  "dimethyl sulfoxide",
+  "dmso",
+  "tetrahydrofuran",
+  "thf",
+  "ethyl acetate",
+  "etoac",
 ]);
 
 function hasProcessContextNear(

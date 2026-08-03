@@ -86,14 +86,18 @@ function buildAdvice(opts: {
   const tips: string[] = [];
   if (!opts.canCallOllama) {
     tips.push(
-      "Ollama dual-view synthesis is not ready (no Cloud key / local host). Free-public dossiers still work: evidence shell, process facts, densify harvest, and Tier-A teaching routes can look “AI-like” without Ollama."
+      "AI dual-view is INTEGRAL to this product but not configured on this host. Free-public densify still builds the data dashboard; dual-view manufacturing/mechanism structure needs Ollama."
     );
     tips.push(
-      "To enable Ollama structure: set OLLAMA_CLOUD_API_KEY, or OLLAMA_HOST=http://127.0.0.1:11434 with ollama serve."
+      "Enable AI: set OLLAMA_CLOUD_API_KEY as an App Hosting secret (or OLLAMA_HOST=http://127.0.0.1:11434 with ollama serve for local)."
     );
   } else if (opts.isLocal) {
     tips.push(
-      "Local Ollama host configured — ensure ollama serve is running and a model is pulled."
+      "Local Ollama host configured — ensure ollama serve is running and a model is pulled. AI dual-view will run on every dossier with identity."
+    );
+  } else {
+    tips.push(
+      "Ollama Cloud ready — AI dual-view structures densified free-public harvest on every live dossier (uncited plant numbers stripped)."
     );
   }
   if (!opts.patentsKey) {

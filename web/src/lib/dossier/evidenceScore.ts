@@ -31,7 +31,8 @@ export interface EvidenceScore {
   aiRecommendation?: string;
 }
 
-const AI_SCORE_THRESHOLD = 22;
+/** Soft floor — product mode is AI-integral; identity + any multi-source signal unlocks synthesis. */
+const AI_SCORE_THRESHOLD = 12;
 /** Prefer densified procedure body before unlocking full dual-view AI */
 const PROC_DENSITY_SOFT = 400;
 const PROC_DENSITY_STRONG = 800;
@@ -142,12 +143,24 @@ export function scoreCompoundEvidence(ev: CompoundEvidence): EvidenceScore {
     oaLit.length + patProc.length >= 1 ||
     (processLit.length + processPatents.length >= 2 && mfg.length >= 1);
 
+  // AI is integral: run whenever identity resolved and any free-public signal exists.
+  // Thin densify still allowed — quality gate strips uncited plant numbers.
+  const multiSignal =
+    processLit.length +
+      processPatents.length +
+      mfg.length +
+      proc.length +
+      (ev.annotations?.length || 0) +
+      (ev.literature?.length || 0) +
+      (ev.patents?.length || 0) >
+    0;
+
   const shouldSynthesize =
     Boolean(ev.identity) &&
-    hasProcessSignal &&
-    (score >= AI_SCORE_THRESHOLD || hasProcedureDensity) &&
-    // Soft block: score alone is not enough without any densify/fact body
-    (hasProcedureDensity || score >= AI_SCORE_THRESHOLD + 12);
+    (hasProcessSignal ||
+      hasProcedureDensity ||
+      multiSignal ||
+      score >= AI_SCORE_THRESHOLD);
 
   // Prefer full model when densify + facts support high-value agentic structure
   const denseForFullModel =
@@ -166,13 +179,15 @@ export function scoreCompoundEvidence(ev: CompoundEvidence): EvidenceScore {
 
   if (!shouldSynthesize) {
     reasons.push(
-      hasProcessSignal
-        ? "Evidence below synthesis threshold — skip AI invention"
-        : "No densified process signal — skip AI invention"
+      "No identity/multi-source signal — AI synthesis deferred until free-public harvest returns data"
     );
   } else if (procChars < PROC_DENSITY_STRONG && !bundle.productionBriefEligible) {
     reasons.push(
-      `Procedure density soft (${procChars} chars) — prefer draft model / strip uncited`
+      `AI-integral path · procedure density soft (${procChars} chars) — draft model preferred; uncited numbers stripped`
+    );
+  } else {
+    reasons.push(
+      "AI-integral path · densified free-public package supports dual-view structure"
     );
   }
 
@@ -192,13 +207,14 @@ export function scoreCompoundEvidence(ev: CompoundEvidence): EvidenceScore {
     litSources.size
       ? `Literature APIs: ${[...litSources].join(", ")}`
       : "Literature APIs: none",
+    "Product mode: AI dual-view is integral (structures densified public evidence only)",
   ];
 
   const aiRecommendation = !shouldSynthesize
-    ? "AI synthesis not recommended — thin process-fact density (avoids invented plant conditions)."
+    ? "AI waiting for free-public harvest — dual-view runs as soon as identity + multi-source data arrive."
     : preferFastModel
-      ? "AI may structure densified evidence on a draft model; uncited numbers will be stripped."
-      : "AI recommended (full model) — densified procedure excerpts + process facts support high-value dual-view structure.";
+      ? "AI dual-view (draft model) — structures densified public evidence; uncited plant numbers stripped."
+      : "AI dual-view (full model) — densified procedure excerpts + process facts drive manufacturing/mechanism views.";
 
   return {
     score,

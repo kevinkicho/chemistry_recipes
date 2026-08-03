@@ -418,18 +418,69 @@ export function listModalities(): ModalityTemplate[] {
   return Object.values(MODALITY_TEMPLATES);
 }
 
-export function inferModalityFromText(text: string): ProcessModality {
-  const t = text.toLowerCase();
-  if (/monoclonal|mab\b|antibody|cho cell|protein a/.test(t)) return "mab";
-  if (/antibody.?drug|adc\b|linker.?payload|dar\b/.test(t)) return "adc";
-  if (/peptide|spps|fmoc|solid.phase peptide/.test(t)) return "peptide";
-  if (/oligonucleotide|aso\b|sirna|phosphoramidite/.test(t)) return "oligonucleotide";
-  if (/car.?t|cell therapy|apheresis/.test(t)) return "cell-therapy";
-  if (/aav|lentivirus|gene therapy|viral vector/.test(t)) return "gene-therapy";
-  if (/vaccine|antigen|inactivat/.test(t)) return "vaccine";
-  if (/tablet|capsule|lyophiliz|fill.?finish|formulation/.test(t)) return "formulation";
-  if (/ferment|bioreactor|microbial/.test(t)) return "fermentation";
-  if (/compounding|usp <797>|aseptic prep/.test(t)) return "sterile-compounding";
-  if (/cell culture media|basal medium/.test(t)) return "media";
+export function inferModalityFromText(
+  text: string,
+  opts?: { formula?: string; molecularWeight?: number; name?: string }
+): ProcessModality {
+  const t = `${text} ${opts?.name || ""}`.toLowerCase();
+  // Strong biologics / advanced modality signals only (avoid bare "cell" matches)
+  if (
+    /monoclonal|\bmab\b|antibody therap|cho cell|protein a chromatog|igg1|igg4/.test(
+      t
+    )
+  ) {
+    return "mab";
+  }
+  if (/antibody.?drug|\badc\b|linker.?payload|\bdar\b|payload conjugat/.test(t)) {
+    return "adc";
+  }
+  if (/solid.phase peptide|\bspps\b|fmoc.?spps|peptide synthes/.test(t)) {
+    return "peptide";
+  }
+  if (/oligonucleotide|\baso\b|sirna|phosphoramidite|antisense oligo/.test(t)) {
+    return "oligonucleotide";
+  }
+  if (
+    /car-?t\b|car t-?cell|cell therapy product|apheresis|tumor-infiltrating lymphocyte|\btils?\b/.test(
+      t
+    )
+  ) {
+    return "cell-therapy";
+  }
+  if (/aav\b|lentivirus|gene therapy|viral vector|crispr therap/.test(t)) {
+    return "gene-therapy";
+  }
+  if (/vaccine candidate|inactivated vaccine|antigen vaccine|mrna vaccine/.test(t)) {
+    return "vaccine";
+  }
+  if (
+    /fill.?finish|lyophiliz|oral solid dose|tablet formulat|capsule formulat/.test(
+      t
+    )
+  ) {
+    return "formulation";
+  }
+  if (/fermentat|fed-batch bioreactor|microbial fermentation/.test(t)) {
+    return "fermentation";
+  }
+  if (/usp\s*<797>|sterile compound|aseptic compound/.test(t)) {
+    return "sterile-compounding";
+  }
+  if (/cell culture media|basal medium|chemically defined medium/.test(t)) {
+    return "media";
+  }
+  // Typical API-sized organics default to small-molecule even if clinical text
+  // mentions "cell proliferation" etc. (was misfiring JAKs as cell-therapy).
+  const mw = opts?.molecularWeight;
+  const formula = opts?.formula || "";
+  if (
+    formula &&
+    /C\d/i.test(formula) &&
+    mw != null &&
+    mw > 50 &&
+    mw < 2000
+  ) {
+    return "small-molecule";
+  }
   return "small-molecule";
 }

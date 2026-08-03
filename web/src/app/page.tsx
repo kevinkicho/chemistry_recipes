@@ -10,26 +10,33 @@ export default function HomePage() {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-teal-500/5 via-transparent to-slate-950" />
         <div className="relative w-full p-3 sm:p-4 sm:py-16">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400/90">
-            Worker-first process scouting · free public evidence
+            AI-powered process intelligence · free-public data dashboard
           </p>
           <h1 className="mt-3 max-w-3xl text-4xl font-semibold tracking-tight text-slate-50 sm:text-5xl">
-            Monday-morning packs for plant, MSAT &amp; process teams
+            Densify public chemistry evidence. AI structures dual-view plant packs.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
-            EHS callouts, sourced steps, honest site gaps, and print-ready job aids from free public
-            APIs — plus paste public patent text when density is thin. Role views for operator,
-            chemist, MSAT, and manager.{" "}
-            <strong className="font-medium text-slate-300">Not GMP or regulatory decision support</strong>.
+            Multi-API harvest (PubChem, literature, patents, identity DBs) builds a dense evidence
+            dashboard;{" "}
+            <strong className="font-medium text-teal-200/90">
+              Ollama dual-view AI is integral
+            </strong>{" "}
+            — it structures manufacturing + mechanism views only from densified public text (uncited
+            plant numbers stripped). Role views for operator, chemist, MSAT, and manager.{" "}
+            <strong className="font-medium text-slate-300">
+              Not GMP or regulatory decision support
+            </strong>
+            .
           </p>
 
-          {/* Stark split: live plant work vs training demos */}
+          {/* Primary journey: live AI dossier first */}
           <div className="mt-8 grid max-w-3xl gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-teal-500/35 bg-teal-500/10 p-4 ring-1 ring-teal-400/20">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-teal-200">
-                Live · plant scout
+                Primary · live AI dossier
               </p>
               <p className="mt-1 text-sm text-slate-200">
-                Real free-API dossiers for any PubChem CID. Use this for Monday work.
+                Search any drug → open CID → free-public densify + AI dual-view process pack.
               </p>
               <Link
                 href={routes.search()}
@@ -38,16 +45,16 @@ export default function HomePage() {
                 Open live search →
               </Link>
             </div>
-            <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 p-4 ring-1 ring-amber-400/20">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-100">
-                Training · demos only
+            <div className="rounded-xl border border-slate-600/50 bg-slate-900/50 p-4 ring-1 ring-slate-600/30">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                Secondary · training demos
               </p>
-              <p className="mt-1 text-sm text-slate-200">
-                Curated dual-view examples and packages under Info — not live plant data.
+              <p className="mt-1 text-sm text-slate-300">
+                Curated Tier-A examples under Info — teaching depth, not live plant data.
               </p>
               <Link
                 href={routes.info()}
-                className="mt-3 inline-flex rounded-lg border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-sm font-semibold text-amber-50 hover:bg-amber-500/25"
+                className="mt-3 inline-flex rounded-lg border border-slate-600 bg-slate-800/80 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
               >
                 Open training (Info) →
               </Link>
@@ -68,11 +75,17 @@ export default function HomePage() {
               href={routes.search()}
               className="rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-500"
             >
-              Live evidence scout
+              Live AI densify scout
+            </Link>
+            <Link
+              href={routes.aiSettings()}
+              className="rounded-lg border border-teal-500/30 bg-teal-500/10 px-4 py-2.5 text-sm font-semibold text-teal-100 hover:bg-teal-500/15"
+            >
+              AI settings
             </Link>
             <Link
               href={routes.info()}
-              className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-100 hover:bg-amber-500/15"
+              className="rounded-lg border border-slate-600 bg-slate-900/60 px-4 py-2.5 text-sm font-semibold text-slate-300 hover:bg-slate-800"
             >
               Training packs (Info)
             </Link>

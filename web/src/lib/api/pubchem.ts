@@ -476,6 +476,7 @@ export async function getPubChemCompound(
     hit = {
       ...hit,
       name: hit.name?.startsWith("CID ") ? hub.name : hit.name || hub.name,
+      // Prefer live PubChem CAS when present; hub only as fallback
       cas: hit.cas || hub.cas,
     };
   }
@@ -493,9 +494,15 @@ export async function getPubChemCompound(
       timeoutMs: PUG_TIMEOUT_MS,
     });
     base.traces.push(trace);
-    const rns = data?.InformationList?.Information?.[0]?.RN ?? [];
-    const cas =
-      rns.find((r) => /^\d{2,7}-\d{2}-\d$/.test(r)) || rns[0] || undefined;
+    const rns = (data?.InformationList?.Information?.[0]?.RN ?? []).filter(
+      (r) => /^\d{2,7}-\d{2}-\d$/.test(r)
+    );
+    // Prefer hub CAS when PubChem returns multiple RNs and hub matches one
+    // (avoids rare wrong first-RN picks). Else first valid RN. Else hub.
+    let cas: string | undefined;
+    if (hub?.cas && rns.includes(hub.cas)) cas = hub.cas;
+    else if (rns[0]) cas = rns[0];
+    else if (hub?.cas) cas = hub.cas;
     if (cas) hit = { ...hit, cas };
   } catch {
     /* optional */

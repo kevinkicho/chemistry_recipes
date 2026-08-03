@@ -208,19 +208,61 @@ export function buildScaffoldDossier(evidence: CompoundEvidence): LiveDossier {
     .filter((t) => /use|application|indication|supplement|medication|industrial/i.test(t))
     .slice(0, 6);
 
-  const overviewParts = [
-    desc[0],
-    useSnippets[0],
-    evidence.identity?.formula
-      ? `${name} (${evidence.identity.formula}${
-          evidence.identity.molecularWeight
-            ? `, ${evidence.identity.molecularWeight} g/mol`
-            : ""
-        }) resolved via PubChem CID ${evidence.cid}.`
-      : null,
-  ].filter(Boolean);
-
   const processFacts = evidence.processFacts ?? extractProcessFacts(evidence);
+  const processLit = evidence.literature.filter((h) =>
+    looksLikeProcessLiterature(h.title, h.abstract)
+  );
+  const processPatents = evidence.patents.filter((p) =>
+    looksLikeProcessLiterature(p.title, p.abstract)
+  );
+  const topExcerpt = (evidence.procedureExcerpts || [])
+    .slice()
+    .sort((a, b) => (b.chars || b.text.length) - (a.chars || a.text.length))[0];
+
+  // Process-first overview: densified public leads before clinical/description blurbs
+  const overviewParts: string[] = [];
+  if (processFacts.productionBriefEligible && processFacts.summary) {
+    overviewParts.push(processFacts.summary);
+  } else if (processFacts.sourcedConditionCount > 0 || processFacts.unitOpCount > 0) {
+    overviewParts.push(
+      `Public process density: ${processFacts.sourcedConditionCount} condition atom(s), ${processFacts.unitOpCount} unit-op cue(s) from free literature/patents.`
+    );
+  }
+  if (processLit[0]) {
+    const abs = (processLit[0].abstract || "").replace(/\s+/g, " ").trim().slice(0, 240);
+    overviewParts.push(
+      abs
+        ? `Process literature: ${processLit[0].title.slice(0, 100)} — ${abs}${abs.length >= 240 ? "…" : ""}`
+        : `Process literature: ${processLit[0].title.slice(0, 140)}`
+    );
+  }
+  if (processPatents[0]) {
+    overviewParts.push(
+      `Process patent lead: ${processPatents[0].title.slice(0, 140)}`
+    );
+  }
+  if (topExcerpt?.text) {
+    const win = topExcerpt.text.replace(/\s+/g, " ").trim().slice(0, 200);
+    overviewParts.push(
+      `Densified procedure window (${topExcerpt.source || "public"}): ${win}${win.length >= 200 ? "…" : ""}`
+    );
+  }
+  // Clinical / description last (secondary context)
+  if (desc[0] && overviewParts.length < 2) {
+    overviewParts.push(desc[0].slice(0, 220));
+  }
+  if (useSnippets[0] && overviewParts.length < 3) {
+    overviewParts.push(useSnippets[0].slice(0, 180));
+  }
+  if (evidence.identity?.formula) {
+    overviewParts.push(
+      `${name} (${evidence.identity.formula}${
+        evidence.identity.molecularWeight
+          ? `, ${evidence.identity.molecularWeight} g/mol`
+          : ""
+      }) · PubChem CID ${evidence.cid} · free-public multi-API harvest.`
+    );
+  }
   const processRoutes = scaffoldRoutesFromEvidence({
     ...evidence,
     processFacts,
@@ -260,10 +302,20 @@ export function buildScaffoldDossier(evidence: CompoundEvidence): LiveDossier {
       available: false,
       parsed: false,
       overview:
-        overviewParts.join(" ") ||
-        `${name}: public identity from free multi-source APIs (PubChem, ChEMBL, openFDA, literature).`,
+        overviewParts.filter(Boolean).join(" ") ||
+        `${name}: densified free-public multi-API harvest (PubChem, literature, patents) — AI dual-view structures this package when configured.`,
       applications,
-      manufacturingSummary: mfg.slice(0, 4).join(" ") || undefined,
+      manufacturingSummary:
+        mfg.slice(0, 4).join(" ") ||
+        processPatents
+          .slice(0, 2)
+          .map((p) => p.title)
+          .join(" · ") ||
+        processLit
+          .slice(0, 2)
+          .map((h) => h.title)
+          .join(" · ") ||
+        undefined,
       // Only real GHS lines — never generic placeholder apparatus
       ehsHighlights: (hazards.hazardStatements ?? []).slice(0, 10),
       apparatusCatalog: undefined,

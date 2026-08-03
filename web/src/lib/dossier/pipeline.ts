@@ -222,45 +222,48 @@ export async function buildLiveDossierWithProgress(
     ...tickDone(),
   });
 
-  // Early shell for client — dossier usable while Ollama runs
+  // Early shell for client — densified public dashboard while AI dual-view runs
   emit({
     type: "partial",
-    label: "Shell available",
-    detail: "Showing free-public evidence shell; AI synthesis may still run…",
+    label: "Data dashboard ready",
+    detail:
+      "Free-public harvest densified — AI dual-view structuring manufacturing + mechanism views…",
     evidenceScore: scored.score,
     dossier,
   });
 
-  // ── 7. Ollama dual-view synthesis (gated by evidence score) ──────
+  // ── 7. Ollama dual-view synthesis (AI-integral product mode) ──────
+  // Always run when the server can call Ollama and identity is resolved.
+  // Quality gate still strips uncited plant numbers — never invent site CPPs.
   const aiEnv = getServerAiEnv();
   const orgLabel =
     aiEnv.provider === "ollama-local" ? "Ollama local" : "Ollama Cloud";
-  const runAi = aiEnv.canCall && scored.shouldSynthesize;
+  const runAi = aiEnv.canCall && Boolean(evidence.identity);
 
   if (!runAi) {
     emit({
       type: "step_done",
       stepId: "ollama",
-      label: "Ollama synthesis skipped",
+      label: "AI dual-view unavailable",
       organization: orgLabel,
       ok: true,
       detail: !aiEnv.canCall
-        ? "No Ollama Cloud key and host is not local — evidence shell only"
-        : `Evidence score ${scored.score} below threshold — skipped heavy AI (literature leads kept)`,
+        ? "AI is integral — set OLLAMA_CLOUD_API_KEY (App Hosting secret) or local OLLAMA_HOST. Showing process-first public shell until AI is configured."
+        : "Identity missing — cannot run AI dual-view",
       ...tickDone(),
     });
     dossier = {
       ...dossier,
-      buildMode: aiEnv.canCall ? "ai-skipped-thin-evidence" : "evidence-shell",
+      buildMode: "evidence-shell",
       synthesis: {
         ...dossier.synthesis,
-        available: aiEnv.canCall,
+        available: false,
         confidence: scored.confidence,
         gaps: [
           ...(dossier.synthesis.gaps || []),
           !aiEnv.canCall
-            ? "Set OLLAMA_CLOUD_API_KEY or OLLAMA_HOST=http://127.0.0.1:11434 for dual-view synthesis"
-            : "Thin process evidence — AI skipped to avoid low-quality invention",
+            ? "AI dual-view requires OLLAMA_CLOUD_API_KEY (or local ollama serve). Free-public densify shell is still AI-ready input."
+            : "Identity missing — AI deferred",
         ],
       },
     };
@@ -423,10 +426,23 @@ export async function buildLiveDossierWithProgress(
   ]
     .filter(Boolean)
     .join(" ");
+  // Prefer identity-based small-molecule default over weak clinical text matches
+  const modalityFromText = inferModalityFromText(modalityText || "small molecule", {
+    name: dossier.identity?.name,
+    formula: dossier.identity?.formula,
+    molecularWeight: dossier.identity?.molecularWeight,
+  });
   const modality =
+    // Trust AI modality only when not a weak clinical misfire vs organic formula
+    (dossier.synthesis.modality &&
+    !(
+      dossier.synthesis.modality === "cell-therapy" &&
+      modalityFromText === "small-molecule"
+    )
+      ? dossier.synthesis.modality
+      : undefined) ||
     dossier.modality ||
-    dossier.synthesis.modality ||
-    inferModalityFromText(modalityText || "small molecule");
+    modalityFromText;
 
   // Always enrich related entities + contradictions (even without AI)
   const relatedEntities = withEntityLinks(

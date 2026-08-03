@@ -177,7 +177,9 @@ ok("wired includes semantic-scholar", WIRED.has("semantic-scholar"));
 ok("wired count >= 14", WIRED.size >= 14);
 
 // Evidence score threshold policy
-const AI_SCORE_THRESHOLD = 22;
-ok("AI threshold raised for accuracy ( >= 18)", AI_SCORE_THRESHOLD >= 18);
+// Product mode: AI is integral — threshold is soft (identity + multi-source unlocks)
+const AI_SCORE_THRESHOLD = 12;
+ok("AI threshold soft for AI-integral mode ( <= 22)", AI_SCORE_THRESHOLD <= 22);
+ok("AI threshold still positive", AI_SCORE_THRESHOLD >= 8);
 
 console.log(`\nAll export/AI contracts passed (${passed}).`);
