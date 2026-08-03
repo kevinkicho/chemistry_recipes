@@ -6,14 +6,13 @@ import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { getServerAiEnv } from "@/lib/ai/serverEnv";
 import { routes } from "@/lib/routes";
 
-/** Live product tools only — mock/curated content is under Info. */
+/** Primary journey first; science-lab / ops secondary. */
 const liveLinks = [
   { href: routes.home(), label: "Home" },
   { href: routes.search(), label: "Search" },
   { href: routes.compare(), label: "Compare" },
-  { href: routes.workspace(), label: "Workspace" },
-  { href: routes.diagnostics(), label: "Diagnostics" },
   { href: routes.sources(), label: "API sources" },
+  { href: routes.diagnostics(), label: "Diagnostics" },
 ];
 
 export function Header() {
@@ -45,7 +44,7 @@ export function Header() {
               Chemistry Recipes
             </div>
             <div className="text-[11px] text-slate-500">
-              Process recipe hub · free public evidence
+              Densify dashboard · AI dual-view
             </div>
           </div>
         </Link>
@@ -60,11 +59,18 @@ export function Header() {
             </Link>
           ))}
           <Link
-            href={routes.info()}
-            className="rounded-md border border-amber-500/35 bg-amber-500/10 px-2.5 py-1.5 text-sm font-medium text-amber-100 transition-colors hover:bg-amber-500/20"
-            title="Curated demos, mock dossiers, and teaching data — not live search results"
+            href={routes.workspace()}
+            className="rounded-md px-2.5 py-1.5 text-sm text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-300"
+            title="Science lab — campaigns, agents, batch densify (power users)"
           >
-            Info
+            Science lab
+          </Link>
+          <Link
+            href={routes.info()}
+            className="rounded-md border border-slate-600/60 bg-slate-900/50 px-2.5 py-1.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800"
+            title="Curated demos and teaching data — not live densify results"
+          >
+            Training
           </Link>
           <GoogleSignInButton />
           <Suspense

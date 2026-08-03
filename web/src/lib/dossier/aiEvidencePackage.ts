@@ -86,32 +86,44 @@ export function buildEvidenceObject(
   // Prefer process/manufacturing lit for dual-view routes; clinical is context only
   const { process: processLit, clinical: clinicalLit } =
     splitProcessVsClinicalLiterature(ev.literature || []);
-  const litSorted = [
-    ...processLit.sort((a, b) => {
-      const sa =
-        scoreProcessRelevance(a.title, a.fullTextExcerpt || a.abstract) +
-        (a.fullTextExcerpt ? 8 : 0) +
-        processScore(a.title, a.fullTextExcerpt || a.abstract);
-      const sb =
-        scoreProcessRelevance(b.title, b.fullTextExcerpt || b.abstract) +
-        (b.fullTextExcerpt ? 8 : 0) +
-        processScore(b.title, b.fullTextExcerpt || b.abstract);
-      return sb - sa;
-    }),
-    ...clinicalLit,
-  ];
-
-  const patSorted = [...ev.patents].sort((a, b) => {
+  const litProcessSorted = processLit.sort((a, b) => {
     const sa =
-      processScore(a.title, a.procedureExcerpt || a.abstract) +
-      (a.procedureExcerpt ? 4 : 0) +
-      scoreProcedureWindow(a.procedureExcerpt || a.abstract);
+      scoreProcessRelevance(a.title, a.fullTextExcerpt || a.abstract) +
+      (a.fullTextExcerpt ? 8 : 0) +
+      processScore(a.title, a.fullTextExcerpt || a.abstract);
     const sb =
-      processScore(b.title, b.procedureExcerpt || b.abstract) +
-      (b.procedureExcerpt ? 4 : 0) +
-      scoreProcedureWindow(b.procedureExcerpt || b.abstract);
+      scoreProcessRelevance(b.title, b.fullTextExcerpt || b.abstract) +
+      (b.fullTextExcerpt ? 8 : 0) +
+      processScore(b.title, b.fullTextExcerpt || b.abstract);
     return sb - sa;
   });
+  // Process first; clinical capped and tagged so overview doesn't lead with MoA
+  const litSorted = [
+    ...litProcessSorted,
+    ...clinicalLit.slice(0, preferFast ? 2 : 4),
+  ];
+
+  const patSorted = [...ev.patents]
+    .filter((p) => looksLikeProcessLiterature(p.title, p.abstract) || Boolean(p.procedureExcerpt))
+    .sort((a, b) => {
+      const sa =
+        processScore(a.title, a.procedureExcerpt || a.abstract) +
+        (a.procedureExcerpt ? 4 : 0) +
+        scoreProcedureWindow(a.procedureExcerpt || a.abstract);
+      const sb =
+        processScore(b.title, b.procedureExcerpt || b.abstract) +
+        (b.procedureExcerpt ? 4 : 0) +
+        scoreProcedureWindow(b.procedureExcerpt || b.abstract);
+      return sb - sa;
+    });
+  // If filter emptied patents, fall back to raw list (still densified xrefs)
+  const patFinal =
+    patSorted.length > 0
+      ? patSorted
+      : [...ev.patents].sort(
+          (a, b) =>
+            processScore(b.title, b.abstract) - processScore(a.title, a.abstract)
+        );
 
   const pf = ev.processFacts;
 
@@ -180,11 +192,17 @@ export function buildEvidenceObject(
       ),
       packing: "value-weighted",
       instruction:
+        "You are the integral AI for a free-public densify dashboard. " +
         "STRUCTURE the densest procedureExcerpts + processFacts.atoms into dual-view plant routes. " +
         "Ground every numeric condition on an atom quote or procedure excerpt. " +
+        "overview + manufacturingSummary MUST lead with process/patent manufacturing evidence " +
+        "(literatureProcess / patents / procedureExcerpts); put clinical context last. " +
         "Prefer fewer high-evidence steps over many thin ones. " +
         "Use relatedProcessContext for impurity/intermediate awareness only. " +
-        "Use externalAnnotations for identity/EHS/regulatory context only — not invented unit ops.",
+        "Use externalAnnotations for identity/EHS/regulatory context only — not invented unit ops. " +
+        "NEVER invent plant setpoints, IPC methods, or site CPPs.",
+      processLitCount: litProcessSorted.length,
+      clinicalLitCount: clinicalLit.length,
     },
     processFacts: pf
       ? {
@@ -242,7 +260,7 @@ export function buildEvidenceObject(
     },
     {
       key: "literatureProcess",
-      value: processLit.slice(0, opts?.preferFast ? 8 : 12).map((h) => ({
+      value: litProcessSorted.slice(0, opts?.preferFast ? 8 : 12).map((h) => ({
         id: h.id,
         title: h.title,
         year: h.year,
@@ -290,7 +308,7 @@ export function buildEvidenceObject(
     },
     {
       key: "patents",
-      value: patSorted.slice(0, opts?.preferFast ? 6 : 12).map((p) => ({
+      value: patFinal.slice(0, opts?.preferFast ? 6 : 12).map((p) => ({
         id: p.id,
         title: p.title,
         number: p.patentNumber,

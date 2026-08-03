@@ -23,23 +23,23 @@ const RECIPE_STEPS: Array<{
 }> = [
   {
     id: "gather",
-    title: "Gather ingredients",
-    hint: "Multi-API: PubChem, ChEMBL, openFDA, literature, patents…",
+    title: "Densify free-public APIs",
+    hint: "PubChem, literature, patents, identity DBs — soft-fail multi-source harvest",
   },
   {
     id: "score",
-    title: "Check the pantry",
-    hint: "How much multi-source process evidence we have",
+    title: "Score densify richness",
+    hint: "Process facts, procedure windows, multi-API coverage",
   },
   {
     id: "scaffold",
-    title: "Draft the recipe card",
-    hint: "Shell from public sources only",
+    title: "Build data dashboard",
+    hint: "Identity, GHS, densify strip, process leads (pre-AI)",
   },
   {
     id: "ollama",
-    title: "Cook dual-view routes",
-    hint: "Mechanism + manufacturing steps",
+    title: "AI dual-view structure",
+    hint: "Integral Ollama: manufacturing + mechanism from densified package only",
   },
 ];
 

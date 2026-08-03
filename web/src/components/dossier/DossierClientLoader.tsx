@@ -99,6 +99,25 @@ export function DossierClientLoader({ cid }: { cid: number }) {
           setElapsedMs(data.t || Date.now() - t0.current);
           es.close();
           esRef.current = null;
+          // Soft AI failure: densify dashboard is still the product surface
+          const aiMissed =
+            data.dossier.buildMode !== "ai" &&
+            Boolean(
+              data.dossier.synthesis?.rawError ||
+                data.dossier.synthesis?.gaps?.some((g) =>
+                  /Ollama|AI dual-view|OLLAMA|AI incomplete|quality-gated/i.test(
+                    g
+                  )
+                )
+            );
+          if (aiMissed) {
+            setError(
+              data.dossier.synthesis?.rawError ||
+                "AI dual-view did not finish — densified free-public dashboard is still usable. Retry when ready."
+            );
+          } else {
+            setError(null);
+          }
           void putCachedDossierAndNotify(data.dossier);
           void saveDossierSnapshot(data.dossier).then(() => {
             setSnapshotKey((k) => k + 1);
@@ -129,17 +148,19 @@ export function DossierClientLoader({ cid }: { cid: number }) {
         es.readyState === EventSource.CLOSED &&
         (phaseRef.current === "loading" || phaseRef.current === "shell")
       ) {
-        // If we already have a shell, keep it rather than hard-fail
+        // If we already have a densify shell, keep the data dashboard rather than hard-fail
         if (phaseRef.current === "shell") {
           phaseRef.current = "ready";
           setPhase("ready");
-          setError("Stream closed during AI step — showing evidence shell.");
+          setError(
+            "AI dual-view stream closed early — densified free-public dashboard is still usable. Retry for AI routes."
+          );
           return;
         }
         phaseRef.current = "error";
         setPhase("error");
         setError(
-          "Progress stream closed before the dossier finished. Check the server and retry."
+          "Progress stream closed before densify finished. Check the server, Ollama key, and retry."
         );
       }
     };
@@ -235,14 +256,54 @@ export function DossierClientLoader({ cid }: { cid: number }) {
         onCancel={phase === "error" ? retry : undefined}
       />
 
-      {showShellProgress ? (
-        <div className="print:hidden sticky top-[var(--app-header-height)] z-40 border-b border-teal-500/20 bg-teal-950/90 px-4 py-2.5 text-sm text-teal-50 backdrop-blur">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-teal-300" />
-            <span className="font-medium">Recipe card ready</span>
-            <span className="text-teal-200/80">
-              Cooking dual-view steps… {Math.round(elapsedMs / 1000)}s
-            </span>
+      {showShellProgress && dossier ? (
+        <div className="print:hidden sticky top-[var(--app-header-height)] z-40 border-b border-teal-500/25 bg-teal-950/95 px-4 py-3 text-sm text-teal-50 backdrop-blur">
+          <div className="mx-auto max-w-6xl space-y-2">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-teal-300" />
+              <span className="font-medium">Data dashboard ready</span>
+              <span className="text-teal-200/80">
+                AI dual-view structuring densified evidence…{" "}
+                {Math.round(elapsedMs / 1000)}s
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2 text-[11px] text-teal-100/90">
+              <span className="rounded-md bg-teal-500/20 px-2 py-0.5 ring-1 ring-teal-400/30">
+                Lit {dossier.literature?.length ?? 0}
+              </span>
+              <span className="rounded-md bg-teal-500/20 px-2 py-0.5 ring-1 ring-teal-400/30">
+                Patents {dossier.patents?.length ?? 0}
+              </span>
+              <span className="rounded-md bg-teal-500/20 px-2 py-0.5 ring-1 ring-teal-400/30">
+                Densify {dossier.procedureExcerpts?.length ?? 0} windows
+              </span>
+              <span className="rounded-md bg-teal-500/20 px-2 py-0.5 ring-1 ring-teal-400/30">
+                Facts{" "}
+                {dossier.processFacts?.sourcedConditionCount ?? 0} cond ·{" "}
+                {dossier.processFacts?.unitOpCount ?? 0} ops
+              </span>
+              <span className="rounded-md bg-teal-500/20 px-2 py-0.5 ring-1 ring-teal-400/30">
+                Score {dossier.evidenceScore?.score ?? "—"}/100
+              </span>
+              <span className="rounded-md bg-violet-500/20 px-2 py-0.5 ring-1 ring-violet-400/30">
+                AI dual-view in progress
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {phase === "ready" && error ? (
+        <div className="print:hidden border-b border-amber-500/30 bg-amber-950/80 px-4 py-2 text-sm text-amber-50">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2">
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={retry}
+              className="rounded-md bg-amber-500/20 px-2 py-1 text-xs font-semibold ring-1 ring-amber-400/40 hover:bg-amber-500/30"
+            >
+              Retry densify + AI
+            </button>
           </div>
         </div>
       ) : null}
