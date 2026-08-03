@@ -85,15 +85,17 @@ Return ONE JSON object (no markdown fences):
   "done": false
 }
 
-Dynamic policy:
+Dynamic policy (API etiquette — do NOT thrash rate limits):
 1. Prefer process-critical recovery: europepmc, pubmed, openalex, patents, orgsyn over clinical-only.
-2. If openCircuits listed, avoid retrying those hosts; densify other sources instead.
-3. If procedure thin but annotations present → promote_annotations before or after densify.
-4. If complianceGrade is thin → prioritize retry/densify/promote; then compliance_check.
-5. After a tool that improved=false twice, switch strategy (densify↔retry↔promote) or stop.
-6. stop when complianceGrade pass/soft AND not needsDensify, or budget exhausted.
-7. Max 3 actions per turn. Prefer fewer high-value tools.
-8. Educational free-public densify only — not GMP.`;
+2. If rateLimitedHosts / rateLimitedFamilies present: NEVER retry those families immediately. Either wait_for_rate_limits (once, short) OR densify/promote alternate free-public sources.
+3. If openCircuits listed, avoid retrying those hosts; densify other sources instead.
+4. On HTTP 429 history (Semantic Scholar, PubMed, etc.): skip that host; use Europe PMC / OpenAlex / patents instead.
+5. If procedure thin but annotations present → promote_annotations before or after densify.
+6. If complianceGrade is thin → prioritize densify/promote over hammering failed hosts.
+7. After a tool that improved=false twice, switch strategy (densify↔retry↔promote) or stop — never tight-loop one 429 host.
+8. stop when complianceGrade pass/soft AND not needsDensify, or budget exhausted.
+9. Max 3 actions per turn. Prefer fewer high-value tools.
+10. Educational free-public densify only — not GMP.`;
 
 function extractJsonObject(text: string): unknown | null {
   const t = text.trim();
@@ -201,7 +203,56 @@ export function planLocalHarvestActions(
     return [{ tool: "stop", reason: "stagnant recovery — stop" }];
   }
 
-  // Prefer process-critical retries; avoid open circuits
+  const rateLimitedHosts = Array.isArray(state.rateLimitedHosts)
+    ? (state.rateLimitedHosts as string[])
+    : [];
+  const rateLimitedFamilies = Array.isArray(state.rateLimitedFamilies)
+    ? (state.rateLimitedFamilies as string[])
+    : [];
+
+  // Rate-limit etiquette: never thrash 429 hosts — wait once or densify alternate sources
+  if (
+    rateLimitedHosts.length > 0 &&
+    !already.has("list_rate_limits") &&
+    !already.has("wait_for_rate_limits")
+  ) {
+    return [
+      {
+        tool: "list_rate_limits",
+        reason: "observe 429 cooldowns before any retry",
+      },
+    ];
+  }
+  if (
+    rateLimitedFamilies.length > 0 &&
+    thin &&
+    !already.has("run_densify_pass") &&
+    already.has("list_rate_limits")
+  ) {
+    return [
+      {
+        tool: "run_densify_pass",
+        reason: "rate-limited families present — densify alternate free-public sources (no thrash)",
+      },
+    ];
+  }
+  if (
+    rateLimitedHosts.length > 0 &&
+    already.has("run_densify_pass") &&
+    !already.has("wait_for_rate_limits") &&
+    thin &&
+    failed.some((f) => rateLimitedFamilies.includes(f))
+  ) {
+    return [
+      {
+        tool: "wait_for_rate_limits",
+        maxWaitMs: 12_000,
+        reason: "one polite wait then optional retry of cooled hosts",
+      },
+    ];
+  }
+
+  // Prefer process-critical retries; avoid open circuits AND rate-limited hosts
   if (
     thin &&
     (softFails >= 2 || failed.length >= 1) &&
@@ -210,17 +261,34 @@ export function planLocalHarvestActions(
     const prefer = failed.filter((f) =>
       /europepmc|pubmed|openalex|crossref|patent|pubchem|orgsyn/i.test(f)
     );
-    const avoidHosts = openCircuits.map((h) => h.split(".")[0] || h);
+    const avoidHosts = [
+      ...openCircuits.map((h) => h.split(".")[0] || h),
+      ...rateLimitedHosts.map((h) => h.split(".")[0] || h),
+    ];
     const filtered = prefer.filter(
-      (f) => !avoidHosts.some((h) => f.toLowerCase().includes(h.toLowerCase()))
+      (f) =>
+        !rateLimitedFamilies.includes(f) &&
+        !avoidHosts.some((h) => f.toLowerCase().includes(h.toLowerCase()))
     );
+    if (!filtered.length && prefer.length && rateLimitedFamilies.length) {
+      // All process-critical fails are rate-limited → densify instead of thrash
+      if (!already.has("run_densify_pass")) {
+        return [
+          {
+            tool: "run_densify_pass",
+            reason: "all critical retries rate-limited — densify without thrash",
+          },
+        ];
+      }
+    }
     return [
       {
         tool: "retry_failed_families",
         families: (filtered.length ? filtered : prefer).slice(0, 8) || undefined,
-        reason: openCircuits.length
-          ? "retry soft-fails (circuit-aware)"
-          : "recover soft-failed free-public families",
+        reason:
+          rateLimitedHosts.length || openCircuits.length
+            ? "retry soft-fails (etiquette: skip rate-limited/circuit hosts)"
+            : "recover soft-failed free-public families",
       },
     ];
   }

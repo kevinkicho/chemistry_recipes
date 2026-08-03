@@ -5,6 +5,13 @@ import {
   recordHostFailure,
   recordHostSuccess,
 } from "@/lib/api/hostCircuit";
+import {
+  etiquetteHeaders,
+  isHostRateLimited,
+  recordHostCallComplete,
+  recordHostRateLimited,
+  waitForHostSlot,
+} from "@/lib/api/apiEtiquette";
 
 export interface ApiFetchTrace {
   /** Exact URL requested */
@@ -154,12 +161,16 @@ async function fetchWithTraceOnce(
     const res = await fetch(url, {
       ...rest,
       signal: controller.signal,
-      headers: {
-        Accept: "application/json, text/plain, */*",
-        ...(rest.headers ?? {}),
-      },
+      headers: etiquetteHeaders(rest.headers),
     });
     const contentType = res.headers.get("content-type") ?? undefined;
+    // Honor Retry-After on 429 before body read completes for agent cooldowns
+    if (res.status === 429) {
+      recordHostRateLimited(url, {
+        retryAfterHeader: res.headers.get("retry-after"),
+        httpStatus: 429,
+      });
+    }
     const text = await res.text();
     let data: unknown | null = null;
     // Parse JSON for both success and error bodies (PubChem Fault on 404, etc.)
@@ -187,7 +198,9 @@ async function fetchWithTraceOnce(
           ? undefined
           : notFound
             ? "Not found"
-            : `HTTP ${res.status}`,
+            : res.status === 429
+              ? "HTTP 429 rate limited (etiquette cooldown applied)"
+              : `HTTP ${res.status}`,
       },
     };
   } catch (e) {
@@ -226,6 +239,23 @@ export async function fetchWithTrace(
   url: string,
   init?: TraceFetchInit
 ): Promise<{ text: string; data: unknown | null; trace: ApiFetchTrace }> {
+  // Rate-limit cooldown → skip network (agent / densify picks other sources)
+  if (isHostRateLimited(url)) {
+    return {
+      text: "",
+      data: null,
+      trace: {
+        endpointUrl: url,
+        method: (init?.method ?? "GET").toUpperCase(),
+        fetchedAt: new Date().toISOString(),
+        httpStatus: 429,
+        responseBody: "",
+        ok: false,
+        error: "host rate-limited (etiquette cooldown — not retrying until open)",
+      },
+    };
+  }
+
   // Host circuit open → skip network, return synthetic fail (siblings continue)
   if (isHostCircuitOpen(url)) {
     return {
@@ -242,15 +272,25 @@ export async function fetchWithTrace(
     };
   }
 
+  // Polite per-host spacing before first attempt
+  await waitForHostSlot(url);
+
   const retries = init?.retries ?? 2;
   const baseMs = init?.retryBaseMs ?? 450;
   let last = await fetchWithTraceOnce(url, init);
+  recordHostCallComplete(url, { httpStatus: last.trace.httpStatus });
 
   for (let i = 0; i < retries; i++) {
     if (!isTransientTrace(last.trace)) break;
+    // Do not hammer a host still under 429 cooldown
+    if (last.trace.httpStatus === 429 || isHostRateLimited(url)) {
+      break;
+    }
     const delay = baseMs * Math.pow(2, i) + Math.floor(Math.random() * 150);
     await new Promise((r) => setTimeout(r, delay));
+    await waitForHostSlot(url);
     last = await fetchWithTraceOnce(url, init);
+    recordHostCallComplete(url, { httpStatus: last.trace.httpStatus });
   }
 
   // Annotate final error if we exhausted retries on transient faults
@@ -267,6 +307,7 @@ export async function fetchWithTrace(
   if (last.trace.ok) {
     recordHostSuccess(url);
   } else if (!last.trace.notFound) {
+    // 429 cooldown already recorded in fetchWithTraceOnce via recordHostRateLimited
     recordHostFailure(url, {
       httpStatus: last.trace.httpStatus,
       error: last.trace.error,

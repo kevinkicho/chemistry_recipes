@@ -41,11 +41,14 @@ ok("tool run_densify_pass", /run_densify_pass/.test(tools));
 ok("tool inspect_state", /inspect_state/.test(tools));
 ok("tool promote_annotations", /promote_annotations/.test(tools));
 ok("tool compliance_check", /compliance_check/.test(tools));
+ok("tool list_rate_limits", /list_rate_limits/.test(tools));
+ok("tool wait_for_rate_limits", /wait_for_rate_limits/.test(tools));
 ok("assessHarvestCompliance", /export function assessHarvestCompliance/.test(tools));
 ok("tool stop", /"stop"/.test(tools));
 ok("executeApiTool export", /export async function executeApiTool/.test(tools));
 ok("agent reactive roles", /role: \"react\"|\"compliance\"/.test(agent));
 ok("agent stagnant handling", /stagnant/.test(agent));
+ok("agent rate-limit etiquette", /rateLimitedHosts|wait_for_rate_limits|thrash/i.test(agent));
 
 const gather = read("lib/dossier/gather.ts");
 ok("gather uses runApiHarvestAgent", /runApiHarvestAgent/.test(gather));

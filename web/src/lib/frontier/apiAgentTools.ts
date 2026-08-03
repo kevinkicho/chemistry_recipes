@@ -22,10 +22,19 @@ import { snapshotFromEvidence } from "@/lib/dossier/densifyDelta";
 import { promoteAnnotationsToProcedureExcerpts } from "@/lib/dossier/annotationExcerpts";
 import { circuitOpenHosts } from "@/lib/api/hostCircuit";
 import { splitProcessVsClinicalLiterature } from "@/lib/literature/rank";
+import {
+  isFamilyRateLimited,
+  listRateLimitStates,
+  rateLimitedHosts,
+  waitForAnyRateLimit,
+  MAX_ETIQUETTE_WAIT_MS,
+} from "@/lib/api/apiEtiquette";
 
 export type ApiToolName =
   | "inspect_state"
   | "list_failed_families"
+  | "list_rate_limits"
+  | "wait_for_rate_limits"
   | "retry_failed_families"
   | "run_densify_pass"
   | "promote_annotations"
@@ -38,6 +47,8 @@ export type ApiToolCall = {
   tool: ApiToolName;
   /** Optional family labels for retry_failed_families */
   families?: string[];
+  /** Optional max wait ms for wait_for_rate_limits */
+  maxWaitMs?: number;
   reason?: string;
 };
 
@@ -151,6 +162,10 @@ export function inspectHarvestState(ev: CompoundEvidence): Record<string, unknow
   const { process: processLit, clinical: clinicalLit } =
     splitProcessVsClinicalLiterature(ev.literature || []);
   const openCircuits = circuitOpenHosts();
+  const rateLimits = listRateLimitStates();
+  const rateLimited = rateLimitedHosts();
+  const failedLabels = failed.map((f) => f.label);
+  const rateLimitedFamilies = failedLabels.filter((f) => isFamilyRateLimited(f));
   return {
     cid: ev.cid,
     name: ev.identity?.name || null,
@@ -168,8 +183,13 @@ export function inspectHarvestState(ev: CompoundEvidence): Record<string, unknow
     confidence: scored.confidence,
     preferFastModel: scored.preferFastModel,
     needsDensify: needsDensifyPass(ev),
-    failedFamilies: failed.map((f) => f.label),
+    failedFamilies: failedLabels,
     openCircuits,
+    rateLimitedHosts: rateLimited,
+    rateLimitedFamilies,
+    rateLimits: rateLimits.slice(0, 12),
+    etiquette:
+      "Never thrash 429 hosts — skip or wait_for_rate_limits, then use alternate free-public families.",
     complianceScore: compliance.score,
     complianceGrade: compliance.grade,
     familyStatus: families.slice(0, 24).map((r) => ({
@@ -212,36 +232,119 @@ export async function executeApiTool(
   if (tool === "list_failed_families") {
     const failed = failedFamiliesFromErrors(evidence.fetchErrors || []);
     const openCircuits = circuitOpenHosts();
+    const rateLimited = rateLimitedHosts();
     return {
       tool,
       ok: true,
       detail:
         failed.length > 0
           ? `failed families: ${failed.map((f) => f.label).join(", ")}${
-              openCircuits.length ? ` · circuits open: ${openCircuits.join(",")}` : ""
-            }`
+              openCircuits.length ? ` · circuits: ${openCircuits.join(",")}` : ""
+            }${rateLimited.length ? ` · rate-limited: ${rateLimited.join(",")}` : ""}`
           : "no soft/api-fail families recorded",
       evidence,
       observation: {
         families: failed.map((f) => f.label),
         openCircuits,
+        rateLimitedHosts: rateLimited,
+        rateLimitedFamilies: failed
+          .map((f) => f.label)
+          .filter((f) => isFamilyRateLimited(f)),
       },
+      improved: false,
+    };
+  }
+
+  if (tool === "list_rate_limits") {
+    const rateLimits = listRateLimitStates();
+    return {
+      tool,
+      ok: true,
+      detail: rateLimits.length
+        ? `rate limits: ${rateLimits
+            .map(
+              (r) =>
+                `${r.host}${r.rateLimited ? " RL" : ""} ${Math.ceil(r.remainingMs / 1000)}s`
+            )
+            .join("; ")}`
+        : "no active host rate-limit cooldowns",
+      evidence,
+      observation: { rateLimits, rateLimitedHosts: rateLimitedHosts() },
+      improved: false,
+    };
+  }
+
+  if (tool === "wait_for_rate_limits") {
+    const maxWaitMs = Math.min(
+      MAX_ETIQUETTE_WAIT_MS,
+      Math.max(0, call.maxWaitMs ?? MAX_ETIQUETTE_WAIT_MS)
+    );
+    const waited = await waitForAnyRateLimit({ maxWaitMs });
+    return {
+      tool,
+      ok: true,
+      detail: waited.waitedMs
+        ? `waited ${waited.waitedMs}ms for rate-limit cool-down · hosts ${waited.hosts.join(",") || "—"}`
+        : "no rate-limit wait needed",
+      evidence: {
+        ...evidence,
+        fetchErrors: [
+          ...(evidence.fetchErrors || []),
+          waited.waitedMs
+            ? `api-agent · etiquette wait ${waited.waitedMs}ms · ${waited.hosts.join(",")}`
+            : "api-agent · etiquette wait skipped (clear)",
+        ].slice(0, 80),
+      },
+      observation: waited,
       improved: false,
     };
   }
 
   if (tool === "retry_failed_families") {
     try {
-      // Skip families tied to open host circuits when possible
+      // Skip families on open circuits OR active rate-limit cooldowns (etiquette)
       const open = new Set(circuitOpenHosts());
+      const rateHosts = new Set(rateLimitedHosts());
       let families = call.families;
-      if (families?.length && open.size) {
-        const filtered = families.filter(
-          (f) =>
-            !open.has(f) &&
-            ![...open].some((h) => f.toLowerCase().includes(h.split(".")[0] || ""))
-        );
-        if (filtered.length) families = filtered;
+      const allCandidates =
+        families?.length
+          ? families
+          : failedFamiliesFromErrors(evidence.fetchErrors || []).map((f) => f.label);
+      const filtered = allCandidates.filter((f) => {
+        if (isFamilyRateLimited(f)) return false;
+        if (
+          open.size &&
+          [...open].some((h) => f.toLowerCase().includes(h.split(".")[0] || ""))
+        )
+          return false;
+        if (
+          rateHosts.size &&
+          [...rateHosts].some((h) => f.toLowerCase().includes(h.split(".")[0] || ""))
+        )
+          return false;
+        return true;
+      });
+      if (filtered.length) families = filtered;
+      else if (allCandidates.some((f) => isFamilyRateLimited(f))) {
+        return {
+          tool,
+          ok: false,
+          detail:
+            "retry skipped — remaining failed families are rate-limited (etiquette). Use wait_for_rate_limits or densify alternate sources.",
+          evidence: {
+            ...evidence,
+            fetchErrors: [
+              ...(evidence.fetchErrors || []),
+              "api-agent · retry skipped · rate-limited hosts",
+            ].slice(0, 80),
+          },
+          observation: {
+            skipped: true,
+            rateLimitedHosts: [...rateHosts],
+            rateLimitedFamilies: allCandidates.filter((f) => isFamilyRateLimited(f)),
+          },
+          improved: false,
+        };
       }
       const retry = await retryFailedFamilies(evidence, {
         families,
@@ -454,16 +557,27 @@ export const API_TOOL_CATALOG: Array<{
   {
     name: "inspect_state",
     description:
-      "Read harvest snapshot: scores, compliance, soft-fails, open circuits, process/clinical balance, family status.",
+      "Read harvest snapshot: scores, compliance, soft-fails, open circuits, rate-limit cooldowns, process/clinical balance.",
   },
   {
     name: "list_failed_families",
-    description: "List free-API families that soft-failed; note open host circuits.",
+    description:
+      "List free-API families that soft-failed; note open circuits and rate-limited hosts.",
+  },
+  {
+    name: "list_rate_limits",
+    description:
+      "List hosts under 429/etiquette cooldown. Prefer skipping those families over thrashing.",
+  },
+  {
+    name: "wait_for_rate_limits",
+    description:
+      "Polite wait (capped) for rate-limit cooldown before retry. Prefer alternate sources first.",
   },
   {
     name: "retry_failed_families",
     description:
-      "Re-query soft-failed free-public families (optional families[]). Skips open circuits when possible.",
+      "Re-query soft-failed free-public families (optional families[]). NEVER retries rate-limited hosts — skips them (etiquette).",
   },
   {
     name: "run_densify_pass",

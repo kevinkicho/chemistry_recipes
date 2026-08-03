@@ -22,6 +22,7 @@ import { extractProcessFacts } from "@/lib/dossier/processFacts";
 import { createSoftRunner } from "@/lib/dossier/gatherResilience";
 import { failedFamiliesFromErrors } from "@/lib/dossier/densifyDelta";
 import { mergeLiteratureHits } from "@/lib/dossier/retryFailedFamiliesMerge";
+import { isFamilyRateLimited } from "@/lib/api/apiEtiquette";
 
 export type RetryFamiliesResult = {
   evidence: CompoundEvidence;
@@ -70,9 +71,17 @@ export async function retryFailedFamilies(
 
   const run = async (label: string, fn: () => Promise<void>) => {
     if (!want.has(label) && !want.has(label.replace(/-retry$/, ""))) return;
+    // API etiquette: never re-hit a family whose host is under 429 cooldown
+    if (isFamilyRateLimited(label)) {
+      fetchErrors.push(
+        `api-etiquette · skip retry ${label}: host rate-limited`
+      );
+      return;
+    }
     retried.push(label);
     await fn();
-    await politeDelay(90);
+    // Longer gap between retries to stay polite under free-tier limits
+    await politeDelay(180);
   };
 
   await run("europepmc", async () => {

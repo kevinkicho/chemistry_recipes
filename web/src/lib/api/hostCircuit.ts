@@ -11,8 +11,11 @@ type CircuitState = {
 
 const circuits = new Map<string, CircuitState>();
 
+/** Open circuit faster on 429 so etiquette + agent skip thrashing. */
 const FAIL_OPEN_THRESHOLD = 3;
+const FAIL_OPEN_THRESHOLD_429 = 1;
 const COOLDOWN_MS = 45_000;
+const COOLDOWN_429_MS = 60_000;
 
 function hostKey(url: string): string {
   try {
@@ -50,8 +53,11 @@ export function recordHostFailure(url: string, opts?: { httpStatus?: number; err
   }
   const prev = circuits.get(key) || { fails: 0, openUntil: 0 };
   const fails = prev.fails + 1;
-  if (fails >= FAIL_OPEN_THRESHOLD) {
-    circuits.set(key, { fails, openUntil: Date.now() + COOLDOWN_MS });
+  const is429 = opts?.httpStatus === 429;
+  const threshold = is429 ? FAIL_OPEN_THRESHOLD_429 : FAIL_OPEN_THRESHOLD;
+  const cool = is429 ? COOLDOWN_429_MS : COOLDOWN_MS;
+  if (fails >= threshold) {
+    circuits.set(key, { fails, openUntil: Date.now() + cool });
   } else {
     circuits.set(key, { fails, openUntil: 0 });
   }
