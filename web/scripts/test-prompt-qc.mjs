@@ -47,12 +47,12 @@ ok("AI-01 prioritizes processFacts atoms", /atoms/.test(pack));
 ok("AI-01 agenticBrief instruction", /agenticBrief/.test(pack));
 
 // Budget
-ok("AI-02 full budget 32k", /MAX_EVIDENCE_CHARS_FULL\s*=\s*32_000/.test(pack));
-ok("AI-02 fast budget defined", /MAX_EVIDENCE_CHARS_FAST\s*=\s*16_000/.test(pack));
+ok("AI-02 full budget latency-tuned", /MAX_EVIDENCE_CHARS_FULL\s*=\s*28_000/.test(pack));
+ok("AI-02 fast budget latency-tuned", /MAX_EVIDENCE_CHARS_FAST\s*=\s*12_000/.test(pack));
 
-// Timeouts
-ok("AI-04 full timeout 120s", /AI_TIMEOUT_MS\s*=\s*120_000/.test(synth));
-ok("AI-04 fast timeout shorter", /AI_TIMEOUT_FAST_MS\s*=\s*75_000/.test(synth));
+// Timeouts (latency-tuned)
+ok("AI-04 full timeout 100s", /AI_TIMEOUT_MS\s*=\s*100_000/.test(synth));
+ok("AI-04 fast timeout shorter", /AI_TIMEOUT_FAST_MS\s*=\s*55_000/.test(synth));
 ok(
   "AI-04 preferFast selects timeout",
   /preferFast\s*\?\s*AI_TIMEOUT_FAST_MS\s*:\s*AI_TIMEOUT_MS|timeoutMs\s*=\s*preferFast/.test(
@@ -84,8 +84,8 @@ ok(
 ok("pipeline attachQuotesToRoutes", /attachQuotesToRoutes/.test(pipe));
 ok("pipeline mergeExtractAtoms", /mergeExtractAtomsIntoFacts/.test(pipe));
 ok(
-  "gather auto-retry soft-fails",
-  /retryFailedFamilies|auto-redensify/.test(read("lib/dossier/gather.ts"))
+  "gather API harvest agent densify/retry",
+  /runApiHarvestAgent|api-agent/.test(read("lib/dossier/gather.ts"))
 );
 ok(
   "knowledge digest builder",

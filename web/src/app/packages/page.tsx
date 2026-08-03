@@ -14,9 +14,9 @@ import { ForShowBanner, ForShowBreadcrumb } from "@/components/ForShowBanner";
 import { listParameterSets } from "@/lib/modality/biologicParameters";
 
 export const metadata: Metadata = {
-  title: "Curated packages",
+  title: "Teaching package",
   description:
-    "Educational process packages (~100) with modality parameter scaffolds — not GMP.",
+    "Minimal educational teaching package (Aspirin) — not GMP. Live work uses free-public densify + AI.",
 };
 
 type Props = {
@@ -56,22 +56,22 @@ export default async function PackagesPage({ searchParams }: Props) {
       <ForShowBreadcrumb section="Packages" />
       <ForShowBanner section="Packages" />
       <h1 className="text-3xl font-semibold tracking-tight text-slate-50">
-        Educational process packages
+        Teaching package (demo)
       </h1>
       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-400">
-        <strong className="text-slate-300">{allCount} educational packages</strong> spanning
-        small-molecule APIs, intermediates, solvents, formulation, and biologic modalities
-        (mAb, ADC, peptide, oligo, cell/gene, vaccine). Each package links to live PubChem
-        and/or a Tier-A dual-view dossier when available, plus a{" "}
-        <strong className="text-slate-300">modality parameter scaffold</strong> with
-        literature-typical teaching envelopes.
+        <strong className="text-slate-300">{allCount} teaching package pointer</strong> only
+        (Aspirin → live CID 2244). Not a mock plant body. Real work uses{" "}
+        <Link href={routes.search()} className="text-teal-300 hover:underline">
+          live search
+        </Link>{" "}
+        → free-public densify + AI dual-view for any CID.
       </p>
       <div className="mt-4 space-y-2">
         <RegulatoryDisclaimer compact />
         <p className="text-[11px] leading-relaxed text-slate-600">
-          {PACKAGE_CATALOG_DISCLAIMER} These are{" "}
-          <strong className="text-slate-500">not</strong> 100 GMP-validated plant packages —
-          they are structured professional scaffolds for scouting and tech-transfer prep.
+          {PACKAGE_CATALOG_DISCLAIMER} This is{" "}
+          <strong className="text-slate-500">not</strong> a plant package catalog — it is a
+          single teaching demo.
         </p>
       </div>
 

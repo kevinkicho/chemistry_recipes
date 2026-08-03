@@ -1,5 +1,5 @@
 /**
- * Ideal page parity contracts — curated Tier-A is the depth goal.
+ * Ideal page parity contracts — live densify depth goal (no Tier-A mock JSON).
  */
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
@@ -31,12 +31,11 @@ ok("exports isPreferredRouteThin", /export function isPreferredRouteThin/.test(i
 ok("process-recipe section", /process-recipe/.test(ideal));
 ok("apparatus section", /apparatus/.test(ideal));
 ok("environment section", /environment/.test(ideal));
-ok("goal mentions curated", /curated Tier-A|ExampleDossierView/i.test(ideal));
+ok("goal mentions process depth", /ideal|process recipe|depth/i.test(ideal));
 
 const tiera = read("lib/dossier/tierABaseline.ts");
-ok("tierA uses isPreferredRouteThin", /isPreferredRouteThin/.test(tiera));
-ok("tierA promotes preference when thin", /thinLive \? 1/.test(tiera) || /preference: thinLive/.test(tiera));
-ok("tierA labels ideal-page", /ideal-page|ideal page/i.test(tiera));
+ok("tierA is no-op (mocks removed)", /No-op|never inject mock/i.test(tiera));
+ok("tierA exports applyTierABaseline", /export function applyTierABaseline/.test(tiera));
 
 const live = read("components/dossier/LiveMoleculeDossier.tsx");
 ok("live Ideal chip", /Ideal.*idealParity|idealParity\.score/.test(live));
@@ -51,15 +50,16 @@ ok("pipeline attaches ideal parity", /withIdealPageParity/.test(pipe));
 const types = read("lib/dossier/types.ts");
 ok("LiveDossier idealParity field", /idealParity\?/.test(types));
 
-// Curated aspirin has ideal inventory keys
-const asa = JSON.parse(
-  readFileSync(join(root, "src/data/molecules/aspirin.json"), "utf8")
+// Mock molecule JSON removed — live densify is the product
+const moleculesDir = join(root, "src/data/molecules");
+ok("molecules dir exists", existsSync(moleculesDir));
+ok(
+  "no aspirin mock JSON",
+  !existsSync(join(moleculesDir, "aspirin.json"))
 );
-ok("curated aspirin has routes", Array.isArray(asa.routes) && asa.routes.length >= 1);
-ok("curated aspirin has apparatusCatalog", Array.isArray(asa.apparatusCatalog));
-ok("curated aspirin has environmentBaseline", Boolean(asa.environmentBaseline));
-ok("curated aspirin has ehsHighlights", Array.isArray(asa.ehsHighlights));
-ok("curated aspirin has manufacturingSummary", Boolean(asa.manufacturingSummary));
-ok("curated aspirin has relatedEntities", Array.isArray(asa.relatedEntities));
+
+const examples = read("lib/data/examples.ts");
+ok("examples catalog empty stubs", /return \[\]/.test(examples));
+ok("getExampleById always undefined", /return undefined/.test(examples));
 
 console.log(`\n${n} ideal-page checks passed`);

@@ -63,7 +63,7 @@ import {
   hydrateVaultIntoDossier,
 } from "@/lib/dossier/enrichClientFacts";
 import { formatCacheAge } from "@/lib/idb/dossierCache";
-import { findHubByCid } from "@/lib/data/hubIndex";
+
 import { DossierSectionTitle as SectionTitle } from "@/components/dossier/DossierSectionTitle";
 import {
   extractMp,
@@ -346,13 +346,7 @@ export function LiveMoleculeDossier({
       evidenceScore: dossier.evidenceScore?.score,
     }
   );
-  const hubTwin = findHubByCid(cid);
-  const tierAHref =
-    hubTwin?.kind === "example" && hubTwin.exampleId
-      ? routes.example(hubTwin.exampleId)
-      : null;
-
-  // Properties for example-like sidebar (PubChem identity + property texts)
+  // Properties for sidebar (PubChem identity + property texts)
   const plantProps = {
     molecularWeight: hit?.molecularWeight,
     formula: hit?.formula,
@@ -607,30 +601,12 @@ export function LiveMoleculeDossier({
             </div>
           ) : null}
 
-          {tierAHref ? (
-            <p className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-xs text-amber-100/90">
-              <strong className="font-medium">Optional teaching baseline</strong>
-              {" — "}
-              a curated dual-view scaffold for{" "}
-              <Link href={tierAHref} className="font-medium text-amber-200 hover:underline">
-                {hubTwin?.name || name}
-              </Link>{" "}
-              (under{" "}
-              <Link href={routes.info()} className="font-medium text-amber-200 hover:underline">
-                Info
-              </Link>
-              ) is merged below as labeled education-only routes, next to live multi-API
-              facts. Pure mock layout stays on the Info example page — not a search hit.
-            </p>
-          ) : null}
-
           <p className="rounded-lg border border-teal-500/20 bg-teal-500/5 px-3 py-2 text-xs text-teal-100/90">
-            <strong className="font-medium">Live free-public build</strong>
+            <strong className="font-medium">Live free-public densify + AI dual-view</strong>
             {" — "}
-            plant sections below mirror curated example dossiers: recipe, control points,
-            manufacturing summary, apparatus, environment, EHS, and properties when public
-            evidence supports them
-            {routesFromAi ? " (plus Ollama dual-view)" : " (evidence shell / fact-derived)"}
+            multi-API harvest densified into a data dashboard; AI structures manufacturing +
+            mechanism views only from public evidence (uncited plant numbers stripped)
+            {routesFromAi ? "" : " · shell first while AI runs or if AI unavailable"}
             . Not a GMP procedure.
           </p>
 

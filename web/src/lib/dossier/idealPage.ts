@@ -6,7 +6,7 @@
  */
 
 import type { LiveDossier } from "@/lib/dossier/types";
-import { findHubByCid } from "@/lib/data/hubIndex";
+
 import type { ProcessRoute } from "@/lib/types/process";
 
 export type IdealSectionId =
@@ -139,12 +139,10 @@ function preferredRoute(d: LiveDossier): ProcessRoute | undefined {
  * Score how close a live dossier is to the curated ideal page inventory.
  */
 export function assessIdealPageParity(dossier: LiveDossier): IdealPageParity {
-  const hub = findHubByCid(dossier.cid);
   const pref = preferredRoute(dossier);
   const rd = routeDepth(pref);
-  const preferredIsTeaching =
-    Boolean(pref) &&
-    (/tier-a teaching/i.test(pref!.name || "") || pref!.id.startsWith("tier-a-"));
+  // Teaching-merge mock routes retired — preferred route is always live densify / AI.
+  const preferredIsTeaching = false;
 
   const facts = (dossier.processFacts?.facts || []).filter(
     (f) => f.kind !== "open-gap"
@@ -520,8 +518,8 @@ export function assessIdealPageParity(dossier: LiveDossier): IdealPageParity {
     filledCount,
     totalCount,
     summary,
-    hubExampleId: hub?.exampleId,
-    hubExampleHref: hub?.exampleId ? `/examples/${hub.exampleId}` : undefined,
+    hubExampleId: undefined,
+    hubExampleHref: undefined,
     preferredIsTeaching,
     goal: GOAL,
   };

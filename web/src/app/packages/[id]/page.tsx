@@ -13,7 +13,6 @@ import { RegulatoryDisclaimer } from "@/components/RegulatoryDisclaimer";
 import { MODALITY_TEMPLATES } from "@/lib/modality/templates";
 import { routes } from "@/lib/routes";
 import { PubchemStructureImage } from "@/components/PubchemStructureImage";
-import { getExampleById } from "@/lib/data/examples";
 import { ForShowBanner, ForShowBreadcrumb } from "@/components/ForShowBanner";
 
 type Props = { params: Promise<{ id: string }> };
@@ -34,7 +33,6 @@ export default async function PackageDetailPage({ params }: Props) {
 
   const paramSet = getParameterSetForModality(pkg.parameterSetId || pkg.modality);
   const modalityMeta = MODALITY_TEMPLATES[pkg.modality] || MODALITY_TEMPLATES.other;
-  const deep = pkg.exampleId ? getExampleById(pkg.exampleId) : undefined;
   const openHref = packageHref(pkg);
 
   return (
@@ -104,11 +102,9 @@ export default async function PackageDetailPage({ params }: Props) {
               href={openHref}
               className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500"
             >
-              {deep
-                ? "Open Tier-A dual-view dossier"
-                : pkg.pubchemCid
-                  ? "Build live PubChem dossier"
-                  : "Browse catalog"}
+              {pkg.pubchemCid
+                ? "Open live densify + AI dual-view"
+                : "Search by name"}
             </Link>
             <Link
               href={routes.packages()}

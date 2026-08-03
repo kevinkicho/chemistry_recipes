@@ -16,7 +16,7 @@ import { listModalities } from "@/lib/modality/templates";
 export const metadata: Metadata = {
   title: "Catalog",
   description:
-    "Faceted recipe hub: curated Tier-A examples and high-demand live PubChem process dossiers.",
+    "Optional catalog shell — product work is live Search densify + AI dual-view (no sample entries).",
 };
 
 type Props = {
@@ -64,14 +64,16 @@ export default async function CatalogPage({ searchParams }: Props) {
       <ForShowBreadcrumb section="Catalog" />
       <ForShowBanner section="Catalog" />
       <h1 className="text-3xl font-semibold tracking-tight text-slate-50">
-        Teaching recipe catalog
+        Catalog (empty shell)
       </h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
-        Index of curated dual-view examples (Tier A) plus high-demand live pointers. This page
-        is under <strong className="text-amber-100/80">Info</strong> (for show) — day-to-day work
-        starts at{" "}
+        Sample hub entries and Tier-A mock catalogs were removed. Day-to-day work starts at{" "}
         <Link href={routes.search()} className="text-teal-400 hover:underline">
           live Search
+        </Link>{" "}
+        → free-public densify + AI dual-view for any CID. Optional teaching pointer:{" "}
+        <Link href={routes.pubchem(2244)} className="text-teal-400 hover:underline">
+          Aspirin CID 2244
         </Link>
         .
       </p>
@@ -138,7 +140,6 @@ export default async function CatalogPage({ searchParams }: Props) {
             className="mt-1 block rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100"
           >
             <option value="">All</option>
-            <option value="example">Curated examples</option>
             <option value="live">Live PubChem</option>
           </select>
         </label>
@@ -185,12 +186,9 @@ export default async function CatalogPage({ searchParams }: Props) {
 
       <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((e) => {
-          const href =
-            e.kind === "example"
-              ? routes.example(e.id)
-              : e.pubchemCid
-                ? routes.pubchem(e.pubchemCid)
-                : routes.search(e.name);
+          const href = e.pubchemCid
+            ? routes.pubchem(e.pubchemCid)
+            : routes.search(e.name);
           return (
             <li key={e.id}>
               <Link
@@ -229,7 +227,7 @@ export default async function CatalogPage({ searchParams }: Props) {
                         {e.entityRole}
                       </span>
                       <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400">
-                        {e.kind === "example" ? "curated" : "live"}
+                        live
                       </span>
                     </div>
                   </div>

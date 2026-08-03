@@ -61,9 +61,10 @@ export function needsDensifyPass(evidence: CompoundEvidence): boolean {
  * Expand procedureExcerpts from literature/patent densification.
  */
 export async function runDensifyPass(
-  evidence: CompoundEvidence
+  evidence: CompoundEvidence,
+  opts?: { force?: boolean }
 ): Promise<CompoundEvidence> {
-  if (!needsDensifyPass(evidence)) return evidence;
+  if (!opts?.force && !needsDensifyPass(evidence)) return evidence;
 
   const name = evidence.identity?.name || `CID ${evidence.cid}`;
   const traces = [...(evidence.traces || [])];

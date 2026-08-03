@@ -50,8 +50,11 @@ ok("site fill save local", /saveSiteFill|localStorage/.test(site));
 ok("work packs notes + pastes", /addWorkPackNote|addWorkPackPaste/.test(packs));
 ok("enrich emphasizes scout", /emphasize/.test(enrich));
 ok("enrich logs paste to work pack", /addWorkPackPaste/.test(enrich));
-ok("home training vs live entry", /Training packs|Live evidence scout|Monday-morning/.test(home));
-ok("home densify step", /Densify|Paste public patent/.test(home));
+ok(
+  "home live densify primary",
+  /live AI densify|Live AI densify|Open live search|free-public densify/i.test(home)
+);
+ok("home densify step", /Densify|Paste public patent|dual-view/i.test(home));
 ok("print CSS operator floor", /monday-pack|operator-job-aid/.test(css));
 
 // Executable role visibility

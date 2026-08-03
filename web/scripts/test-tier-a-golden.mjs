@@ -1,6 +1,6 @@
 /**
- * Golden-structure contracts for Tier-A curated dossiers.
- * Ensures curated examples keep dual-view depth AI should not invent past.
+ * Golden contracts after Tier-A mock removal.
+ * Product is live densify + AI dual-view; no molecule JSON mocks.
  * Run: node scripts/test-tier-a-golden.mjs
  */
 
@@ -10,7 +10,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const molDir = path.join(__dirname, "..", "src", "data", "molecules");
+const root = path.join(__dirname, "..");
+const molDir = path.join(root, "src", "data", "molecules");
+const src = path.join(root, "src");
 
 let passed = 0;
 function ok(name, cond) {
@@ -19,36 +21,48 @@ function ok(name, cond) {
   passed += 1;
 }
 
-const files = fs.readdirSync(molDir).filter((f) => f.endsWith(".json"));
-ok("tier-A molecule files exist", files.length >= 5);
-
-for (const file of files) {
-  const raw = fs.readFileSync(path.join(molDir, file), "utf8");
-  const d = JSON.parse(raw);
-  const id = d.id || file;
-  ok(`${id}: has identifiers.name`, Boolean(d.identifiers?.name));
-  ok(`${id}: has disclaimer`, Boolean(d.disclaimer));
-  ok(`${id}: has routes array`, Array.isArray(d.routes) && d.routes.length >= 1);
-  const route = d.routes[0];
-  ok(`${id}: preferred route has steps`, Array.isArray(route.steps) && route.steps.length >= 2);
-  ok(
-    `${id}: steps have titles+descriptions`,
-    route.steps.every(
-      (s) => s.title && s.description && String(s.description).length >= 20
-    )
-  );
-  // Golden: curated steps should carry sourceRefs when claiming process detail
-  const withSrc = route.steps.filter((s) => s.sourceRefs?.length);
-  ok(
-    `${id}: at least one step has sourceRefs (citation discipline)`,
-    withSrc.length >= 1 || route.sourceRefs?.length >= 1
-  );
+function read(rel) {
+  return fs.readFileSync(path.join(src, rel), "utf8");
 }
 
-// Accuracy policy: AI must not invent IPC on thin evidence — mirrored law
+// No mock molecule JSON
+const jsonFiles = fs.existsSync(molDir)
+  ? fs.readdirSync(molDir).filter((f) => f.endsWith(".json"))
+  : [];
+ok("no tier-A molecule mock JSON files", jsonFiles.length === 0);
+
+const examples = read("lib/data/examples.ts");
+ok("examples stubs return empty catalog", /getExampleCatalog[\s\S]*return \[\]/.test(examples));
+ok("getExampleById always undefined", /getExampleById[\s\S]*return undefined/.test(examples));
+
+const tier = read("lib/dossier/tierABaseline.ts");
+ok("tierA baseline is no-op", /No-op|never inject mock/i.test(tier));
+ok("applyTierABaseline exported", /export function applyTierABaseline/.test(tier));
+
+const hub = read("lib/data/hubIndex.ts");
+ok("HUB_INDEX empty", /HUB_INDEX:\s*HubIndexEntry\[\]\s*=\s*\[\]/.test(hub));
+
+const catalog = read("lib/data/hubCatalog.ts");
+ok("hub catalog has no sample LIVE_HUB entries", /const LIVE_HUB[\s\S]*=\s*\[\s*\];/.test(catalog) || /LIVE_HUB[\s\S]*=\s*\[\]/.test(catalog));
+
+const packages = read("lib/data/curatedPackages.ts");
+ok("one teaching pointer Aspirin", packages.includes('name: "Aspirin"') && packages.includes("pubchemCid: 2244"));
+ok("packages point live not mock exampleId", !packages.includes('exampleId: "aspirin"'));
+
+// Accuracy policy still present
 ok(
-  "product law file exists",
-  fs.existsSync(path.join(__dirname, "..", "src", "lib", "dossier", "processFacts.ts"))
+  "processFacts law file exists",
+  fs.existsSync(path.join(src, "lib", "dossier", "processFacts.ts"))
+);
+ok(
+  "AI package process-first instruction",
+  /overview MUST open with process|lead with process/i.test(
+    read("lib/dossier/aiEvidencePackage.ts")
+  )
+);
+ok(
+  "synthesize cold-start rule",
+  /coldStart|Cold\/thin densify/i.test(read("lib/dossier/synthesize.ts"))
 );
 
-console.log(`\nAll Tier-A golden contracts passed (${passed}).`);
+console.log(`\nAll live-pipeline golden contracts passed (${passed}).`);

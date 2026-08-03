@@ -151,21 +151,39 @@ export async function buildLiveDossierWithProgress(
     force: Boolean(opts.force),
   });
   const gSum = summarizeTraces(evidence.traces);
+  const agent = evidence.harvestAgent;
   emit({
     type: evidence.identity ? "step_done" : "step_error",
     stepId: "gather",
-    label: "Free public evidence harvest",
-    organization: "Multi-source",
+    label: "Free public evidence harvest + API agent",
+    organization: "Multi-source · harvest agent",
     endpointUrl: gSum.endpointUrl,
     method: "GET",
     httpStatus: gSum.httpStatus,
     ok: Boolean(evidence.identity) || evidence.literature.length > 0,
     durationMs: Date.now() - tGather,
     responsePreview: gSum.responsePreview,
-    detail: `${evidence.identity?.name || "CID " + cid} · ${evidence.literature.length} lit · ${evidence.patents.length} patents · ${evidence.traces.length} HTTP captures`,
+    detail: [
+      `${evidence.identity?.name || "CID " + cid}`,
+      `${evidence.literature.length} lit · ${evidence.patents.length} patents · ${evidence.traces.length} HTTP`,
+      agent
+        ? `agent ${agent.planner}${agent.usedLlm ? "+llm" : ""} · compliance ${agent.compliance.grade} ${agent.compliance.score} · tools ${agent.toolsRun.join("→") || "—"}`
+        : "agent n/a",
+    ].join(" · "),
     hits: evidence.literature.length + evidence.patents.length,
     ...tickDone(),
   });
+  if (agent?.steps?.length) {
+    for (const s of agent.steps.slice(0, 12)) {
+      emit({
+        type: "log",
+        stepId: "gather",
+        label: `API agent · ${s.role}${s.tool ? ` · ${s.tool}` : ""}`,
+        detail: s.detail,
+        durationMs: s.durationMs,
+      });
+    }
+  }
 
   // progress step 2 reserved for scoring detail in scaffold
   emit({

@@ -105,7 +105,7 @@ ok("DENS-08 stream force param", /force/.test(stream));
 ok("DENS-08 force passed to pipeline", /force\s*[,}]/.test(stream) || /force\s*:/.test(stream));
 
 // DENS-09 AI evidence package prioritizes densify
-ok("DENS-09 MAX_EVIDENCE_CHARS_FULL", /MAX_EVIDENCE_CHARS_FULL\s*=\s*3[0-9_]+/.test(evidencePkg));
+ok("DENS-09 MAX_EVIDENCE_CHARS_FULL", /MAX_EVIDENCE_CHARS_FULL\s*=\s*2[0-9_]+/.test(evidencePkg));
 ok("DENS-09 procedureExcerpts in package", /procedureExcerpts/.test(evidencePkg));
 ok("DENS-09 processFacts atoms first", /processFacts|atoms/.test(evidencePkg));
 ok("DENS-09 value-weighted packing", /value-weighted|rankProcedureTextsForPack|packing:\s*"value-weighted"/.test(evidencePkg));
@@ -138,8 +138,8 @@ ok("DENS-11 two-pass extract system", /EXTRACT_SYSTEM|pass1Extract|two-pass/.tes
 ok("DENS-11 densifyNext thin hits", /listThinHighValueTargets|act:thin-hits|thin high-value/.test(guide));
 ok("DENS-11 procedure-density gate", /hasProcedureDensity|PROC_DENSITY/.test(score));
 ok(
-  "DENS-11 auto-retry densify chain",
-  /retryFailedFamilies|auto-retry|auto-redensify/.test(gather)
+  "DENS-11 agent densify/retry chain",
+  /runApiHarvestAgent|apiAgent|retry_failed_families|run_densify_pass/.test(gather)
 );
 ok(
   "DENS-11 processKnowledgeDigest module",

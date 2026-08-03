@@ -96,13 +96,7 @@ function isStrongLocalMatch(
   return local.some(
     (h) =>
       h.name.toLowerCase() === q ||
-      (h.cas != null && h.cas.toLowerCase() === q) ||
-      HUB_INDEX.some(
-        (e) =>
-          e.pubchemCid === h.cid &&
-          e.exampleId != null &&
-          e.exampleId === q
-      )
+      (h.cas != null && h.cas.toLowerCase() === q)
   );
 }
 

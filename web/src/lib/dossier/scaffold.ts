@@ -332,6 +332,25 @@ export function buildScaffoldDossier(evidence: CompoundEvidence): LiveDossier {
     traces: evidence.traces,
     sourceRefs: evidence.sourceRefs,
     fetchErrors: evidence.fetchErrors,
+    harvestAgent: evidence.harvestAgent
+      ? {
+          schema: evidence.harvestAgent.schema,
+          planner: evidence.harvestAgent.planner,
+          usedLlm: evidence.harvestAgent.usedLlm,
+          modelUsed: evidence.harvestAgent.modelUsed,
+          toolsRun: evidence.harvestAgent.toolsRun,
+          summary: evidence.harvestAgent.summary,
+          compliance: {
+            score: evidence.harvestAgent.compliance.score,
+            grade: evidence.harvestAgent.compliance.grade,
+            freePublicOnly: true as const,
+            inventPlantNumbers: false as const,
+            checks: evidence.harvestAgent.compliance.checks,
+          },
+          durationMs: evidence.harvestAgent.durationMs,
+          steps: evidence.harvestAgent.steps?.slice(0, 24),
+        }
+      : undefined,
     processRoutes,
     disclaimer: DEFAULT_DOSSIER_DISCLAIMER,
     generatedAt: new Date().toISOString(),

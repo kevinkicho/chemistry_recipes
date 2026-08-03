@@ -99,8 +99,22 @@ const packagesSrc = readFileSync(
   join(__dir, "../src/lib/data/curatedPackages.ts"),
   "utf8"
 );
-const seedNameHits = packagesSrc.match(/name:\s*"/g) || [];
-ok("curated package catalog has ≥100 entries", seedNameHits.length >= 100);
+// Product: one teaching package (Aspirin) → live CID only (no mock body).
+ok(
+  "curated package catalog is minimal teaching pointer (Aspirin)",
+  packagesSrc.includes('name: "Aspirin"') &&
+    packagesSrc.includes("pubchemCid: 2244") &&
+    packagesSrc.includes("Teaching pointer")
+);
+ok(
+  "curated package catalog is not a 100+ mock farm",
+  !packagesSrc.includes("Master seed list (~100)") &&
+    (packagesSrc.match(/name:\s*"/g) || []).length <= 8
+);
+ok(
+  "no exampleId mock path on aspirin package",
+  !packagesSrc.includes('exampleId: "aspirin"')
+);
 
 const bioSrc = readFileSync(
   join(__dir, "../src/lib/modality/biologicParameters.ts"),

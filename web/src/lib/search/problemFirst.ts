@@ -7,7 +7,7 @@ import { HUB_INDEX } from "@/lib/data/hubIndex";
 import { getAllCuratedPackages } from "@/lib/data/curatedPackages";
 import { routes } from "@/lib/routes";
 
-export type ProblemHitKind = "hub-live" | "hub-example" | "package";
+export type ProblemHitKind = "hub-live" | "package";
 
 export interface ProblemSearchHit {
   id: string;
@@ -74,7 +74,7 @@ export function searchProblemFirst(query: string, limit = 16): ProblemSearchHit[
   const hits: ProblemSearchHit[] = [];
 
   for (const e of HUB_INDEX) {
-    const hay = `${e.name} ${e.cas || ""} ${e.exampleId || ""} ${e.kind}`;
+    const hay = `${e.name} ${e.cas || ""} ${e.kind}`;
     const sc = scoreText(hay, needles);
     if (sc < 4) continue;
     if (e.pubchemCid) {
@@ -84,19 +84,8 @@ export function searchProblemFirst(query: string, limit = 16): ProblemSearchHit[
         title: e.name,
         subtitle: `Live CID ${e.pubchemCid}${e.cas ? ` · CAS ${e.cas}` : ""}`,
         href: routes.pubchem(e.pubchemCid),
-        score: sc + (e.kind === "example" ? 2 : 0),
+        score: sc,
         tags: ["live", e.kind],
-      });
-    }
-    if (e.kind === "example" && e.exampleId) {
-      hits.push({
-        id: `ex-${e.exampleId}`,
-        kind: "hub-example",
-        title: `${e.name} (training)`,
-        subtitle: "Curated dual-view example · Info",
-        href: routes.example(e.exampleId),
-        score: sc + 1,
-        tags: ["training", "tier-a"],
       });
     }
   }

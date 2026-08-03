@@ -47,16 +47,16 @@ export default function HomePage() {
             </div>
             <div className="rounded-xl border border-slate-600/50 bg-slate-900/50 p-4 ring-1 ring-slate-600/30">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                Secondary · training demos
+                Optional · teaching pointer
               </p>
               <p className="mt-1 text-sm text-slate-300">
-                Curated Tier-A examples under Info — teaching depth, not live plant data.
+                One Aspirin package → opens live PubChem densify (CID 2244), not a mock dossier.
               </p>
               <Link
-                href={routes.info()}
+                href={routes.pubchem(2244)}
                 className="mt-3 inline-flex rounded-lg border border-slate-600 bg-slate-800/80 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
               >
-                Open training (Info) →
+                Try Aspirin live densify →
               </Link>
             </div>
           </div>
@@ -87,7 +87,7 @@ export default function HomePage() {
               href={routes.info()}
               className="rounded-lg border border-slate-600 bg-slate-900/60 px-4 py-2.5 text-sm font-semibold text-slate-300 hover:bg-slate-800"
             >
-              Training packs (Info)
+              Pipeline info
             </Link>
             <Link
               href={routes.workspace()}
@@ -170,27 +170,27 @@ export default function HomePage() {
               </li>
             </ul>
           </div>
-          <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-5 sm:p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-amber-400/90">
-              For show · teaching only
+          <div className="rounded-xl border border-teal-500/25 bg-teal-500/5 p-5 sm:p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-teal-400/90">
+              Product · live only
             </p>
             <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-50">
-              All mock &amp; curated content is under Info
+              No mock plant dossiers
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-400">
-              Tier-A plant dossiers, educational packages, static JSON, and hub demos are{" "}
-              <strong className="font-medium text-amber-100/90">not search results</strong> and never
-              replace live PubChem builds. Open the amber{" "}
-              <Link href={routes.info()} className="font-medium text-amber-100 hover:underline">
+              Sample Tier-A JSON and hub catalogs were removed. Every compound page is a{" "}
+              <strong className="font-medium text-teal-100/90">live free-public densify</strong>{" "}
+              with optional AI dual-view. One teaching pointer (Aspirin → CID 2244) lives under{" "}
+              <Link href={routes.info()} className="font-medium text-teal-200 hover:underline">
                 Info
-              </Link>{" "}
-              tab in the top bar.
+              </Link>
+              .
             </p>
             <Link
-              href={routes.info()}
-              className="mt-4 inline-flex rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-100 hover:bg-amber-500/20"
+              href={routes.search()}
+              className="mt-4 inline-flex rounded-lg border border-teal-500/40 bg-teal-500/10 px-4 py-2 text-sm font-medium text-teal-100 hover:bg-teal-500/20"
             >
-              Open Info hub →
+              Open live search →
             </Link>
           </div>
         </div>

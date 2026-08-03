@@ -220,6 +220,34 @@ export interface CompoundEvidence {
   fetchErrors: string[];
   /** Extracted process fact atoms (accuracy layer) */
   processFacts?: ProcessFactBundle;
+  /**
+   * API harvest agent report (densify/retry/compliance orchestration).
+   * Lightweight — no secrets; steps + compliance only.
+   */
+  harvestAgent?: {
+    schema: "chemistry-recipes.api-agent.v1";
+    planner: "llm" | "local";
+    usedLlm: boolean;
+    modelUsed?: string;
+    toolsRun: string[];
+    summary: string;
+    compliance: {
+      score: number;
+      grade: "pass" | "soft" | "thin";
+      freePublicOnly: true;
+      inventPlantNumbers: false;
+      checks?: Array<{ id: string; ok: boolean; detail: string }>;
+    };
+    durationMs: number;
+    steps?: Array<{
+      id: string;
+      role: string;
+      detail: string;
+      tool?: string;
+      durationMs?: number;
+      improved?: boolean;
+    }>;
+  };
 }
 
 /** Free-public procedure / methods window for process-fact densification */
@@ -316,6 +344,8 @@ export interface LiveDossier {
   sourceRefs: SourceRef[];
   /** Soft-fail / api-fail notes from durable multi-API gather (not secrets) */
   fetchErrors?: string[];
+  /** API harvest agent report (densify/retry/compliance) */
+  harvestAgent?: CompoundEvidence["harvestAgent"];
   processRoutes: ProcessRoute[];
   disclaimer: string;
   generatedAt: string;

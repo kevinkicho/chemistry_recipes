@@ -9,7 +9,6 @@ import {
   updateCampaign,
   type ScienceCampaign,
 } from "@/lib/workspace/campaigns";
-import { HUB_INDEX } from "@/lib/data/hubIndex";
 import {
   streamBatchDensifyCids,
   type BatchClientResponse,
@@ -52,15 +51,6 @@ export function cidsFromProblemHits(hits: ProblemSearchHit[]): {
           h.title.replace(/\s*\(training\)\s*$/i, "").trim();
       }
       continue;
-    }
-    // example via hub index
-    const ex = /^ex-(.+)$/.exec(h.id);
-    if (ex) {
-      const entry = HUB_INDEX.find((e) => e.exampleId === ex[1]);
-      if (entry?.pubchemCid) {
-        cids.push(entry.pubchemCid);
-        labels[String(entry.pubchemCid)] = entry.name;
-      }
     }
   }
 

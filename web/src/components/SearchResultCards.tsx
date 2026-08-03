@@ -141,18 +141,9 @@ export function MultiSourceResultCard({
               <span className="inline-flex items-center rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-400 ring-1 ring-inset ring-slate-700">
                 {hub.entityRole}
               </span>
-              {hub.kind === "example" ? (
-                <span
-                  className="inline-flex items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-100 ring-1 ring-inset ring-amber-500/30"
-                  title="A demo twin exists under Info — this card still opens the live PubChem dossier"
-                >
-                  Live · demo twin in Info
-                </span>
-              ) : (
-                <span className="inline-flex items-center rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-medium text-violet-200 ring-1 ring-inset ring-violet-500/25">
-                  Live hub
-                </span>
-              )}
+              <span className="inline-flex items-center rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-medium text-violet-200 ring-1 ring-inset ring-violet-500/25">
+                Live hub
+              </span>
             </>
           ) : null}
           {!target ? (

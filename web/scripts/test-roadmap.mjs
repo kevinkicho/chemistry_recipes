@@ -75,10 +75,16 @@ ok("idealPage module", existsSync(join(root, "src/lib/dossier/idealPage.ts")));
 ok("IdealPageParityPanel", existsSync(join(root, "src/components/IdealPageParityPanel.tsx")));
 ok("live mounts IdealPageParity", /IdealPageParityPanel/.test(read("components/dossier/LiveMoleculeDossier.tsx")));
 ok("pipeline withIdealPageParity", /withIdealPageParity/.test(read("lib/dossier/pipeline.ts")));
-ok("tierA promotes when thin", /thinLive|isPreferredRouteThin/.test(read("lib/dossier/tierABaseline.ts")));
-ok("product goal curated ideal", /ideal page|Tier-A is the ideal/i.test(
-  readFileSync(join(root, "..", "docs", "product-vision.md"), "utf8")
-) || /ideal-page|Ideal page/.test(read("lib/dossier/idealPage.ts")));
+ok(
+  "tierA is no-op (mocks removed)",
+  /No-op|never inject mock/i.test(read("lib/dossier/tierABaseline.ts"))
+);
+ok(
+  "product goal ideal depth",
+  /ideal page|Tier-A is the ideal|process recipe|Ideal page/i.test(
+    readFileSync(join(root, "..", "docs", "product-vision.md"), "utf8")
+  ) || /ideal-page|Ideal page|process-recipe/.test(read("lib/dossier/idealPage.ts"))
+);
 
 // Executable quote grounding (via dynamic eval of TS is hard) — pure logic port
 function isTextGrounded(text, evidenceLower) {

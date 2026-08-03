@@ -33,9 +33,9 @@ import {
   buildAiDataFeedSources,
 } from "@/lib/dossier/aiEvidencePackage";
 
-/** Full dual-view synthesis — longer when evidence package is dense */
-const AI_TIMEOUT_MS = 120_000;
-const AI_TIMEOUT_FAST_MS = 75_000;
+/** Full dual-view synthesis — cap latency; densify shell already progressive */
+const AI_TIMEOUT_MS = 100_000;
+const AI_TIMEOUT_FAST_MS = 55_000;
 
 /** Pass 1: extract quote-bound atoms / skeleton only (no dual-view invention). */
 const EXTRACT_SYSTEM = `You are a process-evidence extractor for Chemistry Recipes (educational, free-public only).
@@ -83,8 +83,9 @@ C. When framing is process-recipe / productionBriefEligible=true, produce a cohe
 D. Maximize useful plant language (charge / react / quench / isolate / dry) that is still evidence-backed.
 E. externalAnnotations are context (UNII, ChEBI, labels) — never invent unit ops from identity-only hits.
 F. When pass1Extract is present, assemble from it — do not contradict its quotes.
-G. overview + manufacturingSummary MUST lead with process/synthesis/patent manufacturing evidence when present; put clinical indication after process leads.
+G. overview FIRST SENTENCE = process/synthesis class or manufacturing lead (patent/OA process paper); clinical MoA only after. manufacturingSummary = plant-facing only.
 H. modality: use small-molecule for typical organic APIs (MW ~100–1500, C-formula) unless strong biologics signals (mAb, CAR-T, AAV, SPPS, oligo).
+I. Cold/thin densify (agenticBrief.coldStart or few procedureExcerpts): single conservative route, short overview, honest gaps — never pad with clinical trial narrative as "process steps".
 
 HARD RULES (accuracy):
 1. NEVER invent numeric temperatures, pressures, times, yields, stoichiometry, or CAS. If not in evidence or processFacts, OMIT the field entirely (no "not specified", "N/A", "typical plant", "define IPC").
@@ -98,8 +99,9 @@ HARD RULES (accuracy):
 9. relatedEntities[] only when named in evidence (CAS only if present). Roles: starting-material|intermediate|impurity|reagent|solvent|catalyst|drug-product|other.
 10. contradictions[] when sources disagree — do NOT pick a winner.
 11. modality when clear: small-molecule|peptide|oligonucleotide|mab|formulation|fermentation|other.
-12. manufacturingSummary / overview: cite what public sources say; do not claim "commercial plant standard" without patent/paper support.
+12. manufacturingSummary / overview: cite what public sources say; do not claim "commercial plant standard" without patent/paper support. Overview must not lead with "is a drug that treats…" when process/patent leads exist.
 13. materials[] BOM entries only when named in procedureExcerpts / atoms / annotations — never invent CAS.
+14. Latency discipline: prefer compact JSON — 1 route with 3–8 evidence-backed steps over many thin steps.
 
 SCHEMA:
 {
@@ -778,11 +780,14 @@ export async function synthesizeDossierFromEvidence(
     (n, p) => n + (p.chars || p.text.length),
     0
   );
-  // Two-pass when full model + enough densify body to make extract valuable
+  // Two-pass only when densify body is rich enough to justify extract latency
+  // (cold/thin packages: single-pass assemble is faster and quality-similar)
   const useTwoPass =
     !preferFast &&
     !opts.singlePass &&
-    (procChars >= 600 || atomN >= 3 || procN >= 3);
+    (procChars >= 1200 || atomN >= 6 || (procN >= 4 && procChars >= 800));
+
+  const extractTimeoutCap = preferFast ? 28_000 : 42_000;
 
   const startedAt = new Date().toISOString();
   const endpointUrl = `${host}/api/chat`;
@@ -821,8 +826,8 @@ export async function synthesizeDossierFromEvidence(
     });
 
     const extractTimeout = Math.min(
-      Math.floor(timeoutMs * 0.45),
-      preferFast ? 40_000 : 55_000
+      Math.floor(timeoutMs * 0.4),
+      extractTimeoutCap
     );
     const extractRes = await ollamaChatStream(
       host,

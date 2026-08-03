@@ -59,8 +59,8 @@ ok(
 ok("RES live gather failure serves cache", /Live gather failed|serving durable server evidence cache/.test(gather));
 ok("RES force option skips cache", /opts\?\.force|force\?:/.test(gather));
 ok(
-  "RES densify on soft-fail pressure",
-  /countSoftFailures|shouldDensify|softFails/.test(gather)
+  "RES densify via API harvest agent",
+  /runApiHarvestAgent|api-agent|countSoftFailures/.test(gather)
 );
 
 // Gather resilience helpers

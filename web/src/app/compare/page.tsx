@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { routes } from "@/lib/routes";
 import { RegulatoryDisclaimer } from "@/components/RegulatoryDisclaimer";
-import { HUB_INDEX } from "@/lib/data/hubIndex";
 import { getCachedDossier } from "@/lib/idb/dossierCache";
 import type { LiveDossier } from "@/lib/dossier/types";
 import {
@@ -13,14 +12,12 @@ import {
   downloadJson,
   slugifyName,
 } from "@/lib/export/techTransfer";
-import { getExampleById } from "@/lib/data/examples";
 import { TechTransferExport } from "@/components/TechTransferExport";
 import { warmLiveDossier } from "@/lib/dossier/warmCache";
 import { CompareMsatBoard } from "@/components/CompareMsatBoard";
 
 type Resolved =
   | { kind: "cid"; cid: number; label: string; href: string }
-  | { kind: "example"; id: string; label: string; href: string }
   | { kind: "search"; q: string; label: string; href: string };
 
 function resolveInput(raw: string): Resolved | null {
@@ -35,38 +32,13 @@ function resolveInput(raw: string): Resolved | null {
       href: routes.pubchem(cid),
     };
   }
-  const hub = HUB_INDEX.find(
-    (e) =>
-      e.exampleId === t.toLowerCase() ||
-      e.name.toLowerCase() === t.toLowerCase() ||
-      e.cas === t ||
-      String(e.pubchemCid) === t
-  );
-  // Prefer live PubChem CID over curated example so Compare stays on real builds
-  if (hub?.pubchemCid) {
+  // Teaching name → live CID only (no mock dossiers)
+  if (t.toLowerCase() === "aspirin") {
     return {
       kind: "cid",
-      cid: hub.pubchemCid,
-      label: hub.name,
-      href: routes.pubchem(hub.pubchemCid),
-    };
-  }
-  // Explicit example id only (e.g. "aspirin" path) — demo content under Info
-  if (hub?.kind === "example" && hub.exampleId) {
-    return {
-      kind: "example",
-      id: hub.exampleId,
-      label: `${hub.name} (demo)`,
-      href: routes.example(hub.exampleId),
-    };
-  }
-  const ex = getExampleById(t.toLowerCase());
-  if (ex) {
-    return {
-      kind: "example",
-      id: ex.id,
-      label: `${ex.identifiers.name} (demo)`,
-      href: routes.example(ex.id),
+      cid: 2244,
+      label: "Aspirin",
+      href: routes.pubchem(2244),
     };
   }
   return { kind: "search", q: t, label: t, href: routes.search(t) };
@@ -169,14 +141,11 @@ function CompareInner() {
         Compare recipes
       </h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
-        Side-by-side scouting for two entities (prefer PubChem CIDs). Hub names resolve to{" "}
-        <strong className="font-medium text-slate-300">live CIDs</strong> when available —
-        curated mock dossiers stay under{" "}
-        <Link href={routes.info()} className="text-amber-300/90 hover:underline">
-          Info
-        </Link>
-        . <strong className="font-medium text-slate-300">Warm both</strong> streams live
-        builds into IndexedDB for dual export.
+        Side-by-side scouting for two entities — use{" "}
+        <strong className="font-medium text-slate-300">PubChem CIDs</strong> or molecule names
+        (names open live search).{" "}
+        <strong className="font-medium text-slate-300">Warm both</strong> streams live densify
+        + AI dual-view into IndexedDB for dual export. No mock example dossiers.
       </p>
       <div className="mt-4">
         <RegulatoryDisclaimer compact />
@@ -211,14 +180,7 @@ function CompareInner() {
         </label>
       </div>
       <datalist id="compare-suggest">
-        {HUB_INDEX.map((e) => (
-          <option
-            key={`${e.kind}-${e.pubchemCid}`}
-            value={e.exampleId || String(e.pubchemCid)}
-          >
-            {e.name}
-          </option>
-        ))}
+        <option value="2244">Aspirin (CID 2244)</option>
       </datalist>
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -378,14 +340,9 @@ function ComparePane({
             Or open live dossier →
           </Link>
         </div>
-      ) : resolved.kind === "example" ? (
-        <p className="mt-4 text-xs text-slate-500">
-          Curated Tier-A example — open full page for dual-view recipe. Dual export
-          uses live caches.
-        </p>
       ) : (
         <p className="mt-4 text-xs text-slate-500">
-          Resolve via search, then warm a PubChem CID for live compare metrics.
+          Resolve via search to a PubChem CID, then warm for live compare metrics.
         </p>
       )}
     </article>

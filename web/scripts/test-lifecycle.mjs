@@ -102,7 +102,10 @@ ok(
 );
 ok("LIFE-04 min procedure chars threshold", /DENSIFY_MIN_PROCEDURE_CHARS/.test(densify));
 ok("LIFE-04 min excerpts threshold", /DENSIFY_MIN_EXCERPTS/.test(densify));
-ok("LIFE-04 gather runs densify when thin", /needsDensifyPass|runDensifyPass/.test(gather));
+ok(
+  "LIFE-04 gather runs densify via API agent",
+  /runApiHarvestAgent|runDensifyPass|needsDensifyPass/.test(gather)
+);
 ok("LIFE-04 densify re-extracts process facts", /extractProcessFacts/.test(densify));
 
 // LIFE-05 recipe readiness modes

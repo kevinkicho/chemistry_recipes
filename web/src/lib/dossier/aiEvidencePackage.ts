@@ -28,9 +28,9 @@ import {
 import { buildProcessKnowledgeDigest } from "@/lib/dossier/processKnowledgeDigest";
 
 /** Full-model budget — denser multi-pass harvest needs more headroom */
-export const MAX_EVIDENCE_CHARS_FULL = 32_000;
-/** Draft/fast model keeps a tighter package for latency */
-export const MAX_EVIDENCE_CHARS_FAST = 16_000;
+export const MAX_EVIDENCE_CHARS_FULL = 28_000;
+/** Draft/fast model keeps a tighter package for latency (cold CIDs / thin evidence) */
+export const MAX_EVIDENCE_CHARS_FAST = 12_000;
 
 const ATOM_KIND_WEIGHT: Record<string, number> = {
   condition: 50,
@@ -195,14 +195,18 @@ export function buildEvidenceObject(
         "You are the integral AI for a free-public densify dashboard. " +
         "STRUCTURE the densest procedureExcerpts + processFacts.atoms into dual-view plant routes. " +
         "Ground every numeric condition on an atom quote or procedure excerpt. " +
-        "overview + manufacturingSummary MUST lead with process/patent manufacturing evidence " +
-        "(literatureProcess / patents / procedureExcerpts); put clinical context last. " +
+        "overview MUST open with process class / synthesis / manufacturing leads " +
+        "(route type, key unit ops, patent or OA process papers) — NOT clinical MoA first. " +
+        "manufacturingSummary is plant-facing narrative from procedureExcerpts + patents only. " +
+        "Mechanism notes go in step.mechanismNotes / applications, not the overview lead. " +
+        "When procedureExcerpts are empty: ONE conservative evidence-lead route from process lit titles + patent abstracts; gaps[] must say densify was thin. " +
         "Prefer fewer high-evidence steps over many thin ones. " +
         "Use relatedProcessContext for impurity/intermediate awareness only. " +
         "Use externalAnnotations for identity/EHS/regulatory context only — not invented unit ops. " +
         "NEVER invent plant setpoints, IPC methods, or site CPPs.",
       processLitCount: litProcessSorted.length,
       clinicalLitCount: clinicalLit.length,
+      coldStart: procedureExcerpts.length === 0 && atoms.length < 3,
     },
     processFacts: pf
       ? {

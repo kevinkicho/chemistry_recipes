@@ -210,7 +210,7 @@ ok(
 );
 ok(
   "gather durable cache merge",
-  /mergeEvidencePreferDense|getCachedEvidence|runDensifyPass/.test(
+  /mergeEvidencePreferDense|getCachedEvidence|runApiHarvestAgent/.test(
     read("lib/dossier/gather.ts")
   )
 );
@@ -223,10 +223,13 @@ ok(
   /procedureExcerpts|agenticBrief/.test(read("lib/dossier/aiEvidencePackage.ts"))
 );
 ok(
-  "AI package larger budget",
-  /MAX_EVIDENCE_CHARS_FULL\s*=\s*32_000|32000/.test(
+  "AI package latency-tuned budget",
+  /MAX_EVIDENCE_CHARS_FULL\s*=\s*28_000|28000/.test(
     read("lib/dossier/aiEvidencePackage.ts")
-  )
+  ) &&
+    /MAX_EVIDENCE_CHARS_FAST\s*=\s*12_000|12000/.test(
+      read("lib/dossier/aiEvidencePackage.ts")
+    )
 );
 ok(
   "trace retries transient",

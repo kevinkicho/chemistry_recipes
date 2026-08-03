@@ -1,5 +1,5 @@
 /**
- * Contracts for live≈curated plant parity helpers.
+ * Contracts for live plant parity helpers (no Tier-A mock merge).
  * Run: node scripts/test-plant-parity.mjs
  */
 
@@ -42,20 +42,22 @@ ok("plant enriches steps for plant view", /enrichStepsForPlantView|Plant unit-op
 ok("plant uses chemical mentions", /extractChemicalMentions|materialsFromMentions/.test(plant));
 
 const tier = read("lib/dossier/tierABaseline.ts");
-ok("tier-A merge labeled teaching", /Tier-A teaching/.test(tier));
-ok("tier-A uses getExampleById", /getExampleById/.test(tier));
-ok("tier-A merges related entities", /relatedEntities/.test(tier));
+ok("tier-A baseline is no-op", /No-op|never inject mock/i.test(tier));
+ok("tier-A still exported for pipeline", /export function applyTierABaseline/.test(tier));
+ok("tier-A does not import mock examples", !/getExampleById/.test(tier));
 
 const pipe = read("lib/dossier/pipeline.ts");
-ok("pipeline applies tier-A baseline", /applyTierABaseline/.test(pipe));
+ok("pipeline applies tier-A baseline (no-op)", /applyTierABaseline/.test(pipe));
 ok("pipeline applies plant deliverables", /applyPlantDeliverables/.test(pipe));
+ok("pipeline runs AI when canCall", /runAi|canCall/.test(pipe));
 
 const rc = read("components/RouteCompare.tsx");
 ok("route compare supports single route", /usable\.length === 1/.test(rc));
 ok("route compare shows BOM panel", /BOM \/ materials/.test(rc));
 
 const live = read("components/dossier/LiveMoleculeDossier.tsx");
-ok("live shows tier-A merged banner", /Optional teaching baseline|Tier-A teaching baseline/.test(live));
+ok("live densify dual-view banner", /Live free-public densify|dual-view/i.test(live));
+ok("live has no Tier-A mock banner", !/Optional teaching baseline/.test(live));
 ok("live recipe primary order", /Process recipe/.test(live));
 
 console.log(`\nAll plant-parity contracts passed (${passed}).`);

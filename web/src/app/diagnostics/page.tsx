@@ -222,9 +222,9 @@ export default function DiagnosticsPage() {
             />
             <Card
               title="Catalog"
-              value={`${server.app.curatedPackages} packages`}
+              value={`${server.app.curatedPackages} teaching package(s)`}
               ok
-              hint={`${server.app.tierAExamples} Tier-A · ${server.app.registrySources} registry APIs · ${server.app.nodeEnv}`}
+              hint={`live densify only · ${server.app.registrySources} registry APIs · ${server.app.nodeEnv}`}
             />
           </section>
 

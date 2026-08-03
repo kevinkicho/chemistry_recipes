@@ -70,20 +70,15 @@ import {
   pruneEvidenceCacheDisk,
 } from "@/lib/dossier/serverEvidenceCache";
 import {
-  needsDensifyPass,
-  runDensifyPass,
-} from "@/lib/dossier/densifyPass";
-import {
   countSoftFailures,
   createSoftRunner,
   sourceNeedsRetry,
 } from "@/lib/dossier/gatherResilience";
-import { retryFailedFamilies } from "@/lib/dossier/retryFailedFamilies";
-import { failedFamiliesFromErrors } from "@/lib/dossier/densifyDelta";
 import {
   literatureToCapturedSourceRefs,
   patentToCapturedSourceRefs,
 } from "@/lib/dossier/deepDensify";
+import { runApiHarvestAgent } from "@/lib/frontier/apiAgent";
 
 function mergeLiterature(lists: LiteratureHit[][]): LiteratureHit[] {
   const map = new Map<string, LiteratureHit>();
@@ -129,93 +124,35 @@ export async function gatherCompoundEvidence(
   }
 
   let merged = mergeEvidencePreferDense(live, prior);
-  // Always densify when thin OR when many soft-fails left sparse procedure text
-  let softFails = countSoftFailures(merged.fetchErrors);
-  const shouldDensify =
-    needsDensifyPass(merged) ||
-    softFails >= 3 ||
-    ((merged.literature?.length || 0) >= 2 &&
-      (merged.procedureExcerpts?.length || 0) < 2);
-  if (shouldDensify) {
-    try {
-      merged = await runDensifyPass(merged);
-    } catch (e) {
-      merged = {
-        ...merged,
-        fetchErrors: [
-          ...(merged.fetchErrors || []),
-          `densify-pass failed: ${e instanceof Error ? e.message : "error"}`,
-        ],
-      };
-    }
+
+  // API harvest agent owns densify / retry / re-extract / score decisions.
+  // Soft-fail rails live inside tools; no hardcoded status→retry trees here.
+  try {
+    const agent = await runApiHarvestAgent(merged, {
+      // LLM planner when Ollama configured; local tool planner otherwise
+      useLlm: true,
+    });
+    merged = agent.evidence;
+  } catch (e) {
+    merged = {
+      ...merged,
+      processFacts: merged.processFacts ?? extractProcessFacts(merged),
+      fetchErrors: [
+        ...(merged.fetchErrors || []),
+        `api-agent failed: ${e instanceof Error ? e.message : "error"} — using live+cache merge only`,
+      ].slice(0, 80),
+    };
   }
 
-  // Auto recovery chain: soft-failed families → retry → re-densify when still thin
-  // (once). Improves free-public utilization without inventing plant numbers.
-  softFails = countSoftFailures(merged.fetchErrors);
-  const failedFamilies = failedFamiliesFromErrors(merged.fetchErrors);
-  const stillThin =
-    needsDensifyPass(merged) ||
-    (merged.procedureExcerpts?.length || 0) < 3 ||
-    countSoftFailures(merged.fetchErrors) >= 2;
-  if (stillThin && (softFails >= 2 || failedFamilies.length >= 2)) {
-    try {
-      const retry = await retryFailedFamilies(merged);
-      if (retry.retried.length) {
-        merged = retry.evidence;
-        merged = {
-          ...merged,
-          fetchErrors: [
-            ...(merged.fetchErrors || []),
-            `auto-retry · ${retry.detail}`,
-          ].slice(0, 80),
-        };
-      }
-      // Second densify pass after successful family recovery
-      if (
-        retry.retried.length &&
-        (needsDensifyPass(merged) ||
-          (merged.procedureExcerpts?.length || 0) < 4)
-      ) {
-        try {
-          merged = await runDensifyPass(merged);
-          merged = {
-            ...merged,
-            fetchErrors: [
-              ...(merged.fetchErrors || []),
-              "auto-redensify · after soft-fail family retry",
-            ].slice(0, 80),
-          };
-        } catch (e) {
-          merged = {
-            ...merged,
-            fetchErrors: [
-              ...(merged.fetchErrors || []),
-              `auto-redensify failed: ${e instanceof Error ? e.message : "error"}`,
-            ],
-          };
-        }
-      }
-    } catch (e) {
-      merged = {
-        ...merged,
-        fetchErrors: [
-          ...(merged.fetchErrors || []),
-          `auto-retry failed: ${e instanceof Error ? e.message : "error"}`,
-        ],
-      };
-    }
-  }
-
-  softFails = countSoftFailures(merged.fetchErrors);
+  const softFails = countSoftFailures(merged.fetchErrors);
   merged = {
     ...merged,
-    processFacts: extractProcessFacts(merged),
+    processFacts: merged.processFacts ?? extractProcessFacts(merged),
     fetchErrors: [
       ...(merged.fetchErrors || []),
       softFails > 0
-        ? `durable-gather · ${softFails} soft/api fail note(s) · other sources continued`
-        : undefined,
+        ? `durable-gather · ${softFails} soft/api fail note(s) · agent-orchestrated recovery`
+        : "durable-gather · api-agent harvest complete",
     ].filter(Boolean) as string[],
   };
   putCachedEvidence(merged);
