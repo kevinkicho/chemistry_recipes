@@ -76,13 +76,19 @@ ok(
 );
 ok(
   "LIFE-02 soft wraps Europe PMC",
-  /soft\(\s*[\"']europepmc[\"']\s*,\s*searchEuropePmc/.test(gather)
+  /soft\(\s*[\"']europepmc[\"']\s*,\s*searchEuropePmc|label:\s*[\"']europepmc[\"'][\s\S]*searchEuropePmc|mapSoftWave/.test(
+    gather
+  )
 );
 ok(
   "LIFE-02 soft wraps patents densify",
-  /soft\(\s*[\"']patent-epmc-densify[\"']|soft\(\s*[\"']patent-uspto-densify[\"']/.test(
+  /soft\(\s*[\"']patent-epmc-densify[\"']|soft\(\s*[\"']patent-uspto-densify[\"']|label:\s*[\"']patent-epmc-densify[\"']|label:\s*[\"']patent-uspto-densify[\"']|patent-epmc-densify|patent-uspto-densify/.test(
     gather
   )
+);
+ok(
+  "LIFE-02 adaptive soft wave concurrency",
+  /mapSoftWave|recommendedGatherConcurrency/.test(gather)
 );
 ok("LIFE-02 durable wrapper gatherCompoundEvidence", /export async function gatherCompoundEvidence/.test(gather));
 ok("LIFE-02 live gather separate", /gatherCompoundEvidenceLive/.test(gather));

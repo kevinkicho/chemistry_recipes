@@ -5,6 +5,7 @@ import { Tooltip } from "@/components/Tooltip";
 import type { LiveDossier } from "@/lib/dossier/types";
 import type { MoleculeDossier } from "@/lib/types/process";
 import {
+  buildAgentPack,
   buildMesLimsFromTechTransfer,
   buildOperatorJobAidExport,
   buildPublicProcessBrief,
@@ -85,6 +86,14 @@ export function TechTransferExport({
     );
   }
 
+  function onAgentPack() {
+    if (source.kind !== "live") {
+      alert("Agent pack is available on live PubChem densify dossiers.");
+      return;
+    }
+    downloadJson(`${nameBase()}-agent-pack-v1.json`, buildAgentPack(source.dossier));
+  }
+
   if (compact) {
     return (
       <div className="print:hidden inline-flex flex-wrap items-center gap-1.5">
@@ -135,6 +144,15 @@ export function TechTransferExport({
                 Operator job aid
               </button>
             </Tooltip>
+            <Tooltip content="Single agent-pack JSON: guidance, process-knowledge, densify-next, harvest report, ideal score">
+              <button
+                type="button"
+                onClick={onAgentPack}
+                className="rounded-md border border-violet-500/30 bg-violet-500/10 px-2.5 py-1 text-xs font-medium text-violet-100 hover:bg-violet-500/15"
+              >
+                Agent pack
+              </button>
+            </Tooltip>
           </>
         ) : null}
       </div>
@@ -173,16 +191,28 @@ export function TechTransferExport({
             Tech-transfer pack (JSON)
           </button>
           {source.kind === "live" ? (
-            <button
-              type="button"
-              className="block w-full px-3 py-2 text-left text-xs text-teal-100 hover:bg-slate-800"
-              onClick={() => {
-                onPublicProcessBrief();
-                setOpen(false);
-              }}
-            >
-              Public process brief (sourced)
-            </button>
+            <>
+              <button
+                type="button"
+                className="block w-full px-3 py-2 text-left text-xs text-teal-100 hover:bg-slate-800"
+                onClick={() => {
+                  onPublicProcessBrief();
+                  setOpen(false);
+                }}
+              >
+                Public process brief (sourced)
+              </button>
+              <button
+                type="button"
+                className="block w-full px-3 py-2 text-left text-xs text-violet-100 hover:bg-slate-800"
+                onClick={() => {
+                  onAgentPack();
+                  setOpen(false);
+                }}
+              >
+                Agent pack (densify + knowledge)
+              </button>
+            </>
           ) : null}
           <button
             type="button"

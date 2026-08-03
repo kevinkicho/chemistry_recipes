@@ -79,6 +79,11 @@ import {
   patentToCapturedSourceRefs,
 } from "@/lib/dossier/deepDensify";
 import { runApiHarvestAgent } from "@/lib/frontier/apiAgent";
+import {
+  gatherEtiquetteSnapshot,
+  mapSoftWave,
+  recommendedInterWaveDelayMs,
+} from "@/lib/dossier/gatherAdaptive";
 
 function mergeLiterature(lists: LiteratureHit[][]): LiteratureHit[] {
   const map = new Map<string, LiteratureHit>();
@@ -246,6 +251,210 @@ export async function gatherCompoundEvidenceLive(
   await politeDelay(40);
 
   // Wave 2: multi-source free public APIs (identity + process literature + patents)
+  const waveResults = await mapSoftWave(
+    [
+      {
+        label: "europepmc",
+        run: () => searchEuropePmc(name, { limit: 14 }),
+        fallback: { query: "", hits: [], traces: [] },
+      },
+      {
+        label: "openalex",
+        run: () => searchOpenAlexProcess(name, { limit: 6 }),
+        fallback: { query: "", hits: [], traces: [] },
+      },
+      {
+        label: "crossref",
+        run: () => searchCrossrefProcess(name, { limit: 6 }),
+        fallback: { query: "", hits: [], traces: [] },
+      },
+      {
+        label: "semanticscholar",
+        run: () => searchSemanticScholarProcess(name, { limit: 6 }),
+        fallback: { query: "", hits: [], traces: [] },
+      },
+      {
+        label: "pubmed",
+        run: () => searchPubMedProcess(name, { limit: 10 }),
+        fallback: { hits: [], traces: [], query: "" },
+      },
+      {
+        label: "arxiv",
+        run: () => searchArxivProcess(name, { limit: 6 }),
+        fallback: { hits: [], traces: [], query: "", procedureTexts: [] },
+      },
+      {
+        label: "patentsview",
+        run: () => searchPatentsView(name, { limit: 10 }),
+        fallback: {
+          query: "",
+          hits: [],
+          traces: [],
+          keyConfigured: false,
+        },
+      },
+      {
+        label: "patent-literature",
+        run: () => searchPatentLiterature(name, { limit: 8 }),
+        fallback: {
+          query: "",
+          hits: [],
+          traces: [],
+          keyConfigured: false,
+        },
+      },
+      {
+        label: "chembl",
+        run: () => fetchChemblByName(name),
+        fallback: {
+          molecule: null,
+          mechanisms: [],
+          traces: [],
+          query: "",
+        },
+      },
+      {
+        label: "mychem",
+        run: () => fetchMyChemByName(name),
+        fallback: { hit: null, traces: [], query: "" },
+      },
+      {
+        label: "openfda",
+        run: () => fetchOpenFdaByName(name),
+        fallback: {
+          hits: [],
+          traces: [],
+          query: "",
+        } as Awaited<ReturnType<typeof fetchOpenFdaByName>>,
+      },
+      {
+        label: "rxnorm",
+        run: () => fetchRxNormByName(name),
+        fallback: { hit: null, traces: [], query: "" },
+      },
+      {
+        label: "kegg",
+        run: () => fetchKeggByName(name),
+        fallback: { hit: null, traces: [], query: "" },
+      },
+      {
+        label: "comptox",
+        run: () => fetchCompToxByName(name),
+        fallback: {
+          hit: null,
+          traces: [],
+          query: "",
+        } as Awaited<ReturnType<typeof fetchCompToxByName>>,
+      },
+      {
+        label: "dailymed",
+        run: () => fetchDailyMedByName(name),
+        fallback: {
+          hits: [],
+          traces: [],
+          query: "",
+        } as Awaited<ReturnType<typeof fetchDailyMedByName>>,
+      },
+      {
+        label: "pubchem-patents",
+        run: () => fetchPubchemPatentIds(cid, { limit: 40 }),
+        fallback: { ids: [], traces: [] },
+      },
+      {
+        label: "europepmc-pat",
+        run: () => searchEuropePmcPatents(name, { limit: 8 }),
+        fallback: { hits: [], traces: [], query: "" },
+      },
+      {
+        label: "rhea",
+        run: () => fetchRheaByName(name, { limit: 6 }),
+        fallback: { hits: [], annotations: [], traces: [], query: "" },
+      },
+      {
+        label: "unichem",
+        run: () => fetchUnichemByPubchemCid(cid),
+        fallback: { xrefs: [], annotations: [], traces: [] },
+      },
+      {
+        label: "chebi",
+        run: () => fetchChebiByName(name),
+        fallback: {
+          hit: null,
+          annotations: [],
+          traces: [],
+          query: "",
+        },
+      },
+      {
+        label: "gsrs",
+        run: () => fetchGsrsByName(name),
+        fallback: {
+          hit: null,
+          annotations: [],
+          traces: [],
+          query: "",
+        },
+      },
+      {
+        label: "orgsyn",
+        run: () => fetchOrgSynByName(name),
+        fallback: {
+          hits: [],
+          annotations: [],
+          procedureExcerpts: [],
+          traces: [],
+          query: "",
+        },
+      },
+      {
+        label: "reactome",
+        run: () => fetchReactomeByName(name, { limit: 5 }),
+        fallback: { hits: [], annotations: [], traces: [], query: "" },
+      },
+      {
+        label: "wikipathways",
+        run: () => fetchWikiPathwaysByName(name, { limit: 5 }),
+        fallback: { hits: [], annotations: [], traces: [], query: "" },
+      },
+      {
+        label: "pathway-commons",
+        run: () => fetchPathwayCommonsByName(name, { limit: 5 }),
+        fallback: { hits: [], annotations: [], traces: [], query: "" },
+      },
+      {
+        label: "massbank",
+        run: () => fetchMassBankByName(name, { limit: 5 }),
+        fallback: { hits: [], annotations: [], traces: [], query: "" },
+      },
+      {
+        label: "drugcentral",
+        run: () => fetchDrugCentralByName(name),
+        fallback: {
+          hit: null,
+          annotations: [],
+          traces: [],
+          query: "",
+        },
+      },
+      {
+        label: "clinicaltrials",
+        run: () => fetchClinicalTrialsByName(name, { limit: 5 }),
+        fallback: { hits: [], annotations: [], traces: [], query: "" },
+      },
+      {
+        label: "pubchem-class",
+        run: () => fetchPubchemClassifications(cid),
+        fallback: {
+          annotations: [],
+          texts: [],
+          procedureExcerpts: [],
+          traces: [],
+        },
+      },
+    ],
+    soft
+  );
+
   const [
     litResult0,
     openAlexResult0,
@@ -276,164 +485,42 @@ export async function gatherCompoundEvidenceLive(
     drugCentralResult,
     ctResult,
     pubchemClassResult,
-  ] = await Promise.all([
-    soft("europepmc", searchEuropePmc(name, { limit: 14 }), {
-      query: "",
-      hits: [],
-      traces: [],
-    }),
-    soft("openalex", searchOpenAlexProcess(name, { limit: 6 }), {
-      query: "",
-      hits: [],
-      traces: [],
-    }),
-    soft("crossref", searchCrossrefProcess(name, { limit: 6 }), {
-      query: "",
-      hits: [],
-      traces: [],
-    }),
-    soft("semanticscholar", searchSemanticScholarProcess(name, { limit: 6 }), {
-      query: "",
-      hits: [],
-      traces: [],
-    }),
-    soft("pubmed", searchPubMedProcess(name, { limit: 10 }), {
-      hits: [],
-      traces: [],
-      query: "",
-    }),
-    soft("arxiv", searchArxivProcess(name, { limit: 6 }), {
-      hits: [],
-      traces: [],
-      query: "",
-      procedureTexts: [],
-    }),
-    soft("patentsview", searchPatentsView(name, { limit: 10 }), {
-      query: "",
-      hits: [],
-      traces: [],
-      keyConfigured: false,
-    }),
-    soft("patent-literature", searchPatentLiterature(name, { limit: 8 }), {
-      query: "",
-      hits: [],
-      traces: [],
-      keyConfigured: false,
-    }),
-    soft("chembl", fetchChemblByName(name), {
-      molecule: null,
-      mechanisms: [],
-      traces: [],
-      query: "",
-    }),
-    soft("mychem", fetchMyChemByName(name), {
-      hit: null,
-      traces: [],
-      query: "",
-    }),
-    soft("openfda", fetchOpenFdaByName(name), {
-      hits: [],
-      traces: [],
-      query: "",
-    } as Awaited<ReturnType<typeof fetchOpenFdaByName>>),
-    soft("rxnorm", fetchRxNormByName(name), {
-      hit: null,
-      traces: [],
-      query: "",
-    }),
-    soft("kegg", fetchKeggByName(name), { hit: null, traces: [], query: "" }),
-    soft("comptox", fetchCompToxByName(name), {
-      hit: null,
-      traces: [],
-      query: "",
-    } as Awaited<ReturnType<typeof fetchCompToxByName>>),
-    soft("dailymed", fetchDailyMedByName(name), {
-      hits: [],
-      traces: [],
-      query: "",
-    } as Awaited<ReturnType<typeof fetchDailyMedByName>>),
-    soft("pubchem-patents", fetchPubchemPatentIds(cid, { limit: 40 }), {
-      ids: [],
-      traces: [],
-    }),
-    soft("europepmc-pat", searchEuropePmcPatents(name, { limit: 8 }), {
-      hits: [],
-      traces: [],
-      query: "",
-    }),
-    soft("rhea", fetchRheaByName(name, { limit: 6 }), {
-      hits: [],
-      annotations: [],
-      traces: [],
-      query: "",
-    }),
-    soft("unichem", fetchUnichemByPubchemCid(cid), {
-      xrefs: [],
-      annotations: [],
-      traces: [],
-    }),
-    soft("chebi", fetchChebiByName(name), {
-      hit: null,
-      annotations: [],
-      traces: [],
-      query: "",
-    }),
-    soft("gsrs", fetchGsrsByName(name), {
-      hit: null,
-      annotations: [],
-      traces: [],
-      query: "",
-    }),
-    soft("orgsyn", fetchOrgSynByName(name), {
-      hits: [],
-      annotations: [],
-      procedureExcerpts: [],
-      traces: [],
-      query: "",
-    }),
-    soft("reactome", fetchReactomeByName(name, { limit: 5 }), {
-      hits: [],
-      annotations: [],
-      traces: [],
-      query: "",
-    }),
-    soft("wikipathways", fetchWikiPathwaysByName(name, { limit: 5 }), {
-      hits: [],
-      annotations: [],
-      traces: [],
-      query: "",
-    }),
-    soft("pathway-commons", fetchPathwayCommonsByName(name, { limit: 5 }), {
-      hits: [],
-      annotations: [],
-      traces: [],
-      query: "",
-    }),
-    soft("massbank", fetchMassBankByName(name, { limit: 5 }), {
-      hits: [],
-      annotations: [],
-      traces: [],
-      query: "",
-    }),
-    soft("drugcentral", fetchDrugCentralByName(name), {
-      hit: null,
-      annotations: [],
-      traces: [],
-      query: "",
-    }),
-    soft("clinicaltrials", fetchClinicalTrialsByName(name, { limit: 5 }), {
-      hits: [],
-      annotations: [],
-      traces: [],
-      query: "",
-    }),
-    soft("pubchem-class", fetchPubchemClassifications(cid), {
-      annotations: [],
-      texts: [],
-      procedureExcerpts: [],
-      traces: [],
-    }),
-  ]);
+  ] = waveResults as [
+    Awaited<ReturnType<typeof searchEuropePmc>>,
+    Awaited<ReturnType<typeof searchOpenAlexProcess>>,
+    Awaited<ReturnType<typeof searchCrossrefProcess>>,
+    Awaited<ReturnType<typeof searchSemanticScholarProcess>>,
+    Awaited<ReturnType<typeof searchPubMedProcess>>,
+    Awaited<ReturnType<typeof searchArxivProcess>>,
+    Awaited<ReturnType<typeof searchPatentsView>>,
+    Awaited<ReturnType<typeof searchPatentLiterature>>,
+    Awaited<ReturnType<typeof fetchChemblByName>>,
+    Awaited<ReturnType<typeof fetchMyChemByName>>,
+    Awaited<ReturnType<typeof fetchOpenFdaByName>>,
+    Awaited<ReturnType<typeof fetchRxNormByName>>,
+    Awaited<ReturnType<typeof fetchKeggByName>>,
+    Awaited<ReturnType<typeof fetchCompToxByName>>,
+    Awaited<ReturnType<typeof fetchDailyMedByName>>,
+    Awaited<ReturnType<typeof fetchPubchemPatentIds>>,
+    Awaited<ReturnType<typeof searchEuropePmcPatents>>,
+    Awaited<ReturnType<typeof fetchRheaByName>>,
+    Awaited<ReturnType<typeof fetchUnichemByPubchemCid>>,
+    Awaited<ReturnType<typeof fetchChebiByName>>,
+    Awaited<ReturnType<typeof fetchGsrsByName>>,
+    Awaited<ReturnType<typeof fetchOrgSynByName>>,
+    Awaited<ReturnType<typeof fetchReactomeByName>>,
+    Awaited<ReturnType<typeof fetchWikiPathwaysByName>>,
+    Awaited<ReturnType<typeof fetchPathwayCommonsByName>>,
+    Awaited<ReturnType<typeof fetchMassBankByName>>,
+    Awaited<ReturnType<typeof fetchDrugCentralByName>>,
+    Awaited<ReturnType<typeof fetchClinicalTrialsByName>>,
+    Awaited<ReturnType<typeof fetchPubchemClassifications>>,
+  ];
+
+  const etiquette = gatherEtiquetteSnapshot();
+  fetchErrors.push(
+    `gather-etiquette · concurrency ${etiquette.concurrency} · RL hosts ${etiquette.rateLimitedHosts.length} · circuits ${etiquette.circuitOpenHosts.length}`
+  );
 
   // Mutable copies only for families the durable retry wave may reassign
   let litResult = litResult0;
@@ -445,7 +532,8 @@ export async function gatherCompoundEvidenceLive(
   let epmcPatResult = epmcPatResult0;
 
   // Durable retry wave — only critical families that soft-failed / empty payload
-  await politeDelay(100);
+  // Inter-wave delay scales with rate-limit pressure (API etiquette)
+  await politeDelay(recommendedInterWaveDelayMs());
   if (
     sourceNeedsRetry(
       fetchErrors,

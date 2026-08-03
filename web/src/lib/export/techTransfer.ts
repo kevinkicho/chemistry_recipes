@@ -245,6 +245,10 @@ function buildValidationChecklist(
   ];
 }
 
+// Agent pack is a separate schema — re-exported for callers
+export { buildAgentPack, AGENT_PACK_SCHEMA } from "@/lib/export/agentPack";
+export type { AgentPack } from "@/lib/export/agentPack";
+
 export function buildTechTransferFromLive(dossier: LiveDossier): TechTransferPack {
   const hit = dossier.identity;
   const routes = routesFromLive(dossier);

@@ -49,6 +49,7 @@ const UNIT_SUITES = [
   "test-api-agent.mjs",
   "test-api-etiquette.mjs",
   "test-horizon-a.mjs",
+  "test-horizon-b.mjs",
   "test-provenance.mjs",
   "test-provenance-coverage.mjs",
   "test-suite-inventory.mjs",
