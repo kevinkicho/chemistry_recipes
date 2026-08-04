@@ -60,6 +60,8 @@ npm run test:api-etiquette        # rate-limit etiquette
 npm run test:horizon-a            # procedure segments + ideal densify plan
 npm run test:horizon-b            # adaptive gather + agent pack
 npm run test:horizon-c            # MSAT journey, neighborhood, modality, role pack
+npm run test:cold-cid-kpi         # golden CID densify floors
+npm run test:product-path         # Monday path, vault, README honesty
 npm run test:provenance           # AI/API chip contracts
 npm run test:provenance-coverage  # scan all content surfaces for provenance wiring
 npm run test:suite-inventory  # meta: suites wired + test-spec families
@@ -101,6 +103,8 @@ npm run build
 | `test-horizon-a.mjs` | Yes | **HZC-A** procedure segments + ideal densify plan |
 | `test-horizon-b.mjs` | Yes | **HZC-B** adaptive gather + agent pack |
 | `test-horizon-c.mjs` | Yes | **HZC-*** MSAT journey, neighborhood, modality, role pack, vault |
+| `test-cold-cid-kpi.mjs` | Yes | Cold-CID densify floors + golden set |
+| `test-product-path.mjs` | Yes | Monday path, vault hero, MSAT workspace, doc honesty |
 | `test-provenance.mjs` | Yes | **PROV-01…03** chip + field helper contracts |
 | `test-provenance-coverage.mjs` | Yes | **PROV-SCAN-*** registry scan of all content cards |
 | `test-suite-inventory.mjs` | Yes | **INV-*** suite wiring + test-spec families |

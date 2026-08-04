@@ -17,7 +17,7 @@ export function WorkerRoleBar({
 }: {
   onChange?: (role: WorkerRole) => void;
 }) {
-  const [role, setRole] = useState<WorkerRole>("chemist");
+  const [role, setRole] = useState<WorkerRole>("msat");
 
   useEffect(() => {
     setRole(readWorkerRole());

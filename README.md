@@ -2,7 +2,7 @@
 
 **Evidence-first process recipe hub** for pharmaceutical, clinical, and biotech manufacturing teams.
 
-Free public chemical APIs + optional [Ollama Cloud](https://docs.ollama.com/cloud) or **local Ollama** synthesis. Dual views (mechanism + manufacturing). Educational process packages. Tech-transfer exports.
+Free public chemical APIs + optional [Ollama Cloud](https://docs.ollama.com/cloud) or **local Ollama** synthesis. Live densify → dual views (mechanism + manufacturing). MSAT campaigns, role packs, tech-transfer exports.
 
 > **Not GMP. Not regulatory decision support. Not a batch record or clinical protocol.**  
 > Literature-typical parameter envelopes are **teaching scaffolds only** — validate under your site QMS.  
@@ -67,18 +67,18 @@ Free public chemical APIs + optional [Ollama Cloud](https://docs.ollama.com/clou
         />
       </a>
       <br />
-      <sub><b>Live / example dossier</b> — dual-view process intelligence</sub>
+      <sub><b>Live densify dossier</b> — dual-view process intelligence</sub>
     </td>
     <td align="center" width="50%" valign="top">
       <a href="screenshots/Screenshot%202026-07-23%20094236.png">
         <img
           src="screenshots/Screenshot%202026-07-23%20094236.png"
-          alt="Chemistry Recipes — packages and navigation UI"
+          alt="Chemistry Recipes — search and workspace navigation"
           width="100%"
         />
       </a>
       <br />
-      <sub><b>Hub workspace</b> — packages, search, and navigation</sub>
+      <sub><b>Search + workspace</b> — problem-first MSAT path and campaigns</sub>
     </td>
   </tr>
 </table>
@@ -96,13 +96,13 @@ Free public chemical APIs + optional [Ollama Cloud](https://docs.ollama.com/clou
 | **Frontier science** | Condition atlas, route hypotheses, reaction network, process-knowledge + **AI guidance** packages (`ingestScore`, densify-next) |
 | **Science / campaign agents** | Quote-bound Q&A over densified packages; optional Ollama; multi-CID campaign merge + densify queue |
 | **Trust UI** | Evidence score explainer, source coverage map, transfer readiness checklist, API + AI provenance chips |
-| **~100+ packages** | Educational packages (`/packages`) by modality & role + parameter frameworks |
-| **Tier-A examples** | Deep dual-view dossiers (aspirin, sitagliptin, penicillin G, amoxicillin, …) |
+| **MSAT journey** | Problem / unit-op search → campaign densify → impurity neighborhood → brief + agent + role pack |
+| **Ideal parity** | Live score (0–100) toward dual-view inventory — no curated mock dossiers in the live app |
 | **Parameters** | Modality frameworks (mAb, fermentation, peptide, gene therapy, …) with fill-status honesty |
 | **Compare** | Side-by-side CIDs + dual tech-transfer export |
-| **Export** | Print/PDF, tech-transfer JSON **v2**, MES/LIMS-style rows, process-knowledge / AI guidance JSON for agents |
+| **Export** | Print/PDF, tech-transfer JSON **v2**, agent pack, role pack, MES/LIMS-style rows |
 | **AI** | Ollama Cloud **or** local Ollama (no key on loopback); agents never invent plant numbers |
-| **Diagnostics** | Live API probes, Ollama readiness, IndexedDB health, densify telemetry (ingest Δ) |
+| **Diagnostics** | Live API probes, Ollama readiness, IndexedDB health, densify telemetry, cold-CID KPI floors |
 
 ---
 
@@ -145,18 +145,14 @@ Step-by-step and troubleshooting: **[docs/getting-started.md](docs/getting-start
 
 | Path | Purpose |
 |------|---------|
-| `/` | Home + live entry |
-| `/info` | **For-show / mock hub** — curated examples & packages (isolated from live nav) |
-| `/packages` | Educational process packages + domain library |
-| `/packages/[id]` | Package: unit ops + parameter framework |
-| `/catalog` | Faceted hub (examples + live pointers) |
-| `/search` | PubChem (browser-first; name, CAS, SMILES, InChIKey, UNII, CID) |
+| `/` | Home · live densify entry + problem-first MSAT journey |
+| `/search` | Multi-source + PubChem (name, CAS, SMILES, InChIKey, UNII, CID) |
 | `/workspace` | Local projects, science campaigns, graph, agents, densify telemetry |
 | `/compare` | Side-by-side recipes + dual export |
-| `/diagnostics` | API probes, Ollama readiness, IndexedDB + Firebase health |
+| `/diagnostics` | API probes, Ollama readiness, IndexedDB + cold-CID KPI floors |
 | `/sources` | Free public API registry (wired expand/collapse) |
-| `/compounds/pubchem/[cid]` | Live dossier stream (+ frontier panels for chemist/MSAT/manager roles) |
-| `/examples/[id]` | Curated dual-view dossier (also linked from Info) |
+| `/compounds/pubchem/[cid]` | Live densify dossier (+ Monday path + frontier science lab) |
+| `/packages`, `/info`, `/examples/*`, `/catalog` | Redirect to search (curated mocks retired from live product) |
 | Header **AI** | Ollama Cloud or local settings / model picker |
 | `POST /api/ai/science` | Quote-bound single-CID science agent (± densify neighbors, ± Ollama) |
 | `POST /api/ai/campaign` | Multi-CID densify + campaign agent (± Ollama over AI guidance) |
@@ -213,7 +209,8 @@ See [docs/engineering/testing.md](docs/engineering/testing.md).
 4. Provenance shows real HTTP captures only  
 5. **Not** GMP, DMF, CTD, batch records, or clinical decision support  
 6. Literature-typical parameters are teaching envelopes — never site limits  
-7. Package catalog is educational structure, not validated plant packages  
+7. Live densify is free-public evidence only — never validated plant packages or GMP  
+
 8. Local-first — **not** multi-tenant collaboration  
 
 Full vision: [docs/product-vision.md](docs/product-vision.md)

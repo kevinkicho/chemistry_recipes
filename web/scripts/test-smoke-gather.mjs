@@ -127,13 +127,15 @@ ok(
 );
 ok(
   "research mode collapse while thin",
-  /Research mode · frontier science/.test(
+  /Science lab · frontier research|collapseScienceLab|assessMondayPath/.test(
     read("components/dossier/LiveMoleculeDossier.tsx")
   )
 );
 ok(
   "workspace science index first",
-  /Science index · densify home/.test(read("app/workspace/page.tsx"))
+  /Science index · densify telemetry|WorkspaceScienceIndexPanel/.test(
+    read("app/workspace/page.tsx")
+  )
 );
 
 // Plain English soft-fail

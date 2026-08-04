@@ -221,6 +221,17 @@ Optional before release/deploy:
 | **HZC-05** | Role-pack.v1 primary export for worker roles | `test-horizon-c` |
 | **HZC-06** | Bulk vault ingest after densify cache | `test-horizon-c` |
 
+### M3. Product path (Monday / cold-CID / honesty)
+
+| ID | Requirement | Suite |
+|----|-------------|--------|
+| **PATH-01** | README/design do not advertise retired mock packages | `test-product-path` |
+| **PATH-02** | Default worker role MSAT; science lab progressive disclosure | `test-product-path`, `test-cold-cid-kpi` |
+| **PATH-03** | Thin→useful queues high densify-next + vault + neighborhood | `test-product-path` |
+| **PATH-04** | Procedure vault panel on live dossier | `test-product-path` |
+| **PATH-05** | Cold-CID golden floors + diagnostics panel | `test-cold-cid-kpi` |
+| **PATH-06** | Workspace campaign-first MSAT framing | `test-product-path` |
+
 ### N. Provenance coverage (API + AI tracking)
 
 Full surface registry and policies: **[provenance-coverage-spec.md](./provenance-coverage-spec.md)**.  

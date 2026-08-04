@@ -39,6 +39,8 @@ import { BiologicParametersPanel } from "@/components/BiologicParametersPanel";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { navigateToSection } from "@/lib/tocNavigate";
 import { impurityFirstCampaignCids } from "@/lib/frontier/neighborDensifyGraph";
+import { assessMondayPath } from "@/lib/dossier/mondayPath";
+import { ProcedureVaultPanel } from "@/components/ProcedureVaultPanel";
 import { DossierDiagnostics } from "@/components/DossierDiagnostics";
 import { DensifyDeltaStrip } from "@/components/DensifyDeltaStrip";
 import {
@@ -119,7 +121,7 @@ export function LiveMoleculeDossier({
 }) {
   const [enrichTick, setEnrichTick] = useState(0);
   const [vaultDossier, setVaultDossier] = useState<LiveDossier | null>(null);
-  const [workerRole, setWorkerRole] = useState<WorkerRole>("chemist");
+  const [workerRole, setWorkerRole] = useState<WorkerRole>("msat");
   const [pasteDeltaMsg, setPasteDeltaMsg] = useState<string | null>(null);
   const [densifyDelta, setDensifyDelta] = useState<{
     before: DensifySnapshot;
@@ -425,7 +427,7 @@ export function LiveMoleculeDossier({
                       ? "bg-amber-500/15 text-amber-50 ring-amber-400/40"
                       : "bg-slate-800 text-slate-400 ring-slate-700"
                 }`}
-                title="Progress toward curated Tier-A ideal page depth"
+                title="Progress toward live dual-view ideal inventory (free-public densify)"
               >
                 Ideal {dossier.idealParity.score}/100
               </button>
@@ -659,6 +661,24 @@ export function LiveMoleculeDossier({
             </p>
           ) : null}
 
+          {/* Monday primary: pack + vault before science lab */}
+          {show("monday-pack") ? (
+            <MondayMorningPack
+              dossier={dossier}
+              onPrint={() => window.print()}
+              onScrollEnrich={() => scrollTo("local-text-enrich")}
+              onScrollAid={() => scrollTo("operator-job-aid")}
+              onScrollGaps={() => scrollTo("site-fill")}
+              onRegenerate={onRegenerate}
+            />
+          ) : null}
+
+          <ProcedureVaultPanel
+            dossier={dossier}
+            onScrollPaste={() => scrollTo("local-text-enrich")}
+            onRegenerate={onRegenerate}
+          />
+
           {show("readiness") ||
           show("framing") ||
           workerRole === "chemist" ||
@@ -671,19 +691,12 @@ export function LiveMoleculeDossier({
             />
           ) : null}
 
-          {/* Frontier science — collapsed while thin so Monday path stays primary */}
+          {/* Frontier science lab — progressive disclosure via mondayPath */}
           {workerRole === "chemist" ||
           workerRole === "msat" ||
           workerRole === "manager" ? (
             (() => {
-              const ideal = dossier.idealParity?.score ?? 0;
-              const facts =
-                dossier.processFacts?.facts?.filter((f) => f.kind !== "open-gap")
-                  .length ?? 0;
-              const researchThin =
-                ideal < 55 ||
-                facts < 3 ||
-                dossier.processFraming === "evidence-lead-pack";
+              const path = assessMondayPath(dossier, workerRole);
               const frontier = (
                 <div id="frontier-science" className="scroll-mt-24 space-y-4">
                   <ConditionAtlasPanel
@@ -713,31 +726,20 @@ export function LiveMoleculeDossier({
                   />
                 </div>
               );
-              if (!researchThin) return frontier;
+              if (!path.collapseScienceLab) return frontier;
               return (
                 <details className="scroll-mt-24 rounded-xl border border-violet-500/20 bg-violet-500/5 p-3">
                   <summary className="cursor-pointer text-sm font-semibold text-violet-100">
-                    Research mode · frontier science (secondary while density is thin)
+                    Science lab · frontier research (secondary on Monday path)
                   </summary>
                   <p className="mt-1 text-[11px] text-slate-500">
-                    Prefer Monday path densify above first. Expand for atlas, hypotheses,
-                    network, and agents when you need research depth.
+                    Prefer densify + vault + Monday pack above. Expand for atlas, hypotheses,
+                    network, agents, and route-neighborhood densify.
                   </p>
                   <div className="mt-3 space-y-4">{frontier}</div>
                 </details>
               );
             })()
-          ) : null}
-
-          {show("monday-pack") ? (
-            <MondayMorningPack
-              dossier={dossier}
-              onPrint={() => window.print()}
-              onScrollEnrich={() => scrollTo("local-text-enrich")}
-              onScrollAid={() => scrollTo("operator-job-aid")}
-              onScrollGaps={() => scrollTo("site-fill")}
-              onRegenerate={onRegenerate}
-            />
           ) : null}
 
           {show("work-pack") || workerRole === "operator" ? (

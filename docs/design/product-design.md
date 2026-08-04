@@ -6,44 +6,44 @@ Process chemists and MSAT engineers need a fast, **evidence-grounded** starting 
 
 ## Solution shape
 
-A **process recipe hub**:
+A **live densify process hub** (curated mock packages/examples retired from the live app):
 
 | Layer | What it is |
 |-------|------------|
-| **Live dossiers** | Free multi-API harvest + optional Ollama dual-view synthesis for any PubChem CID |
-| **Tier-A examples** | Hand-curated deep dual-view dossiers |
-| **Packages** | ~100+ educational packages with modality unit-ops + parameter scaffolds |
-| **Compare / export** | Side-by-side scouting + tech-transfer JSON / print |
+| **Live dossiers** | Free multi-API densify + integral Ollama dual-view for any PubChem CID |
+| **MSAT journey** | Problem / unit-op → campaign densify → impurity neighborhood → brief + agent |
+| **Ideal parity** | Score toward dual-view inventory (not a separate curated dossier catalog) |
+| **Compare / export** | Side-by-side scouting + tech-transfer / agent / role packs |
 
 ## Information architecture
 
 ```text
 Home
-├── Search ──────────────► Live dossier (PubChem CID)
-├── Packages ────────────► Package detail (modality + params)
-├── Catalog / examples ──► Tier-A dual-view dossier
-├── Compare ─────────────► Two recipes + dual export
-├── Workspace ───────────► Local pins only
+├── Live search ─────────► Live densify dossier (PubChem CID)
+├── Problem / MSAT ──────► Campaign densify → Workspace brief + agent
+├── Compare ─────────────► Two CIDs + dual export
+├── Workspace ───────────► Campaigns, graph, agents, densify telemetry
 ├── Sources ─────────────► Free API registry
-└── Diagnostics ─────────► Operator health
+└── Diagnostics ─────────► API health + cold-CID KPI floors
 ```
 
-## Content tiers
+## Depth signals (live product)
 
-| Tier | Intent | UX depth |
-|------|--------|----------|
-| **A** | Teaching “gold” dual-view | Full routes, apparatus, EHS, citations |
-| **B** | Structured package + live path | Unit ops + params + live CID link |
-| **C** | Identity / platform pointer | Thin card → search or PubChem |
+| Signal | Intent | UX |
+|--------|--------|-----|
+| **Ideal parity** | Dual-view inventory completeness | 0–100 score + weak sections |
+| **Recipe readiness** | Scout vs recipe-draft honesty | Framing banner |
+| **Ingest score** | AI densify readiness (not GMP) | AI guidance / densify-next |
+| **Procedure vault** | Local densify memory | Paste + OA/patent windows |
 
 ## Personas → primary surfaces
 
 | Persona | Primary path | Success moment |
 |---------|--------------|----------------|
-| Process chemist | Search → live recipe | Dual-view steps + BOM |
-| R&D / organic | Tier-A or live mechanism view | Mechanism notes + lit |
-| Tech transfer / MSAT | Package + export + checklist | Tech-transfer v2 JSON |
-| Biotech MSAT | Packages (mAb, gene, …) | Parameter framework honesty |
+| Process chemist | Search → live densify | Dual-view steps + process facts |
+| R&D / organic | Live mechanism view + lit | Mechanism notes + densified windows |
+| Tech transfer / MSAT | Problem journey → role pack | Brief + tech-transfer / agent pack |
+| Biotech MSAT | Modality playbooks + params | Parameter framework honesty |
 
 ## Explicit non-goals (product)
 

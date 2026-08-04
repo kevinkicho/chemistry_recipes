@@ -34,8 +34,11 @@ export const WORKER_ROLES: Array<{
   },
 ];
 
+/** Default role for first visit: MSAT Monday path (progressive disclosure). */
+export const DEFAULT_WORKER_ROLE: WorkerRole = "msat";
+
 export function readWorkerRole(): WorkerRole {
-  if (typeof window === "undefined") return "chemist";
+  if (typeof window === "undefined") return DEFAULT_WORKER_ROLE;
   try {
     const v = localStorage.getItem(KEY);
     if (v === "operator" || v === "chemist" || v === "msat" || v === "manager") {
@@ -44,7 +47,7 @@ export function readWorkerRole(): WorkerRole {
   } catch {
     /* ignore */
   }
-  return "chemist";
+  return DEFAULT_WORKER_ROLE;
 }
 
 export function writeWorkerRole(role: WorkerRole): void {

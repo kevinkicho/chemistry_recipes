@@ -9,6 +9,7 @@ import {
 import { clearAllDossierCache, formatCacheAge } from "@/lib/idb/dossierCache";
 import { routes } from "@/lib/routes";
 import { RegulatoryDisclaimer } from "@/components/RegulatoryDisclaimer";
+import { ColdCidKpiPanel } from "@/components/ColdCidKpiPanel";
 
 type ServerDiagnostics = {
   generatedAt: string;
@@ -158,6 +159,8 @@ export default function DiagnosticsPage() {
 
       {server ? (
         <div className="mt-8 space-y-8">
+          <ColdCidKpiPanel />
+
           {/* Advice */}
           <section className="rounded-xl border border-sky-500/25 bg-sky-500/5 p-4">
             <h2 className="text-sm font-semibold text-sky-100">Diagnosis tips</h2>

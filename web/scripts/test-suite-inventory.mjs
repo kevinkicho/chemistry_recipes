@@ -51,6 +51,8 @@ const UNIT_SUITES = [
   "test-horizon-a.mjs",
   "test-horizon-b.mjs",
   "test-horizon-c.mjs",
+  "test-cold-cid-kpi.mjs",
+  "test-product-path.mjs",
   "test-provenance.mjs",
   "test-provenance-coverage.mjs",
   "test-suite-inventory.mjs",

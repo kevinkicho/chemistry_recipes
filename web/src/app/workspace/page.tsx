@@ -133,37 +133,49 @@ export default function WorkspacePage() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
       <h1 className="text-3xl font-semibold tracking-tight text-slate-50">
-        Workspace
+        Workspace · MSAT campaigns
       </h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
-        Local-first project library for process teams. Pin{" "}
-        <strong className="font-medium text-slate-300">live</strong> densify dossiers from
-        Search, add tech-transfer notes, export project JSON, and compare two pins. Data stays
-        in this browser (localStorage). No mock example pins.
+        Local-first{" "}
+        <strong className="font-medium text-slate-300">tech-transfer package builder</strong>
+        : science campaigns (molecule + impurities), densify queues, scientific brief, and
+        agents. Pin live densify dossiers, export JSON. Data stays in this browser.
       </p>
       <div className="mt-4">
         <RegulatoryDisclaimer compact />
       </div>
 
-      <section className="mt-8 space-y-4">
-        <h2 className="text-lg font-semibold text-slate-100">
-          Science index · densify home
-        </h2>
-        <p className="text-xs text-slate-500">
-          Cross-campaign inventory and thin CID queue first — densify here before diving into
-          project pins. Local-first; free-public only.
+      <section className="mt-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-200/90">
+          MSAT primary path
         </p>
-        <WorkspaceScienceIndexPanel />
-        <DensifyTelemetryPanel />
+        <h2 className="mt-1 text-sm font-semibold text-slate-50">
+          Campaign first · densify family · brief · agent
+        </h2>
+        <p className="mt-1 text-xs text-slate-400">
+          From Home: problem / unit-op → MSAT journey spins a campaign, densifies CIDs,
+          expands impurity neighbors, then opens brief + agent here. Free-public only; not GMP.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            href={routes.home()}
+            className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-amber-400"
+          >
+            Start MSAT journey on Home →
+          </Link>
+          <span className="self-center font-mono text-[11px] text-slate-500">
+            {campaigns.length} campaign(s) local
+          </span>
+        </div>
       </section>
 
-      <section className="mt-10 space-y-4">
+      <section className="mt-8 space-y-4">
         <h2 className="text-lg font-semibold text-slate-100">
-          Science campaigns (multi-CID)
+          Science campaigns (multi-CID tech-transfer packs)
         </h2>
         <p className="text-xs text-slate-500">
-          Campaigns are local CID sets for batch densify and network study — create them from
-          a live dossier&apos;s reaction network panel.
+          Campaigns are the primary MSAT object: multi-CID densify, neighborhood impurities,
+          brief, and agent Q&amp;A. Create from Home MSAT journey or a live dossier network panel.
         </p>
         {campaigns.length > 0 ? (
           <ul className="grid gap-2 sm:grid-cols-2">
@@ -199,8 +211,8 @@ export default function WorkspacePage() {
           </ul>
         ) : (
           <p className="text-xs text-slate-600">
-            No campaigns yet — open a live dossier (chemist role) → Process reaction network →
-            Save as science campaign.
+            No campaigns yet — use Home → MSAT journey, or open a live dossier → Science lab →
+            reaction network / batch densify → Save as science campaign.
           </p>
         )}
         <CampaignGraphPanel />
@@ -224,6 +236,18 @@ export default function WorkspacePage() {
           <CampaignAgentPanel />
         </Suspense>
         <BatchDensifyPanel />
+      </section>
+
+      <section className="mt-10 space-y-4">
+        <h2 className="text-lg font-semibold text-slate-100">
+          Science index · densify telemetry
+        </h2>
+        <p className="text-xs text-slate-500">
+          Cross-campaign inventory and thin CID queue — densify here before project pins.
+          Local-first; free-public only.
+        </p>
+        <WorkspaceScienceIndexPanel />
+        <DensifyTelemetryPanel />
       </section>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[16rem_1fr]">
