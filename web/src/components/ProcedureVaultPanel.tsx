@@ -7,6 +7,11 @@ import {
   ingestExcerptsToVault,
   loadVaultWindowsForCid,
 } from "@/lib/idb/bulkVault";
+import {
+  buildCampaignVaultBag,
+  downloadCampaignVaultBag,
+  summarizeVaultForCid,
+} from "@/lib/idb/campaignVault";
 import { FreePublicProvenance } from "@/components/FreePublicProvenance";
 
 /**
@@ -25,6 +30,7 @@ export function ProcedureVaultPanel({
   const [windows, setWindows] = useState<
     Array<{ id: string; label: string; chars: number; source: string }>
   >([]);
+  const [versionAt, setVersionAt] = useState<number | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const manifest = bulkVaultManifest();
@@ -39,7 +45,12 @@ export function ProcedureVaultPanel({
         source: r.source,
       }))
     );
-  }, [dossier.cid]);
+    const sum = await summarizeVaultForCid(
+      dossier.cid,
+      dossier.identity?.name
+    );
+    setVersionAt(sum.versionAt);
+  }, [dossier.cid, dossier.identity?.name]);
 
   useEffect(() => {
     void reload();
@@ -71,6 +82,41 @@ export function ProcedureVaultPanel({
 
   const totalChars = windows.reduce((n, w) => n + w.chars, 0);
 
+  async function exportVaultBag() {
+    setBusy(true);
+    setStatus(null);
+    try {
+      // Ensure latest densify windows are in vault before export
+      if (dossier.procedureExcerpts?.length) {
+        await ingestExcerptsToVault(dossier.cid, dossier.procedureExcerpts, {
+          label: dossier.identity?.name,
+        });
+      }
+      const bag = await buildCampaignVaultBag([dossier.cid], {
+        campaign: {
+          id: `cid-${dossier.cid}`,
+          name: dossier.identity?.name || `CID ${dossier.cid}`,
+          labels: {
+            [String(dossier.cid)]: dossier.identity?.name || `CID ${dossier.cid}`,
+          },
+        },
+        includeWindows: true,
+      });
+      downloadCampaignVaultBag(
+        bag,
+        `vault-${dossier.cid}-${Date.now()}.json`
+      );
+      setStatus(
+        `Exported vault bag · ${bag.summaries[0]?.windowCount ?? 0} window(s). Not GMP.`
+      );
+      await reload();
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "Export failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div
       id="procedure-vault"
@@ -95,6 +141,9 @@ export function ProcedureVaultPanel({
       <p className="mt-2 font-mono text-[11px] text-slate-300">
         {windows.length} window(s) · ~{totalChars.toLocaleString()} chars · CID{" "}
         {dossier.cid}
+        {versionAt
+          ? ` · v ${new Date(versionAt).toISOString().slice(0, 16)}Z`
+          : ""}
       </p>
       {windows.length > 0 ? (
         <ul className="mt-2 max-h-28 space-y-0.5 overflow-y-auto text-[10px] text-slate-500">
@@ -140,6 +189,14 @@ export function ProcedureVaultPanel({
             Force densify
           </button>
         ) : null}
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void exportVaultBag()}
+          className="rounded-lg border border-slate-700 px-2.5 py-1 text-[11px] text-slate-300 hover:border-sky-500/40 disabled:opacity-40"
+        >
+          Export vault bag JSON
+        </button>
       </div>
       {status ? (
         <p className="mt-2 text-[11px] text-sky-100/90" role="status">

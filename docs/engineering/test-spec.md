@@ -231,6 +231,10 @@ Optional before release/deploy:
 | **PATH-04** | Procedure vault panel on live dossier | `test-product-path` |
 | **PATH-05** | Cold-CID golden floors + diagnostics panel | `test-cold-cid-kpi` |
 | **PATH-06** | Workspace campaign-first MSAT framing | `test-product-path` |
+| **PATH-07** | MSAT wizard stepper (problem → review → densify → agent) | `test-product-path` |
+| **PATH-08** | Campaign vault bag export/import | `test-product-path` |
+| **PATH-09** | Hermetic accuracy fixtures (strip uncited / drop IPC) | `test-accuracy-fixtures` |
+| **PATH-10** | Live cold-CID densify report script | `report-cold-cid-kpi` |
 
 ### N. Provenance coverage (API + AI tracking)
 

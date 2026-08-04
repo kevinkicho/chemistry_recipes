@@ -1,0 +1,37 @@
+{
+  "schema": "chemistry-recipes.process-accuracy-fixture.v1",
+  "note": "Hermetic accuracy cases — mirrors processFacts + quality gate intent. Not live API data.",
+  "richProcedureText": "Charge salicylic acid (100 g) to the reactor under nitrogen. Heat the mixture to 80 °C and stir for 2 h at atmospheric pressure. The reaction was quenched with water. The product was extracted with toluene. The solid was isolated by filtration and dried under vacuum. Yield of crude product was obtained after crystallization.",
+  "thinClinicalText": "This section provides information about the major uses of this chemical in clinical practice. Mechanism of action involves receptor binding. No manufacturing procedure is described.",
+  "inventedPlantLanguage": "Typical industrial plant typical site standard validated IPC batch record GMP release setpoint is 85 °C.",
+  "aiSynthesisJunk": {
+    "overview": "Short",
+    "manufacturingSummary": "Define IPC/CQAs for plant transfer.",
+    "routes": [
+      {
+        "id": "r1",
+        "name": "Invented route",
+        "type": "industrial",
+        "steps": [
+          {
+            "order": 1,
+            "title": "Heat",
+            "description": "This section provides information extracted from PubChem PUG View.",
+            "conditions": { "temperature": "999 °C", "time": "48 h" }
+          }
+        ],
+        "materials": [],
+        "ipcMethods": ["HPLC in-process control at plant"],
+        "cqaTargets": ["Assay 99.9% site release"]
+      }
+    ]
+  },
+  "expectations": {
+    "richHasTemp": true,
+    "richHasHydrogenationOrUnitOp": true,
+    "richHasIsolation": true,
+    "thinHasNoProcessConditions": true,
+    "inventedPlantRejected": true,
+    "qualityGateDropsIpcCqa": true
+  }
+}

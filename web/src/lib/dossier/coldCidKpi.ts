@@ -103,3 +103,119 @@ export function coldCidKpiManifest() {
       "Empty curated Tier-A catalogs are intentional — live densify is the product.",
   };
 }
+
+export type ColdCidKpiReport = {
+  schema: typeof COLD_CID_KPI_SCHEMA;
+  generatedAt: string;
+  baseUrl?: string;
+  floors: typeof COLD_CID_FLOORS;
+  summary: {
+    total: number;
+    metFloor: number;
+    failedFloor: number;
+    errors: number;
+  };
+  rows: Array<
+    ColdCidKpiSnapshot & {
+      ok: boolean;
+      error?: string;
+      durationMs?: number;
+    }
+  >;
+};
+
+/** Build a markdown report for CI / ops from KPI rows. */
+export function formatColdCidKpiReportMarkdown(report: ColdCidKpiReport): string {
+  const lines = [
+    `# Cold-CID densify KPI report`,
+    ``,
+    `- Generated: ${report.generatedAt}`,
+    report.baseUrl ? `- Base: ${report.baseUrl}` : null,
+    `- Floor met: **${report.summary.metFloor}/${report.summary.total}** · errors ${report.summary.errors}`,
+    `- Floors: proc≥${report.floors.procedureChars} · facts≥${report.floors.processFacts} · ideal≥${report.floors.idealParity} · evidence≥${report.floors.evidenceScore}`,
+    ``,
+    `| CID | Name | Floor | Proc | Facts | Ideal | Evidence | Notes |`,
+    `|-----|------|-------|------|-------|-------|----------|-------|`,
+  ].filter(Boolean) as string[];
+
+  for (const r of report.rows) {
+    const floor = !r.ok
+      ? "error"
+      : r.meetsFloor
+        ? "ok"
+        : "below";
+    lines.push(
+      `| ${r.cid} | ${r.name} | ${floor} | ${r.procedureChars} | ${r.processFacts} | ${r.idealParity} | ${r.evidenceScore} | ${(r.error || r.gaps.join("; ") || "—").slice(0, 80)} |`
+    );
+  }
+  lines.push(``);
+  lines.push(`Not GMP. Free-public densify quality only.`);
+  lines.push(``);
+  return lines.join("\n");
+}
+
+/**
+ * Snapshot metrics from a live dossier-shaped object (API summary or full dossier).
+ */
+export function snapshotFromDossierLike(
+  cid: number,
+  name: string,
+  d: {
+    procedureExcerpts?: Array<{ chars?: number; text?: string }>;
+    literature?: Array<{ fullTextExcerpt?: string }>;
+    processFacts?: { facts?: Array<{ kind?: string }> };
+    idealParity?: { score?: number } | number;
+    evidenceScore?: { score?: number } | number;
+    processFraming?: string;
+    productMode?: string;
+  }
+): ColdCidKpiSnapshot {
+  const procChars =
+    (d.procedureExcerpts || []).reduce(
+      (n, p) => n + (p.chars || (p.text || "").length),
+      0
+    ) ||
+    (d.literature || []).reduce(
+      (n, h) => n + (h.fullTextExcerpt?.length || 0),
+      0
+    );
+  const facts =
+    d.processFacts?.facts?.filter((f) => f.kind !== "open-gap").length ?? 0;
+  const ideal =
+    typeof d.idealParity === "number"
+      ? d.idealParity
+      : d.idealParity?.score ?? 0;
+  const evidence =
+    typeof d.evidenceScore === "number"
+      ? d.evidenceScore
+      : d.evidenceScore?.score ?? 0;
+  return evaluateColdCidFloors({
+    cid,
+    name,
+    procedureChars: procChars,
+    processFacts: facts,
+    idealParity: ideal,
+    evidenceScore: evidence,
+    framing: d.processFraming,
+    productMode: d.productMode,
+  });
+}
+
+export function buildColdCidKpiReport(
+  rows: ColdCidKpiReport["rows"],
+  opts?: { baseUrl?: string }
+): ColdCidKpiReport {
+  return {
+    schema: COLD_CID_KPI_SCHEMA,
+    generatedAt: new Date().toISOString(),
+    baseUrl: opts?.baseUrl,
+    floors: COLD_CID_FLOORS,
+    summary: {
+      total: rows.length,
+      metFloor: rows.filter((r) => r.ok && r.meetsFloor).length,
+      failedFloor: rows.filter((r) => r.ok && !r.meetsFloor).length,
+      errors: rows.filter((r) => !r.ok).length,
+    },
+    rows,
+  };
+}

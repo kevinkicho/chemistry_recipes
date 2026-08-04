@@ -23,6 +23,7 @@ import { CampaignBriefPanel } from "@/components/frontier/CampaignBriefPanel";
 import { CampaignComparePanel } from "@/components/frontier/CampaignComparePanel";
 import { WorkspaceScienceIndexPanel } from "@/components/frontier/WorkspaceScienceIndexPanel";
 import { DensifyTelemetryPanel } from "@/components/frontier/DensifyTelemetryPanel";
+import { CampaignVaultPanel } from "@/components/CampaignVaultPanel";
 import {
   listCampaigns,
   deleteCampaign,
@@ -236,6 +237,7 @@ export default function WorkspacePage() {
           <CampaignAgentPanel />
         </Suspense>
         <BatchDensifyPanel />
+        <CampaignVaultPanel />
       </section>
 
       <section className="mt-10 space-y-4">

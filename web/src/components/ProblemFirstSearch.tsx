@@ -23,6 +23,9 @@ import {
 } from "@/lib/search/problemDensifyNotebook";
 import { runMsatJourney } from "@/lib/search/msatJourney";
 
+/** Guided MSAT steps — single primary flow, fewer competing CTAs. */
+type MsatStep = 1 | 2 | 3 | 4;
+
 /**
  * Home / search entry: problem or unit-op first, enriched with multi-source fan-out.
  */
@@ -43,6 +46,8 @@ export function ProblemFirstSearch() {
   >([]);
   const [lastDensify, setLastDensify] =
     useState<ProblemCampaignDensifyResult | null>(null);
+  const [wizardStep, setWizardStep] = useState<MsatStep>(1);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const localHits = useMemo(() => searchProblemFirst(q, 12), [q]);
   const hits = liveHits ?? localHits;
@@ -92,11 +97,13 @@ export function ProblemFirstSearch() {
       setSourcePills([]);
       setLiteratureHits([]);
       setLoading(false);
+      setWizardStep(1);
       return;
     }
 
     setLoading(true);
     setStatus("Local hits ready — multi-source enriching…");
+    setWizardStep((s) => (s < 2 ? 2 : s));
     const ac = new AbortController();
     const t = window.setTimeout(() => {
       void fetch(
@@ -114,6 +121,7 @@ export function ProblemFirstSearch() {
           setLiteratureHits(data.literatureHits || []);
           setStatus(data.summary || null);
           setLoading(false);
+          setWizardStep((s) => (s < 2 ? 2 : s));
         })
         .catch((e) => {
           if (ac.signal.aborted) return;
@@ -122,6 +130,7 @@ export function ProblemFirstSearch() {
           setLiteratureHits([]);
           setStatus("Multi-source enrich unavailable — showing local hub hits");
           setLoading(false);
+          setWizardStep((s) => (s < 2 ? 2 : s));
         });
     }, 350);
 
@@ -156,6 +165,7 @@ export function ProblemFirstSearch() {
     const ac = new AbortController();
     densifyAbortRef.current = ac;
     setDensifyBusy(true);
+    setWizardStep(3);
     setCampMsg(null);
     try {
       const res = await runMsatJourney(q, hits, {
@@ -169,13 +179,16 @@ export function ProblemFirstSearch() {
         setCampMsg(
           "MSAT journey cancelled (left page or aborted). Completed CIDs may still be in local cache."
         );
+        setWizardStep(2);
         return;
       }
       if (!res) {
         setCampMsg("Could not create campaign from these hits.");
+        setWizardStep(2);
         return;
       }
       setLastDensify(res);
+      setWizardStep(4);
       saveProblemDensifyNotebookDraft({
         problemQuery: q.trim(),
         campaignId: res.campaign.id,
@@ -293,32 +306,62 @@ export function ProblemFirstSearch() {
     }
   }
 
+  const stepLabels: Array<{ step: MsatStep; label: string }> = [
+    { step: 1, label: "Problem" },
+    { step: 2, label: "Review CIDs" },
+    { step: 3, label: "Densify" },
+    { step: 4, label: "Brief + agent" },
+  ];
+
   return (
     <div
       id="problem-first-search"
       className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:p-5"
     >
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/90">
-        Problem / unit-op search
+        MSAT wizard · problem → campaign
       </p>
       <h2 className="mt-1 text-lg font-semibold text-slate-50">
-        Start from the process problem
+        Guided densify journey
       </h2>
       <p className="mt-1 text-xs text-slate-500">
-        Rank hub molecules, multi-source free-public CIDs, and process literature
-        by unit op or problem language (e.g. crystallization, mAb capture).
-        Primary path: MSAT journey — campaign → densify → impurity neighborhood →
-        brief + agent. Free-public only; not GMP.
+        One path: state the process problem → review free-public CIDs → densify +
+        impurity neighborhood → Workspace brief + agent. Not GMP.
       </p>
+
+      {/* Stepper */}
+      <ol className="mt-3 flex flex-wrap gap-1.5" aria-label="MSAT journey steps">
+        {stepLabels.map((s) => {
+          const active = wizardStep === s.step;
+          const done = wizardStep > s.step;
+          return (
+            <li
+              key={s.step}
+              className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ring-1 ${
+                active
+                  ? "bg-amber-500/20 text-amber-100 ring-amber-400/50"
+                  : done
+                    ? "bg-emerald-500/10 text-emerald-200/90 ring-emerald-500/30"
+                    : "bg-slate-900 text-slate-500 ring-slate-800"
+              }`}
+            >
+              {s.step}. {s.label}
+            </li>
+          );
+        })}
+      </ol>
+
       <input
         type="search"
         value={q}
         onChange={(e) => {
           setQ(e.target.value);
           setCampMsg(null);
+          if (!e.target.value.trim()) setWizardStep(1);
         }}
-        placeholder="e.g. hydrogenation · workup · gene therapy downstream"
+        placeholder="Step 1 · e.g. hydrogenation · workup · mAb capture"
         className="mt-3 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600"
+        aria-label="Process problem or unit-op query"
       />
       <div className="mt-2 flex flex-wrap gap-1">
         {PROBLEM_SEARCH_HINTS.map((h) => (
@@ -362,48 +405,68 @@ export function ProblemFirstSearch() {
       ) : null}
 
       {q.trim() && cids.length > 0 ? (
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            disabled={densifyBusy}
-            onClick={() => void runMsatPath()}
-            className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-amber-400 disabled:opacity-40"
-          >
-            {densifyBusy
-              ? "MSAT journey…"
-              : `MSAT journey · densify + neighbors + agent (${Math.min(12, cids.length)})`}
-          </button>
-          <button
-            type="button"
-            disabled={densifyBusy}
-            onClick={spinCampaign}
-            className="rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-100 hover:bg-violet-500/20 disabled:opacity-40"
-          >
-            Spin campaign only ({cids.length} CIDs)
-          </button>
-          <button
-            type="button"
-            disabled={densifyBusy}
-            onClick={() => void spinCampaignAndDensify()}
-            className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-slate-600 disabled:opacity-40"
-          >
-            Densify only
-          </button>
-          {lastDensify ? (
+        <div className="mt-3 space-y-2">
+          <p className="text-[11px] text-slate-400">
+            Step 2 · {cids.length} PubChem CID(s) ready
+            {literatureHits?.length
+              ? ` · ${literatureHits.length} process lit hit(s)`
+              : ""}
+            . Step 3 runs densify + neighbors, then opens brief + agent.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={exportDensifyNotebook}
-              className="rounded-lg border border-sky-500/40 bg-sky-500/10 px-3 py-1.5 text-xs font-medium text-sky-100"
+              disabled={densifyBusy}
+              onClick={() => void runMsatPath()}
+              className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-amber-400 disabled:opacity-40"
             >
-              Export densify notebook .md
+              {densifyBusy
+                ? "Step 3 · densifying…"
+                : `Continue · MSAT densify + agent (${Math.min(12, cids.length)} CIDs)`}
             </button>
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((v) => !v)}
+              className="rounded-lg border border-slate-700 px-2.5 py-1.5 text-[11px] text-slate-400 hover:border-slate-600"
+            >
+              {showAdvanced ? "Hide advanced" : "Advanced"}
+            </button>
+            <Link
+              href={routes.workspace()}
+              className="text-[11px] text-violet-300/90 hover:underline"
+            >
+              Open Workspace →
+            </Link>
+          </div>
+          {showAdvanced ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-800 bg-slate-950/40 px-2 py-2">
+              <button
+                type="button"
+                disabled={densifyBusy}
+                onClick={spinCampaign}
+                className="rounded-lg border border-violet-500/40 bg-violet-500/10 px-2.5 py-1 text-[11px] font-semibold text-violet-100 disabled:opacity-40"
+              >
+                Spin campaign only
+              </button>
+              <button
+                type="button"
+                disabled={densifyBusy}
+                onClick={() => void spinCampaignAndDensify()}
+                className="rounded-lg border border-slate-700 px-2.5 py-1 text-[11px] text-slate-300 disabled:opacity-40"
+              >
+                Densify only
+              </button>
+              {lastDensify || loadProblemDensifyNotebookDraft() ? (
+                <button
+                  type="button"
+                  onClick={exportDensifyNotebook}
+                  className="rounded-lg border border-sky-500/40 bg-sky-500/10 px-2.5 py-1 text-[11px] font-medium text-sky-100"
+                >
+                  Export densify notebook .md
+                </button>
+              ) : null}
+            </div>
           ) : null}
-          <Link
-            href={routes.workspace()}
-            className="text-[11px] text-violet-300/90 hover:underline"
-          >
-            Open Workspace →
-          </Link>
         </div>
       ) : null}
       {campMsg ? (

@@ -53,6 +53,7 @@ const UNIT_SUITES = [
   "test-horizon-c.mjs",
   "test-cold-cid-kpi.mjs",
   "test-product-path.mjs",
+  "test-accuracy-fixtures.mjs",
   "test-provenance.mjs",
   "test-provenance-coverage.mjs",
   "test-suite-inventory.mjs",

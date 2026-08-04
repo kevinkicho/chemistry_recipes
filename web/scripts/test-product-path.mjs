@@ -48,5 +48,12 @@ ok("Diagnostics cold KPI", /ColdCidKpiPanel/.test(read("app/diagnostics/page.tsx
 ok("coldCidKpi golden set", /GOLDEN_COLD_CIDS/.test(read("lib/dossier/coldCidKpi.ts")));
 ok("bulkVault ingest", /ingestExcerptsToVault/.test(read("lib/idb/bulkVault.ts")));
 ok("home MSAT journey CTA", /MSAT journey|runMsatJourney|runMsatPath/.test(read("components/ProblemFirstSearch.tsx")));
+ok("MSAT wizard stepper", /wizardStep|MSAT wizard|Step 1/.test(read("components/ProblemFirstSearch.tsx")));
+ok("campaignVault module", /CAMPAIGN_VAULT_SCHEMA|buildCampaignVaultBag/.test(read("lib/idb/campaignVault.ts")));
+ok("ProcedureVault export bag", /exportVaultBag|Export vault bag/.test(read("components/ProcedureVaultPanel.tsx")));
+ok("Workspace CampaignVaultPanel", /CampaignVaultPanel/.test(read("app/workspace/page.tsx")));
+ok("coldCid report markdown", /formatColdCidKpiReportMarkdown|buildColdCidKpiReport/.test(read("lib/dossier/coldCidKpi.ts")));
+ok("report-cold-cid-kpi script", fs.existsSync(path.join(__dirname, "report-cold-cid-kpi.mjs")));
+ok("accuracy fixture file", fs.existsSync(path.join(__dirname, "fixtures/process-accuracy-fixture.json")));
 
 console.log(`\n${n} product-path checks passed`);

@@ -9,7 +9,9 @@ test.describe("worker path scaffold", () => {
     await page.goto("/");
     await expect(page.getByText(/Live densify \+ AI dual-view/i)).toBeVisible();
     await expect(page.getByText(/Problem \/ unit-op search/i)).toBeVisible();
-    await expect(page.getByText(/MSAT journey/i).first()).toBeVisible();
+    await expect(
+      page.getByText(/MSAT wizard|MSAT journey|Guided densify/i).first()
+    ).toBeVisible();
   });
 
   test("compare page has MSAT board", async ({ page }) => {
