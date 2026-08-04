@@ -55,5 +55,19 @@ ok("Workspace CampaignVaultPanel", /CampaignVaultPanel/.test(read("app/workspace
 ok("coldCid report markdown", /formatColdCidKpiReportMarkdown|buildColdCidKpiReport/.test(read("lib/dossier/coldCidKpi.ts")));
 ok("report-cold-cid-kpi script", fs.existsSync(path.join(__dirname, "report-cold-cid-kpi.mjs")));
 ok("accuracy fixture file", fs.existsSync(path.join(__dirname, "fixtures/process-accuracy-fixture.json")));
+ok(
+  "batch route finite retries",
+  /Number\.isFinite\(retriesRaw\)|Number\.isFinite\(concurrencyRaw\)/.test(
+    read("app/api/dossier/batch/route.ts")
+  )
+);
+ok(
+  "agent pack vault fingerprint field",
+  /vaultFingerprint/.test(read("lib/export/agentPack.ts"))
+);
+ok(
+  "cold-cid workflow exists",
+  fs.existsSync(path.join(repo, ".github/workflows/cold-cid-kpi.yml"))
+);
 
 console.log(`\n${n} product-path checks passed`);

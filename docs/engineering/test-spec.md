@@ -235,6 +235,9 @@ Optional before release/deploy:
 | **PATH-08** | Campaign vault bag export/import | `test-product-path` |
 | **PATH-09** | Hermetic accuracy fixtures (strip uncited / drop IPC) | `test-accuracy-fixtures` |
 | **PATH-10** | Live cold-CID densify report script | `report-cold-cid-kpi` |
+| **PATH-11** | Agent pack includes vault densify fingerprint | `test-horizon-b`, `test-product-path` |
+| **PATH-12** | Batch densify retries use finite Number (not NaN loop skip) | `test-product-path` |
+| **PATH-13** | Nightly cold-CID KPI GitHub workflow | `cold-cid-kpi.yml` |
 
 ### N. Provenance coverage (API + AI tracking)
 

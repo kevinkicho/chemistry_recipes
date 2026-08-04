@@ -89,32 +89,84 @@ function metricsFromDossier(d) {
   };
 }
 
+/** Consume SSE dossier stream; return final dossier event if present. */
+async function densifyViaStream(cid) {
+  const url = `${BASE}/api/dossier/${cid}/stream${FORCE ? "?force=1" : ""}`;
+  const res = await fetch(url, {
+    signal: AbortSignal.timeout(240_000),
+    headers: { accept: "text/event-stream" },
+  });
+  if (!res.ok) throw new Error(`stream HTTP ${res.status}`);
+  const text = await res.text();
+  let lastDossier = null;
+  let lastError = null;
+  for (const block of text.split("\n\n")) {
+    const line = block
+      .split("\n")
+      .find((l) => l.startsWith("data: "));
+    if (!line) continue;
+    try {
+      const ev = JSON.parse(line.slice(6));
+      if (ev.type === "dossier" && ev.dossier) lastDossier = ev.dossier;
+      if (ev.type === "complete" && ev.dossier) lastDossier = ev.dossier;
+      if (ev.type === "error") lastError = ev.error || ev.message || "stream error";
+      // Some pipelines emit dossier under result
+      if (ev.dossier && (ev.type === "ready" || ev.type === "done")) {
+        lastDossier = ev.dossier;
+      }
+    } catch {
+      /* skip non-JSON heartbeats */
+    }
+  }
+  if (lastDossier) return lastDossier;
+  throw new Error(lastError || "stream ended without dossier");
+}
+
 async function densifyOne(cid, name) {
   const t0 = Date.now();
-  // Prefer JSON batch for one CID (includes dossier when requested)
+  // Prefer JSON batch (includeDossiers for full KPI); fall back to SSE stream
   const url = `${BASE}/api/dossier/batch`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      cids: [cid],
-      includeDossiers: true,
-      force: FORCE,
-      concurrency: 1,
-    }),
-    signal: AbortSignal.timeout(180_000),
-  });
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
+  let row = null;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        cids: [cid],
+        includeDossiers: true,
+        force: FORCE,
+        concurrency: 1,
+        retries: 2,
+      }),
+      signal: AbortSignal.timeout(200_000),
+    });
+    if (!res.ok) {
+      throw new Error(`batch HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    row =
+      (data.results || []).find((r) => r.cid === cid) || data.results?.[0];
+    if (!row?.ok) {
+      throw new Error(row?.error || "batch fail");
+    }
+  } catch (batchErr) {
+    process.stdout.write(`(batch: ${batchErr.message}; stream) `);
+    const dossier = await densifyViaStream(cid);
+    const m = metricsFromDossier(dossier);
+    const floor = evaluate(m);
+    return {
+      cid,
+      name: m.name || name,
+      ...m,
+      ...floor,
+      durationMs: Date.now() - t0,
+      ok: true,
+      via: "stream",
+    };
   }
-  const data = await res.json();
-  const row = (data.results || []).find((r) => r.cid === cid) || data.results?.[0];
-  if (!row?.ok) {
-    throw new Error(row?.error || "batch fail");
-  }
+
   const m = metricsFromDossier(row.dossier);
   if (!m) {
-    // Fallback to summary fields if dossier not returned
     return {
       cid,
       name: row.summary?.name || name,
@@ -124,6 +176,7 @@ async function densifyOne(cid, name) {
       evidenceScore: row.summary?.evidenceScore ?? 0,
       durationMs: Date.now() - t0,
       ok: true,
+      via: "batch-summary",
       ...evaluate({
         procedureChars: row.summary?.procedureChars ?? 0,
         processFacts: 0,
@@ -140,6 +193,7 @@ async function densifyOne(cid, name) {
     ...floor,
     durationMs: Date.now() - t0,
     ok: true,
+    via: "batch",
   };
 }
 

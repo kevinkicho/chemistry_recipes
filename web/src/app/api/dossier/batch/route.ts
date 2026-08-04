@@ -111,11 +111,20 @@ export async function POST(req: NextRequest) {
   const fastModel = safeModel(body.fastModel);
   const includeDossiers = Boolean(body.includeDossiers);
   const force = Boolean(body.force);
+  // Number(undefined) is NaN — do not use `??` after Number() or the retry loop never runs
+  const concurrencyRaw = Number(body.concurrency);
   const concurrency = Math.min(
     MAX_CONCURRENCY,
-    Math.max(1, Number(body.concurrency) || DEFAULT_CONCURRENCY)
+    Math.max(
+      1,
+      Number.isFinite(concurrencyRaw) ? concurrencyRaw : DEFAULT_CONCURRENCY
+    )
   );
-  const retries = Math.min(3, Math.max(0, Number(body.retries) ?? 2));
+  const retriesRaw = Number(body.retries);
+  const retries = Math.min(
+    3,
+    Math.max(0, Number.isFinite(retriesRaw) ? retriesRaw : 2)
+  );
 
   const started = Date.now();
   const results = await mapPool(cids, concurrency, (cid) =>

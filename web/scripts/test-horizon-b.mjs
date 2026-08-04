@@ -57,6 +57,13 @@ ok("includes processKnowledge", /processKnowledge/.test(agentPack));
 ok("includes densifyNext", /densifyNext/.test(agentPack));
 ok("includes harvestAgent", /harvestAgent/.test(agentPack));
 ok("includes idealParity", /idealParity/.test(agentPack));
+ok("includes vaultFingerprint", /vaultFingerprint/.test(agentPack));
+ok(
+  "vaultFingerprint module",
+  /vaultFingerprintFromDossier/.test(
+    read("lib/dossier/vaultFingerprint.ts")
+  )
+);
 
 const tt = read("lib/export/techTransfer.ts");
 ok("techTransfer re-exports agent pack", /buildAgentPack/.test(tt));

@@ -72,6 +72,8 @@ const critical = [
   "lib/frontier/routeNeighborhood.ts",
   "lib/export/rolePack.ts",
   "lib/idb/bulkVault.ts",
+  "lib/dossier/vaultFingerprint.ts",
+  "lib/idb/campaignVault.ts",
   "lib/dossier/relatedContextPackage.ts",
   "lib/dossier/annotationExcerpts.ts",
   "lib/dossier/processKnowledgeDigest.ts",

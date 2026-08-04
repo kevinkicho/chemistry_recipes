@@ -1,0 +1,57 @@
+# Nightly / manual golden CID densify floors against live App Hosting.
+# Soft by default (reports only). Set repository variable COLD_CID_STRICT=1 to fail.
+name: Cold-CID densify KPI
+
+on:
+  schedule:
+    # 06:15 UTC daily
+    - cron: "15 6 * * *"
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Max golden CIDs to densify (1–10)"
+        required: false
+        default: "3"
+      strict:
+        description: "Fail job if any CID below floor (true/false)"
+        required: false
+        default: "false"
+      force:
+        description: "Force rebuild (ignore server densify cache)"
+        required: false
+        default: "false"
+
+jobs:
+  golden-floors:
+    name: Live densify floors
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: web
+    env:
+      BASE_URL: ${{ vars.APPHOSTING_URL || 'https://chemrecipe--chemistryrecipes.us-central1.hosted.app' }}
+      LIMIT: ${{ github.event.inputs.limit || '3' }}
+      STRICT: ${{ github.event.inputs.strict || vars.COLD_CID_STRICT || '0' }}
+      FORCE: ${{ github.event.inputs.force || '0' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run cold-CID KPI report
+        run: |
+          mkdir -p diagnostics-output
+          node scripts/report-cold-cid-kpi.mjs
+        env:
+          OUT: diagnostics-output/cold-cid-kpi.md
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cold-cid-kpi-report
+          path: web/diagnostics-output/cold-cid-kpi.md
+          if-no-files-found: ignore

@@ -64,6 +64,7 @@ npm run test:cold-cid-kpi         # golden CID densify floors
 npm run test:product-path         # Monday path, vault, README honesty
 npm run test:accuracy-fixtures    # hermetic processFacts / quality-gate fixtures
 npm run report:cold-cid-kpi       # live golden CID densify floors (needs BASE_URL)
+# GitHub Actions: .github/workflows/cold-cid-kpi.yml (nightly + workflow_dispatch)
 npm run test:provenance           # AI/API chip contracts
 npm run test:provenance-coverage  # scan all content surfaces for provenance wiring
 npm run test:suite-inventory  # meta: suites wired + test-spec families

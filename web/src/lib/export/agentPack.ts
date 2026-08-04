@@ -13,6 +13,10 @@ import {
   segmentProcedureExcerpts,
 } from "@/lib/literature/procedureSegments";
 import { REGULATORY_DISCLAIMER } from "@/lib/export/techTransfer";
+import {
+  vaultFingerprintFromDossier,
+  type VaultFingerprint,
+} from "@/lib/dossier/vaultFingerprint";
 
 export const AGENT_PACK_SCHEMA = "chemistry-recipes.agent-pack.v1" as const;
 
@@ -44,6 +48,11 @@ export type AgentPack = {
   harvestAgent?: LiveDossier["harvestAgent"];
   densifyQuality?: NonNullable<LiveDossier["buildAudit"]>["densifyQuality"];
   procedureSegmentCoverage?: Record<string, number>;
+  /**
+   * Densify vault fingerprint — procedure-window bag id for agents/notebooks.
+   * Continue densify when windowCount is low; re-export when fingerprint changes.
+   */
+  vaultFingerprint: VaultFingerprint;
   /** Compact AI guidance (densify-first) */
   aiGuidance: ReturnType<typeof buildAiGuidancePackage>;
   /** Process knowledge (atlas / hypotheses / experiments) — may be heavy */
@@ -107,6 +116,7 @@ export function buildAgentPack(dossier: LiveDossier): AgentPack {
     harvestAgent: dossier.harvestAgent,
     densifyQuality: dossier.buildAudit?.densifyQuality,
     procedureSegmentCoverage: segmentCoverage(segments),
+    vaultFingerprint: vaultFingerprintFromDossier(dossier),
     aiGuidance: guidance,
     processKnowledge: knowledge,
     sourceFamilies: families,
