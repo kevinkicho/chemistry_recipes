@@ -50,6 +50,7 @@ const UNIT_SUITES = [
   "test-api-etiquette.mjs",
   "test-horizon-a.mjs",
   "test-horizon-b.mjs",
+  "test-horizon-c.mjs",
   "test-provenance.mjs",
   "test-provenance-coverage.mjs",
   "test-suite-inventory.mjs",

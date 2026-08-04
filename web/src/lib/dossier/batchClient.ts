@@ -8,9 +8,24 @@ import {
   getCachedDossier,
   putCachedDossierAndNotify,
 } from "@/lib/idb/dossierCache";
+import { ingestExcerptsToVault } from "@/lib/idb/bulkVault";
 import { recordDensifyRun } from "@/lib/dossier/densifyTelemetry";
 import { ensureDossierKnowledge } from "@/lib/frontier/knowledgeFingerprint";
 import { packageIsUsable } from "@/lib/frontier/knowledgeFingerprint";
+
+/** Cache dossier + ingest procedure windows into local bulk vault (client). */
+async function cacheAndVaultDossier(dossier: LiveDossier): Promise<void> {
+  await putCachedDossierAndNotify(dossier);
+  if (dossier.procedureExcerpts?.length) {
+    try {
+      await ingestExcerptsToVault(dossier.cid, dossier.procedureExcerpts, {
+        label: dossier.identity?.name,
+      });
+    } catch {
+      /* vault optional */
+    }
+  }
+}
 
 export interface BatchClientResult {
   cid: number;
@@ -184,7 +199,7 @@ export async function batchDensifyCids(
   if (opts?.cacheLocal) {
     for (const r of built) {
       if (r.ok && r.dossier) {
-        await putCachedDossierAndNotify(r.dossier);
+        await cacheAndVaultDossier(r.dossier);
         opts.onProgress?.(`Cached CID ${r.cid}`);
       }
     }
@@ -417,7 +432,7 @@ export async function streamBatchDensifyCids(
             if (ev.ok) {
               ok += 1;
               if (opts?.cacheLocal && ev.dossier) {
-                await putCachedDossierAndNotify(ev.dossier);
+                await cacheAndVaultDossier(ev.dossier);
                 opts.onProgress?.(`Cached CID ${ev.cid}`);
               }
             } else {

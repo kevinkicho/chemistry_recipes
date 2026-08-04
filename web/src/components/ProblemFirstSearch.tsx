@@ -13,7 +13,6 @@ import {
   createCampaignFromProblemHits,
 } from "@/lib/search/problemCampaign";
 import type { ProblemMultiSearchResult } from "@/lib/search/problemMultiSource";
-import { setCampaignAgentHandoff } from "@/lib/workspace/campaigns";
 import { routes } from "@/lib/routes";
 import { useRouter } from "next/navigation";
 import type { ProblemCampaignDensifyResult } from "@/lib/search/problemCampaign";
@@ -22,6 +21,7 @@ import {
   loadProblemDensifyNotebookDraft,
   saveProblemDensifyNotebookDraft,
 } from "@/lib/search/problemDensifyNotebook";
+import { runMsatJourney } from "@/lib/search/msatJourney";
 
 /**
  * Home / search entry: problem or unit-op first, enriched with multi-source fan-out.
@@ -146,12 +146,75 @@ export function ProblemFirstSearch() {
     );
   }
 
-  async function spinCampaignAndDensify(opts?: { openAgent?: boolean }) {
+  /** Primary MSAT path: campaign → densify → route neighborhood → brief + agent */
+  async function runMsatPath() {
+    if (!q.trim() || !cids.length) {
+      setCampMsg("Need hub/live hits with PubChem CIDs for MSAT journey.");
+      return;
+    }
+    densifyAbortRef.current?.abort();
+    const ac = new AbortController();
+    densifyAbortRef.current = ac;
+    setDensifyBusy(true);
+    setCampMsg(null);
+    try {
+      const res = await runMsatJourney(q, hits, {
+        concurrency: 2,
+        literatureHits,
+        signal: ac.signal,
+        expandNeighborhood: true,
+        onProgress: (m) => setCampMsg(m),
+      });
+      if (ac.signal.aborted || res?.densify.error === "aborted") {
+        setCampMsg(
+          "MSAT journey cancelled (left page or aborted). Completed CIDs may still be in local cache."
+        );
+        return;
+      }
+      if (!res) {
+        setCampMsg("Could not create campaign from these hits.");
+        return;
+      }
+      setLastDensify(res);
+      saveProblemDensifyNotebookDraft({
+        problemQuery: q.trim(),
+        campaignId: res.campaign.id,
+        campaignName: res.campaign.name,
+        result: res,
+        problemHits: hits,
+        literatureHits,
+        agentQuestion: res.agentQuestion,
+      });
+      setCampMsg(
+        [
+          `MSAT journey · “${res.campaign.name}” · densify ${res.densify.ok}ok/${res.densify.fail}fail · ${res.queueCids.length} CIDs`,
+          res.neighborhoodExpanded
+            ? `+${res.neighborhoodExpanded} impurity/route neighbors`
+            : null,
+          res.literatureAttached
+            ? `lit pastes ${res.literatureAttached} (${res.literatureChars.toLocaleString()} chars)`
+            : null,
+          "opening brief + agent…",
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      );
+      router.push(res.workspaceHref);
+    } catch (e) {
+      setCampMsg(
+        e instanceof Error ? e.message : "MSAT journey failed"
+      );
+    } finally {
+      setDensifyBusy(false);
+    }
+  }
+
+  /** Densify-only (no agent handoff, no neighborhood expand) */
+  async function spinCampaignAndDensify() {
     if (!q.trim() || !cids.length) {
       setCampMsg("Need hub/live hits with PubChem CIDs to densify.");
       return;
     }
-    const openAgent = opts?.openAgent !== false;
     densifyAbortRef.current?.abort();
     const ac = new AbortController();
     densifyAbortRef.current = ac;
@@ -175,7 +238,6 @@ export function ProblemFirstSearch() {
         return;
       }
       setLastDensify(res);
-      const agentQ = `What free-public process conditions and unit-op evidence appear for “${q.trim()}” across this campaign? Any edge conflicts?`;
       saveProblemDensifyNotebookDraft({
         problemQuery: q.trim(),
         campaignId: res.campaign.id,
@@ -183,7 +245,6 @@ export function ProblemFirstSearch() {
         result: res,
         problemHits: hits,
         literatureHits,
-        agentQuestion: agentQ,
       });
       setCampMsg(
         [
@@ -191,29 +252,11 @@ export function ProblemFirstSearch() {
           res.literatureAttached
             ? `lit pastes ${res.literatureAttached} (${res.literatureChars.toLocaleString()} chars)`
             : null,
-          openAgent ? "opening brief + agent…" : "open Workspace for brief/agent",
+          "open Workspace for brief/agent",
         ]
           .filter(Boolean)
           .join(" · ")
       );
-      if (openAgent) {
-        setCampaignAgentHandoff({
-          campaignId: res.campaign.id,
-          question: agentQ,
-          autoRun: true,
-          openBrief: true,
-          problemQuery: q.trim(),
-          literatureAttached: res.literatureAttached,
-        });
-        router.push(
-          routes.workspace({
-            campaign: res.campaign.id,
-            agent: true,
-            brief: true,
-            q: agentQ,
-          })
-        );
-      }
     } catch (e) {
       setCampMsg(
         e instanceof Error ? e.message : "Campaign densify queue failed"
@@ -262,9 +305,10 @@ export function ProblemFirstSearch() {
         Start from the process problem
       </h2>
       <p className="mt-1 text-xs text-slate-500">
-        Rank hub molecules, training packages, multi-source free-public CIDs, and
-        process literature by unit op or problem language (e.g. crystallization,
-        mAb capture). Spin a multi-CID science campaign from live hits.
+        Rank hub molecules, multi-source free-public CIDs, and process literature
+        by unit op or problem language (e.g. crystallization, mAb capture).
+        Primary path: MSAT journey — campaign → densify → impurity neighborhood →
+        brief + agent. Free-public only; not GMP.
       </p>
       <input
         type="search"
@@ -322,25 +366,25 @@ export function ProblemFirstSearch() {
           <button
             type="button"
             disabled={densifyBusy}
-            onClick={spinCampaign}
-            className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 disabled:opacity-40"
-          >
-            Spin science campaign ({cids.length} CIDs)
-          </button>
-          <button
-            type="button"
-            disabled={densifyBusy}
-            onClick={() => void spinCampaignAndDensify({ openAgent: true })}
-            className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-100 hover:bg-amber-500/20 disabled:opacity-40"
+            onClick={() => void runMsatPath()}
+            className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-amber-400 disabled:opacity-40"
           >
             {densifyBusy
-              ? "Densifying → agent…"
-              : `Spin + densify + agent (${Math.min(12, cids.length)})`}
+              ? "MSAT journey…"
+              : `MSAT journey · densify + neighbors + agent (${Math.min(12, cids.length)})`}
           </button>
           <button
             type="button"
             disabled={densifyBusy}
-            onClick={() => void spinCampaignAndDensify({ openAgent: false })}
+            onClick={spinCampaign}
+            className="rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-100 hover:bg-violet-500/20 disabled:opacity-40"
+          >
+            Spin campaign only ({cids.length} CIDs)
+          </button>
+          <button
+            type="button"
+            disabled={densifyBusy}
+            onClick={() => void spinCampaignAndDensify()}
             className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-slate-600 disabled:opacity-40"
           >
             Densify only

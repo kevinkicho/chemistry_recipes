@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Tooltip } from "@/components/Tooltip";
 import type { LiveDossier } from "@/lib/dossier/types";
 import type { MoleculeDossier } from "@/lib/types/process";
@@ -14,6 +14,12 @@ import {
   downloadJson,
   slugifyName,
 } from "@/lib/export/techTransfer";
+import { buildRolePack } from "@/lib/export/rolePack";
+import {
+  readWorkerRole,
+  subscribeWorkerRole,
+  type WorkerRole,
+} from "@/lib/worker/roleMode";
 
 type Source =
   | { kind: "live"; dossier: LiveDossier }
@@ -30,6 +36,12 @@ export function TechTransferExport({
   compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [workerRole, setWorkerRole] = useState<WorkerRole>("chemist");
+
+  useEffect(() => {
+    setWorkerRole(readWorkerRole());
+    return subscribeWorkerRole(setWorkerRole);
+  }, []);
 
   function pack() {
     return source.kind === "live"
@@ -94,6 +106,15 @@ export function TechTransferExport({
     downloadJson(`${nameBase()}-agent-pack-v1.json`, buildAgentPack(source.dossier));
   }
 
+  function onRolePack() {
+    if (source.kind !== "live") {
+      alert("Role pack is available on live PubChem densify dossiers.");
+      return;
+    }
+    const pack = buildRolePack(source.dossier, workerRole);
+    downloadJson(`${nameBase()}-role-pack-${workerRole}-v1.json`, pack);
+  }
+
   if (compact) {
     return (
       <div className="print:hidden inline-flex flex-wrap items-center gap-1.5">
@@ -151,6 +172,17 @@ export function TechTransferExport({
                 className="rounded-md border border-violet-500/30 bg-violet-500/10 px-2.5 py-1 text-xs font-medium text-violet-100 hover:bg-violet-500/15"
               >
                 Agent pack
+              </button>
+            </Tooltip>
+            <Tooltip
+              content={`Primary ${workerRole} role-pack JSON (Monday deliverable for active worker role). Free-public densify only.`}
+            >
+              <button
+                type="button"
+                onClick={onRolePack}
+                className="rounded-md border border-sky-500/30 bg-sky-500/10 px-2.5 py-1 text-xs font-medium text-sky-100 hover:bg-sky-500/15"
+              >
+                Role pack ({workerRole})
               </button>
             </Tooltip>
           </>
@@ -211,6 +243,16 @@ export function TechTransferExport({
                 }}
               >
                 Agent pack (densify + knowledge)
+              </button>
+              <button
+                type="button"
+                className="block w-full px-3 py-2 text-left text-xs text-sky-100 hover:bg-slate-800"
+                onClick={() => {
+                  onRolePack();
+                  setOpen(false);
+                }}
+              >
+                Role pack · {workerRole}
               </button>
             </>
           ) : null}

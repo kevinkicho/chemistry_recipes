@@ -19,6 +19,7 @@ import {
   getVaultExcerptsForCid,
   putVaultExcerpts,
 } from "@/lib/idb/procedureVault";
+import { ingestExcerptsToVault } from "@/lib/idb/bulkVault";
 import { withRecipeReadiness } from "@/lib/dossier/recipeReadiness";
 
 /**
@@ -101,6 +102,12 @@ export function applyLocalFactEnrichment(dossier: LiveDossier): LiveDossier {
         chars: (p.procedureExcerpt || p.abstract || "").length,
       }))
   );
+  // Bulk vault hook: durable procedure excerpts from densify harvest
+  if (dossier.procedureExcerpts?.length) {
+    void ingestExcerptsToVault(dossier.cid, dossier.procedureExcerpts, {
+      label: dossier.identity?.name,
+    });
+  }
 
   // Best-effort sync read of vault (may be empty on first paint)
   let vault: ProcedureExcerpt[] = [];
@@ -163,6 +170,11 @@ export async function hydrateVaultIntoDossier(
         url: p.url,
       }))
   );
+  if (dossier.procedureExcerpts?.length) {
+    await ingestExcerptsToVault(dossier.cid, dossier.procedureExcerpts, {
+      label: dossier.identity?.name,
+    });
+  }
   const vault: ProcedureExcerpt[] = rows.map((r) => ({
     id: r.key,
     source: (r.source as ProcedureExcerpt["source"]) || "other",

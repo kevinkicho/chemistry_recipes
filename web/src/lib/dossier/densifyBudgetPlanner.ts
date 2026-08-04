@@ -1,5 +1,7 @@
 /**
  * Spend densify budget on highest process-score *thin* hits first.
+ * Health-weighted: down-rank rate-limited / circuit-open hosts.
+ * Modality playbooks boost process-relevant titles for non-SM densify.
  * Never invents content — only prioritizes free-public densify targets.
  */
 
@@ -7,6 +9,12 @@ import type { LiteratureHit } from "@/lib/api/europePmc";
 import type { PatentHit } from "@/lib/api/patentsView";
 import { scoreProcessRelevance } from "@/lib/literature/rank";
 import { scoreProcedureWindow } from "@/lib/literature/procedureWindowScore";
+import {
+  literatureHealthPenalty,
+  patentHealthPenalty,
+} from "@/lib/dossier/healthWeightedDensify";
+import { modalityLitBoost } from "@/lib/dossier/modalityDensifyPlaybook";
+import type { ProcessModality } from "@/lib/types/process";
 
 export type DensifyTarget = {
   id: string;
@@ -33,20 +41,26 @@ function patBodyChars(p: PatentHit): number {
 
 export function planLiteratureDensifyTargets(
   hits: LiteratureHit[],
-  opts?: { max?: number; minScore?: number }
+  opts?: { max?: number; minScore?: number; modality?: ProcessModality | string | null }
 ): LiteratureHit[] {
   const max = opts?.max ?? 16;
   const minScore = opts?.minScore ?? 10;
+  const modality = opts?.modality;
   const ranked = hits
     .map((h) => {
       const body = litBodyChars(h);
+      const bodyText = h.fullTextExcerpt || h.abstract;
       const score =
-        scoreProcessRelevance(h.title, h.fullTextExcerpt || h.abstract) +
+        scoreProcessRelevance(h.title, bodyText) +
         (h.pmcid || h.isOpenAccess ? 8 : 0) +
-        (h.doi ? 3 : 0);
+        (h.doi ? 3 : 0) +
+        modalityLitBoost(h.title, bodyText, modality);
       const thin = body < 120;
-      // Prefer thin high-score first, then improve mid-body
-      const priority = score + (thin ? 40 : body < 400 ? 15 : 0);
+      // Prefer thin high-score first; subtract health penalty so sick hosts lose budget
+      const priority =
+        score +
+        (thin ? 40 : body < 400 ? 15 : 0) -
+        literatureHealthPenalty(h);
       return { h, score, thin, priority };
     })
     .filter((x) => x.score >= minScore || x.thin)
@@ -56,17 +70,21 @@ export function planLiteratureDensifyTargets(
 
 export function planPatentDensifyTargets(
   hits: PatentHit[],
-  opts?: { max?: number }
+  opts?: { max?: number; modality?: ProcessModality | string | null }
 ): PatentHit[] {
   const max = opts?.max ?? 12;
+  const modality = opts?.modality;
   const ranked = hits
     .map((p) => {
       const body = patBodyChars(p);
+      const bodyText = p.procedureExcerpt || p.abstract;
       const score =
-        scoreProcessRelevance(p.title, p.procedureExcerpt || p.abstract) +
-        (p.patentNumber ? 5 : 0);
+        scoreProcessRelevance(p.title, bodyText) +
+        (p.patentNumber ? 5 : 0) +
+        modalityLitBoost(p.title, bodyText, modality);
       const thin = body < 200;
-      const priority = score + (thin ? 45 : body < 500 ? 12 : 0);
+      const priority =
+        score + (thin ? 45 : body < 500 ? 12 : 0) - patentHealthPenalty(p);
       return { p, score, thin, priority };
     })
     .sort((a, b) => b.priority - a.priority);

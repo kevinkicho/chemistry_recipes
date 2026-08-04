@@ -210,6 +210,17 @@ Optional before release/deploy:
 | **INV-03** | test-spec.md lists REQ families ACC…DIAG + PROV | `test-suite-inventory` |
 | **INV-04** | precommit runs unit + tsc + eslint | `test-suite-inventory` |
 
+### M2. Horizon C product slices (MSAT path)
+
+| ID | Requirement | Suite |
+|----|-------------|--------|
+| **HZC-01** | MSAT journey: problem → campaign densify → neighborhood → agent handoff | `test-horizon-c` |
+| **HZC-02** | Route-neighborhood densify prioritizes impurities | `test-horizon-c` |
+| **HZC-03** | Modality densify playbooks + AI instruction (no invented CPPs) | `test-horizon-c` |
+| **HZC-04** | Health-weighted densify budget (down-rank rate-limited hosts) | `test-horizon-c` |
+| **HZC-05** | Role-pack.v1 primary export for worker roles | `test-horizon-c` |
+| **HZC-06** | Bulk vault ingest after densify cache | `test-horizon-c` |
+
 ### N. Provenance coverage (API + AI tracking)
 
 Full surface registry and policies: **[provenance-coverage-spec.md](./provenance-coverage-spec.md)**.  

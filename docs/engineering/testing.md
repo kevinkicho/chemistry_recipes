@@ -55,6 +55,11 @@ npm run test:nav-abort        # browser Back / leave abort
 npm run test:search-contracts # multi-source + problem search
 npm run test:densify-depth    # densify harvest quality
 npm run test:diagnostics-honesty  # Ollama vs free-public content
+npm run test:api-agent            # harvest agent tools + planner
+npm run test:api-etiquette        # rate-limit etiquette
+npm run test:horizon-a            # procedure segments + ideal densify plan
+npm run test:horizon-b            # adaptive gather + agent pack
+npm run test:horizon-c            # MSAT journey, neighborhood, modality, role pack
 npm run test:provenance           # AI/API chip contracts
 npm run test:provenance-coverage  # scan all content surfaces for provenance wiring
 npm run test:suite-inventory  # meta: suites wired + test-spec families
@@ -91,6 +96,11 @@ npm run build
 | `test-search-contracts.mjs` | Yes | **SEARCH-*** multi-source + problem densify |
 | `test-densify-depth.mjs` | Yes | **DENS-*** process-rank, OA-sparse, excerpts |
 | `test-diagnostics-honesty.mjs` | Yes | **DIAG-*** Ollama vs free-public shells |
+| `test-api-agent.mjs` | Yes | Harvest agent tools / planner |
+| `test-api-etiquette.mjs` | Yes | Rate-limit etiquette + 429 |
+| `test-horizon-a.mjs` | Yes | **HZC-A** procedure segments + ideal densify plan |
+| `test-horizon-b.mjs` | Yes | **HZC-B** adaptive gather + agent pack |
+| `test-horizon-c.mjs` | Yes | **HZC-*** MSAT journey, neighborhood, modality, role pack, vault |
 | `test-provenance.mjs` | Yes | **PROV-01…03** chip + field helper contracts |
 | `test-provenance-coverage.mjs` | Yes | **PROV-SCAN-*** registry scan of all content cards |
 | `test-suite-inventory.mjs` | Yes | **INV-*** suite wiring + test-spec families |

@@ -32,6 +32,7 @@ import {
   buildEvidencePayload,
   buildAiDataFeedSources,
 } from "@/lib/dossier/aiEvidencePackage";
+import { modalityAiInstruction } from "@/lib/dossier/modalityDensifyPlaybook";
 
 /** Full dual-view synthesis — cap latency; densify shell already progressive */
 const AI_TIMEOUT_MS = 100_000;
@@ -769,8 +770,32 @@ export async function synthesizeDossierFromEvidence(
   const model = opts.preferFastModel ? fast : primary;
   const preferFast = Boolean(opts.preferFastModel);
   const timeoutMs = preferFast ? AI_TIMEOUT_FAST_MS : AI_TIMEOUT_MS;
+  // Soft modality hint from name/titles (AI may refine; never invents CPPs)
+  const softModalityHay = [
+    evidence.identity?.name || "",
+    ...(evidence.literature || []).slice(0, 6).map((h) => h.title),
+  ].join(" ");
+  let softModality: ProcessModality | undefined;
+  if (/\b(mAb|monoclonal|CHO|Protein A)\b/i.test(softModalityHay)) {
+    softModality = "mab";
+  } else if (/\b(peptide|SPPS|Fmoc)\b/i.test(softModalityHay)) {
+    softModality = "peptide";
+  } else if (/\b(oligonucleotide|ASO|siRNA|amidite)\b/i.test(softModalityHay)) {
+    softModality = "oligonucleotide";
+  } else if (/\b(ADC|antibody[- ]drug)\b/i.test(softModalityHay)) {
+    softModality = "adc";
+  } else if (/\b(ferment|bioreactor|fed[- ]batch)\b/i.test(softModalityHay)) {
+    softModality = "fermentation";
+  } else if (/\b(formulation|lyophil|excipient)\b/i.test(softModalityHay)) {
+    softModality = "formulation";
+  }
+  const modalityInstr = modalityAiInstruction(softModality);
+
   // Dense multi-source package for agentic value (procedure excerpts + atoms first)
-  const evidenceBlock = buildEvidencePayload(evidence, { preferFast });
+  const evidenceBlock = buildEvidencePayload(evidence, {
+    preferFast,
+    modality: softModality,
+  });
   const dataSources = buildAiDataFeedSources(evidence);
   const procN = evidence.procedureExcerpts?.length || 0;
   const atomN =
@@ -864,6 +889,7 @@ export async function synthesizeDossierFromEvidence(
   const userContent =
     `Synthesize the dossier JSON from this densified free-public evidence only.\n` +
     `Priority: (1) processFacts.atoms (2) procedureExcerpts (3) pass1Extract when present (4) densified literature/patents (5) mfg/GHS/annotations.\n` +
+    `Modality framing: ${modalityInstr}\n` +
     `Package stats: ${evidenceBlock.length} chars · ${procN} procedure excerpt(s) · ${atomN} process atom(s) · ${dataSources.length} feed source(s)` +
     (pass1Extract ? " · pass1Extract attached" : "") +
     `.\n\n` +

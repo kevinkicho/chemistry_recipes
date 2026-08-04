@@ -5,6 +5,8 @@
 
 import type { IdealSectionId, IdealSectionStatus } from "@/lib/dossier/idealPage";
 import type { ApiToolCall } from "@/lib/frontier/apiAgentTools";
+import { getModalityDensifyPlaybook } from "@/lib/dossier/modalityDensifyPlaybook";
+import type { ProcessModality } from "@/lib/types/process";
 
 const WEAK_DEPTH = 45;
 
@@ -54,12 +56,27 @@ const PROCESS_FAMILIES = [
  */
 export function planDensifyFromIdealWeaknesses(
   sections: Array<Pick<IdealSectionStatus, "id" | "depth" | "filled">>,
-  opts?: { maxTools?: number }
+  opts?: { maxTools?: number; modality?: ProcessModality | string | null }
 ): ApiToolCall[] {
   const maxTools = opts?.maxTools ?? 5;
+  const modalityFamilies =
+    getModalityDensifyPlaybook(opts?.modality).preferredFamilies ||
+    PROCESS_FAMILIES;
+  // Prefer modality families, fall back to process-critical defaults
+  const retryFamilies = [
+    ...new Set([...modalityFamilies, ...PROCESS_FAMILIES]),
+  ].slice(0, 10);
+  // Weak sections: prefer modality priority sections first when present
+  const priorityIds = new Set(
+    getModalityDensifyPlaybook(opts?.modality).priorityIdealSections || []
+  );
   const weak = sections
     .filter((s) => !s.filled || s.depth < WEAK_DEPTH)
-    .sort((a, b) => a.depth - b.depth);
+    .sort((a, b) => {
+      const pa = priorityIds.has(a.id) ? 0 : 1;
+      const pb = priorityIds.has(b.id) ? 0 : 1;
+      return pa - pb || a.depth - b.depth;
+    });
 
   const seen = new Set<string>();
   const plan: ApiToolCall[] = [];
@@ -83,7 +100,7 @@ export function planDensifyFromIdealWeaknesses(
       if (tool === "retry_failed_families") {
         push({
           tool,
-          families: PROCESS_FAMILIES,
+          families: retryFamilies,
           reason: `close ideal · ${s.id} (depth ${s.depth})`,
         });
       } else {

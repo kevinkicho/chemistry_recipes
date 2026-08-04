@@ -31,6 +31,8 @@ import {
   segmentCoverage,
   segmentProcedureExcerpts,
 } from "@/lib/literature/procedureSegments";
+import { modalityAiInstruction } from "@/lib/dossier/modalityDensifyPlaybook";
+import type { ProcessModality } from "@/lib/types/process";
 
 /** Full-model budget — denser multi-pass harvest needs more headroom */
 export const MAX_EVIDENCE_CHARS_FULL = 28_000;
@@ -81,12 +83,13 @@ function jsonSize(obj: unknown): number {
  */
 export function buildEvidenceObject(
   ev: CompoundEvidence,
-  opts?: { preferFast?: boolean }
+  opts?: { preferFast?: boolean; modality?: ProcessModality | string | null }
 ): Record<string, unknown> {
   const maxChars = opts?.preferFast
     ? MAX_EVIDENCE_CHARS_FAST
     : MAX_EVIDENCE_CHARS_FULL;
   const preferFast = Boolean(opts?.preferFast);
+  const modalityInstr = modalityAiInstruction(opts?.modality);
 
   // Prefer process/manufacturing lit for dual-view routes; clinical is context only
   const { process: processLit, clinical: clinicalLit } =
@@ -415,7 +418,9 @@ export function buildEvidenceObject(
     "Produce dual-view process routes for a plant-ready educational dossier. " +
     "Use procedureExcerpts and processFacts.atoms as primary manufacturing signal (value-weighted pack). " +
     "Use processKnowledgeDigest + relatedProcessContext only as structure/impurity cues. " +
-    "Use all free-public sources (not only PubChem). Omit empty plant fields rather than placeholders.";
+    "Use all free-public sources (not only PubChem). Omit empty plant fields rather than placeholders. " +
+    modalityInstr;
+  packed.modalityPlaybook = modalityInstr;
 
   // Final hard cap (should rarely hit if packing worked)
   const raw = JSON.stringify(packed);
@@ -435,7 +440,7 @@ export function buildEvidenceObject(
 
 export function buildEvidencePayload(
   ev: CompoundEvidence,
-  opts?: { preferFast?: boolean }
+  opts?: { preferFast?: boolean; modality?: ProcessModality | string | null }
 ): string {
   const maxChars = opts?.preferFast
     ? MAX_EVIDENCE_CHARS_FAST

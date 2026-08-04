@@ -19,6 +19,11 @@ import {
   FreePublicProvenance,
 } from "@/components/FreePublicProvenance";
 import type { LiveDossier } from "@/lib/dossier/types";
+import {
+  densifyRouteNeighborhood,
+  expandCampaignWithRouteNeighborhood,
+} from "@/lib/frontier/routeNeighborhood";
+import { prioritizedNeighborCids } from "@/lib/frontier/neighborDensifyGraph";
 
 /**
  * Batch densify for science campaigns (server sequential builds).
@@ -67,6 +72,96 @@ export function BatchDensifyPanel({
       .map((s) => Number(s.trim()))
       .filter((n) => Number.isFinite(n) && n > 0)
       .slice(0, 12);
+  }
+
+  async function runNeighborhood() {
+    if (!dossier && !selected) {
+      setStatus("Open a live dossier or select a campaign for route-neighborhood densify.");
+      return;
+    }
+    setBusy(true);
+    setStatus(null);
+    setStreamLog([]);
+    setIdealDeltaMsg(null);
+    try {
+      if (selected) {
+        const camp = campaigns.find((x) => x.id === selected);
+        if (!camp) {
+          setStatus("Campaign not found.");
+          return;
+        }
+        const expanded = await expandCampaignWithRouteNeighborhood(camp, {
+          maxNew: 6,
+          concurrency,
+          force,
+          onProgress: (m) => setStatus(m),
+        });
+        if (!expanded) {
+          setStatus("Could not expand campaign neighborhood.");
+          return;
+        }
+        setManual(
+          [...camp.cids, ...expanded.addedCids].slice(0, 12).join(", ")
+        );
+        setLast(
+          JSON.stringify(
+            {
+              mode: "route-neighborhood-campaign",
+              addedCids: expanded.addedCids,
+              densifyOk: expanded.densify.ok,
+              densifyFail: expanded.densify.fail,
+            },
+            null,
+            2
+          )
+        );
+        setStatus(
+          expanded.addedCids.length
+            ? `Neighborhood · +${expanded.addedCids.length} impurity/route CID(s) · densify ${expanded.densify.ok}ok/${expanded.densify.fail}fail`
+            : "No new impurity/route neighbors with PubChem CIDs on cached dossiers."
+        );
+        if (expanded.addedCids.length) {
+          onRegenerate?.();
+        }
+        return;
+      }
+      if (!dossier) return;
+      const res = await densifyRouteNeighborhood(dossier, {
+        maxNeighbors: 6,
+        force,
+        onProgress: (m) => setStatus(m),
+      });
+      const neighborCids = res.queueCids.length
+        ? res.queueCids
+        : prioritizedNeighborCids(dossier, 6);
+      if (neighborCids.length) {
+        setManual([dossier.cid, ...neighborCids].slice(0, 12).join(", "));
+      }
+      setLast(
+        JSON.stringify(
+          {
+            mode: "route-neighborhood",
+            centerCid: dossier.cid,
+            queueCids: res.queueCids,
+            graphSummary: res.graph.summary,
+            densifyOk: res.densify.ok,
+            densifyFail: res.densify.fail,
+          },
+          null,
+          2
+        )
+      );
+      setStatus(
+        res.queueCids.length
+          ? `Route neighborhood · densify ${res.queueCids.length} (impurities first) · ${res.densify.ok}ok/${res.densify.fail}fail`
+          : "No impurity/intermediate PubChem CIDs found on this dossier yet."
+      );
+      if (res.densify.ok > 0) onRegenerate?.();
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "Neighborhood densify failed");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function run() {
@@ -261,6 +356,14 @@ export function BatchDensifyPanel({
           className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-amber-400 disabled:opacity-40"
         >
           {busy ? "Streaming densify…" : "Stream batch densify"}
+        </button>
+        <button
+          type="button"
+          disabled={busy || (!dossier && !selected)}
+          onClick={() => void runNeighborhood()}
+          className="rounded-lg border border-sky-500/40 bg-sky-500/10 px-3 py-1.5 text-xs font-semibold text-sky-100 hover:bg-sky-500/20 disabled:opacity-40"
+        >
+          {busy ? "Neighborhood…" : "Route neighborhood (impurities first)"}
         </button>
         <Link
           href={routes.workspace()}
