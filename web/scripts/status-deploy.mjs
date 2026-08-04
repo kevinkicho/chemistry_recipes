@@ -200,8 +200,51 @@ async function main() {
       );
     }
 
-    const latestBuild = builds[0];
-    const latestRollout = rollouts[0];
+    // Prefer meaningful "latest": READY builds / SUCCEEDED rollouts over stuck QUEUED spam
+    const buildRank = (s) => {
+      const u = String(s || "").toUpperCase();
+      if (u === "READY" || u === "SUCCEEDED") return 0;
+      if (u === "BUILDING" || u === "CREATING" || u === "PROGRESSING") return 1;
+      if (u === "PENDING" || u === "QUEUED") return 2;
+      if (u === "FAILED" || u === "ERROR" || u === "CANCELLED") return 3;
+      return 4;
+    };
+    const rolloutRank = (s) => {
+      const u = String(s || "").toUpperCase();
+      if (u === "SUCCEEDED" || u === "ACTIVE") return 0;
+      if (u === "PROGRESSING" || u === "BUILDING") return 1;
+      if (u === "PENDING" || u === "QUEUED") return 2;
+      if (u === "FAILED" || u === "ERROR" || u === "CANCELLED") return 3;
+      return 4;
+    };
+    const byTime = (a, b) =>
+      String(b.createTime || "").localeCompare(String(a.createTime || ""));
+
+    const preferredBuild =
+      [...builds].sort(
+        (a, b) => buildRank(a.state) - buildRank(b.state) || byTime(a, b)
+      )[0] || builds[0];
+    const preferredRollout =
+      [...rollouts].sort(
+        (a, b) =>
+          rolloutRank(a.state) - rolloutRank(b.state) || byTime(a, b)
+      )[0] || rollouts[0];
+    // Keep raw time-sorted lists; use preferred for display fields below
+    const latestBuild = preferredBuild;
+    const latestRollout = preferredRollout;
+    const newestByTime = rollouts[0];
+    if (
+      newestByTime &&
+      latestRollout &&
+      newestByTime.name !== latestRollout.name &&
+      /QUEUED|PENDING/i.test(newestByTime.state || "") &&
+      /SUCCEEDED|ACTIVE/i.test(latestRollout.state || "")
+    ) {
+      warnings.push(
+        `Newest rollout is ${newestByTime.name?.split("/").pop()} (${newestByTime.state}); reporting preferred SUCCEEDED ${latestRollout.name?.split("/").pop()} instead.`
+      );
+    }
+
     const buildOk = new Set(["READY", "SUCCEEDED", "BUILDING", "CREATING", "PENDING"]);
     if (latestBuild?.state === "FAILED") {
       issues.push(
@@ -220,10 +263,18 @@ async function main() {
     ) {
       warnings.push(`Latest rollout state: ${latestRollout.state}`);
     }
-    if (latestBuild?.source?.codebase?.hash && head) {
-      if (latestBuild.source.codebase.hash !== head && ahead === 0 && !dirty) {
+    // Align "deployed" commit with preferred SUCCEEDED rollout's build when possible
+    let deployedHash = latestBuild?.source?.codebase?.hash;
+    if (latestRollout?.build && builds.length) {
+      const rolled = builds.find((b) => b.name === latestRollout.build);
+      if (rolled?.source?.codebase?.hash) {
+        deployedHash = rolled.source.codebase.hash;
+      }
+    }
+    if (deployedHash && head) {
+      if (deployedHash !== head && ahead === 0 && !dirty) {
         warnings.push(
-          `Deployed commit ${latestBuild.source.codebase.hash.slice(0, 7)} differs from local HEAD ${short} (may be older successful/failed build).`
+          `Deployed commit ${deployedHash.slice(0, 7)} differs from local HEAD ${short} (may be older successful/failed build).`
         );
       }
     }
@@ -253,25 +304,57 @@ async function main() {
       remoteRootDirectory: backend?.codebase?.rootDirectory ?? null,
       uri: backend?.uri ?? null,
       serviceAccount: backend?.serviceAccount ?? null,
-      latestBuild: builds[0]
-        ? {
-            id: builds[0].name?.split("/").pop(),
-            state: builds[0].state,
-            commit: builds[0].source?.codebase?.hash?.slice(0, 7),
-            commitFull: builds[0].source?.codebase?.hash,
-            message: builds[0].source?.codebase?.commitMessage?.split("\n")[0],
-            logs: builds[0].buildLogsUri,
-            createTime: builds[0].createTime,
-            errors: builds[0].errors,
-          }
-        : null,
-      latestRollout: rollouts[0]
-        ? {
-            id: rollouts[0].name?.split("/").pop(),
-            state: rollouts[0].state,
-            createTime: rollouts[0].createTime,
-          }
-        : null,
+      latestBuild: (() => {
+        // Prefer READY over time-sorted QUEUED/FAILED noise
+        const buildRank = (s) => {
+          const u = String(s || "").toUpperCase();
+          if (u === "READY" || u === "SUCCEEDED") return 0;
+          if (u === "BUILDING" || u === "CREATING" || u === "PROGRESSING") return 1;
+          if (u === "PENDING" || u === "QUEUED") return 2;
+          return 3;
+        };
+        const b =
+          [...builds].sort(
+            (a, c) =>
+              buildRank(a.state) - buildRank(c.state) ||
+              String(c.createTime || "").localeCompare(String(a.createTime || ""))
+          )[0] || builds[0];
+        return b
+          ? {
+              id: b.name?.split("/").pop(),
+              state: b.state,
+              commit: b.source?.codebase?.hash?.slice(0, 7),
+              commitFull: b.source?.codebase?.hash,
+              message: b.source?.codebase?.commitMessage?.split("\n")[0],
+              logs: b.buildLogsUri,
+              createTime: b.createTime,
+              errors: b.errors,
+            }
+          : null;
+      })(),
+      latestRollout: (() => {
+        const rolloutRank = (s) => {
+          const u = String(s || "").toUpperCase();
+          if (u === "SUCCEEDED" || u === "ACTIVE") return 0;
+          if (u === "PROGRESSING" || u === "BUILDING") return 1;
+          if (u === "PENDING" || u === "QUEUED") return 2;
+          return 3;
+        };
+        const r =
+          [...rollouts].sort(
+            (a, c) =>
+              rolloutRank(a.state) - rolloutRank(c.state) ||
+              String(c.createTime || "").localeCompare(String(a.createTime || ""))
+          )[0] || rollouts[0];
+        return r
+          ? {
+              id: r.name?.split("/").pop(),
+              state: r.state,
+              createTime: r.createTime,
+              buildId: r.build?.split("/").pop(),
+            }
+          : null;
+      })(),
       buildCount: builds.length,
       rolloutCount: rollouts.length,
       apiError,
