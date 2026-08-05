@@ -8,10 +8,12 @@
 
 runConfig:
   minInstances: 0
+  # Densify gather + OA/patent windows + AI dual-view peaks well above 512 MiB
+  # (Cloud Run OOM during multi-CID KPI / cold densify). 2 GiB + lower concurrency.
+  cpu: 1
+  memoryMiB: 2048
+  concurrency: 4
   # maxInstances: 100
-  # concurrency: 80
-  # cpu: 1
-  # memoryMiB: 512
 
 # Public Firebase web config can be set here or in the App Hosting console.
 # Secrets (Admin keys, Ollama) must use Secret Manager — never plain values for private keys.

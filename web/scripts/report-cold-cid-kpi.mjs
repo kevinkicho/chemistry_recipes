@@ -138,7 +138,7 @@ async function densifyOne(cid, name) {
         concurrency: 1,
         retries: 2,
       }),
-      signal: AbortSignal.timeout(200_000),
+      signal: AbortSignal.timeout(280_000),
     });
     if (!res.ok) {
       throw new Error(`batch HTTP ${res.status}`);
@@ -231,9 +231,15 @@ if (!BASE) {
   process.exit(0);
 }
 
+const COOLDOWN_MS = Math.max(
+  0,
+  Number(process.env.COOLDOWN_MS || 12_000) || 12_000
+);
+
 const targets = GOLDEN.slice(0, LIMIT);
 const rows = [];
-for (const g of targets) {
+for (let i = 0; i < targets.length; i++) {
+  const g = targets[i];
   process.stdout.write(`  densify ${g.name} (CID ${g.cid})… `);
   try {
     const r = await densifyOne(g.cid, g.name);
@@ -257,6 +263,10 @@ for (const g of targets) {
       error: e instanceof Error ? e.message : String(e),
     });
     console.log("error", e instanceof Error ? e.message : e);
+  }
+  // Let Cloud Run reclaim heap between heavy densifies (512 MiB used to OOM)
+  if (i < targets.length - 1 && COOLDOWN_MS > 0) {
+    await new Promise((r) => setTimeout(r, COOLDOWN_MS));
   }
 }
 
