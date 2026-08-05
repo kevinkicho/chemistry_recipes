@@ -26,7 +26,7 @@ const PROV =
 
 // Pure chrome / auth / layout — skip
 const SKIP =
-  /AiSettings|Auth|GoogleSignIn|Header|Footer|Tooltip|CollapsibleSection|ViewToggle|TierBadge|ConfidenceBadge|ForShowBanner|HistorySidebar|HistoryTracker|SearchForm|SearchResults\.tsx|PrintExport|AddToProject|DossierSnapshots|FieldRegenerate|AiAccuracy|AiStatus|EnvChecklist|SourcesRegistry|RegulatoryDisclaimer|TableOfContents|ContentProvenance|ApiProvenance|AiProvenance|FreePublicProvenance|DossierSectionTitle|DossierClientLoader|ApiProgressOverlay|buildMfgTableRows|EvidenceDataTable|LiteratureTable|PatentsTable|ManufacturingTextTable|ExampleDossierView|SiteFillPanel|SiteGapsExport|WorkPackPanel|DensifyTelemetry|DensifySchedule|OrdBulk|ProblemFirstSearch|TechTransferExport|DossierDiagnostics|EntityGraph|WorkspaceScienceIndex/;
+  /AiSettings|Auth|GoogleSignIn|Header|Footer|Tooltip|CollapsibleSection|ViewToggle|TierBadge|ConfidenceBadge|HistorySidebar|HistoryTracker|SearchForm|SearchResults\.tsx|PrintExport|AddToProject|DossierSnapshots|FieldRegenerate|AiAccuracy|AiStatus|EnvChecklist|SourcesRegistry|RegulatoryDisclaimer|TableOfContents|ContentProvenance|ApiProvenance|AiProvenance|FreePublicProvenance|DossierSectionTitle|DossierClientLoader|ApiProgressOverlay|buildMfgTableRows|EvidenceDataTable|LiteratureTable|PatentsTable|ManufacturingTextTable|SiteFillPanel|SiteGapsExport|WorkPackPanel|DensifyTelemetry|DensifySchedule|OrdBulk|ProblemFirstSearch|TechTransferExport|DossierDiagnostics|EntityGraph|WorkspaceScienceIndex/;
 
 const files = walk(join(root, "components"));
 const gaps = [];

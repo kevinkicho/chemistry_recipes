@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerAiEnv } from "@/lib/ai/serverEnv";
 import { runPublicApiProbes, summarizeProbes } from "@/lib/diagnostics/probes";
-import { curatedPackageCount } from "@/lib/data/curatedPackages";
 import { CHEMISTRY_API_SOURCES } from "@/lib/sources/registry";
 import {
   getFirebaseAdminCredentialsPath,
@@ -38,8 +37,8 @@ export async function GET(req: Request) {
     app: {
       name: "Chemistry Recipes",
       nodeEnv: process.env.NODE_ENV || "development",
-      curatedPackages: curatedPackageCount(),
-      /** Always 0 — Tier-A mock dossiers removed; product is live densify. */
+      curatedPackages: 0,
+      /** Always 0 — no mock dossiers; product is live densify + AI only. */
       tierAExamples: 0,
       registrySources: CHEMISTRY_API_SOURCES.length,
     },

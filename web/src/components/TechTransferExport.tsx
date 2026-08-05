@@ -3,13 +3,11 @@
 import { useEffect, useState } from "react";
 import { Tooltip } from "@/components/Tooltip";
 import type { LiveDossier } from "@/lib/dossier/types";
-import type { MoleculeDossier } from "@/lib/types/process";
 import {
   buildAgentPack,
   buildMesLimsFromTechTransfer,
   buildOperatorJobAidExport,
   buildPublicProcessBrief,
-  buildTechTransferFromExample,
   buildTechTransferFromLive,
   downloadJson,
   slugifyName,
@@ -21,18 +19,14 @@ import {
   type WorkerRole,
 } from "@/lib/worker/roleMode";
 
-type Source =
-  | { kind: "live"; dossier: LiveDossier }
-  | { kind: "example"; dossier: MoleculeDossier };
-
 /**
- * Print/PDF + tech-transfer JSON + MES/LIMS JSON downloads.
+ * Print/PDF + tech-transfer / role / agent JSON downloads (live densify only).
  */
 export function TechTransferExport({
   source,
   compact = false,
 }: {
-  source: Source;
+  source: { kind: "live"; dossier: LiveDossier };
   compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -44,9 +38,7 @@ export function TechTransferExport({
   }, []);
 
   function pack() {
-    return source.kind === "live"
-      ? buildTechTransferFromLive(source.dossier)
-      : buildTechTransferFromExample(source.dossier);
+    return buildTechTransferFromLive(source.dossier);
   }
 
   function nameBase() {
@@ -64,7 +56,6 @@ export function TechTransferExport({
     const gaps = p.validationChecklist?.filter((c) => c.status === "gap").length ?? 0;
     const review = p.validationChecklist?.filter((c) => c.status === "review").length ?? 0;
     if (gaps + review > 0) {
-      // Non-blocking awareness for operators
       console.info(
         `[tech-transfer] validation checklist: ${gaps} gap(s), ${review} review item(s)`
       );
@@ -77,10 +68,6 @@ export function TechTransferExport({
   }
 
   function onPublicProcessBrief() {
-    if (source.kind !== "live") {
-      alert("Public process brief is available on live PubChem dossiers.");
-      return;
-    }
     downloadJson(
       `${nameBase()}-public-process-brief.json`,
       buildPublicProcessBrief(source.dossier)
@@ -88,10 +75,6 @@ export function TechTransferExport({
   }
 
   function onOperatorJobAid() {
-    if (source.kind !== "live") {
-      alert("Operator job aid export is available on live dossiers.");
-      return;
-    }
     downloadJson(
       `${nameBase()}-operator-job-aid.json`,
       buildOperatorJobAidExport(source.dossier)
@@ -99,20 +82,12 @@ export function TechTransferExport({
   }
 
   function onAgentPack() {
-    if (source.kind !== "live") {
-      alert("Agent pack is available on live PubChem densify dossiers.");
-      return;
-    }
     downloadJson(`${nameBase()}-agent-pack-v1.json`, buildAgentPack(source.dossier));
   }
 
   function onRolePack() {
-    if (source.kind !== "live") {
-      alert("Role pack is available on live PubChem densify dossiers.");
-      return;
-    }
-    const pack = buildRolePack(source.dossier, workerRole);
-    downloadJson(`${nameBase()}-role-pack-${workerRole}-v1.json`, pack);
+    const rp = buildRolePack(source.dossier, workerRole);
+    downloadJson(`${nameBase()}-role-pack-${workerRole}-v1.json`, rp);
   }
 
   if (compact) {
@@ -145,48 +120,44 @@ export function TechTransferExport({
             MES/LIMS JSON
           </button>
         </Tooltip>
-        {source.kind === "live" ? (
-          <>
-            <Tooltip content="Sourced-only process atoms + open gaps (no invented plant numbers)">
-              <button
-                type="button"
-                onClick={onPublicProcessBrief}
-                className="rounded-md border border-teal-500/30 bg-teal-500/10 px-2.5 py-1 text-xs font-medium text-teal-100 hover:bg-teal-500/15"
-              >
-                Public process brief
-              </button>
-            </Tooltip>
-            <Tooltip content="Operator shift-brief JSON: sequence, EHS, site-fill checklist">
-              <button
-                type="button"
-                onClick={onOperatorJobAid}
-                className="rounded-md border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-xs font-medium text-slate-300 hover:border-teal-500/40 hover:text-teal-200"
-              >
-                Operator job aid
-              </button>
-            </Tooltip>
-            <Tooltip content="Single agent-pack JSON: guidance, process-knowledge, densify-next, harvest report, ideal score">
-              <button
-                type="button"
-                onClick={onAgentPack}
-                className="rounded-md border border-violet-500/30 bg-violet-500/10 px-2.5 py-1 text-xs font-medium text-violet-100 hover:bg-violet-500/15"
-              >
-                Agent pack
-              </button>
-            </Tooltip>
-            <Tooltip
-              content={`Primary ${workerRole} role-pack JSON (Monday deliverable for active worker role). Free-public densify only.`}
-            >
-              <button
-                type="button"
-                onClick={onRolePack}
-                className="rounded-md border border-sky-500/30 bg-sky-500/10 px-2.5 py-1 text-xs font-medium text-sky-100 hover:bg-sky-500/15"
-              >
-                Role pack ({workerRole})
-              </button>
-            </Tooltip>
-          </>
-        ) : null}
+        <Tooltip content="Sourced-only process atoms + open gaps (no invented plant numbers)">
+          <button
+            type="button"
+            onClick={onPublicProcessBrief}
+            className="rounded-md border border-teal-500/30 bg-teal-500/10 px-2.5 py-1 text-xs font-medium text-teal-100 hover:bg-teal-500/15"
+          >
+            Public process brief
+          </button>
+        </Tooltip>
+        <Tooltip content="Operator shift-brief JSON: sequence, EHS, site-fill checklist">
+          <button
+            type="button"
+            onClick={onOperatorJobAid}
+            className="rounded-md border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-xs font-medium text-slate-300 hover:border-teal-500/40 hover:text-teal-200"
+          >
+            Operator job aid
+          </button>
+        </Tooltip>
+        <Tooltip content="Single agent-pack JSON: guidance, process-knowledge, densify-next, vault fingerprint">
+          <button
+            type="button"
+            onClick={onAgentPack}
+            className="rounded-md border border-violet-500/30 bg-violet-500/10 px-2.5 py-1 text-xs font-medium text-violet-100 hover:bg-violet-500/15"
+          >
+            Agent pack
+          </button>
+        </Tooltip>
+        <Tooltip
+          content={`Primary ${workerRole} role-pack JSON (Monday deliverable). Free-public densify only.`}
+        >
+          <button
+            type="button"
+            onClick={onRolePack}
+            className="rounded-md border border-sky-500/30 bg-sky-500/10 px-2.5 py-1 text-xs font-medium text-sky-100 hover:bg-sky-500/15"
+          >
+            Role pack ({workerRole})
+          </button>
+        </Tooltip>
       </div>
     );
   }
@@ -222,40 +193,36 @@ export function TechTransferExport({
           >
             Tech-transfer pack (JSON)
           </button>
-          {source.kind === "live" ? (
-            <>
-              <button
-                type="button"
-                className="block w-full px-3 py-2 text-left text-xs text-teal-100 hover:bg-slate-800"
-                onClick={() => {
-                  onPublicProcessBrief();
-                  setOpen(false);
-                }}
-              >
-                Public process brief (sourced)
-              </button>
-              <button
-                type="button"
-                className="block w-full px-3 py-2 text-left text-xs text-violet-100 hover:bg-slate-800"
-                onClick={() => {
-                  onAgentPack();
-                  setOpen(false);
-                }}
-              >
-                Agent pack (densify + knowledge)
-              </button>
-              <button
-                type="button"
-                className="block w-full px-3 py-2 text-left text-xs text-sky-100 hover:bg-slate-800"
-                onClick={() => {
-                  onRolePack();
-                  setOpen(false);
-                }}
-              >
-                Role pack · {workerRole}
-              </button>
-            </>
-          ) : null}
+          <button
+            type="button"
+            className="block w-full px-3 py-2 text-left text-xs text-teal-100 hover:bg-slate-800"
+            onClick={() => {
+              onPublicProcessBrief();
+              setOpen(false);
+            }}
+          >
+            Public process brief (sourced)
+          </button>
+          <button
+            type="button"
+            className="block w-full px-3 py-2 text-left text-xs text-violet-100 hover:bg-slate-800"
+            onClick={() => {
+              onAgentPack();
+              setOpen(false);
+            }}
+          >
+            Agent pack (densify + knowledge)
+          </button>
+          <button
+            type="button"
+            className="block w-full px-3 py-2 text-left text-xs text-sky-100 hover:bg-slate-800"
+            onClick={() => {
+              onRolePack();
+              setOpen(false);
+            }}
+          >
+            Role pack · {workerRole}
+          </button>
           <button
             type="button"
             className="block w-full px-3 py-2 text-left text-xs text-slate-200 hover:bg-slate-800"

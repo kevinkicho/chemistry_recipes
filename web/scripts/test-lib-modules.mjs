@@ -251,8 +251,20 @@ ok(
   fs.existsSync(path.join(srcRoot, "lib/dossier/plantDeliverables.ts"))
 );
 ok(
-  "tier-A baseline module exists",
-  fs.existsSync(path.join(srcRoot, "lib/dossier/tierABaseline.ts"))
+  "tier-A baseline module deleted",
+  !fs.existsSync(path.join(srcRoot, "lib/dossier/tierABaseline.ts"))
+);
+ok(
+  "mock examples module deleted",
+  !fs.existsSync(path.join(srcRoot, "lib/data/examples.ts"))
+);
+ok(
+  "mock curatedPackages deleted",
+  !fs.existsSync(path.join(srcRoot, "lib/data/curatedPackages.ts"))
+);
+ok(
+  "ExampleDossierView deleted",
+  !fs.existsSync(path.join(srcRoot, "components/ExampleDossierView.tsx"))
 );
 ok(
   "chemical mentions module exists",

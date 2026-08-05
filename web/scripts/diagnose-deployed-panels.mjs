@@ -370,7 +370,8 @@ async function main() {
 
   // 4) Example (for-show) aspirin
   results.push(
-    await diagnosePage(page, "example-aspirin", "/examples/aspirin", {
+    // Mock examples retired — probe live aspirin densify instead
+    await diagnosePage(page, "live-cid-2244", "/compounds/pubchem/2244", {
       waitMs: 3000,
       expectedPanels: EXAMPLE_PANELS,
     })

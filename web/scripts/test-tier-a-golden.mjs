@@ -1,6 +1,5 @@
 /**
- * Golden contracts after Tier-A mock removal.
- * Product is live densify + AI dual-view; no molecule JSON mocks.
+ * Live-only product contracts: no mock molecule JSON, no example/package catalogs.
  * Run: node scripts/test-tier-a-golden.mjs
  */
 
@@ -25,33 +24,40 @@ function read(rel) {
   return fs.readFileSync(path.join(src, rel), "utf8");
 }
 
+function exists(rel) {
+  return fs.existsSync(path.join(src, rel));
+}
+
 // No mock molecule JSON
 const jsonFiles = fs.existsSync(molDir)
   ? fs.readdirSync(molDir).filter((f) => f.endsWith(".json"))
   : [];
-ok("no tier-A molecule mock JSON files", jsonFiles.length === 0);
+ok("no molecule mock JSON files", jsonFiles.length === 0);
 
-const examples = read("lib/data/examples.ts");
-ok("examples stubs return empty catalog", /getExampleCatalog[\s\S]*return \[\]/.test(examples));
-ok("getExampleById always undefined", /getExampleById[\s\S]*return undefined/.test(examples));
-
-const tier = read("lib/dossier/tierABaseline.ts");
-ok("tierA baseline is no-op", /No-op|never inject mock/i.test(tier));
-ok("applyTierABaseline exported", /export function applyTierABaseline/.test(tier));
+// Mock modules removed entirely
+ok("examples.ts deleted", !exists("lib/data/examples.ts"));
+ok("curatedPackages.ts deleted", !exists("lib/data/curatedPackages.ts"));
+ok("catalog.ts deleted", !exists("lib/data/catalog.ts"));
+ok("hubCatalog.ts deleted", !exists("lib/data/hubCatalog.ts"));
+ok("tierABaseline.ts deleted", !exists("lib/dossier/tierABaseline.ts"));
+ok("ExampleDossierView deleted", !exists("components/ExampleDossierView.tsx"));
+ok("ForShowBanner deleted", !exists("components/ForShowBanner.tsx"));
 
 const hub = read("lib/data/hubIndex.ts");
 ok("HUB_INDEX empty", /HUB_INDEX:\s*HubIndexEntry\[\]\s*=\s*\[\]/.test(hub));
+ok("findHubByCid always undefined", /return undefined/.test(hub));
 
-const catalog = read("lib/data/hubCatalog.ts");
-ok("hub catalog has no sample LIVE_HUB entries", /const LIVE_HUB[\s\S]*=\s*\[\s*\];/.test(catalog) || /LIVE_HUB[\s\S]*=\s*\[\]/.test(catalog));
+const pipe = read("lib/dossier/pipeline.ts");
+ok("pipeline does not apply tier-A baseline", !/applyTierABaseline/.test(pipe));
 
-const packages = read("lib/data/curatedPackages.ts");
-ok(
-  "curated packages empty on live product",
-  packages.includes("const PACKAGES: CuratedPackage[] = []") ||
-    packages.includes("PACKAGES: CuratedPackage[] = []")
-);
-ok("no aspirin mock package entry", !packages.includes('name: "Aspirin"'));
+const enrich = read("lib/dossier/enrichClientFacts.ts");
+ok("enrich does not apply tier-A baseline", !/applyTierABaseline/.test(enrich));
+
+const tt = read("lib/export/techTransfer.ts");
+ok("no buildTechTransferFromExample", !/buildTechTransferFromExample/.test(tt));
+
+const ui = read("components/TechTransferExport.tsx");
+ok("export is live-only", /kind:\s*\"live\"/.test(ui) && !/example/.test(ui));
 
 // Accuracy policy still present
 ok(
@@ -69,4 +75,4 @@ ok(
   /coldStart|Cold\/thin densify/i.test(read("lib/dossier/synthesize.ts"))
 );
 
-console.log(`\nAll live-pipeline golden contracts passed (${passed}).`);
+console.log(`\nAll live-only golden contracts passed (${passed}).`);

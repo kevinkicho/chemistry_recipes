@@ -141,7 +141,7 @@ export function RecipeReadinessPanel({
         <strong className="font-medium text-slate-500">Recipe draft</strong> =
         only when public process-fact density clears blockers.{" "}
         <strong className="font-medium text-slate-500">Teaching package</strong> =
-        curated dual-view (Info / examples). Never GMP.
+        live densify dual-view inventory. Never GMP.
       </p>
     </div>
   );

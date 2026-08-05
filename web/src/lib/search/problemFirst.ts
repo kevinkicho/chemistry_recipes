@@ -1,10 +1,7 @@
 /**
- * Problem-first / unit-op search over live hub index only (no teaching packages).
- * Free-text ranking only — no invented plant answers.
+ * Problem-first / unit-op search helpers.
+ * Local static mock hits retired — live multi-source API fills ProblemFirstSearch.
  */
-
-import { HUB_INDEX } from "@/lib/data/hubIndex";
-import { routes } from "@/lib/routes";
 
 export type ProblemHitKind = "hub-live" | "literature" | "multi-source";
 
@@ -18,88 +15,17 @@ export interface ProblemSearchHit {
   tags: string[];
 }
 
-const UNIT_OP_SYNONYMS: Record<string, string[]> = {
-  crystalliz: ["crystallization", "recrystall", "crystal"],
-  filtr: ["filtration", "filter", "nutsche"],
-  distill: ["distillation", "distill"],
-  extract: ["extraction", "extract", "liquid-liquid"],
-  hydrogenat: ["hydrogenation", "h2", "hydrogen"],
-  hydroly: ["hydrolysis", "hydrolyze"],
-  coupling: ["coupling", "suzuki", "amide"],
-  ferment: ["fermentation", "ferment", "upstream"],
-  chromat: ["chromatography", "hplc", "column"],
-  dry: ["drying", "lyophil", "tray dry"],
-  workup: ["workup", "work-up", "quench"],
-  isolation: ["isolation", "isolate", "precipitat"],
-  mab: ["monoclonal", "mab", "antibody", "capture"],
-  gene: ["aav", "lentiviral", "gene therapy"],
-  cell: ["cell therapy", "car-t", "expansion"],
-};
-
-function expandQuery(q: string): string[] {
-  const base = q.toLowerCase().trim();
-  if (!base) return [];
-  const tokens = base.split(/[\s,/+]+/).filter(Boolean);
-  const out = new Set(tokens);
-  out.add(base);
-  for (const [key, syns] of Object.entries(UNIT_OP_SYNONYMS)) {
-    if (base.includes(key) || tokens.some((t) => t.includes(key) || key.includes(t))) {
-      for (const s of syns) out.add(s);
-    }
-    for (const s of syns) {
-      if (base.includes(s) || tokens.some((t) => s.includes(t) || t.includes(s))) {
-        out.add(key);
-        for (const x of syns) out.add(x);
-      }
-    }
-  }
-  return [...out];
-}
-
-function scoreText(hay: string, needles: string[]): number {
-  const h = hay.toLowerCase();
-  let s = 0;
-  for (const n of needles) {
-    if (!n) continue;
-    if (h.includes(n)) s += n.length >= 6 ? 8 : 4;
-  }
-  return s;
-}
-
-export function searchProblemFirst(query: string, limit = 16): ProblemSearchHit[] {
-  const needles = expandQuery(query);
-  if (!needles.length) return [];
-
-  const hits: ProblemSearchHit[] = [];
-
-  for (const e of HUB_INDEX) {
-    const hay = `${e.name} ${e.cas || ""} ${e.kind}`;
-    const sc = scoreText(hay, needles);
-    if (sc < 4) continue;
-    if (e.pubchemCid) {
-      hits.push({
-        id: `live-${e.pubchemCid}`,
-        kind: "hub-live",
-        title: e.name,
-        subtitle: `Live CID ${e.pubchemCid}${e.cas ? ` · CAS ${e.cas}` : ""}`,
-        href: routes.pubchem(e.pubchemCid),
-        score: sc,
-        tags: ["live", e.kind],
-      });
-    }
-  }
-
-  hits.sort((a, b) => b.score - a.score);
-  // de-dupe by href
-  const seen = new Set<string>();
-  const out: ProblemSearchHit[] = [];
-  for (const h of hits) {
-    if (seen.has(h.href)) continue;
-    seen.add(h.href);
-    out.push(h);
-    if (out.length >= limit) break;
-  }
-  return out;
+/**
+ * Local static problem hits — always empty (no mock hub catalog).
+ * UI uses multi-source `/api/search/problem` for live CIDs + literature.
+ */
+export function searchProblemFirst(
+  query: string,
+  limit = 16
+): ProblemSearchHit[] {
+  void query;
+  void limit;
+  return [];
 }
 
 export const PROBLEM_SEARCH_HINTS = [

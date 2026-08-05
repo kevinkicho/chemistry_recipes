@@ -380,7 +380,7 @@ export interface LiveDossier {
   groundingReport?: import("@/lib/dossier/quoteGrounding").GroundingReport;
   /**
    * Progress toward curated Tier-A ideal page depth
-   * (ExampleDossierView inventory is the product north star).
+   * (live dual-view densify inventory is the product north star).
    */
   idealParity?: import("@/lib/dossier/idealPage").IdealPageParity;
   /**

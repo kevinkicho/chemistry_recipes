@@ -4,7 +4,6 @@ import {
   fetchJsonWithTrace,
   type ApiFetchTrace,
 } from "@/lib/api/trace";
-import { HUB_INDEX } from "@/lib/data/hubIndex";
 import { resolveLocalSearchHits } from "@/lib/data/searchLocalIndex";
 
 const PUG = "https://pubchem.ncbi.nlm.nih.gov/rest/pug";
@@ -227,10 +226,9 @@ function rowsToHits(
   nameHints: Map<number, string>
 ): PubChemHit[] {
   return list.map((p) => {
-    const hub = HUB_INDEX.find((h) => h.pubchemCid === p.CID);
     return {
       cid: p.CID,
-      name: p.Title || p.IUPACName || nameHints.get(p.CID) || hub?.name || `CID ${p.CID}`,
+      name: p.Title || p.IUPACName || nameHints.get(p.CID) || `CID ${p.CID}`,
       formula: p.MolecularFormula,
       molecularWeight:
         typeof p.MolecularWeight === "string"
@@ -239,18 +237,15 @@ function rowsToHits(
       iupacName: p.IUPACName,
       smiles: p.IsomericSMILES || p.CanonicalSMILES,
       inchiKey: p.InChIKey,
-      cas: hub?.cas,
     };
   });
 }
 
 function hitsFromCids(cids: number[], nameHints: Map<number, string>): PubChemHit[] {
   return cids.map((cid) => {
-    const hub = HUB_INDEX.find((h) => h.pubchemCid === cid);
     return {
       cid,
-      name: nameHints.get(cid) || hub?.name || `CID ${cid}`,
-      cas: hub?.cas,
+      name: nameHints.get(cid) || `CID ${cid}`,
     };
   });
 }
@@ -453,29 +448,12 @@ export function pubchemPropertyEndpoint(cid: number): string {
 export async function getPubChemCompound(
   cid: number
 ): Promise<{ hit: PubChemHit | null; traces: ApiFetchTrace[] }> {
-  const hub = HUB_INDEX.find((h) => h.pubchemCid === cid);
   const base = await fetchPubChemProvenance(cid);
-
-  // Prefer any live hit; fall back to hub identity so gather never has a null name
-  if (!base.hit && hub) {
-    return {
-      hit: { cid, name: hub.name, cas: hub.cas },
-      traces: base.traces,
-    };
-  }
   if (!base.hit) return base;
 
   let hit = base.hit;
-  if (hub) {
-    hit = {
-      ...hit,
-      name: hit.name?.startsWith("CID ") ? hub.name : hit.name || hub.name,
-      // Prefer live PubChem CAS when present; hub only as fallback
-      cas: hit.cas || hub.cas,
-    };
-  }
 
-  // Optional CAS enrich — single short attempt
+  // Optional CAS enrich from PubChem xrefs only (no mock hub fallback)
   try {
     const casUrl = `${PUG}/compound/cid/${cid}/xrefs/RN/JSON`;
     const { data, trace } = await fetchJsonWithTrace<{
@@ -491,13 +469,7 @@ export async function getPubChemCompound(
     const rns = (data?.InformationList?.Information?.[0]?.RN ?? []).filter(
       (r) => /^\d{2,7}-\d{2}-\d$/.test(r)
     );
-    // Prefer hub CAS when PubChem returns multiple RNs and hub matches one
-    // (avoids rare wrong first-RN picks). Else first valid RN. Else hub.
-    let cas: string | undefined;
-    if (hub?.cas && rns.includes(hub.cas)) cas = hub.cas;
-    else if (rns[0]) cas = rns[0];
-    else if (hub?.cas) cas = hub.cas;
-    if (cas) hit = { ...hit, cas };
+    if (rns[0]) hit = { ...hit, cas: rns[0] };
   } catch {
     /* optional */
   }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ApiProvenance } from "@/components/ApiProvenance";
 import { PubchemStructureImage } from "@/components/PubchemStructureImage";
 import { routes } from "@/lib/routes";
-import { findHubByCid } from "@/lib/data/hubIndex";
+
 import type { MultiSourceHit } from "@/lib/search/multiSourceSearch";
 
 /**
@@ -66,7 +66,6 @@ export function MultiSourceResultCard({
   const cid = hit.cid;
   const target =
     href ?? (cid && cid > 0 ? routes.pubchem(cid) : undefined);
-  const hub = cid ? findHubByCid(cid) : undefined;
   const name = hit.name;
 
   const body = (
@@ -91,7 +90,7 @@ export function MultiSourceResultCard({
           {hit.molecularWeight != null
             ? ` · ${hit.molecularWeight.toFixed(2)} g/mol`
             : ""}
-          {hit.cas ? ` · ${hit.cas}` : hub?.cas ? ` · ${hub.cas}` : ""}
+          {hit.cas ? ` · ${hit.cas}` : ""}
           {hit.unii ? ` · UNII ${hit.unii}` : ""}
         </div>
         {hit.inchiKey ? (
@@ -133,19 +132,6 @@ export function MultiSourceResultCard({
               {s.label}
             </span>
           ))}
-          {hub ? (
-            <>
-              <span className="inline-flex items-center rounded-full bg-teal-500/10 px-2 py-0.5 text-[10px] font-medium text-teal-200 ring-1 ring-inset ring-teal-500/25">
-                {hub.modality}
-              </span>
-              <span className="inline-flex items-center rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-400 ring-1 ring-inset ring-slate-700">
-                {hub.entityRole}
-              </span>
-              <span className="inline-flex items-center rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-medium text-violet-200 ring-1 ring-inset ring-violet-500/25">
-                Live hub
-              </span>
-            </>
-          ) : null}
           {!target ? (
             <span className="inline-flex items-center rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-500 ring-1 ring-inset ring-slate-700">
               Identity only

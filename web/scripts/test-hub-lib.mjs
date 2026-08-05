@@ -90,25 +90,18 @@ const contra = {
 };
 ok("contradiction has both sides", Boolean(contra.sideA && contra.sideB && contra.topic));
 
-// Curated package catalog size (count seeds without TS path aliases)
-import { readFileSync } from "node:fs";
+// Mock catalogs removed
+import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 const __dir = dirname(fileURLToPath(import.meta.url));
-const packagesSrc = readFileSync(
-  join(__dir, "../src/lib/data/curatedPackages.ts"),
-  "utf8"
-);
-// Product: no curated mock packages on the live app.
 ok(
-  "curated package catalog empty (no mocks)",
-  packagesSrc.includes("PACKAGES: CuratedPackage[] = []") ||
-    packagesSrc.includes("const PACKAGES: CuratedPackage[] = []")
+  "curated packages module deleted",
+  !existsSync(join(__dir, "../src/lib/data/curatedPackages.ts"))
 );
 ok(
-  "curated package catalog is not a 100+ mock farm",
-  !packagesSrc.includes("Master seed list (~100)") &&
-    !packagesSrc.includes('name: "Aspirin"')
+  "examples module deleted",
+  !existsSync(join(__dir, "../src/lib/data/examples.ts"))
 );
 
 const bioSrc = readFileSync(

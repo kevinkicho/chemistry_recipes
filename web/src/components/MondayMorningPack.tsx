@@ -186,7 +186,7 @@ export function MondayMorningPack({
         ) : (
           <p className="mt-2 text-sm text-slate-500">
             Not enough public procedure density for a plant sequence. Paste public patent
-            examples via Local enrich, or open Info training packs.
+            procedure windows via Local enrich (paste public experimental text).
           </p>
         )}
       </div>

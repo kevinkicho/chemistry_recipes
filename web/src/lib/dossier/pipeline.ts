@@ -20,7 +20,7 @@ import { groundRoutesAgainstEvidence } from "@/lib/dossier/quoteGrounding";
 import { attachQuotesToRoutes } from "@/lib/dossier/attachQuotesToRoutes";
 import { mergeExtractAtomsIntoFacts } from "@/lib/dossier/mergeExtractAtoms";
 import { applyPlantDeliverables } from "@/lib/dossier/plantDeliverables";
-import { applyTierABaseline } from "@/lib/dossier/tierABaseline";
+
 import { withRecipeReadiness } from "@/lib/dossier/recipeReadiness";
 import { withIdealPageParity } from "@/lib/dossier/idealPage";
 import { withProcessKnowledge } from "@/lib/frontier/buildKnowledge";
@@ -686,7 +686,7 @@ export async function buildLiveDossierWithProgress(
   // Example-like plant sections from free-public facts when AI left them empty
   dossier = applyPlantDeliverables(dossier);
   // Hub CIDs: merge curated Tier-A teaching routes/entities (labeled editorial)
-  dossier = applyTierABaseline(dossier);
+
   // Re-apply plant deliverables so BOM/related merge stays consistent
   dossier = applyPlantDeliverables(dossier);
 

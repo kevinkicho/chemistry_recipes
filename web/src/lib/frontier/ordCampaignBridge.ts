@@ -13,8 +13,6 @@ import {
   type ScienceCampaign,
 } from "@/lib/workspace/campaigns";
 import { scoreProcedureWindow } from "@/lib/literature/procedureWindowScore";
-import { HUB_INDEX } from "@/lib/data/hubIndex";
-
 export const ORD_BRIDGE_SCHEMA =
   "chemistry-recipes.ord-campaign-bridge.v1" as const;
 
@@ -34,26 +32,15 @@ export function extractCidsFromOrdText(text: string): number[] {
 }
 
 /**
- * Match hub molecule names mentioned in ORD snippet text.
+ * Local hub name match retired (no mock catalog).
+ * Prefer extractCidsFromOrdText for PubChem CID mentions in ORD text.
  */
 export function matchHubCidsFromText(text: string): Array<{
   cid: number;
   name: string;
 }> {
-  const lower = text.toLowerCase();
-  const hits: Array<{ cid: number; name: string }> = [];
-  for (const e of HUB_INDEX) {
-    if (lower.includes(e.name.toLowerCase())) {
-      hits.push({ cid: e.pubchemCid, name: e.name });
-    }
-  }
-  // de-dupe
-  const seen = new Set<number>();
-  return hits.filter((h) => {
-    if (seen.has(h.cid)) return false;
-    seen.add(h.cid);
-    return true;
-  });
+  void text;
+  return [];
 }
 
 export interface OrdSnippetAnalysis {
@@ -126,16 +113,7 @@ export function createCampaignFromOrdSnippets(opts: {
     const a = analyzeOrdSnippet(s);
     for (const cid of a.attachCids) {
       cids.push(cid);
-      const hub = a.hubMatches.find((h) => h.cid === cid);
-      if (hub) labels[String(cid)] = hub.name;
-    }
-    // Query string may be a molecule name
-    const qHub = HUB_INDEX.find(
-      (e) => e.name.toLowerCase() === s.query.toLowerCase()
-    );
-    if (qHub) {
-      cids.push(qHub.pubchemCid);
-      labels[String(qHub.pubchemCid)] = qHub.name;
+      labels[String(cid)] = labels[String(cid)] || `CID ${cid}`;
     }
   }
 

@@ -4,11 +4,7 @@
  */
 
 import type { LiveDossier } from "@/lib/dossier/types";
-import type {
-  MoleculeDossier,
-  ProcessRoute,
-  RelatedEntity,
-} from "@/lib/types/process";
+import type { ProcessRoute, RelatedEntity } from "@/lib/types/process";
 import { DEFAULT_DOSSIER_DISCLAIMER } from "@/lib/dossier/types";
 import { buildSourceCoverage } from "@/lib/dossier/sourceCoverage";
 import {
@@ -362,66 +358,6 @@ export function buildTechTransferFromLive(dossier: LiveDossier): TechTransferPac
     })),
     gaps: dossier.synthesis.gaps,
     buildAudit: dossier.buildAudit,
-  };
-}
-
-export function buildTechTransferFromExample(dossier: MoleculeDossier): TechTransferPack {
-  return {
-    schema: "chemistry-recipes.tech-transfer.v2",
-    exportedAt: new Date().toISOString(),
-    disclaimer: dossier.disclaimer || DEFAULT_DOSSIER_DISCLAIMER,
-    regulatoryNotice: REGULATORY_DISCLAIMER,
-    validationChecklist: [
-      {
-        id: "curated",
-        item: "Curated Tier-A example — still not a site batch record",
-        status: "review",
-      },
-      {
-        id: "routes",
-        item: "Dual-view routes present",
-        status: dossier.routes?.length ? "ok" : "gap",
-      },
-      {
-        id: "not-gmp",
-        item: "Confirmed educational scaffold only",
-        status: "review",
-      },
-    ],
-    entity: {
-      name: dossier.identifiers.name,
-      cas: dossier.identifiers.cas,
-      unii: dossier.identifiers.unii,
-      formula: dossier.identifiers.formula,
-      molecularWeight: dossier.properties?.molecularWeight,
-      pubchemCid: dossier.identifiers.pubchemCid,
-      inchiKey: dossier.identifiers.inchiKey,
-      smiles: dossier.identifiers.smiles,
-      iupacName: dossier.identifiers.iupacName,
-    },
-    overview: dossier.overview,
-    manufacturingSummary: dossier.manufacturingSummary,
-    applications: dossier.applications,
-    hazards: dossier.hazards
-      ? {
-          signalWord: dossier.hazards.signalWord,
-          hazardStatements: dossier.hazards.hazardStatements,
-          precautionaryStatements: dossier.hazards.precautionaryStatements,
-          notes: dossier.hazards.notes,
-        }
-      : undefined,
-    ehsHighlights: dossier.ehsHighlights,
-    environmentBaseline: dossier.environmentBaseline,
-    apparatusCatalog: dossier.apparatusCatalog,
-    routes: (dossier.routes || []).map(mapRoute),
-    relatedEntities: dossier.relatedEntities,
-    modality: dossier.modality,
-    sources: dossier.sourceRefs?.map((s) => ({
-      type: s.type,
-      id: s.id,
-      label: s.label,
-      url: s.url,
-    })),
   };
 }
 

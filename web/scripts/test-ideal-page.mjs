@@ -33,9 +33,8 @@ ok("apparatus section", /apparatus/.test(ideal));
 ok("environment section", /environment/.test(ideal));
 ok("goal mentions process depth", /ideal|process recipe|depth/i.test(ideal));
 
-const tiera = read("lib/dossier/tierABaseline.ts");
-ok("tierA is no-op (mocks removed)", /No-op|never inject mock/i.test(tiera));
-ok("tierA exports applyTierABaseline", /export function applyTierABaseline/.test(tiera));
+ok("tierA baseline deleted", !existsSync(join(root, "src/lib/dossier/tierABaseline.ts")));
+ok("examples.ts deleted", !existsSync(join(root, "src/lib/data/examples.ts")));
 
 const live = read("components/dossier/LiveMoleculeDossier.tsx");
 ok("live Ideal chip", /Ideal.*idealParity|idealParity\.score/.test(live));
@@ -46,6 +45,7 @@ ok("thin path mentions ideal", /ideal|Ideal/.test(thin));
 
 const pipe = read("lib/dossier/pipeline.ts");
 ok("pipeline attaches ideal parity", /withIdealPageParity/.test(pipe));
+ok("pipeline has no tier-A baseline", !/applyTierABaseline/.test(pipe));
 
 const types = read("lib/dossier/types.ts");
 ok("LiveDossier idealParity field", /idealParity\?/.test(types));
@@ -57,9 +57,5 @@ ok(
   "no aspirin mock JSON",
   !existsSync(join(moleculesDir, "aspirin.json"))
 );
-
-const examples = read("lib/data/examples.ts");
-ok("examples catalog empty stubs", /return \[\]/.test(examples));
-ok("getExampleById always undefined", /return undefined/.test(examples));
 
 console.log(`\n${n} ideal-page checks passed`);

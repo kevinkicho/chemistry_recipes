@@ -41,13 +41,13 @@ ok("plant builds manufacturing narrative train", /Public process cues/.test(plan
 ok("plant enriches steps for plant view", /enrichStepsForPlantView|Plant unit-op/.test(plant));
 ok("plant uses chemical mentions", /extractChemicalMentions|materialsFromMentions/.test(plant));
 
-const tier = read("lib/dossier/tierABaseline.ts");
-ok("tier-A baseline is no-op", /No-op|never inject mock/i.test(tier));
-ok("tier-A still exported for pipeline", /export function applyTierABaseline/.test(tier));
-ok("tier-A does not import mock examples", !/getExampleById/.test(tier));
+function exists(rel) {
+  return fs.existsSync(path.join(src, rel));
+}
+ok("tier-A baseline module deleted", !exists("lib/dossier/tierABaseline.ts"));
 
 const pipe = read("lib/dossier/pipeline.ts");
-ok("pipeline applies tier-A baseline (no-op)", /applyTierABaseline/.test(pipe));
+ok("pipeline has no tier-A baseline", !/applyTierABaseline/.test(pipe));
 ok("pipeline applies plant deliverables", /applyPlantDeliverables/.test(pipe));
 ok("pipeline runs AI when canCall", /runAi|canCall/.test(pipe));
 

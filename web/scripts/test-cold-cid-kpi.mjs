@@ -68,8 +68,9 @@ ok("Live Science lab progressive", /Science lab · frontier|collapseScienceLab|a
 ok("Diagnostics ColdCidKpiPanel", /ColdCidKpiPanel/.test(read("app/diagnostics/page.tsx")));
 ok("Workspace MSAT campaign first", /MSAT primary path|campaigns/.test(read("app/workspace/page.tsx")));
 
-// Hub must not claim golden cold as curated mocks
+// No mock hub entries for cold CIDs
 const hub = read("lib/data/hubIndex.ts");
+ok("HUB_INDEX empty array", /HUB_INDEX:\s*HubIndexEntry\[\]\s*=\s*\[\]/.test(hub));
 for (const cid of [44205240, 49831257, 46188928]) {
   ok(
     `cold CID ${cid} not in hubIndex`,

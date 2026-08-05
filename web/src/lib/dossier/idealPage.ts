@@ -1,5 +1,5 @@
 /**
- * Ideal page model — curated Tier-A ExampleDossierView is the depth goal.
+ * Ideal page model — live densify dual-view inventory depth goal (0–100 parity).
  *
  * Live free-API builds chase this inventory without inventing plant numbers.
  * Fill status is honest: evidence | AI (grounded) | teaching (Tier-A) | empty.
@@ -35,7 +35,7 @@ export type IdealFillSource =
 
 export type IdealSectionStatus = {
   id: IdealSectionId;
-  /** Matches curated ExampleDossierView section intent */
+  /** Dual-view densify section intent */
   label: string;
   /** Why curated has this */
   idealNote: string;
@@ -266,7 +266,7 @@ export function assessIdealPageParity(dossier: LiveDossier): IdealPageParity {
       howToClose:
         rd.depth >= 70
           ? undefined
-          : "Densify OA/patent examples → paste wizard → regenerate; hub CIDs can surface Tier-A teaching routes",
+          : "Densify OA/patent procedure windows → paste wizard → regenerate dual-view",
     });
   }
 

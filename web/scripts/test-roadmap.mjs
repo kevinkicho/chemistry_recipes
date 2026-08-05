@@ -76,12 +76,12 @@ ok("IdealPageParityPanel", existsSync(join(root, "src/components/IdealPageParity
 ok("live mounts IdealPageParity", /IdealPageParityPanel/.test(read("components/dossier/LiveMoleculeDossier.tsx")));
 ok("pipeline withIdealPageParity", /withIdealPageParity/.test(read("lib/dossier/pipeline.ts")));
 ok(
-  "tierA is no-op (mocks removed)",
-  /No-op|never inject mock/i.test(read("lib/dossier/tierABaseline.ts"))
+  "tierA baseline deleted",
+  !existsSync(join(root, "src/lib/dossier/tierABaseline.ts"))
 );
 ok(
   "product goal ideal depth",
-  /ideal page|Tier-A is the ideal|process recipe|Ideal page/i.test(
+  /ideal page|process recipe|Ideal page|live densify/i.test(
     readFileSync(join(root, "..", "docs", "product-vision.md"), "utf8")
   ) || /ideal-page|Ideal page|process-recipe/.test(read("lib/dossier/idealPage.ts"))
 );

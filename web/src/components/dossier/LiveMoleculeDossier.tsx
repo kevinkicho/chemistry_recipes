@@ -1,5 +1,5 @@
 /**
- * Live PubChem dossier — plant-ready layout aligned with curated ExampleDossierView.
+ * Live PubChem dossier — free-public densify + AI dual-view plant pack.
  * Content from free APIs + optional Ollama; AI blocks keep provenance chips.
  */
 
@@ -386,7 +386,7 @@ export function LiveMoleculeDossier({
         <RegulatoryDisclaimer compact />
       </div>
 
-      {/* Identity hero — mirrors ExampleDossierView */}
+      {/* Identity hero */}
       <div
         id="identity"
         className="scroll-mt-24 flex flex-col gap-6 lg:flex-row lg:items-start"
@@ -812,7 +812,7 @@ export function LiveMoleculeDossier({
               </SectionTitle>
               <p className="mb-4 text-xs leading-relaxed text-slate-500">
                 Ingredients, method steps, dual plant / chemistry view — same structure as
-                curated examples. Numbers only when public facts support them
+                densified free-public text. Numbers only when public facts support them
                 {routesFromAi
                   ? " (Ollama structures evidence; uncited values stripped — open AI chip for prompts/data)."
                   : " (evidence / fact-derived leads — not Ollama dual-view)."}{" "}

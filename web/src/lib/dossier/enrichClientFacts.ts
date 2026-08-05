@@ -13,7 +13,6 @@ import {
   type ProcessFactBundle,
 } from "@/lib/dossier/processFacts";
 import { applyPlantDeliverables } from "@/lib/dossier/plantDeliverables";
-import { applyTierABaseline } from "@/lib/dossier/tierABaseline";
 import { getUserSupplementsForCid } from "@/lib/idb/userSupplements";
 import {
   getVaultExcerptsForCid,
@@ -134,7 +133,6 @@ export function applyLocalFactEnrichment(dossier: LiveDossier): LiveDossier {
     },
   };
   let next = applyPlantDeliverables(withFacts);
-  next = applyTierABaseline(next);
   next = applyPlantDeliverables(next);
   next = withRecipeReadiness(next);
   return next;
@@ -192,7 +190,6 @@ export async function hydrateVaultIntoDossier(
     processFraming: processFacts.framing,
   };
   next = applyPlantDeliverables(next);
-  next = applyTierABaseline(next);
   next = applyPlantDeliverables(next);
   next = withRecipeReadiness(next);
   return next;

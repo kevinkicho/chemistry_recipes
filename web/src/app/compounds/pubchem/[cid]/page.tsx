@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { DossierClientLoader } from "@/components/dossier/DossierClientLoader";
-import { findHubByCid } from "@/lib/data/hubIndex";
 import { getPubChemCompound } from "@/lib/api/pubchem";
 
 type Props = { params: Promise<{ cid: string }> };
@@ -15,7 +14,6 @@ async function resolveIdentity(cid: number): Promise<{
   cas?: string;
   molecularWeight?: number;
 }> {
-  const hub = findHubByCid(cid);
   try {
     const raced = await Promise.race([
       getPubChemCompound(cid),
@@ -25,9 +23,9 @@ async function resolveIdentity(cid: number): Promise<{
     ]);
     if (raced && "hit" in raced && raced.hit) {
       return {
-        name: raced.hit.name || hub?.name || `CID ${cid}`,
+        name: raced.hit.name || `CID ${cid}`,
         formula: raced.hit.formula,
-        cas: raced.hit.cas || hub?.cas,
+        cas: raced.hit.cas,
         molecularWeight: raced.hit.molecularWeight,
       };
     }
@@ -35,8 +33,7 @@ async function resolveIdentity(cid: number): Promise<{
     /* soft — shell still loads client-side */
   }
   return {
-    name: hub?.name || `CID ${cid}`,
-    cas: hub?.cas,
+    name: `CID ${cid}`,
   };
 }
 
