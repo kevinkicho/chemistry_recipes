@@ -85,11 +85,11 @@ npm run build
 | Script | Offline? | Spec focus |
 |--------|----------|------------|
 | `test-evidence-filter.mjs` | Yes | ACC-06, process-lit heuristics, score floors |
-| `test-hub-lib.mjs` | Yes | CUR-02/04, entities, packages ≥100 |
+| `test-hub-lib.mjs` | Yes | Mock hub empty; curated packages deleted |
 | `test-process-facts.mjs` | Yes | PF-*, ACC-03/05, strip rules |
 | `test-export-and-ai.mjs` | Yes | ACC-07, AI-08 SSRF, tech-transfer v2 |
 | `test-lib-modules.mjs` | Yes | Module integrity, wired panels, exports |
-| `test-tier-a-golden.mjs` | Yes | CUR-01 Tier-A depth + citations |
+| `test-tier-a-golden.mjs` | Yes | CUR-01 mock catalogs deleted; live-only contracts |
 | `test-ai-regression.mjs` | Yes | ACC-01/02, AI-07, framing |
 | `test-plant-parity.mjs` | Yes | CUR-03 plant narrative / merge |
 | `test-lifecycle.mjs` | Yes | **LIFE-*** pipeline stages, densify, modes |

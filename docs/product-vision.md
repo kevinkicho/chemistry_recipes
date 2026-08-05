@@ -11,20 +11,20 @@
 ## Product law
 
 1. **Evidence-first, not GMP certification.** Content is a *production guide scaffold* for trained process teams. Plants validate under their own quality systems.  
-2. **Free public sources + curated educational packages.** Identity, hazards, and literature from free APIs; manufacturing notes are curated or AI-synthesized with explicit provenance.  
+2. **Free public sources + optional AI structure only.** Identity, hazards, literature, and patents from free APIs; manufacturing views are densified evidence and/or AI-synthesized with explicit provenance. **No mock plant dossiers or curated teaching packages.**  
 3. **Dual audience, dual views.** Mechanism (R&D) and manufacturing (plant) share step IDs.  
 4. **Scale-up ready language.** Industrial units, equipment *classes*, operating envelopes.  
 5. **No regulatory decision support.** Not a substitute for FDA/EMA filings, DMF, or batch record approval.  
-6. **No invented site limits.** Literature-typical parameters are teaching envelopes only.  
+6. **No invented site limits.** Literature-typical parameters (modality frameworks) are educational envelopes only.  
 7. **Local-first.** IndexedDB + local projects; no collab multi-user backend.  
-8. **Curated Tier-A is the ideal-page depth goal.** Live free-API dossiers chase the same dual-view inventory (recipe, BOM, apparatus, environment, EHS, related entities) that Example dossiers already show — via densify, grounded AI, and labeled Tier-A teaching merges — never by inventing plant numbers to fake polish.  
-9. **Frontier science = process knowledge, not cosmetic dossiers.** Condition-space atlases, competing route hypotheses with kill criteria, evidence-only Q&A, and next-experiment suggestions are first-class — exported as `process-knowledge.v1` for agents and notebooks.
+8. **Live densify ideal inventory.** `idealParity` (0–100) measures dual-view depth (recipe, BOM, apparatus, environment, EHS, related entities) from free-public densify + grounded AI — never inventing plant numbers.  
+9. **Frontier science = process knowledge, not cosmetic dossiers.** Condition-space atlases, competing route hypotheses with kill criteria, evidence-only Q&A, and next-experiment suggestions — exported as `process-knowledge.v1`.
 
 ## Ideal page (north star)
 
-The **curated Example dossier** (`ExampleDossierView` + `web/src/data/molecules/*.json`) is the product’s **ideal page**: complete dual-view process recipe, manufacturing narrative, plant environment, apparatus catalog, EHS, related materials, control points.
+The **live densify dual-view inventory** is the product’s ideal page: process recipe, manufacturing narrative, plant environment, apparatus, EHS, related materials, and control cues — filled only from free-public densify and grounded AI.
 
-Live builds measure progress with **`idealParity`** (0–100) against that inventory. Hub CIDs may promote **Tier-A teaching** routes when live leads are thin (always labeled editorial).
+Live builds measure progress with **`idealParity`** (0–100). Thin dossiers stay honest (**scout** / evidence-lead); densify and paste public experimental text raise depth.
 
 ## Frontier process knowledge
 
@@ -77,7 +77,7 @@ Export: process-knowledge JSON from the Evidence science panel.
 | **ORD → campaign bridge** | Local ORD snippets → densify paste + spin multi-CID science campaign |
 | **Campaign ideal rollup** | Mean/min/max Ideal score + section heatmap + weak-CID densify |
 | **Multi-source search** | Identity APIs + openFDA + KEGG + process lit (EPMC, OpenAlex, Crossref, S2, PubMed, arXiv) |
-| **Multi-source autocomplete** | Combobox: local hub + PubChem + RxNorm + openFDA via `/api/search/suggest` |
+| **Multi-source autocomplete** | Combobox: PubChem + RxNorm + openFDA via `/api/search/suggest` |
 | **Problem multi-source** | Unit-op search + live multi CIDs + process papers via `/api/search/problem` |
 | **Problem densify queue** | Spin campaign + stream densify CIDs from problem hits in one click |
 | **Problem → agent handoff** | After densify, open Workspace campaign agent with auto-ask question |
@@ -97,23 +97,24 @@ Export: process-knowledge JSON from the Evidence science panel.
 | Process / manufacturing chemist | Stand up or improve a route | Manufacturing view, BOM, equipment, EHS |
 | Organic / R&D chemist | Understand how the molecule is made | Mechanism view, literature |
 | Tech transfer / MSAT | Lab → pilot → commercial bridge | Dual view, checklist, tech-transfer export |
-| Biotech MSAT | Modality unit ops + educational CQAs | Packages (mAb, gene, cell), parameter panels |
+| Biotech MSAT | Modality unit ops + educational CQAs | MSAT journey, modality templates, parameter panels |
 
-## Content tiers
+## Content depth (live only)
 
-| Tier | Coverage | Quality | Source |
-|------|----------|---------|--------|
-| **A** | Full dual-view routes, apparatus, EHS | High educational | Curated JSON + citations |
-| **B** | Structured package + live APIs | Medium | Catalog / free APIs + AI |
-| **C** | Identity / platform pointer | Low | Catalog stub |
+| Depth | Coverage | Source |
+|-------|----------|--------|
+| **Recipe draft** | Dual-view routes, BOM cues, apparatus classes, EHS | Dense free-public densify + grounded AI |
+| **Scout dossier** | Identity + evidence map + process leads | Live multi-API harvest |
+| **Thin / identity** | CID resolve, hazards, sparse lit | Soft-fail free APIs |
 
 ## Success metrics
 
-- Time from “I need to make X” → structured route + equipment list &lt; 2 minutes for Tier-A / package hits.  
+- Time from “I need to make X” → densified scout + equipment cues &lt; 2 minutes on warm public sources.  
 - Every manufacturing claim has provenance or an explicit AI/editorial label.  
 - Dual views never contradict (shared step IDs).  
 - Parameter tables never present site-fill fields as invented numbers.  
 - Source coverage shows multi-API health, not PubChem-only opacity.  
+- Cold-CID KPI floors pass on golden densify set (no mock hub).  
 
 ## Non-goals
 

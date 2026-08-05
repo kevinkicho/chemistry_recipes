@@ -360,7 +360,7 @@ export interface LiveDossier {
   procedureExcerpts?: ProcedureExcerpt[];
   /** process-recipe vs evidence-lead-pack framing for UI */
   processFraming?: import("@/lib/dossier/processFacts").ProcessFraming;
-  /** Scout vs recipe-draft vs teaching-package product mode */
+  /** Scout vs recipe-draft product mode (teaching-package retired) */
   productMode?: import("@/lib/dossier/recipeReadiness").ProductMode;
   /** Gaps that block a credible manufacturing recipe draft */
   recipeReadiness?: import("@/lib/dossier/recipeReadiness").RecipeReadiness;
@@ -379,8 +379,7 @@ export interface LiveDossier {
   /** Second-pass quote-grounding of AI route conditions */
   groundingReport?: import("@/lib/dossier/quoteGrounding").GroundingReport;
   /**
-   * Progress toward curated Tier-A ideal page depth
-   * (live dual-view densify inventory is the product north star).
+   * Progress toward live dual-view densify ideal inventory (0–100).
    */
   idealParity?: import("@/lib/dossier/idealPage").IdealPageParity;
   /**

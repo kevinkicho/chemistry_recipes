@@ -128,7 +128,7 @@ export function ProblemFirstSearch() {
           if (e instanceof Error && e.name === "AbortError") return;
           setLiveHits(null);
           setLiteratureHits([]);
-          setStatus("Multi-source enrich unavailable — showing local hub hits");
+          setStatus("Multi-source enrich unavailable — try again or open a CID from search");
           setLoading(false);
           setWizardStep((s) => (s < 2 ? 2 : s));
         });

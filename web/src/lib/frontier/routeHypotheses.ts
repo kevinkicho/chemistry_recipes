@@ -31,7 +31,7 @@ function stepSupport(step: ProcessStep): string[] {
   const out: string[] = [];
   for (const s of step.sourceRefs || []) {
     if (s.type === "editorial" && s.id?.includes("tier-a")) {
-      out.push(s.label || "Tier-A teaching");
+      out.push(s.label || "process source");
       continue;
     }
     if (s.type !== "editorial") out.push(s.label || s.id);
@@ -205,7 +205,7 @@ export function buildRouteHypotheses(
         status: "thin-lead",
         evidenceScore: 0,
         summary:
-          "Free-public densify has not assembled a process route. Paste OA/patent experimental text or open a hub Tier-A twin.",
+          "Free-public densify has not assembled a process route. Paste OA/patent experimental text or force densify.",
         steps: [],
         supportingSources: [],
         killCriteria: [

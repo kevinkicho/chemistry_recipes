@@ -69,7 +69,7 @@ ok("SEARCH-03 problem API route", /problem|limit/.test(problemApi));
 // SEARCH-04 UI wiring
 ok("SEARCH-04 SearchResults multi path", /\/api\/search\/multi/.test(results));
 ok("SEARCH-04 SearchResults browser PubChem", /searchPubChemInBrowser/.test(results));
-ok("SEARCH-04 SearchResults local hub first", /resolveLocalSearchHits/.test(results));
+ok("SEARCH-04 SearchResults local resolve stub", /resolveLocalSearchHits/.test(results));
 ok("SEARCH-04 search page mounts SearchResults", /SearchResults/.test(searchPage));
 ok("SEARCH-04 problem UI fetches /api/search/problem", /\/api\/search\/problem/.test(problemUi));
 

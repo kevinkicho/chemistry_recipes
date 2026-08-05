@@ -10,11 +10,10 @@ import type {
 } from "@/lib/search/multiSourceSearch";
 
 /**
- * Search order:
- * 1) Instant local hub + package index
- * 2) Browser → PubChem (user IP)
- * 3) Server multi-source fan-out (PubChem + ChEMBL + ChEBI + MyChem + RxNorm + GSRS + DrugCentral)
- * 4) Server PubChem-only fallback
+ * Search order (live free-public only — local index always empty):
+ * 1) Browser → PubChem (user IP)
+ * 2) Server multi-source fan-out (PubChem + ChEMBL + ChEBI + MyChem + RxNorm + GSRS + DrugCentral)
+ * 3) Server PubChem-only fallback
  */
 export function SearchResults({ query }: { query: string }) {
   const q = query.trim();
@@ -27,7 +26,7 @@ export function SearchResults({ query }: { query: string }) {
           sources: [
             {
               source: "local" as const,
-              label: "Local hub / package",
+              label: "Local resolve",
               externalId: String(h.cid),
             },
           ],

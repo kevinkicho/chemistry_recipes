@@ -16,8 +16,7 @@ type ServerDiagnostics = {
   app: {
     name: string;
     nodeEnv: string;
-    curatedPackages: number;
-    tierAExamples: number;
+    productMode?: string;
     registrySources: number;
   };
   env: {
@@ -227,7 +226,7 @@ export default function DiagnosticsPage() {
               title="Catalog"
               value={`${server.app.registrySources} free-public APIs`}
               ok
-              hint={`no mock packages · ${server.app.curatedPackages} curated · ${server.app.nodeEnv}`}
+              hint={`${server.app.productMode || "live-densify"} · no mocks · ${server.app.nodeEnv}`}
             />
           </section>
 

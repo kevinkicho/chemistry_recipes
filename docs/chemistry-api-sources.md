@@ -3,7 +3,7 @@
 Product-focused registry for **synthesis, process chemistry, hazards, and plant context**.  
 Complements the broader BioIntel-style list in [`api-sources-manifest.md`](./api-sources-manifest.md).
 
-**Product law:** Free public APIs only. Evidence-first; not regulatory decision support. Manufacturing dossiers are curated overlays — APIs supply identity, hazards, reactions, patents, and literature.
+**Product law:** Free public APIs only. Evidence-first; not regulatory decision support. Manufacturing views come from live densify of free-public procedure text + optional grounded AI — never mock plant dossiers.
 
 ## Priority tiers for this product
 
@@ -42,7 +42,7 @@ Complements the broader BioIntel-style list in [`api-sources-manifest.md`](./api
 | Open Reaction Database (ORD) | ORD community | datasets / GitHub releases | https://docs.open-reaction-database.org/ | Structured organic reaction records (bulk; not always live REST) |
 | Organic Syntheses | OrgSyn | HTML procedures (no free bulk API) | https://www.orgsyn.org/ | Classic validated prep literature (cite + link) |
 
-> **Note:** KEGG/Rhea emphasize **biochemical** routes. Industrial **organic** routes usually come from **patents + literature + curated dossiers**, not metabolic APIs alone.
+> **Note:** KEGG/Rhea emphasize **biochemical** routes. Industrial **organic** routes usually come from **patents + literature densify + grounded AI**, not metabolic APIs alone.
 
 ### P1 — Process literature & IP (scale-up clues)
 
@@ -90,16 +90,16 @@ Complements the broader BioIntel-style list in [`api-sources-manifest.md`](./api
 | Organic reaction corpus | ORD bulk + editorial | PatentsView claims titles |
 | Process patents | PatentsView | Google Patents link-out |
 | Literature | Europe PMC + OpenAlex | PubMed, Semantic Scholar |
-| Manufacturing dossier | **Curated JSON** | PUG View “Use and Manufacturing” text only |
+| Manufacturing dossier | **Live densify** (OA/patents + process facts + optional AI) | PUG View “Use and Manufacturing” text |
 
 ## Gaps (honest)
 
 | Need | Public API gap | Mitigation |
 |------|----------------|------------|
-| Full electron-pushing mechanisms | No standard free API | Editorial mechanism notes + textbook/lit citations |
-| Validated plant SOPs | Proprietary | Curated *guide* templates, not SOPs |
-| Materials of construction / ATEX zoning | Not structured in public chem DBs | Curated per route; generic class libraries |
-| Yields at commercial scale | Patents often incomplete | Ranges + “typical industrial” labels + cite patent |
+| Full electron-pushing mechanisms | No standard free API | AI dual-view from densified quotes + lit citations |
+| Validated plant SOPs | Proprietary | Out of scope — guide scaffold only; site QMS owns SOPs |
+| Materials of construction / ATEX zoning | Not structured in public chem DBs | Modality educational envelopes; site fill for plant truth |
+| Yields at commercial scale | Patents often incomplete | Sourced ranges only; never invent site setpoints |
 | Costed BOM | No free reliable pricing API | Optional later; NADAC only for finished drugs |
 
 ## Enrichment vs BioIntel manifest

@@ -343,10 +343,10 @@ This inventory remains the **broad free-API catalog**. For the Chemistry Recipes
 
 | Gap | Mitigation in Chemistry Recipes |
 |-----|----------------------------------|
-| Industrial organic mechanisms | Curated Tier A dossiers (`web/src/data/molecules/`) |
-| Apparatus / ATEX / utilities | Curated `environment` + `apparatusCatalog` fields |
+| Industrial organic mechanisms | Live densify of OA/patents + process facts + optional grounded AI dual-view |
+| Apparatus / ATEX / utilities | Unit-op → plant deliverables from densify; site fill for plant truth |
 | Validated plant SOPs | Out of scope — product law: guide scaffold only |
-| Structured organic reaction corpus | ORD bulk (see chemistry-api-sources) + patents + editorial |
+| Structured organic reaction corpus | ORD browse (science lab) + patents + free reaction DBs |
 
 ### New sources to prefer when extending beyond this BioIntel list
 

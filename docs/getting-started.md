@@ -78,11 +78,11 @@ Engineering detail: [engineering/ai-and-ollama.md](./engineering/ai-and-ollama.m
 
 ## First workflows
 
-1. **Packages** — `/packages`, filter by modality, open unit ops + parameter frameworks.  
-2. **Info (for-show)** — `/info` · curated Tier-A examples, mock packages, and design demos only (isolated from live nav).  
-3. **Live build** — `/search` (browser-first PubChem when possible) → open a CID → SSE dossier → evidence score + coverage.  
+1. **Live densify** — `/search` (browser-first PubChem when possible) → open a CID → SSE dossier → evidence score + coverage.  
+2. **MSAT journey** — Home problem/unit-op search → campaign densify → Workspace brief + agent.  
+3. **Monday path** — On a live dossier: densify → procedure vault → role/agent pack export.  
 4. **Compare** — `/compare` with two CIDs (open each once for cache) → dual export.  
-5. **Diagnostics** — `/diagnostics` free-API probes + IndexedDB health + Firebase probe.  
+5. **Diagnostics** — `/diagnostics` free-API probes + IndexedDB health + cold-CID KPI floors.  
 6. **Sources** — `/sources` wired vs planned free APIs.  
 7. **Workspace** — pin with **+ Project** (local only, not multi-user collab).
 
@@ -99,8 +99,8 @@ See [engineering/testing.md](./engineering/testing.md).
 ## Search & PubChem notes
 
 - **Browser-first search** prefers the user's network for PubChem PUG (Cloud Run egress often returns HTTP 503 to NIH).  
-- Server `/api/search/pubchem` remains a fallback; soft failures surface hub/package matches when possible.  
-- Live dossier gather continues multi-API harvest even if PubChem identity fails (hub catalog or CID-only name).  
+- Server `/api/search/pubchem` remains a fallback; soft failures surface multi-source API hits when possible.  
+- Live dossier gather continues multi-API harvest even if PubChem identity fails (CID-only name + other free sources).  
 
 ## Troubleshooting
 

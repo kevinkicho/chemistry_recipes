@@ -37,9 +37,8 @@ export async function GET(req: Request) {
     app: {
       name: "Chemistry Recipes",
       nodeEnv: process.env.NODE_ENV || "development",
-      curatedPackages: 0,
-      /** Always 0 — no mock dossiers; product is live densify + AI only. */
-      tierAExamples: 0,
+      /** Live free-public densify only — no mock catalogs. */
+      productMode: "live-densify" as const,
       registrySources: CHEMISTRY_API_SOURCES.length,
     },
     env: {

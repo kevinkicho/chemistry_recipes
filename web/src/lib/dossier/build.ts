@@ -1,5 +1,5 @@
 /**
- * Build a live Tier-B dossier: free APIs + optional Ollama Cloud synthesis.
+ * Build a live densify dossier: free APIs + optional Ollama synthesis.
  */
 
 import { gatherCompoundEvidence } from "@/lib/dossier/gather";
@@ -12,7 +12,7 @@ import type { LiveDossier } from "@/lib/dossier/types";
 
 /**
  * Non-stream build (used if needed outside SSE).
- * Always returns curated evidence scaffold; Ollama enhances when available.
+ * Always returns free-public evidence scaffold; Ollama enhances when available.
  */
 export async function buildLiveDossier(
   cid: number,

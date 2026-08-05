@@ -498,7 +498,7 @@ export function LiveMoleculeDossier({
             <p className="text-sm text-slate-400">{hit.iupacName}</p>
           ) : null}
 
-          {/* Identifier row — same shape as curated dossiers */}
+          {/* Identifier row */}
           <dl className="flex flex-wrap gap-x-6 gap-y-1 font-mono text-sm text-slate-400">
             {hit?.formula ? (
               <div>
@@ -724,6 +724,12 @@ export function LiveMoleculeDossier({
                     dossier={dossier}
                     onRegenerate={onRegenerate}
                   />
+                  <OrdBulkPanel
+                    name={name}
+                    smiles={hit?.smiles}
+                    cid={cid}
+                  />
+                  <DensifySchedulePanel />
                 </div>
               );
               if (!path.collapseScienceLab) return frontier;
@@ -1069,16 +1075,6 @@ export function LiveMoleculeDossier({
                       </button>
                     </p>
                   ) : null}
-                </>
-              ) : null}
-              {workerRole !== "operator" ? (
-                <>
-                  <OrdBulkPanel
-                    name={name}
-                    smiles={hit?.smiles}
-                    cid={cid}
-                  />
-                  <DensifySchedulePanel />
                 </>
               ) : null}
               {show("site-fill") ? (

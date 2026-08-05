@@ -2,8 +2,9 @@
 
 Canonical types: `web/src/lib/types/process.ts`  
 Live dossier types: `web/src/lib/dossier/types.ts`  
-Tier-A seeds: `web/src/data/molecules/*.json`  
-Packages: `web/src/lib/data/curatedPackages.ts`
+
+**Product data path:** free-public API densify + optional grounded AI only.  
+No mock molecule JSON or curated teaching packages in the live app.
 
 ## Entity graph
 

@@ -41,8 +41,8 @@
 | `/api/ai/campaign` | Multi-CID densify + campaign agent |
 | `/api/diagnostics` | Env snapshot + optional probes |
 | `/compare` | Dual CID compare + dual export |
-| `/packages` | Curated catalog |
-| `/workspace` | Campaigns, frontier panels, densify telemetry |
+| `/workspace` | Campaigns, vault, frontier panels, densify telemetry |
+| `/packages`, `/info`, `/examples/*`, `/catalog` | Redirect → search (mocks retired) |
 | `/sources` | `SourcesRegistry` client table |
 | `/diagnostics` | Operator UI |
 

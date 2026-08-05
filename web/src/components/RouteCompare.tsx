@@ -174,7 +174,7 @@ export function RouteCompare({ routes }: { routes: ProcessRoute[] }) {
   if (usable.length === 0) {
     return (
       <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4 text-sm text-slate-500">
-        No process routes yet. Public leads, Tier-A teaching baseline (hub CIDs), or
+        No process routes yet. Free-public densify leads,
         Ollama synthesis will populate this panel.
       </div>
     );
@@ -186,7 +186,7 @@ export function RouteCompare({ routes }: { routes: ProcessRoute[] }) {
       <div id="route-compare" className="scroll-mt-24 space-y-3">
         <p className="text-xs text-slate-500">
           One public/teaching route on this dossier — plant scouting panel (BOM,
-          equipment, conditions). A second route (e.g. Tier-A teaching or AI
+          equipment, conditions). A second route (e.g. densified lit/patent or AI
           alternative) enables side-by-side compare.
         </p>
         <RoutePlantCard route={left} label="Preferred route" />

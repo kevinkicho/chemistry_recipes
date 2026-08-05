@@ -272,7 +272,7 @@ export async function multiSourceSearch(
       sources: [
         {
           source: "local",
-          label: "Local hub / package",
+          label: "Local resolve",
           externalId: String(h.cid),
         },
       ],

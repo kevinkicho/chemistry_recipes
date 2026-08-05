@@ -100,7 +100,7 @@ export function coldCidKpiManifest() {
     golden: GOLDEN_COLD_CIDS,
     note:
       "Quality floors for free-public densify demos/regression. Not GMP readiness. " +
-      "Empty curated Tier-A catalogs are intentional — live densify is the product.",
+      "Live free-public densify only — no curated mock dossiers.",
   };
 }
 

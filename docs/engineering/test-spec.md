@@ -81,7 +81,7 @@ Optional before release/deploy:
 | **LIFE-02** | Gather uses soft-fail so one API cannot abort the wave | `test-lifecycle`, `test-resilience` |
 | **LIFE-03** | Durable server evidence cache merge prefers denser excerpts | `test-lifecycle`, `test-resilience` |
 | **LIFE-04** | Densify pass triggers when procedure density thin | `test-lifecycle`, `test-densify-depth` |
-| **LIFE-05** | Recipe readiness modes: scout-dossier / recipe-draft / teaching-package | `test-lifecycle` |
+| **LIFE-05** | Recipe readiness modes: scout-dossier / recipe-draft (teaching-package retired) | `test-lifecycle` |
 | **LIFE-06** | Client IndexedDB schema version ≥ 11; vault + dossier cache modules present | `test-lib-modules`, `test-resilience` |
 | **LIFE-07** | Live dossier mounts process panels + RecipeReadinessPanel | `test-lib-modules`, `test-plant-parity` |
 | **LIFE-08** | Force densify skips server evidence cache (`force=1` stream) | `test-densify-depth`, `test-lifecycle` |
@@ -124,13 +124,13 @@ Optional before release/deploy:
 | **PF-04** | Isolation / hazard cues extracted when present | `test-process-facts` |
 | **PF-05** | User-supplement provenance supported | `test-ai-regression` |
 
-### F. Curated content & plant parity
+### F. Live densify contracts (mock catalogs retired)
 
 | ID | Requirement | Suite |
 |----|-------------|--------|
-| **CUR-01** | Tier-A molecules: routes, steps, sourceRefs, disclaimer | `test-tier-a-golden` |
-| **CUR-02** | Packages catalog ≥ 100 educational entries | `test-hub-lib` |
-| **CUR-03** | Live plant narrative / BOM / tier-A merge labels | `test-plant-parity` |
+| **CUR-01** | Mock catalogs deleted; hub empty; live-only contracts | `test-tier-a-golden` |
+| **CUR-02** | Hub index empty; curated packages file deleted | `test-hub-lib` |
+| **CUR-03** | Live plant narrative / BOM from densify (no mock merge) | `test-plant-parity` |
 | **CUR-04** | Parameter sets include literature-typical disclaimer | `test-hub-lib` |
 
 ### G. Security & deploy

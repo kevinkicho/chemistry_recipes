@@ -395,7 +395,7 @@ export function CampaignBriefPanel() {
           {ideal ? (
             <div>
               <h3 className="text-[10px] font-semibold uppercase text-amber-200/80">
-                Ideal page rollup (Tier-A goal)
+                Ideal page rollup (live densify)
               </h3>
               <p className="mt-0.5 text-[11px] text-slate-400">{ideal.summary}</p>
               <dl className="mt-2 grid grid-cols-3 gap-2 text-[11px]">

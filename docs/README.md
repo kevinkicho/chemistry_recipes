@@ -57,17 +57,16 @@ Evidence-first process recipe hub (not GMP / not regulatory decision support).
 
 | Route | Purpose |
 |-------|---------|
-| `/` | Home + Tier-A examples |
-| `/packages` | Educational process packages (~100+) |
-| `/search` | PubChem identity search |
-| `/compounds/pubchem/[cid]` | Live dossier (SSE build) |
-| `/examples/[id]` | Curated dual-view dossier |
-| `/compare` | Side-by-side recipes + dual export |
-| `/diagnostics` | API probes, Ollama readiness, IndexedDB health |
-| `/sources` | Expandable free-API registry (wired vs planned) |
-| `/workspace` | Local projects, science campaigns, densify graph/agents |
+| `/` | Home — live densify entry + MSAT journey |
+| `/search` | Multi-source identity + process search |
+| `/compounds/pubchem/[cid]` | Live densify dossier (SSE build) |
+| `/compare` | Side-by-side live CIDs + dual export |
+| `/diagnostics` | API probes, Ollama readiness, cold-CID KPI |
+| `/sources` | Free-API registry (wired vs planned) |
+| `/workspace` | Local campaigns, vault, densify graph/agents |
 | Header **AI** | Ollama Cloud or local Ollama settings |
-| Live dossier frontier panels | Condition atlas, science agent, AI guidance export (role-gated) |
+| Live dossier Monday path | Vault, role/agent packs, progressive densify |
+| `/packages`, `/info`, `/examples/*`, `/catalog` | Redirect → search (mocks retired) |
 
 ---
 

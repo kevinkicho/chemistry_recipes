@@ -1,6 +1,6 @@
 /**
  * Dossier pipeline with realtime progress (for SSE overlay).
- * Free APIs first → curated-style evidence scaffold → optional Ollama enhance.
+ * Free APIs first → evidence scaffold → densify → optional Ollama dual-view.
  * Never blocks forever on AI: timeout falls back to evidence scaffold.
  */
 
@@ -685,7 +685,7 @@ export async function buildLiveDossierWithProgress(
 
   // Example-like plant sections from free-public facts when AI left them empty
   dossier = applyPlantDeliverables(dossier);
-  // Hub CIDs: merge curated Tier-A teaching routes/entities (labeled editorial)
+  // Live densify only — no mock Tier-A merge
 
   // Re-apply plant deliverables so BOM/related merge stays consistent
   dossier = applyPlantDeliverables(dossier);
@@ -717,7 +717,7 @@ export async function buildLiveDossierWithProgress(
 
   // Product mode: scout-dossier vs recipe-draft (+ missing checklist)
   dossier = withRecipeReadiness(dossier);
-  // Curated Tier-A ideal page depth score (north-star inventory)
+  // Live dual-view ideal inventory depth score
   dossier = withIdealPageParity(dossier);
   // Frontier process-knowledge: condition atlas, hypotheses, experiments
   dossier = withProcessKnowledge(dossier);

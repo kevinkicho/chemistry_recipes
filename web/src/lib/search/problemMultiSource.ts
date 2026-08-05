@@ -1,6 +1,6 @@
 /**
  * Problem-first search expanded with free-public multi-source fan-out.
- * Live hub (empty by default) + multi-search + process literature — no teaching packages.
+ * Multi-search + process literature only — no mock hub or teaching packages.
  */
 
 import {
@@ -21,7 +21,7 @@ export const PROBLEM_MULTI_SCHEMA =
 export interface ProblemMultiSearchResult {
   schema: typeof PROBLEM_MULTI_SCHEMA;
   q: string;
-  /** Local hub hits (empty unless hub resilience index is populated) */
+  /** Legacy local resolve hits (always empty in live product) */
   localHits: ProblemSearchHit[];
   /** Openable multi-source molecule hits */
   moleculeHits: MultiSourceHit[];

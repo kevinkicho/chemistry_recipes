@@ -304,6 +304,6 @@ export interface CatalogEntry {
   modality?: ProcessModality;
   entityRole?: EntityRole;
   scaleHints?: ScaleClass[];
-  /** Live PubChem path vs curated example */
+  /** Live PubChem path (example/template retired with mock catalogs) */
   kind?: "example" | "live" | "template";
 }

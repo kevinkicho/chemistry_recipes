@@ -252,7 +252,7 @@ function hitsFromCids(cids: number[], nameHints: Map<number, string>): PubChemHi
 
 /**
  * Resolve name/CAS/SMILES/InChIKey/UNII/CID → hits.
- * **Local hub first** so cloud 503s never block known compounds.
+ * Live free-public PubChem only (local resolve stub always empty).
  */
 export async function searchPubChem(
   query: string,
@@ -264,11 +264,11 @@ export async function searchPubChem(
 
     const traces: ApiFetchTrace[] = [];
     const nameHints = new Map<number, string>();
-    // Prefer broad catalog (hub + packages) over hub-only
+    // Local index always empty — kept for call-site compatibility
     const local = resolveLocalSearchHits(q, limit);
     for (const h of local) nameHints.set(h.cid, h.name);
 
-    // ── Fast path: strong local match (aspirin, 2244, 50-78-2, …) ─────────
+    // ── Fast path: strong local match (no-op while index empty) ───────────
     if (isStrongLocalMatch(q, local)) {
       const cids = local.map((h) => h.cid).slice(0, limit);
       const { rows, ok } = await fetchPropertiesOnce(cids, traces);

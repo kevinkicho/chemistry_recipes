@@ -1,6 +1,6 @@
 /**
- * Campaign-level ideal page parity rollup — which Tier-A sections are
- * weak across densified CIDs. Honest inventory; never invents fills.
+ * Campaign-level ideal page parity rollup — which dual-view densify
+ * sections are weak across densified CIDs. Honest inventory; never invents fills.
  */
 
 import type { LiveDossier } from "@/lib/dossier/types";
@@ -58,7 +58,7 @@ export interface CampaignIdealRollup {
 }
 
 const DISCLAIMER =
-  "Campaign ideal rollup measures free-public densify depth toward curated Tier-A " +
+  "Campaign ideal rollup measures free-public densify depth toward the live dual-view " +
   "inventory. Not GMP readiness. Empty sections are honest gaps.";
 
 function parityOf(d: LiveDossier): IdealPageParity {

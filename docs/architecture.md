@@ -13,7 +13,7 @@ Short map of the system. For full engineering detail, start at:
 | Language | TypeScript |
 | UI | Tailwind CSS 4 |
 | AI | Ollama Cloud **or** local Ollama |
-| Data | Free public APIs + curated JSON examples / packages |
+| Data | Free public APIs only (live densify + optional grounded AI) |
 | Client cache | IndexedDB (dossiers + snapshots) |
 | Workspace | `localStorage` projects (single-user) |
 

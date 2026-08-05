@@ -2,7 +2,7 @@
  * Ideal page model — live densify dual-view inventory depth goal (0–100 parity).
  *
  * Live free-API builds chase this inventory without inventing plant numbers.
- * Fill status is honest: evidence | AI (grounded) | teaching (Tier-A) | empty.
+ * Fill status is honest: evidence | AI (grounded) | user paste | empty.
  */
 
 import type { LiveDossier } from "@/lib/dossier/types";
@@ -37,10 +37,10 @@ export type IdealSectionStatus = {
   id: IdealSectionId;
   /** Dual-view densify section intent */
   label: string;
-  /** Why curated has this */
+  /** Why this section matters for densify depth */
   idealNote: string;
   filled: boolean;
-  /** 0–100 quality of fill toward curated depth */
+  /** 0–100 quality of fill toward live dual-view inventory */
   depth: number;
   source: IdealFillSource;
   detail: string;
@@ -51,17 +51,17 @@ export type IdealSectionStatus = {
 };
 
 export type IdealPageParity = {
-  /** 0–100 overall toward curated ideal */
+  /** 0–100 overall toward live dual-view inventory */
   score: number;
-  /** Sections that curated always aims to fill */
+  /** Sections densify aims to fill */
   sections: IdealSectionStatus[];
   filledCount: number;
   totalCount: number;
   summary: string;
-  /** Hub twin with curated example (if any) */
+  /** @deprecated unused — no mock hub twins */
   hubExampleId?: string;
   hubExampleHref?: string;
-  /** Whether preferred route is Tier-A teaching */
+  /** Legacy mock route still present on preferred path (should densify away) */
   preferredIsTeaching: boolean;
   /** North-star product statement */
   goal: string;
@@ -108,7 +108,8 @@ function routeDepth(route: ProcessRoute | undefined): {
       Math.min(20, mats * 4)
   );
   if (isLitLead && withCond === 0) depth = Math.min(depth, 35);
-  if (isTeaching) depth = Math.max(depth, 70);
+  // Legacy mock routes (should not appear on live densify) must not inflate parity
+  if (isTeaching) depth = Math.min(depth, 35);
 
   const source: IdealFillSource = isTeaching
     ? "tier-a-teaching"
@@ -122,7 +123,7 @@ function routeDepth(route: ProcessRoute | undefined): {
     depth,
     source,
     detail: `${steps.length} steps · ${withCond} with conditions · ${mats} materials${
-      isTeaching ? " · Tier-A teaching" : ""
+      isTeaching ? " · legacy mock (ignore)" : ""
     }`,
   };
 }
@@ -136,7 +137,7 @@ function preferredRoute(d: LiveDossier): ProcessRoute | undefined {
 }
 
 /**
- * Score how close a live dossier is to the curated ideal page inventory.
+ * Score how close a live densify dossier is to the dual-view ideal inventory.
  */
 export function assessIdealPageParity(dossier: LiveDossier): IdealPageParity {
   const pref = preferredRoute(dossier);
@@ -201,7 +202,7 @@ export function assessIdealPageParity(dossier: LiveDossier): IdealPageParity {
       scrollId: "overview",
       howToClose: filled
         ? undefined
-        : "Regenerate AI after densify, or open hub Tier-A twin if available",
+        : "Regenerate AI after densify, or paste public procedure text",
     });
   }
 
@@ -221,7 +222,7 @@ export function assessIdealPageParity(dossier: LiveDossier): IdealPageParity {
         : "empty",
       detail: apps.length ? apps.slice(0, 4).join(" · ") : "None yet",
       scrollId: "overview",
-      howToClose: "AI synthesis or Tier-A applications merge on hub CIDs",
+      howToClose: "AI synthesis or densify free-public literature",
     });
   }
 
@@ -248,7 +249,7 @@ export function assessIdealPageParity(dossier: LiveDossier): IdealPageParity {
       detail: n ? `${n} control lines` : "No CPP/hold language yet",
       scrollId: "critical-board",
       howToClose:
-        "Paste public procedure text or use Tier-A teaching route on hub molecules",
+        "Paste public procedure text or densify OA/patent windows",
     });
   }
 
@@ -303,7 +304,7 @@ export function assessIdealPageParity(dossier: LiveDossier): IdealPageParity {
         ? `${rel.length} entities · ${rel.filter((e) => e.pubchemCid).length} with CID`
         : "None extracted",
       scrollId: "related-entities",
-      howToClose: "AI relatedEntities + densify chemical mentions + Tier-A merge",
+      howToClose: "AI relatedEntities + densify chemical mentions",
     });
   }
 
@@ -329,7 +330,7 @@ export function assessIdealPageParity(dossier: LiveDossier): IdealPageParity {
             : "empty",
       detail: mfg ? `${mfg.length} chars` : "Empty",
       scrollId: "manufacturing",
-      howToClose: "PubChem Use & Manufacturing + densify + AI or Tier-A narrative",
+      howToClose: "PubChem Use & Manufacturing + densify + grounded AI",
     });
   }
 
@@ -362,7 +363,7 @@ export function assessIdealPageParity(dossier: LiveDossier): IdealPageParity {
           "Partial environment"
         : "Empty — site fill for plant truth",
       scrollId: "environment",
-      howToClose: "AI env baseline or Tier-A teaching; site QMS owns real zoning",
+      howToClose: "AI env baseline from densify only; site QMS owns real zoning",
     });
   }
 
@@ -387,7 +388,7 @@ export function assessIdealPageParity(dossier: LiveDossier): IdealPageParity {
         ? app.map((a) => a.equipmentClass).slice(0, 5).join(" · ")
         : "No equipment classes derived",
       scrollId: "apparatus",
-      howToClose: "Unit-op facts → plant deliverables mapping; or Tier-A catalog",
+      howToClose: "Unit-op facts → plant deliverables from densify",
     });
   }
 
@@ -535,7 +536,7 @@ export function withIdealPageParity(dossier: LiveDossier): LiveDossier {
 
 /**
  * Is the preferred live route "thin" relative to curated ideal?
- * Used to promote Tier-A teaching routes on hub CIDs.
+ * True when preferred live route is still thin (needs densify).
  */
 export function isPreferredRouteThin(dossier: LiveDossier): boolean {
   const pref = preferredRoute(dossier);

@@ -165,7 +165,7 @@ function deriveApplications(d: LiveDossier): string[] {
 function deriveManufacturingSummary(d: LiveDossier, facts: ProcessFact[]): string | undefined {
   if (
     d.synthesis.manufacturingSummary?.trim() &&
-    !/Tier-A teaching/i.test(d.synthesis.manufacturingSummary)
+    !/legacy mock|tier-a teaching/i.test(d.synthesis.manufacturingSummary)
   ) {
     // Prefer non-tier-a live summary if already good
     if (d.synthesis.manufacturingSummary.length > 80) {

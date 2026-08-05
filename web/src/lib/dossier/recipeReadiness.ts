@@ -4,7 +4,8 @@
  * Modes:
  * - scout-dossier: always valid; identity + evidence map
  * - recipe-draft: only when process-fact density supports process-recipe framing
- * - teaching-package: curated Tier-A / package path (editorial)
+ *
+ * (teaching-package retired with mock catalogs — live densify only)
  */
 
 import type { LiveDossier } from "@/lib/dossier/types";
@@ -68,25 +69,8 @@ export function assessRecipeReadiness(
   >,
   opts?: { teachingPackage?: boolean }
 ): RecipeReadiness {
-  if (opts?.teachingPackage) {
-    return {
-      mode: "teaching-package",
-      score: 85,
-      framing: "teaching",
-      gaps: [
-        {
-          id: "editorial-not-site",
-          label: "Teaching scaffold only",
-          detail:
-            "Curated educational content — not a validated plant package or live free-API recipe.",
-          severity: "minor",
-        },
-      ],
-      strengths: ["Dual-view curated routes", "Cited teaching parameters"],
-      summary:
-        "Teaching package mode: use as educational dual-view scaffold; site QMS still owns validation.",
-    };
-  }
+  // teachingPackage path retired — always assess from free-public densify evidence
+  void opts?.teachingPackage;
 
   const pf = evidence.processFacts;
   const framing = pf?.framing || "evidence-lead-pack";

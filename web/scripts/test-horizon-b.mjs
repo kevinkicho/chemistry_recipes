@@ -70,6 +70,8 @@ ok("techTransfer re-exports agent pack", /buildAgentPack/.test(tt));
 
 const ui = read("components/TechTransferExport.tsx");
 ok("UI Agent pack button", /onAgentPack|Agent pack/.test(ui));
+ok("UI Role pack primary", /onRolePack|Role pack/.test(ui));
 ok("UI downloads agent-pack-v1", /agent-pack-v1/.test(ui));
+ok("UI compresses secondary exports", /More|tech-transfer|MES\/LIMS/.test(ui));
 
 console.log(`\n${n} horizon-b checks passed`);

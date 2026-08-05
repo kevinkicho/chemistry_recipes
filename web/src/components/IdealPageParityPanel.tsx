@@ -14,7 +14,7 @@ const SOURCE_STYLE: Record<IdealFillSource, string> = {
   "live-api": "bg-sky-500/15 text-sky-200 ring-sky-500/30",
   "process-facts": "bg-teal-500/15 text-teal-200 ring-teal-500/30",
   ai: "bg-violet-500/15 text-violet-200 ring-violet-500/30",
-  "tier-a-teaching": "bg-amber-500/15 text-amber-100 ring-amber-500/35",
+  "tier-a-teaching": "bg-rose-500/15 text-rose-100 ring-rose-500/35",
   "user-local": "bg-emerald-500/15 text-emerald-100 ring-emerald-500/30",
 };
 
@@ -23,12 +23,12 @@ const SOURCE_LABEL: Record<IdealFillSource, string> = {
   "live-api": "live API",
   "process-facts": "process facts",
   ai: "AI",
-  "tier-a-teaching": "Tier-A teaching",
+  "tier-a-teaching": "legacy mock",
   "user-local": "local paste",
 };
 
 /**
- * Progress toward curated Tier-A ideal page depth.
+ * Progress toward live dual-view densify ideal inventory (0–100).
  */
 export function IdealPageParityPanel({
   dossier,

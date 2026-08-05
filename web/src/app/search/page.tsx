@@ -23,7 +23,7 @@ export default async function SearchPage({ searchParams }: Props) {
           PubChem, ChEMBL, ChEBI, MyChem, RxNorm, GSRS, DrugCentral, openFDA,
           KEGG, Europe PMC, OpenAlex, Crossref, Semantic Scholar, PubMed, arXiv
         </strong>{" "}
-        + local hub index (autocomplete too). Query by{" "}
+        (live free-public APIs only — no mock catalog). Query by{" "}
         <strong className="font-medium text-slate-300">
           name, CAS RN, SMILES, InChIKey, UNII, or CID
         </strong>

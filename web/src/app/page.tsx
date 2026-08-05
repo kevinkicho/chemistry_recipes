@@ -157,10 +157,10 @@ export default function HomePage() {
               No mock plant dossiers
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-400">
-              Mock Tier-A JSON, sample hub catalogs, and teaching packages are not in the live
-              product. Every compound page is{" "}
-              <strong className="font-medium text-teal-100/90">live free-public densify</strong>{" "}
-              with AI dual-view when configured.
+              Every compound page is{" "}
+              <strong className="font-medium text-teal-100/90">live free-public densify</strong>
+              {" "}
+              plus optional AI dual-view. No mock plant dossiers or teaching packages.
             </p>
             <Link
               href={routes.search()}

@@ -5,8 +5,9 @@
 
 export interface ProjectItem {
   id: string;
+  /** Live PubChem CID only; "example" kept for legacy localStorage only */
   kind: "live-cid" | "example";
-  /** PubChem CID for live; example id for curated */
+  /** PubChem CID string */
   ref: string;
   label: string;
   href: string;

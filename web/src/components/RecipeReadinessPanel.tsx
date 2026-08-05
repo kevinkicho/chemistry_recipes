@@ -13,7 +13,7 @@ import { slimTraces } from "@/lib/api/trace";
 const MODE_LABEL: Record<ProductMode, string> = {
   "scout-dossier": "Scout dossier",
   "recipe-draft": "Recipe draft",
-  "teaching-package": "Teaching package",
+  "teaching-package": "Legacy (unused)",
 };
 
 const MODE_STYLE: Record<ProductMode, string> = {

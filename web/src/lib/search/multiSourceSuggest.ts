@@ -1,6 +1,6 @@
 /**
  * Multi-source autocomplete suggestions (free-public only).
- * Combines local hub/packages, PubChem autocomplete, RxNorm, and openFDA labels.
+ * PubChem autocomplete + RxNorm + openFDA (no mock hub catalog).
  */
 
 import { fetchPubChemAutocomplete } from "@/lib/api/pubchemAutocomplete";
@@ -49,13 +49,13 @@ export async function multiSourceSuggest(
     out.push(item);
   }
 
-  // Local hub / packages (instant)
+  // Local resolve stub (always empty — live APIs only)
   const local = resolveLocalSearchHits(q, 6);
   if (local.length) sourcesUsed.push("local");
   for (const h of local) {
     push({
       value: h.name,
-      detail: `Local hub · CID ${h.cid}${h.cas ? ` · ${h.cas}` : ""}`,
+      detail: `Local · CID ${h.cid}${h.cas ? ` · ${h.cas}` : ""}`,
       kind: "local",
       href: routes.pubchem(h.cid),
     });

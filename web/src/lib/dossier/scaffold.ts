@@ -31,7 +31,7 @@ function editorialRefs(cid: number): SourceRef[] {
       type: "editorial",
       id: `evidence-shell:${cid}`,
       label: "Free public API shell (awaiting or without AI routes)",
-      note: "Not a curated Tier A dossier; not GMP",
+      note: "Live free-public densify shell only; not GMP",
     },
   ];
 }

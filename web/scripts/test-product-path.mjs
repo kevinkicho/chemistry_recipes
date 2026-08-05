@@ -33,6 +33,26 @@ ok("README no ~100+ packages claim", !/~\s*100\+\s*packages/i.test(readme));
 ok("README no Tier-A examples feature row", !/\*\*Tier-A examples\*\*/.test(readme));
 ok("README MSAT journey feature", /MSAT journey/i.test(readme));
 ok("README packages redirect honesty", /Redirect to search|mocks retired/i.test(readme));
+ok(
+  "product-vision no Tier-A curated content table",
+  !/Curated JSON \+ citations/.test(readRepo("docs/product-vision.md"))
+);
+ok(
+  "docs/README no Tier-A examples route",
+  !/Home \+ Tier-A examples/.test(readRepo("docs/README.md"))
+);
+ok(
+  "diagnostics productMode live-densify",
+  /productMode:\s*"live-densify"/.test(read("app/api/diagnostics/route.ts"))
+);
+ok(
+  "diagnostics no mock curatedPackages counter",
+  !/curatedPackages/.test(read("app/api/diagnostics/route.ts"))
+);
+ok(
+  "mock extract-dossiers script removed",
+  !fs.existsSync(path.join(__dirname, "extract-dossiers.mjs"))
+);
 
 const design = readRepo("docs/design/product-design.md");
 ok("design live densify hub", /live densify/i.test(design));

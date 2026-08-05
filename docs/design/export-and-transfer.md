@@ -8,9 +8,11 @@ Help MSAT / tech-transfer users leave the app with a **structured pack** they ca
 
 | Control | Output | Where |
 |---------|--------|--------|
-| Print / PDF | Browser print of dossier | Live + example + compare panes |
-| Tech-transfer JSON | Schema `chemistry-recipes.tech-transfer.v2` | `TechTransferExport` |
-| MES/LIMS JSON | Flattened BOM + steps + equipment | Derived from tech-transfer pack |
+| Print / PDF | Browser print of dossier | Live densify + compare (primary) |
+| Role pack | Role-scoped Monday deliverable JSON | `TechTransferExport` primary |
+| Agent pack | Guidance + densify-next + vault fingerprint | `TechTransferExport` primary |
+| Tech-transfer JSON | Schema `chemistry-recipes.tech-transfer.v2` | More… secondary |
+| MES/LIMS / brief / job aid | Flattened plant handoffs | More… secondary |
 | Compare dual export | Both sides as one JSON | `/compare` → Export both |
 
 ## Readiness checklist (UX)
@@ -27,7 +29,7 @@ Statuses: `ok` | `review` | `gap`.
 
 ## Compare flow
 
-1. Enter two CIDs / names / hub ids on `/compare`.  
+1. Enter two live PubChem CIDs / names on `/compare`.  
 2. Open each live page once so IndexedDB caches metrics.  
 3. Side-by-side evidence score, routes, annotations.  
 4. **Export both** → single compare pack with two tech-transfer payloads.
