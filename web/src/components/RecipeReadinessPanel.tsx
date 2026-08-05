@@ -13,13 +13,11 @@ import { slimTraces } from "@/lib/api/trace";
 const MODE_LABEL: Record<ProductMode, string> = {
   "scout-dossier": "Scout dossier",
   "recipe-draft": "Recipe draft",
-  "teaching-package": "Legacy (unused)",
 };
 
 const MODE_STYLE: Record<ProductMode, string> = {
   "scout-dossier": "bg-sky-500/15 text-sky-100 ring-sky-500/35",
   "recipe-draft": "bg-teal-500/20 text-teal-50 ring-teal-400/40",
-  "teaching-package": "bg-violet-500/15 text-violet-100 ring-violet-500/35",
 };
 
 const SEV_STYLE: Record<RecipeGap["severity"], string> = {
@@ -64,7 +62,9 @@ export function RecipeReadinessPanel({
   onRegenerate?: () => void;
 }) {
   const r = readinessFromDossier(dossier);
-  const mode = dossier.productMode || r.mode;
+  const rawMode = dossier.productMode || r.mode;
+  const mode: ProductMode =
+    rawMode === "recipe-draft" ? "recipe-draft" : "scout-dossier";
 
   return (
     <div

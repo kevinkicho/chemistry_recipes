@@ -18,7 +18,7 @@ export function AddToProject({
   cas,
   modality,
 }: {
-  kind: "live-cid" | "example";
+  kind: "live-cid";
   refId: string;
   label: string;
   href: string;

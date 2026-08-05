@@ -4,7 +4,6 @@ import {
   fetchJsonWithTrace,
   type ApiFetchTrace,
 } from "@/lib/api/trace";
-import { resolveLocalSearchHits } from "@/lib/data/searchLocalIndex";
 
 const PUG = "https://pubchem.ncbi.nlm.nih.gov/rest/pug";
 
@@ -33,7 +32,6 @@ export interface PubChemSearchResult {
   hits: PubChemHit[];
   traces: ApiFetchTrace[];
   failure?: string;
-  usedLocalFallback?: boolean;
 }
 
 function looksLikeInchiKey(q: string): boolean {
@@ -83,21 +81,6 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-export { resolveLocalHubCids } from "@/lib/data/hubIndex";
-
-function isStrongLocalMatch(
-  query: string,
-  local: Array<{ cid: number; name: string; cas?: string }>
-): boolean {
-  if (!local.length) return false;
-  const q = query.trim().toLowerCase();
-  if (/^\d+$/.test(q)) return local.some((h) => String(h.cid) === q);
-  return local.some(
-    (h) =>
-      h.name.toLowerCase() === q ||
-      (h.cas != null && h.cas.toLowerCase() === q)
-  );
-}
 
 type CidFetchOutcome = {
   cids: number[];
@@ -251,8 +234,7 @@ function hitsFromCids(cids: number[], nameHints: Map<number, string>): PubChemHi
 }
 
 /**
- * Resolve name/CAS/SMILES/InChIKey/UNII/CID → hits.
- * Live free-public PubChem only (local resolve stub always empty).
+ * Resolve name/CAS/SMILES/InChIKey/UNII/CID → hits via free-public PubChem only.
  */
 export async function searchPubChem(
   query: string,
@@ -264,30 +246,7 @@ export async function searchPubChem(
 
     const traces: ApiFetchTrace[] = [];
     const nameHints = new Map<number, string>();
-    // Local index always empty — kept for call-site compatibility
-    const local = resolveLocalSearchHits(q, limit);
-    for (const h of local) nameHints.set(h.cid, h.name);
 
-    // ── Fast path: strong local match (no-op while index empty) ───────────
-    if (isStrongLocalMatch(q, local)) {
-      const cids = local.map((h) => h.cid).slice(0, limit);
-      const { rows, ok } = await fetchPropertiesOnce(cids, traces);
-      if (ok && rows.length) {
-        return {
-          hits: rowsToHits(rows, nameHints).slice(0, limit),
-          traces,
-          usedLocalFallback: true,
-        };
-      }
-      // Properties optional — still return openable hub cards instantly
-      return {
-        hits: hitsFromCids(cids, nameHints),
-        traces,
-        usedLocalFallback: true,
-      };
-    }
-
-    // ── Network path (unknown compounds) ──────────────────────────────────
     let cids: number[] = [];
     let hardFailed = false;
     const isNumeric = /^\d+$/.test(q);
@@ -341,18 +300,6 @@ export async function searchPubChem(
       }
     }
 
-    // Soft local prefix / package matches if network failed
-    if (cids.length === 0 && local.length) {
-      return {
-        hits: hitsFromCids(
-          local.map((h) => h.cid),
-          nameHints
-        ).slice(0, limit),
-        traces,
-        usedLocalFallback: true,
-      };
-    }
-
     cids = [...new Set(cids)].filter((n) => Number.isFinite(n) && n > 0).slice(0, limit);
 
     if (cids.length === 0) {
@@ -377,25 +324,8 @@ export async function searchPubChem(
     }
 
     // CID-only cards still open full dossier pages
-    return {
-      hits: hitsFromCids(cids, nameHints),
-      traces,
-      // Do not set failure — cards are usable; optional soft note via usedLocalFallback only for hub
-    };
+    return { hits: hitsFromCids(cids, nameHints), traces };
   } catch (e) {
-    const local = resolveLocalSearchHits(query, limit);
-    if (local.length) {
-      return {
-        hits: local.map((h) => ({
-          cid: h.cid,
-          name: h.name,
-          cas: h.cas,
-          formula: h.formula,
-        })),
-        traces: [],
-        usedLocalFallback: true,
-      };
-    }
     return {
       hits: [],
       traces: [],

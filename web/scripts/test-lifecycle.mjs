@@ -117,7 +117,7 @@ ok("LIFE-04 densify re-extracts process facts", /extractProcessFacts/.test(densi
 // LIFE-05 recipe readiness modes
 ok("LIFE-05 scout-dossier mode", /scout-dossier/.test(readiness));
 ok("LIFE-05 recipe-draft mode", /recipe-draft/.test(readiness));
-ok("LIFE-05 teaching-package mode", /teaching-package/.test(readiness));
+ok("LIFE-05 teaching-package retired", !/teaching-package/.test(readiness));
 ok("LIFE-05 assessRecipeReadiness", /export function assessRecipeReadiness/.test(readiness));
 ok("LIFE-05 withRecipeReadiness", /export function withRecipeReadiness/.test(readiness));
 ok("LIFE-05 pipeline attaches readiness", /withRecipeReadiness/.test(pipe));

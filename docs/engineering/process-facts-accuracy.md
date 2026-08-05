@@ -66,8 +66,6 @@ Single-route dossiers still get a plant scouting panel (BOM, equipment, conditio
 | `scout-dossier` | Default — evidence map + leads; AI may outline but not claim plant recipe |
 | `recipe-draft` | `process-recipe` framing + no blockers + enough procedure chars |
 
-(`teaching-package` retired with mock catalogs — never returned for live densify.)
-
 UI: `RecipeReadinessPanel` — missing checklist with how-to-densify hints.
 
 ## Procedure densification (free public)

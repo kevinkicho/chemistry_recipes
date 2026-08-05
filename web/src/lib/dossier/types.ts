@@ -360,7 +360,7 @@ export interface LiveDossier {
   procedureExcerpts?: ProcedureExcerpt[];
   /** process-recipe vs evidence-lead-pack framing for UI */
   processFraming?: import("@/lib/dossier/processFacts").ProcessFraming;
-  /** Scout vs recipe-draft product mode (teaching-package retired) */
+  /** Scout vs recipe-draft product mode */
   productMode?: import("@/lib/dossier/recipeReadiness").ProductMode;
   /** Gaps that block a credible manufacturing recipe draft */
   recipeReadiness?: import("@/lib/dossier/recipeReadiness").RecipeReadiness;

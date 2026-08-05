@@ -97,14 +97,9 @@ export async function searchProblemFirstMulti(
     };
   }
 
+  // Static mock problem hits retired — always empty
   const localHits = searchProblemFirst(q, limit);
-  const sourceStatus: ProblemMultiSearchResult["sourceStatus"] = [
-    {
-      source: "local",
-      ok: localHits.length > 0,
-      hitCount: localHits.length,
-    },
-  ];
+  const sourceStatus: ProblemMultiSearchResult["sourceStatus"] = [];
 
   const [multi, epmc, oalex, s2, pubmed, arxiv] = await Promise.allSettled([
     multiSourceSearch(q, Math.min(8, limit)),

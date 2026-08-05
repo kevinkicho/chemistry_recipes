@@ -58,10 +58,7 @@ export type IdealPageParity = {
   filledCount: number;
   totalCount: number;
   summary: string;
-  /** @deprecated unused — no mock hub twins */
-  hubExampleId?: string;
-  hubExampleHref?: string;
-  /** Legacy mock route still present on preferred path (should densify away) */
+  /** True when preferred route still carries retired mock/teaching labels */
   preferredIsTeaching: boolean;
   /** North-star product statement */
   goal: string;
@@ -510,8 +507,8 @@ export function assessIdealPageParity(dossier: LiveDossier): IdealPageParity {
     score >= 75
       ? `Near ideal depth (${score}/100) — still educational, not GMP.`
       : score >= 50
-        ? `Mid-path to curated ideal (${score}/100). Strengthen: ${weak.join(", ") || "—"}.`
-        : `Early scout vs curated ideal (${score}/100). Priority: ${weak.join(", ") || "process recipe"}.`;
+        ? `Mid densify depth (${score}/100). Strengthen: ${weak.join(", ") || "—"}.`
+        : `Early scout densify (${score}/100). Priority: ${weak.join(", ") || "process recipe"}.`;
 
   return {
     score,
@@ -519,8 +516,6 @@ export function assessIdealPageParity(dossier: LiveDossier): IdealPageParity {
     filledCount,
     totalCount,
     summary,
-    hubExampleId: undefined,
-    hubExampleHref: undefined,
     preferredIsTeaching,
     goal: GOAL,
   };

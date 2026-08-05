@@ -43,9 +43,12 @@ ok("tierABaseline.ts deleted", !exists("lib/dossier/tierABaseline.ts"));
 ok("ExampleDossierView deleted", !exists("components/ExampleDossierView.tsx"));
 ok("ForShowBanner deleted", !exists("components/ForShowBanner.tsx"));
 
-const hub = read("lib/data/hubIndex.ts");
-ok("HUB_INDEX empty", /HUB_INDEX:\s*HubIndexEntry\[\]\s*=\s*\[\]/.test(hub));
-ok("findHubByCid always undefined", /return undefined/.test(hub));
+ok("hubIndex.ts deleted", !exists("lib/data/hubIndex.ts"));
+ok("searchLocalIndex.ts deleted", !exists("lib/data/searchLocalIndex.ts"));
+ok(
+  "pubchem has no local hub resolve",
+  !/resolveLocalSearchHits|resolveLocalHubCids/.test(read("lib/api/pubchem.ts"))
+);
 
 const pipe = read("lib/dossier/pipeline.ts");
 ok("pipeline does not apply tier-A baseline", !/applyTierABaseline/.test(pipe));

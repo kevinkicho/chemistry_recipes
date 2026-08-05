@@ -6,9 +6,7 @@
 import { fetchPubChemAutocomplete } from "@/lib/api/pubchemAutocomplete";
 import { fetchRxNormByName } from "@/lib/api/rxnorm";
 import { fetchOpenFdaByName } from "@/lib/api/openFda";
-import { resolveLocalSearchHits } from "@/lib/data/searchLocalIndex";
 import type { SuggestItem } from "@/lib/data/suggestions";
-import { routes } from "@/lib/routes";
 
 export interface MultiSourceSuggestResult {
   schema: "chemistry-recipes.multi-source-suggest.v1";
@@ -47,18 +45,6 @@ export async function multiSourceSuggest(
     if (!key || seen.has(key)) return;
     seen.add(key);
     out.push(item);
-  }
-
-  // Local resolve stub (always empty — live APIs only)
-  const local = resolveLocalSearchHits(q, 6);
-  if (local.length) sourcesUsed.push("local");
-  for (const h of local) {
-    push({
-      value: h.name,
-      detail: `Local · CID ${h.cid}${h.cas ? ` · ${h.cas}` : ""}`,
-      kind: "local",
-      href: routes.pubchem(h.cid),
-    });
   }
 
   // PubChem autocomplete (browser-friendly; also used server-side)

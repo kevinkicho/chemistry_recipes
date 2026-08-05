@@ -54,7 +54,6 @@ export async function POST() {
   return NextResponse.json({
     endpoint: "GET /api/search/multi?q=aspirin&limit=16",
     sources: [
-      "local",
       "pubchem",
       "chembl",
       "chebi",

@@ -5,8 +5,8 @@
 
 export interface ProjectItem {
   id: string;
-  /** Live PubChem CID only; "example" kept for legacy localStorage only */
-  kind: "live-cid" | "example";
+  /** Live PubChem CID pins only */
+  kind: "live-cid";
   /** PubChem CID string */
   ref: string;
   label: string;
@@ -164,14 +164,15 @@ export function importProject(raw: unknown): { ok: true; project: WorkspaceProje
     for (const it of itemsIn) {
       if (!it || typeof it !== "object") continue;
       const i = it as Record<string, unknown>;
-      const kind = i.kind === "example" ? "example" : i.kind === "live-cid" ? "live-cid" : null;
+      // Live CID pins only — skip retired example/mock refs
+      if (i.kind !== "live-cid") continue;
       const ref = typeof i.ref === "string" ? i.ref.trim() : "";
       const label = typeof i.label === "string" ? i.label.trim() : "";
       const href = typeof i.href === "string" ? i.href.trim() : "";
-      if (!kind || !ref || !label || !href) continue;
+      if (!ref || !label || !href) continue;
       items.push({
         id: uid(),
-        kind,
+        kind: "live-cid",
         ref,
         label,
         href,

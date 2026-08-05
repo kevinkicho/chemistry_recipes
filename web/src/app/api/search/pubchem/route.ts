@@ -26,7 +26,6 @@ export async function GET(req: Request) {
     q,
     hits: result.hits,
     failure: result.failure ?? null,
-    usedLocalFallback: result.usedLocalFallback ?? false,
     traceCount: result.traces.length,
     ok: result.hits.length > 0 || !result.failure,
   });

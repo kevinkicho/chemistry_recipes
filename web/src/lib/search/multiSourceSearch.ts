@@ -20,11 +20,9 @@ import { searchCrossrefProcess } from "@/lib/api/crossref";
 import { searchSemanticScholarProcess } from "@/lib/api/semanticScholar";
 import { searchPubMedProcess } from "@/lib/api/pubmed";
 import { searchArxivProcess } from "@/lib/api/arxiv";
-import { resolveLocalSearchHits } from "@/lib/data/searchLocalIndex";
 import type { ApiFetchTrace } from "@/lib/api/trace";
 
 export type MultiSourceId =
-  | "local"
   | "pubchem"
   | "chembl"
   | "chebi"
@@ -261,30 +259,6 @@ export async function multiSourceSearch(
   const map = new Map<string, MultiSourceHit>();
   const sourceStatus: MultiSourceSearchResult["sourceStatus"] = [];
   const traces: ApiFetchTrace[] = [];
-
-  // Local catalog first
-  const local = resolveLocalSearchHits(q, limit);
-  for (const h of local) {
-    mergeHit(map, {
-      cid: h.cid,
-      name: h.name,
-      cas: h.cas,
-      sources: [
-        {
-          source: "local",
-          label: "Local resolve",
-          externalId: String(h.cid),
-        },
-      ],
-      score: 50,
-      openable: true,
-    });
-  }
-  sourceStatus.push({
-    source: "local",
-    ok: local.length > 0,
-    hitCount: local.length,
-  });
 
   // Parallel free-public sources (bounded timeouts via each client)
   const tasks = await Promise.allSettled([

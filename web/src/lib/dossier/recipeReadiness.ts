@@ -4,15 +4,13 @@
  * Modes:
  * - scout-dossier: always valid; identity + evidence map
  * - recipe-draft: only when process-fact density supports process-recipe framing
- *
- * (teaching-package retired with mock catalogs — live densify only)
  */
 
 import type { LiveDossier } from "@/lib/dossier/types";
 import type { CompoundEvidence } from "@/lib/dossier/types";
 import type { ProcessFactBundle } from "@/lib/dossier/processFacts";
 
-export type ProductMode = "scout-dossier" | "recipe-draft" | "teaching-package";
+export type ProductMode = "scout-dossier" | "recipe-draft";
 
 export type RecipeGapSeverity = "blocker" | "major" | "minor";
 
@@ -29,7 +27,7 @@ export interface RecipeReadiness {
   mode: ProductMode;
   /** 0–100 heuristic for how close we are to a recipe draft */
   score: number;
-  framing: ProcessFactBundle["framing"] | "teaching";
+  framing: ProcessFactBundle["framing"];
   gaps: RecipeGap[];
   strengths: string[];
   summary: string;
@@ -66,12 +64,8 @@ export function assessRecipeReadiness(
     | "view"
     | "annotations"
     | "identity"
-  >,
-  opts?: { teachingPackage?: boolean }
+  >
 ): RecipeReadiness {
-  // teachingPackage path retired — always assess from free-public densify evidence
-  void opts?.teachingPackage;
-
   const pf = evidence.processFacts;
   const framing = pf?.framing || "evidence-lead-pack";
   const cond = pf?.sourcedConditionCount ?? 0;

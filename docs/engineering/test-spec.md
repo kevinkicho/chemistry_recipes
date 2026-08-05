@@ -81,7 +81,7 @@ Optional before release/deploy:
 | **LIFE-02** | Gather uses soft-fail so one API cannot abort the wave | `test-lifecycle`, `test-resilience` |
 | **LIFE-03** | Durable server evidence cache merge prefers denser excerpts | `test-lifecycle`, `test-resilience` |
 | **LIFE-04** | Densify pass triggers when procedure density thin | `test-lifecycle`, `test-densify-depth` |
-| **LIFE-05** | Recipe readiness modes: scout-dossier / recipe-draft (teaching-package retired) | `test-lifecycle` |
+| **LIFE-05** | Recipe readiness modes: scout-dossier / recipe-draft only | `test-lifecycle` |
 | **LIFE-06** | Client IndexedDB schema version ≥ 11; vault + dossier cache modules present | `test-lib-modules`, `test-resilience` |
 | **LIFE-07** | Live dossier mounts process panels + RecipeReadinessPanel | `test-lib-modules`, `test-plant-parity` |
 | **LIFE-08** | Force densify skips server evidence cache (`force=1` stream) | `test-densify-depth`, `test-lifecycle` |

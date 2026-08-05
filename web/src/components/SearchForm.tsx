@@ -13,7 +13,6 @@ import { fetchPubChemAutocomplete } from "@/lib/api/pubchemAutocomplete";
 import type { SuggestItem } from "@/lib/data/suggestions";
 import { pushSearchQuery, readHistory } from "@/lib/search-history";
 import { routes } from "@/lib/routes";
-import { resolveLocalSearchHits } from "@/lib/data/searchLocalIndex";
 
 const DEBOUNCE_MS = 280;
 const MAX_PUBCHEM = 8;
@@ -36,15 +35,6 @@ function recentHistorySuggestions(query: string): SuggestItem[] {
     if (out.length >= MAX_HISTORY) break;
   }
   return out;
-}
-
-function localSuggestItems(query: string): SuggestItem[] {
-  return resolveLocalSearchHits(query, 5).map((h) => ({
-    value: h.name,
-    detail: `Local hub · CID ${h.cid}`,
-    kind: "local" as const,
-    href: routes.pubchem(h.cid),
-  }));
 }
 
 function mergeSuggestionLists(
@@ -90,11 +80,10 @@ export function SearchForm({
     setQ(initialQuery);
   }, [initialQuery]);
 
-  // Debounced multi-source autocomplete: history + local + PubChem + server fan-out
+  // Debounced multi-source autocomplete: history + PubChem + server fan-out
   useEffect(() => {
     const qTrim = q.trim();
     const history = recentHistorySuggestions(qTrim);
-    const local = localSuggestItems(qTrim);
 
     // Empty field: history only
     if (qTrim.length < 2) {
@@ -106,7 +95,7 @@ export function SearchForm({
       return;
     }
 
-    // Numeric CID: local hint + optional history
+    // Numeric CID: direct open hint + history
     if (/^\d+$/.test(qTrim)) {
       abortRef.current?.abort();
       setLoading(false);
@@ -119,15 +108,15 @@ export function SearchForm({
         href: routes.pubchem(qTrim),
       };
       const rest = history.filter((h) => h.value !== qTrim);
-      setSuggestions([cidItem, ...rest, ...local].slice(0, MAX_HISTORY + 4));
+      setSuggestions([cidItem, ...rest].slice(0, MAX_HISTORY + 4));
       return;
     }
 
     setLoading(true);
     setSuggestError(null);
-    // Show history + local immediately while network loads
-    setSuggestions(mergeSuggestionLists(history, local));
-    setSuggestSources(local.length ? ["local", "history"] : ["history"]);
+    // Show history immediately while free-public APIs load
+    setSuggestions(mergeSuggestionLists(history));
+    setSuggestSources(history.length ? ["history"] : []);
 
     const timer = window.setTimeout(() => {
       abortRef.current?.abort();
@@ -162,7 +151,6 @@ export function SearchForm({
         }));
         const multiItems = multiRes?.suggestions || [];
         const sources = new Set<string>([
-          ...(local.length ? ["local"] : []),
           ...(history.length ? ["history"] : []),
           ...(pc.ok && pc.terms.length ? ["pubchem"] : []),
           ...(multiRes?.sourcesUsed || []),
@@ -173,9 +161,7 @@ export function SearchForm({
         } else {
           setSuggestError(null);
         }
-        setSuggestions(
-          mergeSuggestionLists(history, local, multiItems, pcItems)
-        );
+        setSuggestions(mergeSuggestionLists(history, multiItems, pcItems));
       })();
     }, DEBOUNCE_MS);
 

@@ -3,38 +3,21 @@
 import { useEffect, useState } from "react";
 import { MultiSourceResultCard } from "@/components/SearchResultCards";
 import { searchPubChemInBrowser } from "@/lib/api/pubchemBrowser";
-import { resolveLocalSearchHits } from "@/lib/data/searchLocalIndex";
 import type {
   MultiSourceHit,
   MultiSourceSearchResult,
 } from "@/lib/search/multiSourceSearch";
 
 /**
- * Search order (live free-public only — local index always empty):
+ * Search order (live free-public only):
  * 1) Browser → PubChem (user IP)
- * 2) Server multi-source fan-out (PubChem + ChEMBL + ChEBI + MyChem + RxNorm + GSRS + DrugCentral)
+ * 2) Server multi-source fan-out
  * 3) Server PubChem-only fallback
+ * 4) Numeric CID open card
  */
 export function SearchResults({ query }: { query: string }) {
   const q = query.trim();
-  const [hits, setHits] = useState<MultiSourceHit[]>(() =>
-    q
-      ? resolveLocalSearchHits(q, 10).map((h) => ({
-          cid: h.cid,
-          name: h.name,
-          cas: h.cas,
-          sources: [
-            {
-              source: "local" as const,
-              label: "Local resolve",
-              externalId: String(h.cid),
-            },
-          ],
-          score: 50,
-          openable: true,
-        }))
-      : []
-  );
+  const [hits, setHits] = useState<MultiSourceHit[]>([]);
   const [loading, setLoading] = useState(Boolean(q));
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -52,29 +35,11 @@ export function SearchResults({ query }: { query: string }) {
       return;
     }
 
-    const local = resolveLocalSearchHits(q, 10).map((h) => ({
-      cid: h.cid,
-      name: h.name,
-      cas: h.cas,
-      sources: [
-        {
-          source: "local" as const,
-          label: "Local hub / package",
-          externalId: String(h.cid),
-        },
-      ],
-      score: 50,
-      openable: true,
-    }));
-    setHits(local);
+    setHits([]);
     setLoading(true);
     setError(null);
     setSourceStatus([]);
-    setNote(
-      local.length
-        ? "Searching free-public sources (PubChem + multi-API)…"
-        : "Multi-source free-public search…"
-    );
+    setNote("Multi-source free-public search…");
 
     const ac = new AbortController();
     const t = window.setTimeout(() => ac.abort(), 45_000);
@@ -159,7 +124,6 @@ export function SearchResults({ query }: { query: string }) {
               cas?: string;
               inchiKey?: string;
             }>;
-            usedLocalFallback?: boolean;
           };
           const next = data.hits ?? [];
           if (next.length > 0) {
@@ -183,22 +147,9 @@ export function SearchResults({ query }: { query: string }) {
               }))
             );
             setError(null);
-            setNote(
-              data.usedLocalFallback
-                ? "Showing catalog matches (PubChem busy). Cards open live dossiers."
-                : "PubChem-only results (multi-source empty)."
-            );
+            setNote("PubChem-only results (multi-source empty).");
             return;
           }
-        }
-
-        if (local.length > 0) {
-          setHits(local);
-          setError(null);
-          setNote(
-            "Live multi-source search thin — showing known catalog CIDs."
-          );
-          return;
         }
 
         if (/^\d+$/.test(q)) {
@@ -232,11 +183,7 @@ export function SearchResults({ query }: { query: string }) {
         setNote(null);
       } catch (e) {
         if (e instanceof Error && e.name === "AbortError") {
-          if (local.length) {
-            setHits(local);
-            setNote("Search timed out — showing known catalog matches.");
-            setError(null);
-          } else if (/^\d+$/.test(q)) {
+          if (/^\d+$/.test(q)) {
             setHits([
               {
                 cid: Number(q),
@@ -257,10 +204,6 @@ export function SearchResults({ query }: { query: string }) {
           } else {
             setError("Search timed out. Try a CID or retry shortly.");
           }
-        } else if (local.length) {
-          setHits(local);
-          setNote("Live search failed — showing known catalog matches.");
-          setError(null);
         } else {
           setError(e instanceof Error ? e.message : "Search failed");
         }

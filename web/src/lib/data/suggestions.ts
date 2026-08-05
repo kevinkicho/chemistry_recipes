@@ -4,7 +4,6 @@ export type SuggestKind =
   | "history"
   | "pubchem"
   | "cid"
-  | "local"
   | "rxnorm"
   | "openfda"
   | "chembl"

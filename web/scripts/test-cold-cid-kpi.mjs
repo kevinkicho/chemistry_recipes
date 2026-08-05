@@ -68,15 +68,12 @@ ok("Live Science lab progressive", /Science lab · frontier|collapseScienceLab|a
 ok("Diagnostics ColdCidKpiPanel", /ColdCidKpiPanel/.test(read("app/diagnostics/page.tsx")));
 ok("Workspace MSAT campaign first", /MSAT primary path|campaigns/.test(read("app/workspace/page.tsx")));
 
-// No mock hub entries for cold CIDs
-const hub = read("lib/data/hubIndex.ts");
-ok("HUB_INDEX empty array", /HUB_INDEX:\s*HubIndexEntry\[\]\s*=\s*\[\]/.test(hub));
-for (const cid of [44205240, 49831257, 46188928]) {
-  ok(
-    `cold CID ${cid} not in hubIndex`,
-    !new RegExp(`pubchemCid:\\s*${cid}\\b`).test(hub)
-  );
-}
+// No mock hub module (live densify only)
+ok("hubIndex.ts deleted", !existsSync(join(src, "lib/data/hubIndex.ts")));
+ok(
+  "searchLocalIndex.ts deleted",
+  !existsSync(join(src, "lib/data/searchLocalIndex.ts"))
+);
 
 const BASE = process.env.BASE_URL || process.env.APPHOSTING_URL || "";
 if (BASE) {
