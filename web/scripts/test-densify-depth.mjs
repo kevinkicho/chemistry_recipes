@@ -174,4 +174,13 @@ for (const m of densifyMods) {
   ok(`DENS-mod ${m}`, exists(m));
 }
 
+const densifySched = read("components/DensifySchedulePanel.tsx");
+ok("DENS-12 densify schedule warms via warmLiveDossier", /warmLiveDossier/.test(densifySched));
+ok(
+  "DENS-12 densify schedule does not mark warmed on null stream",
+  /if \(!d\)/.test(densifySched) &&
+    /markDensifyWarmed/.test(densifySched) &&
+    /Warm failed for CID/.test(densifySched)
+);
+
 console.log(`\n${passed} densify-depth checks passed`);

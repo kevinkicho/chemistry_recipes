@@ -166,6 +166,7 @@ Optional before release/deploy:
 | **DENS-05** | Literature depth ranks procedure windows | `test-densify-depth` |
 | **DENS-06** | AI evidence package prioritizes densify windows | `test-densify-depth`, `test-prompt-qc` |
 | **DENS-07** | Client enrich reuses harvested excerpts | `test-densify-depth` |
+| **DENS-12** | Densify schedule does not mark warmed when stream returns no dossier | `test-densify-depth`, `test-product-path` |
 
 ### J. Navigation & leave-page abort
 
@@ -195,6 +196,7 @@ Optional before release/deploy:
 | **SEARCH-10** | Prefixed paste IDs (InChIKey=/CID/CAS/UNII/URL) normalize; InChIKey/CID skip name fan-out | `test-search-contracts` |
 | **SEARCH-11** | SMILES/InChI label prefixes (Canonical SMILES:, InChI:) normalize; compare warms prefixed CID/URL | `test-search-contracts` |
 | **SEARCH-12** | Wikipedia CAS Number/No./CAS-RN labels and PubChem name-slug URLs normalize (not SMILES) | `test-search-contracts` |
+| **SEARCH-13** | Compare/densify warm reports stream fail instead of claiming complete | `test-search-contracts`, `test-product-path`, `test-densify-depth` |
 
 ### L. Diagnostics honesty
 

@@ -13,6 +13,7 @@ import {
   slugifyName,
 } from "@/lib/export/techTransfer";
 import { TechTransferExport } from "@/components/TechTransferExport";
+import { formatCompareWarmStatus } from "@/lib/dossier/compareWarmStatus";
 import { warmLiveDossier } from "@/lib/dossier/warmCache";
 import { CompareMsatBoard } from "@/components/CompareMsatBoard";
 import {
@@ -78,33 +79,45 @@ function CompareInner() {
   }
 
   async function warmBoth(force = false) {
-    const cids: number[] = [];
-    if (resA?.kind === "cid") cids.push(resA.cid);
-    if (resB?.kind === "cid") cids.push(resB.cid);
-    if (!cids.length) {
+    const jobs: Array<{ side: "A" | "B"; cid: number }> = [];
+    if (resA?.kind === "cid") jobs.push({ side: "A", cid: resA.cid });
+    if (resB?.kind === "cid") jobs.push({ side: "B", cid: resB.cid });
+    if (!jobs.length) {
       alert("Enter a PubChem CID on at least one side. Molecule names open live search; they do not warm a dossier.");
       return;
     }
     setWarming(true);
     setStatus("Warming live dossiers…");
     try {
-      const results = await Promise.all(
-        cids.map((cid) =>
-          warmLiveDossier(cid, {
+      const outcomes = await Promise.all(
+        jobs.map(async (job) => {
+          let lastStatus = "";
+          const d = await warmLiveDossier(job.cid, {
             force,
-            onStatus: (s) => setStatus(s),
-          })
+            onStatus: (s) => {
+              lastStatus = s;
+              setStatus(s);
+            },
+          });
+          return { ...job, dossier: d, lastStatus };
+        })
+      );
+      for (const o of outcomes) {
+        if (o.dossier) {
+          if (o.side === "A") setDossierA(o.dossier);
+          else setDossierB(o.dossier);
+        }
+      }
+      setStatus(
+        formatCompareWarmStatus(
+          outcomes.map((o) => ({
+            side: o.side,
+            cid: o.cid,
+            ok: Boolean(o.dossier),
+            lastStatus: o.lastStatus,
+          }))
         )
       );
-      if (resA?.kind === "cid") {
-        const d = results[cids.indexOf(resA.cid)] || null;
-        if (d) setDossierA(d);
-      }
-      if (resB?.kind === "cid") {
-        const d = results[cids.indexOf(resB.cid)] || null;
-        if (d) setDossierB(d);
-      }
-      setStatus("Warm complete — dual export ready when both sides loaded.");
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Warm failed");
     } finally {
@@ -114,7 +127,7 @@ function CompareInner() {
 
   function exportBoth() {
     if (!dossierA && !dossierB) {
-      alert("Warm or open both live dossiers first.");
+      alert("Warm or open a live CID dossier first.");
       return;
     }
     const pack = {

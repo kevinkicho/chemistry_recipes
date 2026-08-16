@@ -48,6 +48,21 @@ async function loadQueryKind() {
   return import(pathToFileURL(out).href);
 }
 
+async function loadCompareWarm() {
+  const srcFile = path.join(src, "lib/dossier/compareWarmStatus.ts");
+  const source = fs.readFileSync(srcFile, "utf8");
+  const { outputText } = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+    },
+    fileName: srcFile,
+  });
+  const out = path.join(tmpdir(), `compareWarm-${process.pid}.mjs`);
+  fs.writeFileSync(out, outputText, "utf8");
+  return import(pathToFileURL(out).href);
+}
+
 console.log("test-search-contracts");
 
 // Modules
@@ -466,6 +481,57 @@ ok(
   "SEARCH-12 SearchForm name autocomplete uses normalized query",
   /fetchPubChemAutocomplete\(qNorm/.test(form) &&
     /encodeURIComponent\(qNorm\)/.test(form)
+);
+
+ok(
+  "SEARCH-13 compare uses formatCompareWarmStatus",
+  /formatCompareWarmStatus/.test(comparePage) &&
+    /ok: Boolean\(o\.dossier\)/.test(comparePage)
+);
+ok(
+  "SEARCH-13 compare does not claim warm complete unconditionally",
+  !/Warm complete — dual export ready when both sides loaded/.test(comparePage)
+);
+ok(
+  "SEARCH-13 compare export alert matches one-or-both behavior",
+  /Warm or open a live CID dossier first/.test(comparePage) &&
+    !/Warm or open both live dossiers first/.test(comparePage)
+);
+
+const cw = await loadCompareWarm();
+ok(
+  "SEARCH-13 both sides ok",
+  cw.formatCompareWarmStatus([
+    { side: "A", cid: 2244, ok: true },
+    { side: "B", cid: 3672, ok: true },
+  ]) === "Warm complete — both sides loaded, dual export ready."
+);
+ok(
+  "SEARCH-13 stream fail is not complete",
+  /Warm failed/.test(
+    cw.formatCompareWarmStatus([
+      { side: "A", cid: 2244, ok: false, lastStatus: "Stream failed HTTP 503" },
+    ])
+  ) &&
+    /503/.test(
+      cw.formatCompareWarmStatus([
+        { side: "A", cid: 2244, ok: false, lastStatus: "Stream failed HTTP 503" },
+      ])
+    ) &&
+    !/dual export ready/.test(
+      cw.formatCompareWarmStatus([
+        { side: "A", cid: 2244, ok: false, lastStatus: "Stream failed HTTP 503" },
+      ])
+    )
+);
+ok(
+  "SEARCH-13 partial warm reports fail",
+  /Warm partial/.test(
+    cw.formatCompareWarmStatus([
+      { side: "A", cid: 2244, ok: true },
+      { side: "B", cid: 3672, ok: false, lastStatus: "Stream failed CID 3672" },
+    ])
+  )
 );
 
 console.log(`\n${passed} search-contract checks passed`);
