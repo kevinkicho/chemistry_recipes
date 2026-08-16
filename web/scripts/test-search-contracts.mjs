@@ -1731,4 +1731,22 @@ ok(
     !sectionH.isProcessFactTrace(identityUrl) &&
     !sectionH.isProcessFactTrace(chemblUrl)
 );
+const operatorJobAid = read("components/OperatorJobAid.tsx");
+ok(
+  "PROV-21 operator-job-aid chips use process-fact traces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(operatorJobAid) &&
+    /isProcessFactSourceRef/.test(operatorJobAid) &&
+    /field="Operator job aid"/.test(operatorJobAid) &&
+    /traces=\{traces\}/.test(operatorJobAid) &&
+    /sourceRefs=\{sourceRefs\}/.test(operatorJobAid) &&
+    !/field="Operator job aid"[\s\S]{0,200}pubchemCid=/.test(operatorJobAid)
+);
+ok(
+  "PROV-21 leftover PubChem identity is not job-aid HTTP",
+  sectionH.isProcessFactTrace(litUrl) &&
+    sectionH.isProcessFactTrace(ghsUrl) &&
+    sectionH.isProcessFactTrace(mfgUrl) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isProcessFactTrace(chemblUrl)
+);
 console.log(`\n${passed} search-contract checks passed`);
