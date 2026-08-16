@@ -12,12 +12,34 @@ export type ChemicalQueryKind =
   | "smiles"
   | "name";
 
+/** Drop Wikipedia/PubChem footnote markers from an extracted identifier. */
+function stripTrailingCite(s: string): string {
+  return s.replace(/\s*\[\d+\]\s*$/, "").trim();
+}
+
+/** InChI bodies often pick up wrapping spaces/newlines from tables. */
+function compactIfInchi(s: string): string {
+  const t = stripTrailingCite(s.trim());
+  const compact = t.replace(/\s+/g, "");
+  if (/^InChI=1S?\//i.test(compact)) return compact;
+  return t;
+}
+
+function decodeUrlPart(raw: string): string {
+  try {
+    return decodeURIComponent(raw.replace(/\+/g, " ")).trim();
+  } catch {
+    return raw.replace(/\+/g, " ").trim();
+  }
+}
+
 /**
  * Strip copy-paste wrappers so advertised identifiers resolve as written.
  * PubChem/Wikipedia often prefix InChIKey=, CID / Compound CID, CAS RN / CAS Number[n], UNII,
- * Canonical/Isomeric SMILES, and InChI labels. Equals-sign forms (CID=2244, CAS=50-78-2)
- * must not be classified as SMILES. PubChem /compound/ slugs, #query=, and Wikipedia /wiki/
- * titles extract the identifier or name.
+ * Canonical/Isomeric SMILES, Standard InChI / StdInChI, ChEBI, EC Number, and DOI.
+ * Equals-sign forms (CID=2244, CAS=50-78-2) must not be classified as SMILES.
+ * PubChem /compound/ slugs, #query=, Wikipedia /wiki/, doi.org, and ChEBI URLs
+ * extract the identifier or name. InChI wrapping spaces are compacted.
  */
 export function normalizeChemicalQuery(q: string): string {
   let s = q.trim();
@@ -34,12 +56,7 @@ export function normalizeChemicalQuery(q: string): string {
     /(?:https?:\/\/)?(?:www\.)?pubchem\.ncbi\.nlm\.nih\.gov\/compound\/([^/?#]+)/i
   );
   if (urlCompound) {
-    let slug = urlCompound[1];
-    try {
-      slug = decodeURIComponent(slug.replace(/\+/g, " ")).trim();
-    } catch {
-      slug = slug.replace(/\+/g, " ").trim();
-    }
+    const slug = decodeUrlPart(urlCompound[1]);
     if (slug) return slug;
   }
 
@@ -47,12 +64,7 @@ export function normalizeChemicalQuery(q: string): string {
     /(?:https?:\/\/)?(?:www\.)?pubchem\.ncbi\.nlm\.nih\.gov\/?(?:index\.html)?#query=([^&#]+)/i
   );
   if (urlQuery) {
-    let qv = urlQuery[1];
-    try {
-      qv = decodeURIComponent(qv.replace(/\+/g, " ")).trim();
-    } catch {
-      qv = qv.replace(/\+/g, " ").trim();
-    }
+    const qv = decodeUrlPart(urlQuery[1]);
     if (qv) return normalizeChemicalQuery(qv);
   }
 
@@ -60,15 +72,22 @@ export function normalizeChemicalQuery(q: string): string {
     /(?:https?:\/\/)?(?:[\w-]+\.)*wikipedia\.org\/wiki\/([^/?#]+)/i
   );
   if (wiki) {
-    let title = wiki[1];
-    try {
-      title = decodeURIComponent(title.replace(/\+/g, " ")).trim();
-    } catch {
-      title = title.replace(/\+/g, " ").trim();
-    }
+    let title = decodeUrlPart(wiki[1]);
     title = title.replace(/_/g, " ");
     if (title) return title;
   }
+
+  const doiUrl = s.match(
+    /(?:https?:\/\/)?(?:dx\.)?doi\.org\/(10\.\d{4,}\/\S+)/i
+  );
+  if (doiUrl) {
+    return doiUrl[1].replace(/[)\].,;]+$/, "");
+  }
+
+  const chebiUrl = s.match(
+    /(?:https?:\/\/)?(?:www\.)?ebi\.ac\.uk\/chebi\/(?:searchId\.do\?chebiId=)?(?:CHEBI[:_])?(\d+)/i
+  );
+  if (chebiUrl) return `CHEBI:${chebiUrl[1]}`;
 
   const cid = s.match(
     /^(?:pubchem\s+)?(?:compound\s+)?cid\s*[=:#]?\s*(\d+)$/i
@@ -76,7 +95,7 @@ export function normalizeChemicalQuery(q: string): string {
   if (cid) return cid[1];
 
   const ik = s.match(
-    /^(?:inchi\s*key|inchikey)\s*[=:]?\s*([A-Za-z]{14}-[A-Za-z]{10}-[A-Za-z])$/i
+    /^(?:(?:standard|std\.?)\s+)?(?:inchi\s*key|inchikey|stdinchikey)(?:\s*\[\d+\])?\s*[=:]?\s*([A-Za-z]{14}-[A-Za-z]{10}-[A-Za-z])(?:\s*\[\d+\])?$/i
   );
   if (ik) return ik[1];
 
@@ -98,16 +117,26 @@ export function normalizeChemicalQuery(q: string): string {
   );
   if (smilesLabeled) return smilesLabeled[1];
 
-  // "InChI: InChI=1S/..." — do not strip the InChI=1S/ body itself.
-  const inchiLabeled = s.match(/^(?:inchi)\s*[=:]\s*(InChI=1S?\/.+)$/i);
-  if (inchiLabeled) return inchiLabeled[1];
+  // "Standard InChI: InChI=1S/..." / "StdInChI InChI=1S/..." — keep the InChI=1S/ body.
+  const inchiLabeled = s.match(
+    /^(?:(?:standard|std\.?)\s+)?(?:inchi|stdinchi)(?:\s*\[\d+\])?\s*[=:]?\s*(InChI=1S?\/.+)$/i
+  );
+  if (inchiLabeled) return compactIfInchi(inchiLabeled[1]);
 
-  const compact = s.replace(/\s+/g, "");
-  if (/^InChI=1S?\//i.test(compact) && compact !== s) {
-    return compact;
-  }
+  const chebi = s.match(
+    /^(?:chebi(?:\s*id)?|chebi\s*id)(?:\s*\[\d+\])?\s*[=:#]?\s*(?:chebi[:_])?(\d+)$/i
+  );
+  if (chebi) return `CHEBI:${chebi[1]}`;
 
-  return s;
+  const ec = s.match(
+    /^(?:european\s+community\s+\(ec\)\s+number|ec(?:\s*(?:no\.?|numbers?|id))?|einecs)(?:\s*\[\d+\])?\s*[=:#]?\s*(\d{2,7}-\d{2,3}-\d|\d+(?:\.\d+){2,3})$/i
+  );
+  if (ec) return ec[1];
+
+  const doiPref = s.match(/^(?:doi)\s*[=:]?\s*(10\.\d{4,}\/\S+)$/i);
+  if (doiPref) return doiPref[1].replace(/[)\].,;]+$/, "");
+
+  return compactIfInchi(s);
 }
 
 export function looksLikeCas(q: string): boolean {
@@ -125,6 +154,16 @@ export function looksLikeInchi(q: string): boolean {
 
 export function looksLikeUnii(q: string): boolean {
   return /^[A-Z0-9]{10}$/i.test(q.trim()) && !/^\d+$/.test(q.trim());
+}
+
+/** Crossref/DOI paste — slashes must not look like SMILES. */
+export function looksLikeDoi(q: string): boolean {
+  return /^10\.\d{4,}\/\S+$/i.test(q.trim());
+}
+
+/** ChEBI ontology id after prefix/URL normalize. */
+export function looksLikeChebi(q: string): boolean {
+  return /^CHEBI:\d+$/i.test(q.trim());
 }
 
 /** Numbered organic names: "2-propanol", "1,3-butadiene", "4-aminophenol". */
@@ -153,7 +192,7 @@ export function looksLikeMolecularFormula(q: string): boolean {
   return true;
 }
 
-/** Structured SMILES — not numbered names, formulas, or other identifier kinds. */
+/** Structured SMILES — not numbered names, formulas, DOI, or other identifier kinds. */
 export function looksLikeSmiles(q: string): boolean {
   const s = q.trim();
   if (s.length < 2 || s.length > 500) return false;
@@ -164,6 +203,8 @@ export function looksLikeSmiles(q: string): boolean {
     looksLikeInchiKey(s) ||
     looksLikeInchi(s) ||
     looksLikeUnii(s) ||
+    looksLikeDoi(s) ||
+    looksLikeChebi(s) ||
     looksLikeNumberedChemicalName(s) ||
     looksLikeMolecularFormula(s)
   ) {
@@ -183,6 +224,7 @@ export function classifyChemicalQuery(q: string): ChemicalQueryKind {
   if (looksLikeInchiKey(t)) return "inchikey";
   if (looksLikeInchi(t)) return "inchi";
   if (looksLikeUnii(t)) return "unii";
+  if (looksLikeDoi(t) || looksLikeChebi(t)) return "name";
   if (looksLikeSmiles(t)) return "smiles";
   return "name";
 }
@@ -247,6 +289,11 @@ export function resolveSearchSubmit(
     if (kind === "cid" && highlighted?.href) {
       return { value: q, href: highlighted.href };
     }
+    return { value: q };
+  }
+  // DOI / ChEBI / EC Number / URL pastes normalize to a name-shaped id.
+  // Do not let a leftover autocomplete highlight replace the pasted value.
+  if (q && q !== typed.trim()) {
     return { value: q };
   }
   if (highlighted?.value) {

@@ -616,4 +616,90 @@ ok(
     qk.normalizeChemicalQuery("smiles") === "smiles"
 );
 
+ok(
+  "SEARCH-15 Standard InChI / StdInChI labels compact to InChI (not name/SMILES)",
+  qk.normalizeChemicalQuery("Standard InChI: " + aspirinInchi) === aspirinInchi &&
+    qk.classifyChemicalQuery("Standard InChI: " + aspirinInchi) === "inchi" &&
+    qk.classifyChemicalQuery("StdInChI: " + aspirinInchi) === "inchi" &&
+    qk.classifyChemicalQuery("Std. InChI " + aspirinInchi) === "inchi" &&
+    !qk.looksLikeSmiles(qk.normalizeChemicalQuery("Standard InChI: " + aspirinInchi))
+);
+ok(
+  "SEARCH-15 Standard InChIKey / StdInChIKey labels",
+  qk.normalizeChemicalQuery("Standard InChIKey: " + aspirinKey) === aspirinKey &&
+    qk.classifyChemicalQuery("Standard InChIKey: " + aspirinKey) === "inchikey" &&
+    qk.classifyChemicalQuery("StdInChIKey: " + aspirinKey) === "inchikey" &&
+    qk.normalizeChemicalQuery("Std. InChIKey " + aspirinKey) === aspirinKey &&
+    qk.normalizeChemicalQuery("InChIKey: " + aspirinKey + "[1]") === aspirinKey
+);
+ok(
+  "SEARCH-15 InChI wrapping spaces and labeled body spaces compact",
+  qk.normalizeChemicalQuery(aspirinInchi.replace("C9H8O4", "C9H8O4 ")) ===
+    aspirinInchi &&
+    qk.classifyChemicalQuery("InChI: " + aspirinInchi.replace("/", "/ ")) ===
+      "inchi" &&
+    qk.normalizeChemicalQuery("InChI = 1S/CH4/h1H4") === "InChI=1S/CH4/h1H4" &&
+    qk.classifyChemicalQuery("InChI = 1S/CH4/h1H4") === "inchi"
+);
+ok(
+  "SEARCH-15 DOI and doi.org are names, not SMILES",
+  qk.normalizeChemicalQuery("https://doi.org/10.1038/nature12373") ===
+    "10.1038/nature12373" &&
+    qk.normalizeChemicalQuery("DOI: 10.1021/ja00001a001") ===
+      "10.1021/ja00001a001" &&
+    qk.classifyChemicalQuery("10.1038/nature12373") === "name" &&
+    qk.classifyChemicalQuery("https://dx.doi.org/10.1038/nchem.123") ===
+      "name" &&
+    qk.looksLikeDoi("10.1038/nature12373") &&
+    !qk.looksLikeSmiles("10.1038/nature12373") &&
+    !qk.looksLikeSmiles(
+      qk.normalizeChemicalQuery("https://doi.org/10.1038/nature12373")
+    ) &&
+    !qk.isStructureOnlyQuery(qk.classifyChemicalQuery("10.1038/nature12373"))
+);
+ok(
+  "SEARCH-15 ChEBI labels and EBI URLs normalize to CHEBI:n (not SMILES)",
+  qk.normalizeChemicalQuery("ChEBI:15365") === "CHEBI:15365" &&
+    qk.normalizeChemicalQuery("ChEBI ID: 15365") === "CHEBI:15365" &&
+    qk.normalizeChemicalQuery("CHEBI:CHEBI:15365") === "CHEBI:15365" &&
+    qk.normalizeChemicalQuery(
+      "https://www.ebi.ac.uk/chebi/searchId.do?chebiId=CHEBI:15365"
+    ) === "CHEBI:15365" &&
+    qk.classifyChemicalQuery("ChEBI ID: 15365") === "name" &&
+    qk.looksLikeChebi("CHEBI:15365") &&
+    !qk.looksLikeSmiles(qk.normalizeChemicalQuery("CHEBI:15365"))
+);
+ok(
+  "SEARCH-15 EC Number / EINECS labels are names, not CAS or SMILES",
+  qk.normalizeChemicalQuery("EC Number: 200-064-1") === "200-064-1" &&
+    qk.classifyChemicalQuery("EC Number: 200-064-1") === "name" &&
+    qk.classifyChemicalQuery("EINECS: 200-064-1") === "name" &&
+    qk.normalizeChemicalQuery("European Community (EC) Number: 200-064-1") ===
+      "200-064-1" &&
+    qk.normalizeChemicalQuery("EC:1.1.1.1") === "1.1.1.1" &&
+    qk.classifyChemicalQuery("EC 1.1.1.1") === "name" &&
+    !qk.looksLikeCas(qk.normalizeChemicalQuery("EC Number: 200-064-1")) &&
+    !qk.looksLikeSmiles(qk.normalizeChemicalQuery("EC Number: 200-064-1"))
+);
+ok(
+  "SEARCH-15 Standard InChI / DOI / ChEBI Enter submits normalized value",
+  qk.resolveSearchSubmit("Standard InChI: " + aspirinInchi, { value: "aspirin" })
+    .value === aspirinInchi &&
+    qk.resolveSearchSubmit("DOI: 10.1038/nature12373", null).value ===
+      "10.1038/nature12373" &&
+    qk.resolveSearchSubmit("ChEBI ID: 15365", { value: "aspirin" }).value ===
+      "CHEBI:15365" &&
+    qk.resolveSearchSubmit("EC Number: 200-064-1", { value: "aspirin" })
+      .value === "200-064-1"
+);
+ok(
+  "SEARCH-15 prior identifiers still classify after new prefixes",
+  qk.classifyChemicalQuery("CID=2244") === "cid" &&
+    qk.classifyChemicalQuery("CAS=50-78-2") === "cas" &&
+    qk.classifyChemicalQuery("smiles") === "name" &&
+    qk.classifyChemicalQuery("aspirin") === "name" &&
+    qk.classifyChemicalQuery(aspirinSmiles) === "smiles" &&
+    qk.classifyChemicalQuery("2-propanol") === "name"
+);
+
 console.log(`\n${passed} search-contract checks passed`);
