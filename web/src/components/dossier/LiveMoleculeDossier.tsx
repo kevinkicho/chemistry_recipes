@@ -321,6 +321,9 @@ export function LiveMoleculeDossier({
       t.endpointUrl
     )
   );
+  const ghsTraces = pugViewTraces.filter((t) =>
+    /GHS|Safety|Hazards/i.test(t.endpointUrl)
+  );
   const litRefs = dossier.sourceRefs.filter((r) => r.type === "literature");
   const patentRefsFromDossier = dossier.sourceRefs.filter((r) => r.type === "patent");
   const patentSourceRefs = [
@@ -1322,6 +1325,7 @@ export function LiveMoleculeDossier({
             aiAttempt={aiAttempt}
             pugViewTraces={pugViewTraces}
             pubchemTraces={pubchemTraces}
+            ghsTraces={ghsTraces}
             allTraces={traces}
             onRegenerate={onRegenerate}
           />
@@ -1334,7 +1338,7 @@ export function LiveMoleculeDossier({
                   title="EHS highlights"
                   field="EHS highlights"
                   pubchemCid={cid}
-                  traces={pubchemTraces}
+                  traces={ghsTraces}
                   sourceRefs={dossier.hazards.sourceRefs}
                   ai={aiEhs}
                   showAi={Boolean(aiEhs)}

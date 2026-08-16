@@ -335,6 +335,36 @@ ok(
     /includes\("patentsview"\)/.test(liveDossier)
 );
 
+ok(
+  "PROV-09 pubchem-view-ghs pred requires pug_view GHS/safety/hazards",
+  /"pubchem-view-ghs":[\s\S]{0,160}pug_view/.test(provLib) &&
+    /"pubchem-view-ghs":[\s\S]{0,220}ghs/.test(provLib) &&
+    /"pubchem-view-ghs":[\s\S]{0,280}safety/.test(provLib)
+);
+ok(
+  "PROV-09 unknown pubchem-* ids do not fall back to identity HTTP",
+  /startsWith\("pubchem-"\)/.test(provLib)
+);
+ok(
+  "PROV-09 live GHS traces filter Safety/Hazards headings",
+  /const ghsTraces = pugViewTraces\.filter/.test(liveDossier) &&
+    /GHS\|Safety\|Hazards/.test(liveDossier)
+);
+ok(
+  "PROV-09 live hazards provenance uses only ghsTraces",
+  /traces=\{ghsTraces\}/.test(aside) &&
+    /title="PubChem PUG View · GHS \/ hazards"/.test(aside)
+);
+ok(
+  "PROV-09 live hazards provenance does not fall back to identity traces",
+  !/GHS \/ hazards[\s\S]{0,200}pugViewTraces\.length \? pugViewTraces : pubchemTraces/.test(aside) &&
+    !/pugViewTraces\.length \? pugViewTraces : pubchemTraces[\s\S]{0,160}GHS \/ hazards/.test(aside)
+);
+ok(
+  "PROV-09 compact EHS uses ghsTraces not identity traces",
+  /traces=\{ghsTraces\}[\s\S]{0,80}sourceRefs=\{dossier\.hazards\.sourceRefs\}/.test(liveDossier)
+);
+
 const { createRequire } = await import("node:module");
 const { tmpdir } = await import("node:os");
 const { pathToFileURL } = await import("node:url");
@@ -462,6 +492,54 @@ ok(
       url: "https://pubchem.ncbi.nlm.nih.gov/compound/2244#section=Use-and-Manufacturing",
     },
     [propertyTrace]
+  ) == null
+);
+
+const ghsViewTrace = {
+  endpointUrl:
+    "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=GHS+Classification",
+  method: "GET",
+  fetchedAt: "2026-08-16T18:00:04.000Z",
+  httpStatus: 200,
+  responseBody: '{"Record":{}}',
+  ok: true,
+};
+const mixedWithGhs = [...mixedPubchem, ghsViewTrace];
+
+ok(
+  "PROV-09 GHS citation hydrates from GHS pug_view not property HTTP",
+  matchLive(
+    {
+      type: "api",
+      id: "pubchem-view-ghs:2244",
+      label: "PubChem PUG View · GHS / Safety",
+      url: "https://pubchem.ncbi.nlm.nih.gov/compound/2244#section=Safety-and-Hazards",
+    },
+    mixedWithGhs
+  )?.endpointUrl.includes("GHS")
+);
+ok(
+  "PROV-09 GHS citation stays unmatched without GHS pug_view",
+  matchLive(
+    {
+      type: "api",
+      id: "pubchem-view-ghs:2244",
+      label: "PubChem PUG View · GHS / Safety",
+      url: "https://pubchem.ncbi.nlm.nih.gov/compound/2244#section=Safety-and-Hazards",
+    },
+    mixedPubchem
+  ) == null
+);
+ok(
+  "PROV-09 unknown pubchem-spectra citation does not steal identity HTTP",
+  matchLive(
+    {
+      type: "api",
+      id: "pubchem-spectra:2244",
+      label: "PubChem spectra",
+      url: "https://pubchem.ncbi.nlm.nih.gov/compound/2244#section=Spectra",
+    },
+    mixedWithGhs
   ) == null
 );
 
