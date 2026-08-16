@@ -20,6 +20,12 @@ import { TierBadge } from "@/components/TierBadge";
 import { PubchemStructureImage } from "@/components/PubchemStructureImage";
 import type { LiveDossier } from "@/lib/dossier/types";
 import { slimTraces } from "@/lib/api/trace";
+import {
+  isCompoundPatentsHeadingTrace,
+  isIdentityOverviewSourceRef,
+  isIdentityOverviewTrace,
+  isLiteratureHeadingTrace,
+} from "@/lib/provenance";
 import { routes } from "@/lib/routes";
 import { Tooltip } from "@/components/Tooltip";
 import { ConfidenceBadge } from "@/components/ConfidenceBadge";
@@ -302,7 +308,9 @@ export function LiveMoleculeDossier({
 
   const litTraces = traces.filter(
     (t) =>
-      t.endpointUrl.includes("europepmc") || t.endpointUrl.includes("ebi.ac.uk/europepmc")
+      t.endpointUrl.includes("europepmc") ||
+      t.endpointUrl.includes("ebi.ac.uk/europepmc") ||
+      isLiteratureHeadingTrace(t.endpointUrl)
   );
   const patentTraces = traces.filter(
     (t) =>
@@ -310,6 +318,7 @@ export function LiveMoleculeDossier({
       t.endpointUrl.includes("search.patentsview.org") ||
       t.endpointUrl.toLowerCase().includes("patentid") ||
       t.endpointUrl.toLowerCase().includes("pug_view/data/patent/") ||
+      isCompoundPatentsHeadingTrace(t.endpointUrl) ||
       (t.endpointUrl.includes("europepmc") &&
         /patent|USPTO|process for preparing|method of manufacturing/i.test(
           decodeURIComponent(t.endpointUrl)
@@ -360,6 +369,10 @@ export function LiveMoleculeDossier({
       note: "NIH free public compound section",
     },
   ];
+  const identityTraces = traces.filter((t) =>
+    isIdentityOverviewTrace(t.endpointUrl)
+  );
+  const overviewSourceRefs = dossier.sourceRefs.filter(isIdentityOverviewSourceRef);
   const propertySourceRefs = [
     {
       type: "api" as const,
@@ -582,8 +595,8 @@ export function LiveMoleculeDossier({
                     title="Overview"
                     field="Overview"
                     pubchemCid={cid}
-                    traces={pubchemTraces}
-                    sourceRefs={dossier.sourceRefs}
+                    traces={identityTraces}
+                    sourceRefs={overviewSourceRefs}
                     ai={aiOverview}
                     showAi={Boolean(aiOverview)}
                     onRegenerate={onRegenerate}
@@ -808,8 +821,8 @@ export function LiveMoleculeDossier({
               <SectionTitle
                 field="Educational parameters"
                 pubchemCid={cid}
-                traces={pubchemTraces}
-                sourceRefs={dossier.sourceRefs}
+                traces={identityTraces}
+                sourceRefs={overviewSourceRefs}
                 ai={aiChip}
                 showAi={false}
                 onRegenerate={onRegenerate}
