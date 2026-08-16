@@ -522,7 +522,7 @@ export function extractProcessFacts(
       claim: h,
       quote: h,
       provenance: "ghs",
-      sourceId: `ghs:${evidence.cid}`,
+      sourceId: `pubchem-view-ghs:${evidence.cid}`,
       sourceLabel: "PubChem GHS",
       sourceUrl: `https://pubchem.ncbi.nlm.nih.gov/compound/${evidence.cid}#section=Safety-and-Hazards`,
       sourceScore: 40,

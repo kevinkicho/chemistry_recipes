@@ -6,6 +6,11 @@ import type { LiveDossier } from "@/lib/dossier/types";
 import type { ProcessFact } from "@/lib/dossier/processFacts";
 import { slimTraces } from "@/lib/api/trace";
 import type { SourceRef } from "@/lib/types/process";
+import {
+  isProcessFactSourceRef,
+  isProcessFactTrace,
+  tracesForProcessFactProvenance,
+} from "@/lib/dossier/sectionHonesty";
 
 const KIND_STYLE: Record<string, string> = {
   condition: "bg-teal-500/15 text-teal-200 ring-teal-500/30",
@@ -22,14 +27,13 @@ const KIND_STYLE: Record<string, string> = {
 
 function FactRow({
   fact,
-  pubchemCid,
   traces,
 }: {
   fact: ProcessFact;
-  pubchemCid?: number;
   traces?: ReturnType<typeof slimTraces>;
 }) {
   const isGap = fact.kind === "open-gap";
+  const familyTraces = tracesForProcessFactProvenance(traces, fact.provenance);
   const sourceRefs: SourceRef[] | undefined =
     fact.sourceUrl || fact.sourceLabel
       ? [
@@ -69,10 +73,9 @@ function FactRow({
             <p className={`text-xs ${isGap ? "text-slate-500" : "text-slate-200"}`}>
               {fact.claim}
             </p>
-            {!isGap && (sourceRefs?.length || pubchemCid) ? (
+            {!isGap && (sourceRefs?.length || familyTraces.length) ? (
               <ApiProvenance
-                pubchemCid={pubchemCid}
-                traces={traces}
+                traces={familyTraces}
                 sourceRefs={sourceRefs}
                 title={`Fact: ${fact.claim.slice(0, 80)}`}
                 label="API"
@@ -130,6 +133,8 @@ export function ProcessFactsPanel({
   const sourced = pf.facts.filter((f) => f.kind !== "open-gap");
   const gaps = pf.facts.filter((f) => f.kind === "open-gap");
   const traces = slimTraces(dossier.traces || []);
+  const factTraces = traces.filter((t) => isProcessFactTrace(t.endpointUrl));
+  const factSourceRefs = (dossier.sourceRefs || []).filter(isProcessFactSourceRef);
   const ai = dossier.synthesis.provenance;
 
   return (
@@ -146,8 +151,8 @@ export function ProcessFactsPanel({
             title="Public process facts"
             field="Process facts"
             pubchemCid={dossier.cid}
-            traces={traces}
-            sourceRefs={dossier.sourceRefs}
+            traces={factTraces}
+            sourceRefs={factSourceRefs}
             ai={ai}
             showAi={Boolean(ai)}
             onRegenerate={onRegenerate}
@@ -175,7 +180,6 @@ export function ProcessFactsPanel({
             <FactRow
               key={f.id}
               fact={f}
-              pubchemCid={dossier.cid}
               traces={traces}
             />
           ))}

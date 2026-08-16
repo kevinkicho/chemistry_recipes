@@ -1567,4 +1567,52 @@ ok(
     )
 );
 
+const identityUrl =
+  "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/Title/JSON";
+const litUrl = "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=aspirin";
+const ghsUrl =
+  "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=GHS+Classification";
+const mfgUrl =
+  "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=Use+and+Manufacturing";
+const chemblUrl = "https://www.ebi.ac.uk/chembl/api/data/molecule/search?q=aspirin";
+ok(
+  "PROV-15 literature/mfg/GHS harvest is process-fact HTTP; identity leftover is not",
+  sectionH.isProcessFactTrace(litUrl) &&
+    sectionH.isProcessFactTrace(ghsUrl) &&
+    sectionH.isProcessFactTrace(mfgUrl) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isProcessFactTrace(chemblUrl)
+);
+ok(
+  "PROV-15 tracesForProcessFactProvenance keeps family only",
+  sectionH.tracesForProcessFactProvenance(
+    [
+      { endpointUrl: litUrl },
+      { endpointUrl: identityUrl },
+      { endpointUrl: ghsUrl },
+    ],
+    "literature"
+  ).length === 1 &&
+    sectionH.tracesForProcessFactProvenance(
+      [
+        { endpointUrl: litUrl },
+        { endpointUrl: identityUrl },
+        { endpointUrl: ghsUrl },
+      ],
+      "ghs"
+    )[0].endpointUrl === ghsUrl &&
+    sectionH.tracesForProcessFactProvenance(
+      [{ endpointUrl: identityUrl }],
+      "user-supplement"
+    ).length === 0
+);
+ok(
+  "PROV-15 process-fact sourceRefs keep lit/mfg/ghs, drop identity/chembl",
+  sectionH.isProcessFactSourceRef({ type: "literature", id: "europepmc:123" }) &&
+    sectionH.isProcessFactSourceRef({ type: "api", id: "pubchem-mfg:2244" }) &&
+    sectionH.isProcessFactSourceRef({ type: "api", id: "pubchem-view-ghs:2244" }) &&
+    !sectionH.isProcessFactSourceRef({ type: "api", id: "pubchem:2244" }) &&
+    !sectionH.isProcessFactSourceRef({ type: "api", id: "chembl:CHEMBL25" })
+);
+
 console.log(`\n${passed} search-contract checks passed`);
