@@ -10,6 +10,7 @@ import {
 } from "@/lib/dossier/densifySchedule";
 import { warmLiveDossier } from "@/lib/dossier/warmCache";
 import { streamBatchDensifyCids } from "@/lib/dossier/batchClient";
+import { formatBatchDensifyStatus } from "@/lib/dossier/batchStreamStatus";
 import { routes } from "@/lib/routes";
 import { FreePublicBadge } from "@/components/FreePublicProvenance";
 
@@ -90,7 +91,13 @@ export function DensifySchedulePanel() {
         if (r.ok) markDensifyWarmed(r.cid);
       }
       setStatus(
-        `Due densify done · ${res.ok} ok · ${res.fail} fail · server: ${warmJson.detail || "—"}`
+        formatBatchDensifyStatus({
+          ok: res.ok,
+          fail: res.fail,
+          error: res.error,
+          prefix: "Due densify",
+          serverDetail: warmJson.detail || undefined,
+        })
       );
       reload();
     } catch (e) {

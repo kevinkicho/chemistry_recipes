@@ -13,6 +13,7 @@ import {
 } from "@/lib/workspace/campaigns";
 import { NetworkEdgeComparePanel } from "@/components/frontier/NetworkEdgeComparePanel";
 import { streamBatchDensifyCids } from "@/lib/dossier/batchClient";
+import { formatBatchDensifyStatus } from "@/lib/dossier/batchStreamStatus";
 import { FreePublicProvenance } from "@/components/FreePublicProvenance";
 import { useState } from "react";
 
@@ -102,7 +103,7 @@ export function ReactionNetworkPanel({
     setLog([]);
     setMsg(`Densifying impurity/related queue: ${cids.join(", ")}`);
     try {
-      await streamBatchDensifyCids(cids, {
+      const res = await streamBatchDensifyCids(cids, {
         includeDossiers: true,
         cacheLocal: true,
         concurrency: 2,
@@ -126,7 +127,12 @@ export function ReactionNetworkPanel({
         },
       });
       setMsg(
-        `Neighbor densify done · ${cids.length} targeted · impurities first. Open Workspace for campaign brief.`
+        `${formatBatchDensifyStatus({
+          ok: res.ok,
+          fail: res.fail,
+          error: res.error,
+          prefix: "Neighbor densify",
+        })} · impurities first`
       );
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Neighbor densify failed");

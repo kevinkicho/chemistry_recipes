@@ -167,4 +167,21 @@ ok(
     /Warm failed for CID/.test(densifySched)
 );
 
+
+ok(
+  "densify schedule uses formatBatchDensifyStatus not unconditional done",
+  /formatBatchDensifyStatus/.test(densifySched) &&
+    !/`Due densify done/.test(densifySched)
+);
+ok(
+  "campaign agent local cache warm is not leftover complete copy",
+  /formatBatchDensifyStatus/.test(read("components/frontier/CampaignAgentPanel.tsx")) &&
+    !/Local cache warm complete`/.test(read("components/frontier/CampaignAgentPanel.tsx"))
+);
+ok(
+  "warmCache does not promote incomplete stream as cache",
+  /Stream incomplete CID/.test(read("lib/dossier/warmCache.ts")) &&
+    !/Ensure cache even if complete event lacked type/.test(read("lib/dossier/warmCache.ts"))
+);
+
 console.log(`\n${n} product-path checks passed`);

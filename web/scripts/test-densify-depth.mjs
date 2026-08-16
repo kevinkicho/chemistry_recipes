@@ -183,4 +183,117 @@ ok(
     /Warm failed for CID/.test(densifySched)
 );
 
+
+const warm = read("lib/dossier/warmCache.ts");
+ok(
+  "DENS-13 incomplete stream is not cached as warm success",
+  /Stream incomplete CID/.test(warm) &&
+    /densify did not finish/.test(warm) &&
+    !/Ensure cache even if complete event lacked type/.test(warm)
+);
+ok(
+  "DENS-13 warm returns null unless type complete",
+  /!completed \|\| !last/.test(warm) && /return null/.test(warm)
+);
+
+const batch = read("lib/dossier/batchClient.ts");
+ok(
+  "DENS-13 batch stream accounts for unfinished CIDs",
+  /accountForUnfinishedBatchCids/.test(batch) &&
+    /stream ended before cid_complete/.test(batch)
+);
+ok(
+  "DENS-13 batch HTTP fail includes unfinished as fail rows",
+  /Stream HTTP/.test(batch) && /accountForUnfinishedBatchCids/.test(batch)
+);
+ok(
+  "DENS-13 densify schedule uses formatBatchDensifyStatus",
+  /formatBatchDensifyStatus/.test(densifySched) &&
+    !/`Due densify done/.test(densifySched)
+);
+
+const neighbor = read("components/frontier/ReactionNetworkPanel.tsx");
+ok(
+  "DENS-13 neighbor densify does not claim done unconditionally",
+  /formatBatchDensifyStatus/.test(neighbor) &&
+    !/Neighbor densify done · \$\{cids\.length\} targeted/.test(neighbor)
+);
+
+const agent = read("components/frontier/CampaignAgentPanel.tsx");
+ok(
+  "DENS-13 local cache warm requests dossiers and reports fail",
+  /includeDossiers:\s*true/.test(agent) &&
+    /formatBatchDensifyStatus/.test(agent) &&
+    !/Local cache warm complete`/.test(agent)
+);
+
+const { createRequire } = await import("node:module");
+const { tmpdir } = await import("node:os");
+const { pathToFileURL } = await import("node:url");
+const require = createRequire(import.meta.url);
+const ts = require("typescript");
+const srcFile = path.join(src, "lib/dossier/batchStreamStatus.ts");
+const source = fs.readFileSync(srcFile, "utf8");
+const { outputText } = ts.transpileModule(source, {
+  compilerOptions: {
+    module: ts.ModuleKind.ESNext,
+    target: ts.ScriptTarget.ES2022,
+  },
+  fileName: srcFile,
+});
+const out = path.join(tmpdir(), `batchStreamStatus-${process.pid}.mjs`);
+fs.writeFileSync(out, outputText, "utf8");
+const bss = await import(pathToFileURL(out).href);
+
+const unfinished = bss.accountForUnfinishedBatchCids(
+  [2244, 3672],
+  [{ cid: 2244, ok: true, durationMs: 10 }],
+  "stream ended before cid_complete"
+);
+ok(
+  "DENS-13 unfinished CID is fail not omitted",
+  unfinished.length === 2 &&
+    unfinished[1].cid === 3672 &&
+    unfinished[1].ok === false &&
+    /cid_complete/.test(unfinished[1].error)
+);
+ok(
+  "DENS-13 dropped stream is not done with 0 fail",
+  /failed/.test(
+    bss.formatBatchDensifyStatus({
+      ok: 0,
+      fail: 2,
+      error: "Stream HTTP 503",
+      prefix: "Stream batch",
+    })
+  ) &&
+    !/\bdone\b/.test(
+      bss.formatBatchDensifyStatus({
+        ok: 0,
+        fail: 2,
+        error: "Stream HTTP 503",
+        prefix: "Stream batch",
+      })
+    )
+);
+ok(
+  "DENS-13 partial batch is not done",
+  /partial/.test(
+    bss.formatBatchDensifyStatus({
+      ok: 1,
+      fail: 1,
+      error: "stream ended before cid_complete",
+      prefix: "Due densify",
+    })
+  )
+);
+ok(
+  "DENS-13 all-ok is done",
+  bss.formatBatchDensifyStatus({
+    ok: 2,
+    fail: 0,
+    prefix: "Due densify",
+  }) === "Due densify done · 2 ok · 0 fail"
+);
+
 console.log(`\n${passed} densify-depth checks passed`);

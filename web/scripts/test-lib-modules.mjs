@@ -83,6 +83,7 @@ const critical = [
   "components/SourceCoverageMap.tsx",
   "components/EvidenceScoreExplainer.tsx",
   "lib/dossier/warmCache.ts",
+  "lib/dossier/batchStreamStatus.ts",
   "lib/dossier/enrichClientFacts.ts",
   "lib/dossier/plantDeliverables.ts",
   "lib/idb/userSupplements.ts",
