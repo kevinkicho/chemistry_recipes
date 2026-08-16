@@ -40,7 +40,7 @@ Code: `web/src/lib/firebase/*`, App Hosting root `web/` (`firebase.json` → `ap
 
 ### Auth readiness
 
-- **Google sign-in** UI exists (`GoogleSignInButton`); enable the provider in Firebase Console when ready.  
+- **Google sign-in** chrome is hidden (`GoogleSignInButton` returns null) until identity gates something local-first-safe.  
 - Client Firestore/RTDB/Storage are **not** open for product data yet — rules deny all; Admin SDK / Functions bypass rules.  
 - When enabling client paths, scope by `request.auth.uid` per collection.
 

@@ -32,15 +32,7 @@ function resolveInput(raw: string): Resolved | null {
       href: routes.pubchem(cid),
     };
   }
-  // Teaching name → live CID only (no mock dossiers)
-  if (t.toLowerCase() === "aspirin") {
-    return {
-      kind: "cid",
-      cid: 2244,
-      label: "Aspirin",
-      href: routes.pubchem(2244),
-    };
-  }
+  // Names and CAS open live search — only numeric PubChem CIDs warm a dossier.
   return { kind: "search", q: t, label: t, href: routes.search(t) };
 }
 
@@ -160,7 +152,7 @@ function CompareInner() {
             value={left}
             onChange={(e) => setLeft(e.target.value)}
             onBlur={applyUrl}
-            placeholder="CID, CAS, or name"
+            placeholder="PubChem CID or name"
             className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100"
             list="compare-suggest"
           />
@@ -173,7 +165,7 @@ function CompareInner() {
             value={right}
             onChange={(e) => setRight(e.target.value)}
             onBlur={applyUrl}
-            placeholder="CID, CAS, or name"
+            placeholder="PubChem CID or name"
             className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100"
             list="compare-suggest"
           />

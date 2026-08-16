@@ -150,7 +150,7 @@ export function OrdBulkPanel({
             });
             if (!camp) {
               setMsg(
-                "Need ORD snippets with CID/hub molecule mentions, or a dossier CID."
+                "Need ORD snippets with CID mentions, or a dossier CID."
               );
               return;
             }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "title": "Chemistry Recipes free public API sources (product-ranked)",
-  "productLaw": "Free public APIs only. Evidence-first; not regulatory decision support. Manufacturing dossiers are curated overlays.",
+  "productLaw": "Free public APIs only. Evidence-first; not regulatory decision support. Manufacturing views come from live densify of free-public procedure text + optional grounded AI — never mock plant dossiers.",
   "generatedAt": "2026-07-22T00:00:00.000Z",
   "complements": "docs/api-sources-manifest.json",
   "sources": [
