@@ -1437,4 +1437,84 @@ ok(
   }).kind === "empty"
 );
 
+
+ok(
+  "SEARCH-22 problem multi uses formatProblemSearchSummary",
+  /formatProblemSearchSummary/.test(problemMulti) &&
+    /failureDetailFromTraces/.test(problemMulti) &&
+    /isFanoutUpstreamFailure/.test(problemMulti)
+);
+ok(
+  "SEARCH-22 problem UI uses formatSearchNoHitsMessage",
+  /formatSearchNoHitsMessage/.test(problemUi) &&
+    /noHits\.kind === "error"/.test(problemUi)
+);
+
+ok(
+  "SEARCH-22 literature HTTP fail is not a clean miss",
+  honesty.failureDetailFromTraces([
+    { ok: false, error: "HTTP 503" },
+  ]) === "HTTP 503" &&
+    honesty.failureDetailFromTraces([
+      { ok: false, notFound: true, error: "Not found" },
+    ]) === undefined &&
+    honesty.failureDetailFromTraces([
+      { ok: true },
+    ]) === undefined
+);
+ok(
+  "SEARCH-22 all-source problem fail is not empty counts",
+  honesty.formatProblemSearchSummary({
+    moleculeCount: 0,
+    literatureCount: 0,
+    sourceStatus: [
+      { source: "multi-molecule", ok: false, detail: "HTTP 503" },
+      { source: "europepmc", ok: false, detail: "timeout after 8000ms" },
+    ],
+  }) === "Free-public problem search failed — not an empty result"
+);
+ok(
+  "SEARCH-22 genuine problem empty stays count copy",
+  honesty.formatProblemSearchSummary({
+    moleculeCount: 0,
+    literatureCount: 0,
+    sourceStatus: [
+      { source: "multi-molecule", ok: false, detail: "no hit" },
+      { source: "europepmc", ok: false, detail: "no hit" },
+    ],
+  }) === "0 multi-source molecules · 0 process papers"
+);
+ok(
+  "SEARCH-22 mixed problem empty+fail is not a clean miss",
+  honesty.formatProblemSearchSummary({
+    moleculeCount: 0,
+    literatureCount: 0,
+    sourceStatus: [
+      { source: "multi-molecule", ok: false, detail: "no hit" },
+      { source: "europepmc", ok: false, detail: "HTTP 503" },
+    ],
+  }) === "No free-public problem hits; some sources failed"
+);
+ok(
+  "SEARCH-22 problem hits keep counts when a sibling failed",
+  honesty.formatProblemSearchSummary({
+    moleculeCount: 2,
+    literatureCount: 0,
+    sourceStatus: [
+      { source: "multi-molecule", ok: true, hitCount: 2 },
+      { source: "europepmc", ok: false, detail: "HTTP 503" },
+    ],
+  }).includes("2 multi-source molecules") &&
+    honesty
+      .formatProblemSearchSummary({
+        moleculeCount: 2,
+        literatureCount: 0,
+        sourceStatus: [
+          { source: "multi-molecule", ok: true, hitCount: 2 },
+          { source: "europepmc", ok: false, detail: "HTTP 503" },
+        ],
+      })
+      .includes("some free sources failed")
+);
+
 console.log(`\n${passed} search-contract checks passed`);

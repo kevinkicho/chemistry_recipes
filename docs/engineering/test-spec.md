@@ -205,6 +205,8 @@ Optional before release/deploy:
 | **SEARCH-18** | Search empty vs error vs timeout: PubChem `failure`/`ok:false` and all-source fan-out rejects are not “no hits”; fan-out note splits empty vs failed | `test-search-contracts` |
 | **SEARCH-19** | Live dossier literature / patents / annotations empty vs error vs timeout: harvest failures are not "No hits" | `test-search-contracts`, `test-product-path` |
 | **SEARCH-20** | Live dossier GHS / properties / manufacturing empty vs error vs timeout: PUG View harvest failures are not "No GHS text" / "Awaiting excerpts"; leftover identity/literature HTTP is not a GHS/mfg miss | `test-search-contracts`, `test-product-path` |
+| **SEARCH-21** | Live dossier overview empty vs error vs timeout: PUG View harvest failures are not "No overview text"; leftover GHS/literature/identity HTTP is not an overview miss | `test-search-contracts`, `test-product-path` |
+| **SEARCH-22** | Problem-first search empty vs error vs timeout: literature/multi harvest failures are not "0 molecules · 0 papers" / "No live hits yet" | `test-search-contracts`, `test-product-path` |
 
 ### L. Diagnostics honesty
 

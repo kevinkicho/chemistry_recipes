@@ -231,5 +231,10 @@ ok(
   /overviewEmpty/.test(read("components/dossier/LiveMoleculeDossier.tsx")) &&
     /family: "overview"/.test(read("components/dossier/LiveMoleculeDossier.tsx"))
 );
+ok(
+  "problem search empty copy is not unconditional No live hits",
+  /formatSearchNoHitsMessage/.test(problemUi) &&
+    /formatProblemSearchSummary/.test(read("lib/search/problemMultiSource.ts"))
+);
 
 console.log(`\n${n} product-path checks passed`);

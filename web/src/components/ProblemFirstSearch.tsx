@@ -22,6 +22,7 @@ import {
   saveProblemDensifyNotebookDraft,
 } from "@/lib/search/problemDensifyNotebook";
 import { runMsatJourney } from "@/lib/search/msatJourney";
+import { formatSearchNoHitsMessage } from "@/lib/search/searchHonesty";
 
 /** Guided MSAT steps — single primary flow, fewer competing CTAs. */
 type MsatStep = 1 | 2 | 3 | 4;
@@ -39,7 +40,7 @@ export function ProblemFirstSearch() {
   const [loading, setLoading] = useState(false);
   const [densifyBusy, setDensifyBusy] = useState(false);
   const [sourcePills, setSourcePills] = useState<
-    Array<{ source: string; ok: boolean; hitCount: number }>
+    Array<{ source: string; ok: boolean; hitCount: number; detail?: string }>
   >([]);
   const [literatureHits, setLiteratureHits] = useState<
     ProblemMultiSearchResult["literatureHits"]
@@ -312,6 +313,7 @@ export function ProblemFirstSearch() {
     { step: 3, label: "Densify" },
     { step: 4, label: "Brief + agent" },
   ];
+  const noHits = formatSearchNoHitsMessage({ sourceStatus: sourcePills });
 
   return (
     <div
@@ -384,10 +386,13 @@ export function ProblemFirstSearch() {
           {sourcePills.slice(0, 12).map((s) => (
             <li
               key={s.source}
+              title={s.detail || undefined}
               className={`rounded-full px-2 py-0.5 font-mono ring-1 ring-inset ${
                 s.ok
                   ? "bg-sky-500/10 text-sky-200 ring-sky-500/30"
-                  : "bg-slate-900 text-slate-600 ring-slate-800"
+                  : s.detail && s.detail !== "no hit" && s.detail !== "empty"
+                    ? "bg-amber-500/10 text-amber-100 ring-amber-500/30"
+                    : "bg-slate-900 text-slate-600 ring-slate-800"
               }`}
             >
               {s.source}
@@ -477,6 +482,9 @@ export function ProblemFirstSearch() {
       {q.trim() ? (
         <ul className="mt-3 max-h-72 space-y-1.5 overflow-y-auto">
           {hits.length === 0 ? (
+            noHits.kind === "error" ? (
+              <li className="text-xs text-amber-200/90">{noHits.message}</li>
+            ) : (
             <li className="text-xs text-slate-600">
               No live hits yet — try{" "}
               <Link
@@ -487,6 +495,7 @@ export function ProblemFirstSearch() {
               </Link>
               .
             </li>
+            )
           ) : (
             hits.map((h) => (
               <li key={h.id}>
