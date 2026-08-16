@@ -309,6 +309,7 @@ export function LiveMoleculeDossier({
       t.endpointUrl.includes("patentsview") ||
       t.endpointUrl.includes("search.patentsview.org") ||
       t.endpointUrl.toLowerCase().includes("patentid") ||
+      t.endpointUrl.toLowerCase().includes("pug_view/data/patent/") ||
       (t.endpointUrl.includes("europepmc") &&
         /patent|USPTO|process for preparing|method of manufacturing/i.test(
           decodeURIComponent(t.endpointUrl)
@@ -324,6 +325,14 @@ export function LiveMoleculeDossier({
   const ghsTraces = pugViewTraces.filter((t) =>
     /GHS|Safety|Hazards/i.test(t.endpointUrl)
   );
+  const propertyTraces = traces.filter((t) => {
+    const e = t.endpointUrl.toLowerCase();
+    if (e.includes("/property/")) return true;
+    if (!e.includes("pug_view") || e.includes("/data/patent/")) return false;
+    return /chemical\+and\+physical|chemical%20and%20physical|experimental\+properties|computed\+properties|physical\+description/i.test(
+      t.endpointUrl
+    );
+  });
   const litRefs = dossier.sourceRefs.filter((r) => r.type === "literature");
   const patentRefsFromDossier = dossier.sourceRefs.filter((r) => r.type === "patent");
   const patentSourceRefs = [
@@ -349,6 +358,15 @@ export function LiveMoleculeDossier({
       label: "PubChem · Use and Manufacturing",
       url: `https://pubchem.ncbi.nlm.nih.gov/compound/${cid}#section=Use-and-Manufacturing`,
       note: "NIH free public compound section",
+    },
+  ];
+  const propertySourceRefs = [
+    {
+      type: "api" as const,
+      id: `pubchem-view-props:${cid}`,
+      label: "PubChem · Chemical and Physical Properties",
+      url: `https://pubchem.ncbi.nlm.nih.gov/compound/${cid}#section=Chemical-and-Physical-Properties`,
+      note: "NIH free public compound section + PUG REST /property/",
     },
   ];
 
@@ -1326,6 +1344,8 @@ export function LiveMoleculeDossier({
             pugViewTraces={pugViewTraces}
             pubchemTraces={pubchemTraces}
             ghsTraces={ghsTraces}
+            propertyTraces={propertyTraces}
+            propertySourceRefs={propertySourceRefs}
             allTraces={traces}
             onRegenerate={onRegenerate}
           />

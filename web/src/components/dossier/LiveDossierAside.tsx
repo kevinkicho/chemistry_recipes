@@ -38,6 +38,8 @@ export function LiveDossierAside({
   pugViewTraces,
   pubchemTraces,
   ghsTraces,
+  propertyTraces,
+  propertySourceRefs,
   allTraces,
   onRegenerate,
 }: {
@@ -64,6 +66,8 @@ export function LiveDossierAside({
   pugViewTraces: ApiFetchTrace[];
   pubchemTraces: ApiFetchTrace[];
   ghsTraces: ApiFetchTrace[];
+  propertyTraces: ApiFetchTrace[];
+  propertySourceRefs: LiveDossier["sourceRefs"];
   allTraces: ApiFetchTrace[];
   onRegenerate?: () => void;
 }) {
@@ -300,7 +304,8 @@ export function LiveDossierAside({
           <h3 className="text-sm font-semibold text-slate-200">Properties</h3>
           <ApiProvenance
             pubchemCid={cid}
-            traces={pugViewTraces.length ? pugViewTraces : pubchemTraces}
+            traces={propertyTraces}
+            sourceRefs={propertySourceRefs}
             title="PubChem properties"
             label="API"
           />
