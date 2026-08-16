@@ -1,7 +1,7 @@
 /**
  * Live-dossier section empty vs error vs timeout copy.
  * HTTP 200 + empty hits is not success when literature / patent / annotation
- * / GHS / properties / manufacturing / overview / process-facts families failed or timed out.
+ * / GHS / properties / manufacturing / overview / process-facts / condition-atlas families failed or timed out.
  */
 
 import type { ApiFetchTrace } from "@/lib/api/trace";
@@ -444,6 +444,8 @@ const PROCESS_FACT_EMPTY_FAMILIES = [
  * Process-fact atoms come from literature, patents, and manufacturing text.
  * Harvest failure in those families is not "no atoms extracted yet".
  * Leftover identity / GHS / annotation HTTP is not a process-facts miss.
+ * Condition-atlas empty copy reuses this helper — no extracted conditions
+ * is not a clean miss when lit / patent / manufacturing harvest failed.
  */
 export function formatProcessFactsEmptyCopy(opts: {
   traces?: Array<

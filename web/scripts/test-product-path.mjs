@@ -336,4 +336,10 @@ ok(
     /sequenceEmpty\.kind === "error"/.test(read("components/MondayMorningPack.tsx")) &&
     /sequenceEmpty\.message/.test(read("components/MondayMorningPack.tsx"))
 );
+ok(
+  "SEARCH-27 condition-atlas empty copy is not unconditional extracted miss",
+  /formatProcessFactsEmptyCopy/.test(read("components/frontier/ConditionAtlasPanel.tsx")) &&
+    /atlasEmpty\.kind === "error"/.test(read("components/frontier/ConditionAtlasPanel.tsx")) &&
+    /atlasEmpty\.message/.test(read("components/frontier/ConditionAtlasPanel.tsx"))
+);
 console.log(`\n${n} product-path checks passed`);
