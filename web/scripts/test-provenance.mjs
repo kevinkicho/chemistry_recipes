@@ -767,4 +767,103 @@ ok(
     })
 );
 
+
+const massbankSrc = read("lib/api/massbank.ts");
+const gatherSrc = read("lib/dossier/gather.ts");
+ok(
+  "PROV-12 MassBank client does not fetch PubChem identity as spectra",
+  !/pubchem\.ncbi\.nlm\.nih\.gov\/rest\/pug/.test(massbankSrc) &&
+    /isHarvestedMassBankRecord/.test(massbankSrc) &&
+    /isMassBankSpectraTrace/.test(massbankSrc)
+);
+ok(
+  "PROV-12 gather claims MassBank spectra only after harvested-record filter",
+  /isHarvestedMassBankRecord/.test(gatherSrc) &&
+    /spectraHits\.length/.test(gatherSrc) &&
+    !/`\$\{massBankResult\.hits\.length\} MS record/.test(gatherSrc)
+);
+
+const mbFile = src("lib/api/massbank.ts");
+let mbSrc = readFileSync(mbFile, "utf8");
+mbSrc = mbSrc.replace(/import type \{[^}]+\} from "[^"]+";\s*/g, "");
+const { outputText: mbJs } = ts.transpileModule(mbSrc, {
+  compilerOptions: {
+    module: ts.ModuleKind.ESNext,
+    target: ts.ScriptTarget.ES2022,
+  },
+  fileName: mbFile,
+});
+const mbOut = join(tmpdir(), `massbank-honesty-${process.pid}.mjs`);
+writeFileSync(mbOut, mbJs, "utf8");
+const {
+  isHarvestedMassBankRecord,
+  isMassBankSpectraTrace,
+  fetchMassBankByName,
+} = await import(pathToFileURL(mbOut).href);
+
+ok(
+  "PROV-12 site-search stand-in is not an MS record",
+  !isHarvestedMassBankRecord({
+    accession: "massbank-search:aspirin",
+    title: "MassBank EU search: aspirin",
+    url: "https://massbank.eu/MassBank/Search",
+  })
+);
+ok(
+  "PROV-12 PubChem CID stand-in is not an MS record",
+  !isHarvestedMassBankRecord({
+    accession: "pubchem:2244",
+    title: "aspirin · free-public analytical identity",
+    url: "https://pubchem.ncbi.nlm.nih.gov/compound/2244#section=Spectral-Information",
+  })
+);
+ok(
+  "PROV-12 PubChem InChIKey stand-in is not an MS record",
+  !isHarvestedMassBankRecord({
+    accession: "BSYNRYMUTXBXSQ-UHFFFAOYSA-N",
+    title: "aspirin · free-public analytical identity",
+    url: "https://pubchem.ncbi.nlm.nih.gov/compound/2244#section=Spectral-Information",
+  })
+);
+ok(
+  "PROV-12 real MassBank accession is an MS record",
+  isHarvestedMassBankRecord({
+    accession: "SM858002",
+    title: "Aspirin; LC-ESI-QQ; MS2",
+    url: "https://massbank.eu/MassBank/RecordDisplay?id=SM858002",
+  })
+);
+ok(
+  "PROV-12 PubChem identity HTTP is not MassBank spectra",
+  !isMassBankSpectraTrace(
+    "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/aspirin/property/MolecularFormula,Title,InChIKey/JSON"
+  )
+);
+ok(
+  "PROV-12 MassBank host HTTP is spectra",
+  isMassBankSpectraTrace("https://massbank.eu/MassBank-api/records?query=aspirin")
+);
+ok(
+  "PROV-12 massbank citation does not hydrate from leftover PubChem identity HTTP",
+  matchLive(
+    {
+      type: "api",
+      id: "massbank:2244",
+      label: "MassBank spectra",
+      url: "https://massbank.eu/",
+    },
+    leftoverPubchem
+  ) == null
+);
+
+const emptyHarvest = await fetchMassBankByName("aspirin", { limit: 5 });
+ok(
+  "PROV-12 retired MassBank harvest is empty (no invented MS records or PubChem traces)",
+  emptyHarvest.hits.length === 0 &&
+    emptyHarvest.annotations.length === 0 &&
+    emptyHarvest.traces.length === 0 &&
+    emptyHarvest.query === "aspirin"
+);
+
+
 console.log(`\n${passed} provenance checks passed`);

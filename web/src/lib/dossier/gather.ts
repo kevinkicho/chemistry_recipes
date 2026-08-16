@@ -47,7 +47,7 @@ import { fetchOrgSynByName } from "@/lib/api/orgsyn";
 import { fetchReactomeByName } from "@/lib/api/reactome";
 import { fetchWikiPathwaysByName } from "@/lib/api/wikipathways";
 import { fetchPathwayCommonsByName } from "@/lib/api/pathwayCommons";
-import { fetchMassBankByName } from "@/lib/api/massbank";
+import { fetchMassBankByName, isHarvestedMassBankRecord } from "@/lib/api/massbank";
 import { fetchDrugCentralByName } from "@/lib/api/drugCentral";
 import { fetchClinicalTrialsByName } from "@/lib/api/clinicalTrials";
 import { fetchPubchemClassifications } from "@/lib/api/pubchemClassifications";
@@ -1012,13 +1012,14 @@ export async function gatherCompoundEvidenceLive(
       note: `${pcResult.hits.length} pathway hit(s)`,
     });
   }
-  if (massBankResult.hits.length) {
+  const spectraHits = massBankResult.hits.filter(isHarvestedMassBankRecord);
+  if (spectraHits.length) {
     sourceRefs.push({
       type: "api",
       id: `massbank:${cid}`,
       label: "MassBank spectra",
       url: "https://massbank.eu/",
-      note: `${massBankResult.hits.length} MS record(s) · IPC helper`,
+      note: `${spectraHits.length} MS record(s) · IPC helper`,
     });
   }
   if (drugCentralResult.hit || drugCentralResult.annotations.length) {
