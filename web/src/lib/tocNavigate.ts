@@ -22,33 +22,44 @@ function headerOffsetPx(): number {
   return (Number.isFinite(n) ? n : 56) + 12;
 }
 
-/**
- * Assess whether a section id is present and has content.
- * Honors data-toc-empty="1|0" when set by CollapsibleSection / panels.
- */
-export function assessTocSection(id: string): {
+export type TocSectionAssessment = {
   present: boolean;
   hasContent: boolean;
-} {
-  if (typeof document === "undefined") {
-    return { present: false, hasContent: false };
-  }
-  const el = document.getElementById(id);
-  if (!el) return { present: false, hasContent: false };
+  harvestFailed: boolean;
+};
 
-  const flag = el.getAttribute("data-toc-empty");
-  if (flag === "1" || flag === "true") {
-    return { present: true, hasContent: false };
-  }
-  if (flag === "0" || flag === "false") {
-    return { present: true, hasContent: true };
-  }
+function flagOn(v: string | null | undefined): boolean {
+  return v === "1" || v === "true";
+}
 
-  const text = (el.innerText || el.textContent || "")
-    .replace(/\s+/g, " ")
-    .trim();
+/**
+ * Pure TOC empty-vs-error. Harvest-failure copy is not "no content yet".
+ * data-toc-error / "Sources failed" win over data-toc-empty.
+ */
+export function interpretTocFlags(opts: {
+  present: boolean;
+  tocEmpty?: string | null;
+  tocError?: string | null;
+  text?: string;
+}): TocSectionAssessment {
+  if (!opts.present) {
+    return { present: false, hasContent: false, harvestFailed: false };
+  }
+  const text = (opts.text || "").replace(/\s+/g, " ").trim();
+  const harvestFailed =
+    flagOn(opts.tocError) ||
+    /Sources failed|not a clean miss|not an empty result/i.test(text);
+  if (harvestFailed) {
+    return { present: true, hasContent: true, harvestFailed: true };
+  }
+  if (flagOn(opts.tocEmpty)) {
+    return { present: true, hasContent: false, harvestFailed: false };
+  }
+  if (opts.tocEmpty === "0" || opts.tocEmpty === "false") {
+    return { present: true, hasContent: true, harvestFailed: false };
+  }
   if (text.length < 20) {
-    return { present: true, hasContent: false };
+    return { present: true, hasContent: false, harvestFailed: false };
   }
   if (
     text.length < 280 &&
@@ -56,9 +67,28 @@ export function assessTocSection(id: string): {
       text
     )
   ) {
-    return { present: true, hasContent: false };
+    return { present: true, hasContent: false, harvestFailed: false };
   }
-  return { present: true, hasContent: true };
+  return { present: true, hasContent: true, harvestFailed: false };
+}
+
+/**
+ * Assess whether a section id is present and has content.
+ * Honors data-toc-empty / data-toc-error from CollapsibleSection / panels.
+ * Harvest failure is not a clean TOC miss.
+ */
+export function assessTocSection(id: string): TocSectionAssessment {
+  if (typeof document === "undefined") {
+    return { present: false, hasContent: false, harvestFailed: false };
+  }
+  const el = document.getElementById(id);
+  if (!el) return { present: false, hasContent: false, harvestFailed: false };
+  return interpretTocFlags({
+    present: true,
+    tocEmpty: el.getAttribute("data-toc-empty"),
+    tocError: el.getAttribute("data-toc-error"),
+    text: el.innerText || el.textContent || "",
+  });
 }
 
 /**

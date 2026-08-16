@@ -16,8 +16,10 @@ export interface TocLink {
   present: boolean;
   /** Section has real content (not empty placeholder) */
   hasContent: boolean;
-  /** Clickable — present and has content */
+  /** Clickable — present and has content or harvest-failure copy */
   enabled: boolean;
+  /** Harvest failed — not a clean empty */
+  harvestFailed: boolean;
 }
 
 // Re-export for callers that imported from this module
@@ -27,7 +29,7 @@ export { navigateToSection, assessTocSection, TOC_NAVIGATE_EVENT } from "@/lib/t
  * Canonical section anchors on live compound pages.
  * Always listed; empty/missing targets are dimmed and disabled.
  */
-const LIVE_SECTIONS: Omit<TocLink, "href" | "present" | "hasContent" | "enabled">[] = [
+const LIVE_SECTIONS: Omit<TocLink, "href" | "present" | "hasContent" | "enabled" | "harvestFailed">[] = [
   { id: "identity", label: "Identity" },
   { id: "structure", label: "Structure" },
   { id: "overview", label: "Overview" },
@@ -58,16 +60,17 @@ const LIVE_SECTIONS: Omit<TocLink, "href" | "present" | "hasContent" | "enabled"
 ];
 
 function collectSections(
-  candidates: Omit<TocLink, "href" | "present" | "hasContent" | "enabled">[]
+  candidates: Omit<TocLink, "href" | "present" | "hasContent" | "enabled" | "harvestFailed">[]
 ): TocLink[] {
   return candidates.map((c) => {
-    const { present, hasContent } = assessTocSection(c.id);
+    const { present, hasContent, harvestFailed } = assessTocSection(c.id);
     return {
       ...c,
       href: `#${c.id}`,
       present,
       hasContent,
-      enabled: present && hasContent,
+      harvestFailed,
+      enabled: present && (hasContent || harvestFailed),
     };
   });
 }
@@ -111,7 +114,7 @@ function TocInner() {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ["data-toc-empty", "id", "hidden"],
+      attributeFilter: ["data-toc-empty", "data-toc-error", "id", "hidden"],
     });
 
     const t1 = window.setTimeout(refreshItems, 200);
@@ -176,9 +179,11 @@ function TocInner() {
                 (hash === item.href || (!hash && item.id === "identity"));
               const title = !item.present
                 ? "Section not on this page (role view or still loading)"
-                : !item.hasContent
-                  ? "No content for this section yet"
-                  : item.label;
+                : item.harvestFailed
+                  ? "Sources failed — not empty"
+                  : !item.hasContent
+                    ? "No content for this section yet"
+                    : item.label;
 
               return (
                 <li key={item.id}>

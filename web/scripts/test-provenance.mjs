@@ -448,6 +448,17 @@ ok(
     /patentEmpty/.test(mgr) &&
     /hazardEmpty/.test(mgr)
 );
+ok(
+  "SEARCH-33 TOC empty copy uses tocSectionFlags / harvestFailed",
+  /tocSectionFlags/.test(read("lib/dossier/sectionHonesty.ts")) &&
+    /interpretTocFlags/.test(read("lib/tocNavigate.ts")) &&
+    /harvestFailed/.test(read("components/TableOfContents.tsx")) &&
+    /data-toc-error/.test(read("components/CollapsibleSection.tsx")) &&
+    /harvestFailed=\{litEmpty\.kind === "error"\}/.test(
+      read("components/dossier/LiveMoleculeDossier.tsx")
+    ) &&
+    /tocSectionFlags/.test(read("components/dossier/LiveDossierAside.tsx"))
+);
 
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
