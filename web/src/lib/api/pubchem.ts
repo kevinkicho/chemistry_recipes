@@ -4,6 +4,13 @@ import {
   fetchJsonWithTrace,
   type ApiFetchTrace,
 } from "@/lib/api/trace";
+import {
+  looksLikeCas,
+  looksLikeInchi,
+  looksLikeInchiKey,
+  looksLikeSmiles,
+  looksLikeUnii,
+} from "@/lib/search/queryKind";
 
 const PUG = "https://pubchem.ncbi.nlm.nih.gov/rest/pug";
 
@@ -32,30 +39,6 @@ export interface PubChemSearchResult {
   hits: PubChemHit[];
   traces: ApiFetchTrace[];
   failure?: string;
-}
-
-function looksLikeInchiKey(q: string): boolean {
-  return /^[A-Z]{14}-[A-Z]{10}-[A-Z]$/i.test(q.trim());
-}
-
-function looksLikeUnii(q: string): boolean {
-  return /^[A-Z0-9]{10}$/i.test(q.trim()) && !/^\d+$/.test(q.trim());
-}
-
-function looksLikeSmiles(q: string): boolean {
-  const s = q.trim();
-  if (s.length < 2 || s.length > 500) return false;
-  if (/\s/.test(s)) return false;
-  if (/^\d+$/.test(s)) return false;
-  if (looksLikeCas(s) || looksLikeInchiKey(s) || looksLikeUnii(s)) return false;
-  if (/^[A-Za-z]+$/.test(s)) return false;
-  const hasSmilesSyntax = /[=#@()\[\]\\/%]/.test(s) || /[0-9]/.test(s);
-  if (!hasSmilesSyntax) return false;
-  return /[A-Za-z]/.test(s);
-}
-
-function looksLikeCas(q: string): boolean {
-  return /^\d{2,7}-\d{2}-\d$/.test(q.trim());
 }
 
 function isTransientStatus(status?: number): boolean {
@@ -234,7 +217,7 @@ function hitsFromCids(cids: number[], nameHints: Map<number, string>): PubChemHi
 }
 
 /**
- * Resolve name/CAS/SMILES/InChIKey/UNII/CID → hits via free-public PubChem only.
+ * Resolve name/CAS/SMILES/InChI/InChIKey/UNII/CID → hits via free-public PubChem only.
  */
 export async function searchPubChem(
   query: string,
@@ -270,6 +253,14 @@ export async function searchPubChem(
     } else if (looksLikeUnii(q)) {
       const out = await fetchCids(
         `${PUG}/compound/name/${encodeURIComponent(q.toUpperCase())}/cids/JSON`,
+        traces
+      );
+      cids = out.cids;
+      hardFailed = out.hardFailed;
+    } else if (looksLikeInchi(q)) {
+      // InChI has slashes — query param, not path (PubChem PUG REST).
+      const out = await fetchCids(
+        `${PUG}/compound/inchi/cids/JSON?inchi=${encodeURIComponent(q)}`,
         traces
       );
       cids = out.cids;

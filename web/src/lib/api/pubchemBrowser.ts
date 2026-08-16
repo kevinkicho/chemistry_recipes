@@ -4,10 +4,18 @@
  * App Hosting / Cloud Run egress often gets HTTP 503 from PubChem.
  * The user's browser IP usually still works — use this path for search UI
  * and related-entity CID resolve, with a serial queue + 503 backoff.
- * Resolves CID, CAS, InChIKey, UNII, SMILES, and name (same types as server).
+ * Resolves CID, CAS, InChI, InChIKey, UNII, SMILES, and name (same types as server).
  */
 
 import { pubchemQueuedFetch } from "@/lib/api/pubchemQueue";
+import {
+  isNameQuery,
+  looksLikeCas,
+  looksLikeInchi,
+  looksLikeInchiKey,
+  looksLikeSmiles,
+  looksLikeUnii,
+} from "@/lib/search/queryKind";
 
 export type BrowserPubChemHit = {
   cid: number;
@@ -21,40 +29,6 @@ export type BrowserPubChemHit = {
 };
 
 const PUG = "https://pubchem.ncbi.nlm.nih.gov/rest/pug";
-
-function looksLikeCas(q: string): boolean {
-  return /^\d{2,7}-\d{2}-\d$/.test(q.trim());
-}
-
-function looksLikeInchiKey(q: string): boolean {
-  return /^[A-Z]{14}-[A-Z]{10}-[A-Z]$/i.test(q.trim());
-}
-
-function looksLikeUnii(q: string): boolean {
-  return /^[A-Z0-9]{10}$/i.test(q.trim()) && !/^\d+$/.test(q.trim());
-}
-
-/** Same structured-SMILES heuristic as server searchPubChem — no invention. */
-function looksLikeSmiles(q: string): boolean {
-  const s = q.trim();
-  if (s.length < 2 || s.length > 500) return false;
-  if (/\s/.test(s)) return false;
-  if (/^\d+$/.test(s)) return false;
-  if (looksLikeCas(s) || looksLikeInchiKey(s) || looksLikeUnii(s)) return false;
-  if (/^[A-Za-z]+$/.test(s)) return false;
-  const hasSmilesSyntax = /[=#@()\[\]\\/%]/.test(s) || /[0-9]/.test(s);
-  if (!hasSmilesSyntax) return false;
-  return /[A-Za-z]/.test(s);
-}
-
-function isNameQuery(q: string): boolean {
-  return (
-    !looksLikeCas(q) &&
-    !looksLikeInchiKey(q) &&
-    !looksLikeUnii(q) &&
-    !looksLikeSmiles(q)
-  );
-}
 
 async function fetchJson(
   url: string,
@@ -78,6 +52,9 @@ async function resolveCids(
     url = `${PUG}/compound/inchikey/${encodeURIComponent(t.toUpperCase())}/cids/JSON`;
   } else if (looksLikeUnii(t)) {
     url = `${PUG}/compound/name/${encodeURIComponent(t.toUpperCase())}/cids/JSON`;
+  } else if (looksLikeInchi(t)) {
+    // InChI has slashes — query param, not path (PubChem PUG REST).
+    url = `${PUG}/compound/inchi/cids/JSON?inchi=${encodeURIComponent(t)}`;
   } else if (looksLikeSmiles(t)) {
     url = `${PUG}/compound/smiles/${encodeURIComponent(t)}/cids/JSON`;
   } else {

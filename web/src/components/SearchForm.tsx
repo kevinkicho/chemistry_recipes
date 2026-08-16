@@ -12,6 +12,11 @@ import {
 import { fetchPubChemAutocomplete } from "@/lib/api/pubchemAutocomplete";
 import type { SuggestItem } from "@/lib/data/suggestions";
 import { pushSearchQuery, readHistory } from "@/lib/search-history";
+import {
+  classifyChemicalQuery,
+  resolveSearchSubmit,
+  structuredQueryLabel,
+} from "@/lib/search/queryKind";
 import { routes } from "@/lib/routes";
 
 const DEBOUNCE_MS = 280;
@@ -112,6 +117,24 @@ export function SearchForm({
       return;
     }
 
+    // Structured identifiers: search as written — do not fan out name autocomplete
+    const kind = classifyChemicalQuery(qTrim);
+    if (kind !== "name") {
+      abortRef.current?.abort();
+      setLoading(false);
+      setSuggestError(null);
+      setSuggestSources([kind]);
+      const label = structuredQueryLabel(kind) ?? kind;
+      const structuredItem: SuggestItem = {
+        value: qTrim,
+        detail: `${label} · search as written`,
+        kind: "pubchem",
+      };
+      const rest = history.filter((h) => h.value !== qTrim);
+      setSuggestions([structuredItem, ...rest].slice(0, MAX_HISTORY + 1));
+      return;
+    }
+
     setLoading(true);
     setSuggestError(null);
     // Show history immediately while free-public APIs load
@@ -206,11 +229,8 @@ export function SearchForm({
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     const pick = open && suggestions[highlight] ? suggestions[highlight] : null;
-    if (pick) {
-      go(pick.value, pick.href);
-      return;
-    }
-    go(q);
+    const resolved = resolveSearchSubmit(q, pick);
+    go(resolved.value, resolved.href);
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -263,7 +283,7 @@ export function SearchForm({
             }}
             onFocus={() => setOpen(true)}
             onKeyDown={onKeyDown}
-            placeholder="Name, CAS, SMILES, or PubChem CID…"
+            placeholder="Name, CAS, SMILES, InChI, or CID…"
             className="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 text-slate-100 placeholder:text-slate-500 focus:border-teal-500/60 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
           />
 

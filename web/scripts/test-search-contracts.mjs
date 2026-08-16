@@ -6,9 +6,14 @@
  */
 
 import assert from "node:assert/strict";
+import { createRequire } from "node:module";
 import fs from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const require = createRequire(import.meta.url);
+const ts = require("typescript");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const src = path.join(__dirname, "..", "src");
@@ -28,6 +33,21 @@ function exists(rel) {
   return fs.existsSync(path.join(src, rel));
 }
 
+async function loadQueryKind() {
+  const srcFile = path.join(src, "lib/search/queryKind.ts");
+  const source = fs.readFileSync(srcFile, "utf8");
+  const { outputText } = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+    },
+    fileName: srcFile,
+  });
+  const out = path.join(tmpdir(), `queryKind-${process.pid}.mjs`);
+  fs.writeFileSync(out, outputText, "utf8");
+  return import(pathToFileURL(out).href);
+}
+
 console.log("test-search-contracts");
 
 // Modules
@@ -36,6 +56,7 @@ ok("SEARCH multiSourceSuggest module", exists("lib/search/multiSourceSuggest.ts"
 ok("SEARCH problemFirst module", exists("lib/search/problemFirst.ts"));
 ok("SEARCH problemMultiSource module", exists("lib/search/problemMultiSource.ts"));
 ok("SEARCH problemCampaign module", exists("lib/search/problemCampaign.ts"));
+ok("SEARCH queryKind module", exists("lib/search/queryKind.ts"));
 
 const multi = read("lib/search/multiSourceSearch.ts");
 const suggest = read("lib/search/multiSourceSuggest.ts");
@@ -49,6 +70,9 @@ const searchPage = read("app/search/page.tsx");
 const results = read("components/SearchResults.tsx");
 const form = read("components/SearchForm.tsx");
 const problemUi = read("components/ProblemFirstSearch.tsx");
+const serverPubchem = read("lib/api/pubchem.ts");
+const browser = read("lib/api/pubchemBrowser.ts");
+const queryKindSrc = read("lib/search/queryKind.ts");
 
 // SEARCH-01 multi-source identity fan-out
 ok("SEARCH-01 multiSourceSearch export", /export async function multiSourceSearch/.test(multi));
@@ -59,6 +83,10 @@ ok("SEARCH-01 multi API route", /multiSourceSearch/.test(multiApi));
 ok("SEARCH-02 multiSourceSuggest export", /export (async )?function|multiSourceSuggest/.test(suggest));
 ok("SEARCH-02 suggest API", /suggest|multiSource/.test(suggestApi));
 ok("SEARCH-02 SearchForm uses suggest API", /\/api\/search\/suggest/.test(form));
+ok(
+  "SEARCH-02 suggest skips structured identifiers",
+  /isNameQuery/.test(suggest)
+);
 
 // SEARCH-03 problem-first live multi-source
 ok("SEARCH-03 searchProblemFirst", /export function searchProblemFirst/.test(problemFirst));
@@ -114,7 +142,6 @@ ok(
   /server enrich failed/.test(results)
 );
 
-const browser = read("lib/api/pubchemBrowser.ts");
 ok(
   "SEARCH-07 browser PubChem resolves advertised SMILES",
   /looksLikeSmiles/.test(browser) &&
@@ -128,6 +155,88 @@ ok(
 ok(
   "SEARCH-07 structured ids skip name autocomplete",
   /isNameQuery/.test(browser)
+);
+ok(
+  "SEARCH-07 shared queryKind used by browser and server",
+  /from "@\/lib\/search\/queryKind"/.test(browser) &&
+    /from "@\/lib\/search\/queryKind"/.test(serverPubchem)
+);
+
+ok(
+  "SEARCH-08 server PubChem resolves InChI via query param",
+  /looksLikeInchi/.test(serverPubchem) &&
+    /compound\/inchi\/cids\/JSON\?inchi=/.test(serverPubchem)
+);
+ok(
+  "SEARCH-08 browser PubChem resolves InChI via query param",
+  /looksLikeInchi/.test(browser) &&
+    /compound\/inchi\/cids\/JSON\?inchi=/.test(browser)
+);
+ok(
+  "SEARCH-08 SearchForm submits structured query as written",
+  /resolveSearchSubmit/.test(form) &&
+    /search as written/.test(form)
+);
+ok(
+  "SEARCH-08 advertised identifiers include InChI only with a resolver",
+  /InChI/.test(searchPage) &&
+    /looksLikeInchi/.test(serverPubchem) &&
+    /looksLikeInchi/.test(browser)
+);
+
+const qk = await loadQueryKind();
+const aspirinInchi =
+  "InChI=1S/C9H8O4/c1-6(10)13-8-5-3-2-4-7(8)9(11)12/h2-5H,1H3,(H,11,12)";
+const aspirinSmiles = "CC(=O)Oc1ccccc1C(=O)O";
+const aspirinKey = "BSYNRYMUTXBXSQ-UHFFFAOYSA-N";
+
+ok("SEARCH-08 classify name", qk.classifyChemicalQuery("aspirin") === "name");
+ok("SEARCH-08 classify CID", qk.classifyChemicalQuery("2244") === "cid");
+ok("SEARCH-08 classify CAS", qk.classifyChemicalQuery("50-78-2") === "cas");
+ok("SEARCH-08 classify InChIKey", qk.classifyChemicalQuery(aspirinKey) === "inchikey");
+ok("SEARCH-08 classify UNII", qk.classifyChemicalQuery("R16CO5Y76E") === "unii");
+ok("SEARCH-08 classify SMILES", qk.classifyChemicalQuery(aspirinSmiles) === "smiles");
+ok(
+  "SEARCH-08 InChI is not SMILES",
+  qk.classifyChemicalQuery(aspirinInchi) === "inchi" &&
+    qk.looksLikeInchi(aspirinInchi) &&
+    !qk.looksLikeSmiles(aspirinInchi)
+);
+ok(
+  "SEARCH-08 InChI=1 (non-standard) still InChI",
+  qk.classifyChemicalQuery("InChI=1/CH4/h1H4") === "inchi"
+);
+
+const hijack = qk.resolveSearchSubmit(aspirinSmiles, { value: "aspirin" });
+ok(
+  "SEARCH-08 structured Enter ignores name highlight",
+  hijack.value === aspirinSmiles && hijack.href === undefined
+);
+const inchiSubmit = qk.resolveSearchSubmit(aspirinInchi, {
+  value: "something else",
+});
+ok(
+  "SEARCH-08 InChI Enter keeps typed InChI",
+  inchiSubmit.value === aspirinInchi
+);
+const nameSubmit = qk.resolveSearchSubmit("asp", { value: "aspirin" });
+ok(
+  "SEARCH-08 name Enter still uses highlight",
+  nameSubmit.value === "aspirin"
+);
+const cidSubmit = qk.resolveSearchSubmit("2244", {
+  value: "2244",
+  href: "/compounds/pubchem/2244",
+});
+ok(
+  "SEARCH-08 CID Enter may keep compound href",
+  cidSubmit.href === "/compounds/pubchem/2244"
+);
+ok(
+  "SEARCH-08 queryKind exports structured helpers",
+  typeof qk.structuredQueryLabel === "function" &&
+    qk.structuredQueryLabel("inchi") === "InChI" &&
+    /resolveSearchSubmit/.test(queryKindSrc)
 );
 
 console.log(`\n${passed} search-contract checks passed`);

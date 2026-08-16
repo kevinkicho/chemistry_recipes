@@ -146,7 +146,7 @@ Step-by-step and troubleshooting: **[docs/getting-started.md](docs/getting-start
 | Path | Purpose |
 |------|---------|
 | `/` | Home · live densify entry + problem-first MSAT journey |
-| `/search` | Multi-source + PubChem (name, CAS, SMILES, InChIKey, UNII, CID) |
+| `/search` | Multi-source + PubChem (name, CAS, SMILES, InChI, InChIKey, UNII, CID) |
 | `/workspace` | Local projects, science campaigns, graph, agents, densify telemetry |
 | `/compare` | Side-by-side recipes + dual export |
 | `/diagnostics` | API probes, Ollama readiness, IndexedDB + cold-CID KPI floors |
