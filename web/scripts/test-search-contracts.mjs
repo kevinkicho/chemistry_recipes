@@ -408,4 +408,64 @@ ok(
     /parsePubchemCidQuery/.test(results)
 );
 
+
+ok(
+  "SEARCH-12 Wikipedia CAS Number / CAS No. / CAS-RN labels",
+  qk.normalizeChemicalQuery("CAS Number: 50-78-2") === "50-78-2" &&
+    qk.classifyChemicalQuery("CAS Number: 50-78-2") === "cas" &&
+    qk.classifyChemicalQuery("CAS No. 50-78-2") === "cas" &&
+    qk.classifyChemicalQuery("CAS-RN: 50-78-2") === "cas" &&
+    qk.normalizeChemicalQuery("CAS No: 50-78-2") === "50-78-2" &&
+    qk.classifyChemicalQuery("CAS RN: 50-78-2") === "cas"
+);
+ok(
+  "SEARCH-12 PubChem name-slug URL is a name, not SMILES",
+  qk.normalizeChemicalQuery(
+    "https://pubchem.ncbi.nlm.nih.gov/compound/Aspirin"
+  ) === "Aspirin" &&
+    qk.classifyChemicalQuery(
+      "https://pubchem.ncbi.nlm.nih.gov/compound/Aspirin"
+    ) === "name" &&
+    qk.parsePubchemCidQuery(
+      "https://pubchem.ncbi.nlm.nih.gov/compound/Aspirin"
+    ) === null &&
+    !qk.looksLikeSmiles(
+      qk.normalizeChemicalQuery(
+        "https://pubchem.ncbi.nlm.nih.gov/compound/Aspirin"
+      )
+    )
+);
+ok(
+  "SEARCH-12 PubChem CID URL and www/encoded name slug",
+  qk.parsePubchemCidQuery(
+    "https://www.pubchem.ncbi.nlm.nih.gov/compound/2244#section=Names"
+  ) === 2244 &&
+    qk.normalizeChemicalQuery(
+      "https://pubchem.ncbi.nlm.nih.gov/compound/2-Propanol"
+    ) === "2-Propanol" &&
+    qk.classifyChemicalQuery(
+      "https://pubchem.ncbi.nlm.nih.gov/compound/2-Propanol"
+    ) === "name" &&
+    qk.normalizeChemicalQuery(
+      "https://pubchem.ncbi.nlm.nih.gov/compound/acetylsalicylic%20acid"
+    ) === "acetylsalicylic acid"
+);
+ok(
+  "SEARCH-12 CAS Number Enter submits CAS as written",
+  qk.resolveSearchSubmit("CAS Number: 50-78-2", { value: "aspirin" })
+    .value === "50-78-2"
+);
+ok(
+  "SEARCH-12 name-slug URL Enter submits the compound name",
+  qk.resolveSearchSubmit(
+    "https://pubchem.ncbi.nlm.nih.gov/compound/Aspirin",
+    null
+  ).value === "Aspirin"
+);
+ok(
+  "SEARCH-12 SearchForm name autocomplete uses normalized query",
+  /fetchPubChemAutocomplete\(qNorm/.test(form) &&
+    /encodeURIComponent\(qNorm\)/.test(form)
+);
+
 console.log(`\n${passed} search-contract checks passed`);

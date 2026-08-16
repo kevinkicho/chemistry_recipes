@@ -90,7 +90,7 @@ export function SearchForm({
   useEffect(() => {
     const qTrim = q.trim();
     const qNorm = normalizeChemicalQuery(qTrim);
-    const history = recentHistorySuggestions(qTrim);
+    const history = recentHistorySuggestions(qNorm || qTrim);
 
     // Empty field: history only
     if (qTrim.length < 2) {
@@ -151,9 +151,9 @@ export function SearchForm({
       void (async () => {
         // Parallel: browser PubChem autocomplete + server multi-suggest
         const [pc, multiRes] = await Promise.all([
-          fetchPubChemAutocomplete(qTrim, MAX_PUBCHEM, ac.signal),
+          fetchPubChemAutocomplete(qNorm, MAX_PUBCHEM, ac.signal),
           fetch(
-            `/api/search/suggest?q=${encodeURIComponent(qTrim)}&limit=14`,
+            `/api/search/suggest?q=${encodeURIComponent(qNorm)}&limit=14`,
             { signal: ac.signal, cache: "no-store" }
           )
             .then(async (r) => {
