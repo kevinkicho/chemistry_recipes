@@ -98,3 +98,19 @@ export function markDensifyWarmed(cid: number): void {
     ),
   });
 }
+
+/**
+ * lastWarmedAt must mean a dossier was actually persisted.
+ * phase "ready" alone is not enough: an early SSE close can promote a
+ * partial shell to ready without writing IndexedDB.
+ */
+export function shouldMarkScheduleWarmed(chrome?: {
+  fromCache?: boolean;
+  cachedAt?: number | null;
+  phase?: string;
+} | null): boolean {
+  if (!chrome) return false;
+  if (chrome.fromCache) return true;
+  const at = chrome.cachedAt;
+  return typeof at === "number" && Number.isFinite(at) && at > 0;
+}

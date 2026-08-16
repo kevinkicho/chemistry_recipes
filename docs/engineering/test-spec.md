@@ -166,7 +166,7 @@ Optional before release/deploy:
 | **DENS-05** | Literature depth ranks procedure windows | `test-densify-depth` |
 | **DENS-06** | AI evidence package prioritizes densify windows | `test-densify-depth`, `test-prompt-qc` |
 | **DENS-07** | Client enrich reuses harvested excerpts | `test-densify-depth` |
-| **DENS-12** | Densify schedule does not mark warmed when stream returns no dossier | `test-densify-depth`, `test-product-path` |
+| **DENS-12** | Densify schedule does not mark warmed when stream returns no dossier; live page does not mark warmed on phase ready without cache | `test-densify-depth`, `test-product-path` |
 | **DENS-13** | Incomplete/dropped densify streams are fail, not done/warm-complete | `test-densify-depth`, `test-product-path`, `test-nav-abort` |
 
 ### J. Navigation & leave-page abort
