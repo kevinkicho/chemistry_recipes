@@ -192,6 +192,7 @@ Optional before release/deploy:
 | **SEARCH-07** | Browser PubChem resolves advertised SMILES/UNII | `test-search-contracts` |
 | **SEARCH-08** | Structured submit + InChI resolve (not SMILES-misclassified) | `test-search-contracts` |
 | **SEARCH-09** | Numbered names are names; stereo SMILES use query-param resolve | `test-search-contracts` |
+| **SEARCH-10** | Prefixed paste IDs (InChIKey=/CID/CAS/UNII/URL) normalize; InChIKey/CID skip name fan-out | `test-search-contracts` |
 
 ### L. Diagnostics honesty
 

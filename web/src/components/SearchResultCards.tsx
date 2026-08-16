@@ -9,7 +9,6 @@ import type { MultiSourceHit } from "@/lib/search/multiSourceSearch";
 
 /**
  * PubChem search hit. Provenance is per-CID: live NIH fetch on API open.
- * If CID is in the hub index, show modality / role chips.
  */
 export function PubChemResultCard({
   href,

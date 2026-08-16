@@ -278,15 +278,87 @@ ok(
   )
 );
 ok(
-  "SEARCH-09 multi-source skips name fan-out for SMILES\/InChI",
+  "SEARCH-09 multi-source skips name fan-out for structure-only queries",
   /classifyChemicalQuery/.test(multi) &&
-    /kind === "smiles" \|\| kind === "inchi"/.test(multi) &&
+    /isStructureOnlyQuery/.test(multi) &&
     /name APIs were not queried/.test(multi)
 );
 ok(
   "SEARCH-09 numbered-name Enter still uses highlight",
   qk.resolveSearchSubmit("2-prop", { value: "2-propanol" }).value ===
     "2-propanol"
+);
+
+
+ok(
+  "SEARCH-10 normalize InChIKey= prefix (not SMILES)",
+  qk.normalizeChemicalQuery("InChIKey=" + aspirinKey) === aspirinKey &&
+    qk.classifyChemicalQuery("InChIKey=" + aspirinKey) === "inchikey" &&
+    !qk.looksLikeSmiles(qk.normalizeChemicalQuery("InChIKey=" + aspirinKey))
+);
+ok(
+  "SEARCH-10 normalize InChIKey: display form",
+  qk.classifyChemicalQuery("InChIKey: " + aspirinKey) === "inchikey" &&
+    qk.normalizeChemicalQuery("InChI Key: " + aspirinKey) === aspirinKey
+);
+ok(
+  "SEARCH-10 normalize CID prefix and PubChem URL",
+  qk.normalizeChemicalQuery("CID 2244") === "2244" &&
+    qk.classifyChemicalQuery("CID: 2244") === "cid" &&
+    qk.normalizeChemicalQuery(
+      "https://pubchem.ncbi.nlm.nih.gov/compound/2244"
+    ) === "2244"
+);
+ok(
+  "SEARCH-10 normalize CAS RN / UNII prefixes and quotes",
+  qk.normalizeChemicalQuery("CAS RN: 50-78-2") === "50-78-2" &&
+    qk.classifyChemicalQuery("CAS 50-78-2") === "cas" &&
+    qk.normalizeChemicalQuery("UNII: R16CO5Y76E") === "R16CO5Y76E" &&
+    qk.classifyChemicalQuery('"50-78-2"') === "cas" &&
+    qk.classifyChemicalQuery('"' + aspirinSmiles + '"') === "smiles"
+);
+ok(
+  "SEARCH-10 prefixed InChIKey Enter submits key as written",
+  qk.resolveSearchSubmit("InChIKey=" + aspirinKey, { value: "aspirin" })
+    .value === aspirinKey
+);
+ok(
+  "SEARCH-10 CID prefix Enter may keep compound href",
+  qk.resolveSearchSubmit("CID 2244", {
+    value: "2244",
+    href: "/compounds/pubchem/2244",
+  }).href === "/compounds/pubchem/2244"
+);
+ok(
+  "SEARCH-10 name queries still names after normalize",
+  qk.classifyChemicalQuery("aspirin") === "name" &&
+    qk.classifyChemicalQuery("2-propanol") === "name" &&
+    qk.isNameQuery("aspirin") &&
+    !qk.isNameQuery("InChIKey=" + aspirinKey) &&
+    !qk.isNameQuery("CID 2244")
+);
+ok(
+  "SEARCH-10 structure-only kinds skip name fan-out",
+  qk.isStructureOnlyQuery("smiles") &&
+    qk.isStructureOnlyQuery("inchi") &&
+    qk.isStructureOnlyQuery("inchikey") &&
+    qk.isStructureOnlyQuery("cid") &&
+    !qk.isStructureOnlyQuery("cas") &&
+    !qk.isStructureOnlyQuery("unii") &&
+    !qk.isStructureOnlyQuery("name")
+);
+ok(
+  "SEARCH-10 resolvers normalize before PubChem lookup",
+  /normalizeChemicalQuery/.test(serverPubchem) &&
+    /normalizeChemicalQuery/.test(browser) &&
+    /normalizeChemicalQuery/.test(multi) &&
+    /normalizeChemicalQuery/.test(form)
+);
+ok(
+  "SEARCH-10 SearchForm CID hint uses normalized CID",
+  /normalizeChemicalQuery/.test(form) &&
+    /PubChem CID · open compound/.test(form) &&
+    /qNorm/.test(form)
 );
 
 console.log(`\n${passed} search-contract checks passed`);
