@@ -440,6 +440,15 @@ ok(
   "manager brief field-aware AI",
   /processRoutesFromAi|aiProvenanceForField/.test(mgr)
 );
+ok(
+  "SEARCH-32 manager-brief empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(mgr) &&
+    /formatSectionEmptyCopy/.test(mgr) &&
+    /pathEmpty/.test(mgr) &&
+    /patentEmpty/.test(mgr) &&
+    /hazardEmpty/.test(mgr)
+);
+
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
 ok("PdfWorkerPack exists", existsSync(src("components/PdfWorkerPack.tsx")));

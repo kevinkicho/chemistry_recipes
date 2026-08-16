@@ -216,6 +216,7 @@ Optional before release/deploy:
 | **SEARCH-29** | Route-compare empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No process routes yet"; leftover identity / annotation HTTP is not a route-compare miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
 | **SEARCH-30** | Route-hypotheses empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No public process hypothesis yet"; leftover identity / annotation HTTP is not a route-hypothesis miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
 | **SEARCH-31** | Problem / unit-op search empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No process facts yet" / a clean filter miss; leftover identity / annotation HTTP is not a unit-op-search miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
+| **SEARCH-32** | Manager / MSAT brief preferred-path / alternatives / risks / IP empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "Await process literature" / "No alternate public route" / "No patent numbers in harvest"; leftover identity / annotation HTTP is not a manager-brief miss. Provenance chips still pass all traces (composite brief). | `test-search-contracts`, `test-product-path`, `test-provenance` |
 
 ### L. Diagnostics honesty
 

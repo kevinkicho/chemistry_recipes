@@ -7,6 +7,10 @@ import {
   aiProvenanceForField,
   processRoutesFromAi,
 } from "@/lib/dossier/aiFieldProvenance";
+import {
+  formatProcessFactsEmptyCopy,
+  formatSectionEmptyCopy,
+} from "@/lib/dossier/sectionHonesty";
 
 /**
  * MSAT / manager planning brief — preferred path, alternatives, risks, IP pointers, gaps.
@@ -44,6 +48,27 @@ export function ManagerBriefPanel({
     aiProvenanceForField(dossier.synthesis, "routes") ||
     (processRoutesFromAi(dossier) ? dossier.synthesis.provenance : null) ||
     null;
+
+  // Preferred path / alternatives / risks / IP pointers come from
+  // process facts + GHS + patents. Harvest failure is not "await
+  // literature" / "no patent numbers" / a clean empty. Leftover
+  // identity / annotation HTTP is not a manager-brief miss.
+  // Provenance chips still pass all traces on purpose (composite brief).
+  const allTraces = slimTraces(dossier.traces || []);
+  const pathEmpty = formatProcessFactsEmptyCopy({
+    traces: allTraces,
+    fetchErrors: dossier.fetchErrors,
+  });
+  const patentEmpty = formatSectionEmptyCopy({
+    family: "patents",
+    traces: allTraces,
+    fetchErrors: dossier.fetchErrors,
+  });
+  const hazardEmpty = formatSectionEmptyCopy({
+    family: "hazards",
+    traces: allTraces,
+    fetchErrors: dossier.fetchErrors,
+  });
 
   return (
     <div
@@ -113,7 +138,9 @@ export function ManagerBriefPanel({
           </dd>
           <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
             {preferred?.summary ||
-              "Await process literature/patents or fact-dense public text."}
+              (pathEmpty.kind === "error"
+                ? pathEmpty.message
+                : "Await process literature/patents or fact-dense public text.")}
           </p>
           {preferred?.steps?.length ? (
             <ol className="mt-2 list-decimal space-y-0.5 pl-4 text-[11px] text-slate-400">
@@ -145,7 +172,11 @@ export function ManagerBriefPanel({
                 </div>
               ))
             ) : (
-              <p className="text-slate-600">No alternate public route assembled.</p>
+              <p className="text-slate-600">
+                {pathEmpty.kind === "error"
+                  ? pathEmpty.message
+                  : "No alternate public route assembled."}
+              </p>
             )}
             {contradictions.map((c) => (
               <div
@@ -176,7 +207,11 @@ export function ManagerBriefPanel({
               </ul>
             ) : (
               <p className="text-[11px] text-slate-600">
-                No process-specific risk language extracted.
+                {pathEmpty.kind === "error"
+                  ? pathEmpty.message
+                  : hazardEmpty.kind === "error"
+                    ? hazardEmpty.message
+                    : "No process-specific risk language extracted."}
               </p>
             )}
           </dd>
@@ -197,7 +232,9 @@ export function ManagerBriefPanel({
               </ul>
             ) : (
               <p className="text-[11px] text-slate-600">
-                No patent numbers in harvest — check Patents panel.
+                {patentEmpty.kind === "error"
+                  ? patentEmpty.message
+                  : "No patent numbers in harvest — check Patents panel."}
               </p>
             )}
             {(pf?.exampleDenseSources || []).length ? (
