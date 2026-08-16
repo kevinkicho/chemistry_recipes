@@ -104,5 +104,30 @@ ok(
   /server multi-source returned no additional matches/.test(results) &&
     /browserHits\.length > 0/.test(results)
 );
+ok(
+  "SEARCH-06 merge browser CID cards when server is identity-only",
+  /mergeOpenableBrowserHits/.test(results) &&
+    /kept PubChem browser CID cards that server fan-out missed/.test(results)
+);
+ok(
+  "SEARCH-06 keep browser hits when server enrich fails",
+  /server enrich failed/.test(results)
+);
+
+const browser = read("lib/api/pubchemBrowser.ts");
+ok(
+  "SEARCH-07 browser PubChem resolves advertised SMILES",
+  /looksLikeSmiles/.test(browser) &&
+    /compound\/smiles\//.test(browser)
+);
+ok(
+  "SEARCH-07 browser PubChem resolves advertised UNII",
+  /looksLikeUnii/.test(browser) &&
+    /toUpperCase\(\)/.test(browser)
+);
+ok(
+  "SEARCH-07 structured ids skip name autocomplete",
+  /isNameQuery/.test(browser)
+);
 
 console.log(`\n${passed} search-contract checks passed`);
