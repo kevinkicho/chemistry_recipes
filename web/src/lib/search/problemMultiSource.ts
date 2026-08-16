@@ -14,6 +14,12 @@ import { searchSemanticScholarProcess } from "@/lib/api/semanticScholar";
 import { searchPubMedProcess } from "@/lib/api/pubmed";
 import { searchArxivProcess } from "@/lib/api/arxiv";
 import { routes } from "@/lib/routes";
+import type { ApiFetchTrace } from "@/lib/api/trace";
+import {
+  failureDetailFromTraces,
+  formatProblemSearchSummary,
+  isFanoutUpstreamFailure,
+} from "@/lib/search/searchHonesty";
 
 export const PROBLEM_MULTI_SCHEMA =
   "chemistry-recipes.problem-multi-search.v1" as const;
@@ -29,7 +35,12 @@ export interface ProblemMultiSearchResult {
   literatureHits: LiteratureHit[];
   /** Unified ranked list for UI */
   unified: ProblemSearchHit[];
-  sourceStatus: Array<{ source: string; ok: boolean; hitCount: number }>;
+  sourceStatus: Array<{
+    source: string;
+    ok: boolean;
+    hitCount: number;
+    detail?: string;
+  }>;
   durationMs: number;
   summary: string;
 }
@@ -117,16 +128,26 @@ export async function searchProblemFirstMulti(
   let moleculeHits: MultiSourceHit[] = [];
   if (multi.status === "fulfilled") {
     moleculeHits = multi.value.hits.filter((h) => h.openable && h.cid);
+    const inner = multi.value.sourceStatus || [];
     sourceStatus.push({
       source: "multi-molecule",
       ok: moleculeHits.length > 0,
       hitCount: moleculeHits.length,
+      detail: moleculeHits.length
+        ? undefined
+        : isFanoutUpstreamFailure(inner)
+          ? inner.find((s) => !s.ok && s.detail && s.detail !== "no hit")
+              ?.detail ||
+            multi.value.note ||
+            "fan-out failed"
+          : "no hit",
     });
-    for (const s of multi.value.sourceStatus.filter((x) => x.ok)) {
+    for (const s of inner.filter((x) => x.ok)) {
       sourceStatus.push({
         source: s.source,
         ok: true,
         hitCount: s.hitCount,
+        detail: s.detail,
       });
     }
   } else {
@@ -134,6 +155,7 @@ export async function searchProblemFirstMulti(
       source: "multi-molecule",
       ok: false,
       hitCount: 0,
+      detail: String(multi.reason),
     });
   }
 
@@ -141,18 +163,25 @@ export async function searchProblemFirstMulti(
   function pushLit(
     source: string,
     res:
-      | PromiseFulfilledResult<{ hits: LiteratureHit[] }>
+      | PromiseFulfilledResult<{ hits: LiteratureHit[]; traces?: ApiFetchTrace[] }>
       | PromiseRejectedResult
   ) {
     if (res.status === "fulfilled") {
       literatureHits.push(...res.value.hits);
+      const fail = failureDetailFromTraces(res.value.traces);
       sourceStatus.push({
         source,
         ok: res.value.hits.length > 0,
         hitCount: res.value.hits.length,
+        detail: res.value.hits.length ? undefined : fail || "no hit",
       });
     } else {
-      sourceStatus.push({ source, ok: false, hitCount: 0 });
+      sourceStatus.push({
+        source,
+        ok: false,
+        hitCount: 0,
+        detail: String(res.reason),
+      });
     }
   }
   pushLit("europepmc", epmc);
@@ -191,10 +220,11 @@ export async function searchProblemFirstMulti(
   unified.sort((a, b) => b.score - a.score);
   const trimmed = unified.slice(0, limit);
 
-  const summary = [
-    `${moleculeHits.length} multi-source molecule${moleculeHits.length === 1 ? "" : "s"}`,
-    `${litUnique.length} process paper${litUnique.length === 1 ? "" : "s"}`,
-  ].join(" · ");
+  const summary = formatProblemSearchSummary({
+    moleculeCount: moleculeHits.length,
+    literatureCount: litUnique.length,
+    sourceStatus,
+  });
 
   return {
     schema: PROBLEM_MULTI_SCHEMA,

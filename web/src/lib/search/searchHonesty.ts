@@ -81,3 +81,45 @@ export function formatSearchNoHitsMessage(opts: {
       "No free-public hits across identity + process literature sources (PubChem…OpenAlex/Crossref). Try a CID or CAS.",
   };
 }
+
+/** HTTP/timeout detail from harvest traces. Clean 404/notFound is not a failure. */
+export function failureDetailFromTraces(
+  traces?: Array<{
+    ok?: boolean;
+    notFound?: boolean;
+    error?: string;
+    httpStatus?: number;
+  }>
+): string | undefined {
+  if (!traces?.length) return undefined;
+  const fails = traces.filter((t) => !t.ok && !t.notFound);
+  if (!fails.length) return undefined;
+  const d = fails[0]!;
+  const err = (d.error || "").trim();
+  if (err) return err;
+  if (d.httpStatus != null) return `HTTP ${d.httpStatus}`;
+  return "failed";
+}
+
+/** Problem-first status line: count hits, but never call an outage empty. */
+export function formatProblemSearchSummary(opts: {
+  moleculeCount: number;
+  literatureCount: number;
+  sourceStatus: SearchSourceChip[];
+}): string {
+  const counts =
+    `${opts.moleculeCount} multi-source molecule${opts.moleculeCount === 1 ? "" : "s"}` +
+    ` · ${opts.literatureCount} process paper${opts.literatureCount === 1 ? "" : "s"}`;
+  const errorDetails = opts.sourceStatus.filter(
+    (s) => !s.ok && !isEmptyDetail(s.detail)
+  );
+  if (opts.moleculeCount > 0 || opts.literatureCount > 0) {
+    return errorDetails.length ? `${counts} · some free sources failed` : counts;
+  }
+  if (!errorDetails.length) return counts;
+  if (errorDetails.length === opts.sourceStatus.length) {
+    return "Free-public problem search failed — not an empty result";
+  }
+  return "No free-public problem hits; some sources failed";
+}
+
