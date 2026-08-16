@@ -206,4 +206,12 @@ ok(
 );
 
 
+
+ok(
+  "live dossier literature empty copy is not unconditional No hits",
+  /formatSectionEmptyCopy/.test(read("components/dossier/LiveMoleculeDossier.tsx")) &&
+    /litEmpty\.summary/.test(read("components/dossier/LiveMoleculeDossier.tsx")) &&
+    /patentEmpty\.summary/.test(read("components/dossier/LiveMoleculeDossier.tsx"))
+);
+
 console.log(`\n${n} product-path checks passed`);

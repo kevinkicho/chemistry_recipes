@@ -37,11 +37,14 @@ function yearNum(y?: string): number {
 export function LiteratureTable({
   hits,
   cid,
+  emptyMessage,
   onPasteAttached,
 }: {
   hits: LiteratureHit[];
   /** When set, enable densify-paste actions */
   cid?: number;
+  /** Honest empty vs upstream-failure copy from harvest traces */
+  emptyMessage?: string;
   /** Parent can re-extract facts / refresh ideal delta */
   onPasteAttached?: (info: {
     attached: number;
@@ -201,7 +204,7 @@ export function LiteratureTable({
   if (hits.length === 0) {
     return (
       <p className="text-sm text-slate-500">
-        No literature hits for this capture.
+        {emptyMessage || "No literature hits for this capture."}
       </p>
     );
   }
