@@ -2240,4 +2240,83 @@ ok(
     /No process routes yet/.test(routeCompare)
 );
 
+const routeHypotheses = read("components/frontier/RouteHypothesesPanel.tsx");
+ok(
+  "PROV-23 route-hypotheses chips use process-fact traces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(routeHypotheses) &&
+    /isProcessFactSourceRef/.test(routeHypotheses) &&
+    /liveFetch=\{false\}/.test(routeHypotheses) &&
+    /field="Route hypotheses"/.test(routeHypotheses) &&
+    /traces=\{traces\}/.test(routeHypotheses) &&
+    /sourceRefs=\{sourceRefs\}/.test(routeHypotheses)
+);
+ok(
+  "PROV-23 leftover PubChem identity is not route-hypotheses HTTP",
+  sectionH.isProcessFactTrace(litUrl) &&
+    sectionH.isProcessFactTrace(ghsUrl) &&
+    sectionH.isProcessFactTrace(mfgUrl) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isProcessFactTrace(chemblUrl)
+);
+ok(
+  "SEARCH-30 route-hypotheses empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(routeHypotheses) &&
+    /hypoEmpty\.kind === "error"/.test(routeHypotheses) &&
+    /hypoEmpty\.message/.test(routeHypotheses)
+);
+ok(
+  "SEARCH-30 literature harvest fail is route-hypotheses error not empty",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "error" &&
+    /Not an empty result|Not a clean miss/.test(
+      sectionH.formatProcessFactsEmptyCopy({
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).message
+    )
+);
+ok(
+  "SEARCH-30 leftover identity is not a route-hypotheses miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-30 leftover ChEMBL annotation fail is not a route-hypotheses miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/search",
+        ok: false,
+        error: "HTTP 502",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-30 genuine empty stays no-public-process-hypothesis copy",
+  sectionH.formatProcessFactsEmptyCopy({ traces: [] }).kind === "empty" &&
+    /hyp-none/.test(routeHypotheses) &&
+    /No public process hypothesis yet/.test(read("lib/frontier/routeHypotheses.ts"))
+);
+
 console.log(`\n${passed} search-contract checks passed`);

@@ -354,4 +354,10 @@ ok(
     /compareEmpty\.kind === "error"/.test(read("components/RouteCompare.tsx")) &&
     /compareEmpty\.message/.test(read("components/RouteCompare.tsx"))
 );
+ok(
+  "SEARCH-30 route-hypotheses empty copy is not unconditional hypothesis miss",
+  /formatProcessFactsEmptyCopy/.test(read("components/frontier/RouteHypothesesPanel.tsx")) &&
+    /hypoEmpty\.kind === "error"/.test(read("components/frontier/RouteHypothesesPanel.tsx")) &&
+    /hypoEmpty\.message/.test(read("components/frontier/RouteHypothesesPanel.tsx"))
+);
 console.log(`\n${n} product-path checks passed`);
