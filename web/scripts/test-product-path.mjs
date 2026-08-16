@@ -428,4 +428,13 @@ ok(
     /isStubOnlyProcessSequence/.test(read("components/RouteCompare.tsx")) &&
     /No extractable public process sequence yet/.test(read("lib/dossier/sectionHonesty.ts"))
 );
+ok(
+  "SEARCH-39 ideal-page empty copy is not unconditional No GHS / No process steps miss",
+  /honestIdealEmptyCopy/.test(read("lib/dossier/idealPage.ts")) &&
+    /isStubOnlyProcessSequence/.test(read("lib/dossier/idealPage.ts")) &&
+    /harvest-fail/.test(read("lib/dossier/idealPage.ts")) &&
+    /harvest-fail/.test(read("components/IdealPageParityPanel.tsx")) &&
+    /No GHS text for this CID/.test(read("lib/dossier/idealPage.ts")) &&
+    /No process steps yet/.test(read("lib/dossier/idealPage.ts"))
+);
 console.log(`\n${n} product-path checks passed`);

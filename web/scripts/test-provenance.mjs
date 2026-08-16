@@ -491,6 +491,12 @@ ok(
     /isStubOnlyProcessSequence/.test(read("components/MondayMorningPack.tsx")) &&
     /No extractable public process sequence yet/.test(read("lib/dossier/sectionHonesty.ts"))
 );
+ok(
+  "SEARCH-39 ideal-page empty copy uses honestIdealEmptyCopy",
+  /honestIdealEmptyCopy/.test(read("lib/dossier/idealPage.ts")) &&
+    /isStubOnlyProcessSequence/.test(read("lib/dossier/idealPage.ts")) &&
+    /No GHS text for this CID/.test(read("lib/dossier/idealPage.ts"))
+);
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
 ok("PdfWorkerPack exists", existsSync(src("components/PdfWorkerPack.tsx")));

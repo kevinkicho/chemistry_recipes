@@ -16,6 +16,7 @@ const SOURCE_STYLE: Record<IdealFillSource, string> = {
   ai: "bg-violet-500/15 text-violet-200 ring-violet-500/30",
   "tier-a-teaching": "bg-rose-500/15 text-rose-100 ring-rose-500/35",
   "user-local": "bg-emerald-500/15 text-emerald-100 ring-emerald-500/30",
+  "harvest-fail": "bg-rose-500/15 text-rose-100 ring-rose-500/35",
 };
 
 const SOURCE_LABEL: Record<IdealFillSource, string> = {
@@ -25,6 +26,7 @@ const SOURCE_LABEL: Record<IdealFillSource, string> = {
   ai: "AI",
   "tier-a-teaching": "legacy mock",
   "user-local": "local paste",
+  "harvest-fail": "harvest failed",
 };
 
 /**
