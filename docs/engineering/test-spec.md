@@ -212,6 +212,7 @@ Optional before release/deploy:
 | **SEARCH-25** | Operator job-aid GHS / public-sequence empty vs error vs timeout: GHS harvest failures are not "No GHS hazard statements on file"; literature / patent / manufacturing harvest failures are not "No public sequence available"; leftover identity / annotation HTTP is not a job-aid GHS or sequence miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
 | **SEARCH-26** | Monday-pack preferred-path empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "Not enough public procedure density"; leftover identity / annotation HTTP is not a Monday-pack sequence miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
 | **SEARCH-27** | Condition-atlas empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No conditions extracted"; leftover identity / annotation HTTP is not a condition-atlas miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
+| **SEARCH-28** | Process-recipe (RoutePanel) empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No process recipe yet / wait for public process literature"; leftover identity / annotation HTTP is not a process-recipe miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
 
 ### L. Diagnostics honesty
 

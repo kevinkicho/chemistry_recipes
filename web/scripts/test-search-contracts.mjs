@@ -2115,4 +2115,66 @@ ok(
     /No conditions extracted/.test(conditionAtlas)
 );
 
+const routePanel = read("components/RoutePanel.tsx");
+ok(
+  "SEARCH-28 route-panel empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(routePanel) &&
+    /recipeEmpty\.kind === "error"/.test(routePanel) &&
+    /recipeEmpty\.message/.test(routePanel) &&
+    /fetchErrors=\{dossier\.fetchErrors\}/.test(liveDossier)
+);
+ok(
+  "SEARCH-28 literature harvest fail is process-recipe error not empty",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "error" &&
+    /Not an empty result|Not a clean miss/.test(
+      sectionH.formatProcessFactsEmptyCopy({
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).message
+    )
+);
+ok(
+  "SEARCH-28 leftover identity is not a process-recipe miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-28 leftover ChEMBL annotation fail is not a process-recipe miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/search",
+        ok: false,
+        error: "HTTP 502",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-28 genuine empty stays no-process-recipe copy",
+  sectionH.formatProcessFactsEmptyCopy({ traces: [] }).kind === "empty" &&
+    /No process recipe yet/.test(routePanel)
+);
+
 console.log(`\n${passed} search-contract checks passed`);
