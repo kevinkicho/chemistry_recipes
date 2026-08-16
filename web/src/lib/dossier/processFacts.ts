@@ -16,6 +16,7 @@ import type {
   SourceRef,
   StepConditions,
 } from "@/lib/types/process";
+import { honestProcessSequenceStub } from "@/lib/dossier/sectionHonesty";
 
 export type ProcessFactKind =
   | "unit-op"
@@ -874,11 +875,18 @@ export function routesFromProcessFacts(
   }
 
   if (!steps.length) {
+    // Harvest failure is not "did not yield atoms". Leftover identity HTTP is not a sequence miss.
+    const stub = honestProcessSequenceStub({
+      traces: evidence.traces,
+      fetchErrors: evidence.fetchErrors,
+      name,
+      kind: "facts",
+    });
     steps.push({
       id: "await-facts-1",
       order: 1,
-      title: "No extractable public process sequence yet",
-      description: `Free-public titles/abstracts for ${name} did not yield condition or unit-op atoms. Do not invent a plant procedure — use literature/patent panels and site packages.`,
+      title: stub.title,
+      description: stub.description,
       mechanismClass: "Evidence gap",
       sourceRefs: [
         {

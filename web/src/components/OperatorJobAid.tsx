@@ -9,6 +9,7 @@ import { slimTraces } from "@/lib/api/trace";
 import {
   formatProcessFactsEmptyCopy,
   formatSectionEmptyCopy,
+  isStubOnlyProcessSequence,
   isProcessFactSourceRef,
   isProcessFactTrace,
 } from "@/lib/dossier/sectionHonesty";
@@ -228,6 +229,14 @@ export function OperatorJobAid({
     traces: allTraces,
     fetchErrors: dossier.fetchErrors,
   });
+  // Cached await-ai / await-facts stubs are not a public sequence.
+  // Harvest failure is not "No public sequence available".
+  const showSequence =
+    sequence.length > 0 &&
+    !(
+      isStubOnlyProcessSequence(sequence.map((ev) => ev.step)) &&
+      sequenceEmpty.kind === "error"
+    );
 
   return (
     <div
@@ -343,7 +352,7 @@ export function OperatorJobAid({
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
           Public sequence (evidence per step)
         </h3>
-        {sequence.length ? (
+        {showSequence ? (
           <ol className="mt-2 space-y-3">
             {sequence.map((ev, idx) => {
               const badge = KIND_BADGE[ev.evidenceKind];

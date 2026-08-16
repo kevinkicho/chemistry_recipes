@@ -3,7 +3,10 @@
 import { useMemo, useState } from "react";
 import type { ProcessRoute } from "@/lib/types/process";
 import type { ApiFetchTrace } from "@/lib/api/trace";
-import { formatProcessFactsEmptyCopy } from "@/lib/dossier/sectionHonesty";
+import {
+  formatProcessFactsEmptyCopy,
+  isStubOnlyProcessSequence,
+} from "@/lib/dossier/sectionHonesty";
 import { FreePublicBadge } from "@/components/FreePublicProvenance";
 
 function routeLabel(r: ProcessRoute): string {
@@ -189,7 +192,12 @@ export function RouteCompare({
     fetchErrors,
   });
 
-  if (usable.length === 0) {
+  const stubOnly =
+    usable.length > 0 &&
+    usable.every((r) => isStubOnlyProcessSequence(r.steps));
+  // Cached await-ai / await-facts stubs are not process routes.
+  // Harvest failure is not "No process routes yet".
+  if (usable.length === 0 || (stubOnly && compareEmpty.kind === "error")) {
     return (
       <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4 text-sm text-slate-500">
         {compareEmpty.kind === "error"

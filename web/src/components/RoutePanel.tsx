@@ -7,7 +7,10 @@ import type { AiProvenanceRecord } from "@/lib/dossier/types";
 import type { ProcessFact } from "@/lib/dossier/processFacts";
 import type { ProcessRoute, ProcessStep } from "@/lib/types/process";
 import type { ApiFetchTrace } from "@/lib/api/trace";
-import { formatProcessFactsEmptyCopy } from "@/lib/dossier/sectionHonesty";
+import {
+  formatProcessFactsEmptyCopy,
+  isStubOnlyProcessSequence,
+} from "@/lib/dossier/sectionHonesty";
 import { ViewToggle, type AudienceView } from "./ViewToggle";
 
 function Tag({ children }: { children: React.ReactNode }) {
@@ -400,7 +403,9 @@ export function RoutePanel({
     fetchErrors,
   });
 
-  if (!route) {
+  // Cached await-ai / await-facts stubs are not a process recipe.
+  // Harvest failure is not "wait for public process literature".
+  if (!route || (isStubOnlyProcessSequence(route.steps) && recipeEmpty.kind === "error")) {
     return (
       <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/30 p-6 text-sm text-slate-500">
         {recipeEmpty.kind === "error"

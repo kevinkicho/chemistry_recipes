@@ -10,6 +10,7 @@ import {
 import {
   formatProcessFactsEmptyCopy,
   formatSectionEmptyCopy,
+  isStubOnlyProcessSequence,
 } from "@/lib/dossier/sectionHonesty";
 
 /**
@@ -69,6 +70,11 @@ export function ManagerBriefPanel({
     traces: allTraces,
     fetchErrors: dossier.fetchErrors,
   });
+  // Cached await-ai / await-facts stubs are not a preferred public path.
+  // Harvest failure is not "Await process literature".
+  const showPreferredPath =
+    Boolean(preferred) &&
+    !(isStubOnlyProcessSequence(preferred?.steps) && pathEmpty.kind === "error");
 
   return (
     <div
@@ -134,15 +140,20 @@ export function ManagerBriefPanel({
             Preferred public path
           </dt>
           <dd className="mt-1 text-sm font-medium text-slate-100">
-            {preferred?.name || "No route assembled"}
+            {showPreferredPath
+              ? preferred?.name
+              : pathEmpty.kind === "error"
+                ? "Sources failed — not empty"
+                : "No route assembled"}
           </dd>
           <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
-            {preferred?.summary ||
-              (pathEmpty.kind === "error"
+            {showPreferredPath
+              ? preferred?.summary
+              : pathEmpty.kind === "error"
                 ? pathEmpty.message
-                : "Await process literature/patents or fact-dense public text.")}
+                : "Await process literature/patents or fact-dense public text."}
           </p>
-          {preferred?.steps?.length ? (
+          {showPreferredPath && preferred?.steps?.length ? (
             <ol className="mt-2 list-decimal space-y-0.5 pl-4 text-[11px] text-slate-400">
               {preferred.steps.slice(0, 6).map((s) => (
                 <li key={s.id}>

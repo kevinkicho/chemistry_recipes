@@ -24,6 +24,7 @@ import type {
   ProcessStep,
   SourceRef,
 } from "@/lib/types/process";
+import { honestProcessSequenceStub } from "@/lib/dossier/sectionHonesty";
 
 function editorialRefs(cid: number): SourceRef[] {
   return [
@@ -115,12 +116,18 @@ export function scaffoldRoutesFromEvidence(evidence: CompoundEvidence): ProcessR
   }
 
   if (steps.length === 0) {
-    // Single honest stub — dual view will show description only, no fake plant fields
+    // Harvest failure is not "retrieved yet". Leftover identity HTTP is not a sequence miss.
+    const stub = honestProcessSequenceStub({
+      traces: evidence.traces,
+      fetchErrors: evidence.fetchErrors,
+      name,
+      kind: "scaffold",
+    });
     steps.push({
       id: "await-ai-1",
       order: 1,
-      title: "Process route synthesis pending",
-      description: `No process-oriented literature or patent abstracts were retrieved yet for ${name}. Ollama synthesis (when available) builds dual-view manufacturing routes from free public evidence. Open PubChem, literature, and patent panels below for raw sources.`,
+      title: stub.title,
+      description: stub.description,
       mechanismClass: "Evidence gap",
       sourceRefs: refs,
     });

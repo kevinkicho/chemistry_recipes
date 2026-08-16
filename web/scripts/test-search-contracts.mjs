@@ -2970,4 +2970,148 @@ ok(
     /dossier=\{dossier\}/.test(reactionNetPanel)
 );
 
+
+const scaffoldSrc = read("lib/dossier/scaffold.ts");
+const processFactsSrc = read("lib/dossier/processFacts.ts");
+const mondayPack38 = read("components/MondayMorningPack.tsx");
+const jobAid38 = read("components/OperatorJobAid.tsx");
+const routePanel38 = read("components/RoutePanel.tsx");
+const routeCompare38 = read("components/RouteCompare.tsx");
+const manager38 = read("components/ManagerBriefPanel.tsx");
+ok(
+  "SEARCH-38 process-sequence stub uses honestProcessSequenceStub",
+  /honestProcessSequenceStub/.test(scaffoldSrc) &&
+    /honestProcessSequenceStub/.test(processFactsSrc) &&
+    /export function honestProcessSequenceStub/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    )
+);
+ok(
+  "SEARCH-38 literature harvest fail is process-sequence error not empty",
+  /Sources failed|some sources failed/.test(
+    sectionH.honestProcessSequenceStub({
+      name: "Aspirin",
+      kind: "scaffold",
+      traces: [
+        {
+          endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+          ok: false,
+          error: "HTTP 503",
+        },
+      ],
+    }).title
+  ) &&
+    /Not an empty result|Not a clean miss/.test(
+      sectionH.honestProcessSequenceStub({
+        name: "Aspirin",
+        kind: "scaffold",
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).description
+    ) &&
+    !/retrieved yet|did not yield/.test(
+      sectionH.honestProcessSequenceStub({
+        name: "Aspirin",
+        kind: "scaffold",
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).description
+    )
+);
+ok(
+  "SEARCH-38 leftover identity is not a process-sequence miss",
+  sectionH.honestProcessSequenceStub({
+    name: "Aspirin",
+    kind: "scaffold",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).title === "Process route synthesis pending"
+);
+ok(
+  "SEARCH-38 leftover ChEMBL annotation fail is not a process-sequence miss",
+  sectionH.honestProcessSequenceStub({
+    name: "Aspirin",
+    kind: "facts",
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/search",
+        ok: false,
+        error: "HTTP 502",
+      },
+    ],
+  }).title === "No extractable public process sequence yet"
+);
+ok(
+  "SEARCH-38 genuine empty stays retrieved-yet / not-extractable copy",
+  sectionH.honestProcessSequenceStub({
+    name: "Aspirin",
+    kind: "scaffold",
+    traces: [],
+  }).title === "Process route synthesis pending" &&
+    /retrieved yet/.test(
+      sectionH.honestProcessSequenceStub({
+        name: "Aspirin",
+        kind: "scaffold",
+        traces: [],
+      }).description
+    ) &&
+    sectionH.honestProcessSequenceStub({
+      name: "Aspirin",
+      kind: "facts",
+      traces: [],
+    }).title === "No extractable public process sequence yet"
+);
+ok(
+  "SEARCH-38 stub ids are recognized; leftover identity is not a stub miss",
+  sectionH.isProcessSequenceStub({ id: "await-ai-1", title: "Process route synthesis pending" }) &&
+    sectionH.isProcessSequenceStub({
+      id: "await-facts-1",
+      title: "No extractable public process sequence yet",
+    }) &&
+    sectionH.isStubOnlyProcessSequence([
+      { id: "await-ai-1", title: "Process route synthesis pending" },
+    ]) &&
+    !sectionH.isProcessSequenceStub({ id: "lit-1", title: "Hydrogenation (public lead)" })
+);
+ok(
+  "SEARCH-38 panels overlay harvest empty copy on cached stub-only sequence",
+  /isStubOnlyProcessSequence/.test(mondayPack38) &&
+    /showPreferredSteps/.test(mondayPack38) &&
+    /isStubOnlyProcessSequence/.test(jobAid38) &&
+    /showSequence/.test(jobAid38) &&
+    /isStubOnlyProcessSequence/.test(routePanel38) &&
+    /isStubOnlyProcessSequence/.test(routeCompare38) &&
+    /isStubOnlyProcessSequence/.test(manager38) &&
+    /showPreferredPath/.test(manager38)
+);
+ok(
+  "SEARCH-38 leftover identity HTTP is not a process-sequence miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+
 console.log(`\n${passed} search-contract checks passed`);

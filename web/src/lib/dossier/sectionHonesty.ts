@@ -444,8 +444,8 @@ const PROCESS_FACT_EMPTY_FAMILIES = [
  * Process-fact atoms come from literature, patents, and manufacturing text.
  * Harvest failure in those families is not "no atoms extracted yet".
  * Leftover identity / GHS / annotation HTTP is not a process-facts miss.
- * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, and reaction-network empty copy reuse this helper —
- * no extracted conditions / no process recipe / no process routes / no public process hypothesis / no process facts yet / no route assembled / no procedure windows densified / no route hypotheses assembled / no procedure-scored windows yet / network is center-only is not a clean miss when
+ * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, reaction-network, and process-sequence stub empty copy reuse this helper —
+ * no extracted conditions / no process recipe / no process routes / no public process hypothesis / no process facts yet / no route assembled / no procedure windows densified / no route hypotheses assembled / no procedure-scored windows yet / network is center-only / no extractable public process sequence yet / process route synthesis pending is not a clean miss when
  * lit / patent / manufacturing harvest failed.
  */
 export function formatProcessFactsEmptyCopy(opts: {
@@ -511,3 +511,67 @@ export function tocSectionFlags(opts: {
   if (opts.emptyCopy?.kind === "error") return { empty: "0", error: "1" };
   return { empty: "1" };
 }
+
+
+const PROCESS_SEQUENCE_STUB_IDS = new Set(["await-facts-1", "await-ai-1"]);
+const PROCESS_SEQUENCE_STUB_TITLES = [
+  "No extractable public process sequence yet",
+  "Process route synthesis pending",
+];
+
+/**
+ * Scaffold / process-fact placeholder steps are not a real public sequence.
+ * Harvest failure is not "No extractable public process sequence yet".
+ * Leftover identity / annotation HTTP is not a process-sequence miss.
+ */
+export function isProcessSequenceStub(step?: {
+  id?: string;
+  title?: string;
+  mechanismClass?: string;
+}): boolean {
+  if (!step) return false;
+  if (step.id && PROCESS_SEQUENCE_STUB_IDS.has(step.id)) return true;
+  const title = (step.title || "").trim();
+  return PROCESS_SEQUENCE_STUB_TITLES.includes(title);
+}
+
+export function isStubOnlyProcessSequence(
+  steps?: Array<{ id?: string; title?: string; mechanismClass?: string }>
+): boolean {
+  const list = steps || [];
+  return list.length > 0 && list.every((st) => isProcessSequenceStub(st));
+}
+
+export function honestProcessSequenceStub(opts: {
+  traces?: Array<
+    Pick<ApiFetchTrace, "endpointUrl" | "ok" | "notFound" | "error" | "httpStatus">
+  >;
+  fetchErrors?: string[];
+  name: string;
+  kind: "facts" | "scaffold";
+}): { title: string; description: string } {
+  const harvest = formatProcessFactsEmptyCopy({
+    traces: opts.traces,
+    fetchErrors: opts.fetchErrors,
+  });
+  if (harvest.kind === "error") {
+    return { title: harvest.summary, description: harvest.message };
+  }
+  if (opts.kind === "facts") {
+    return {
+      title: "No extractable public process sequence yet",
+      description:
+        "Free-public titles/abstracts for " +
+        opts.name +
+        " did not yield condition or unit-op atoms. Do not invent a plant procedure — use literature/patent panels and site packages.",
+    };
+  }
+  return {
+    title: "Process route synthesis pending",
+    description:
+      "No process-oriented literature or patent abstracts were retrieved yet for " +
+      opts.name +
+      ". Ollama synthesis (when available) builds dual-view manufacturing routes from free public evidence. Open PubChem, literature, and patent panels below for raw sources.",
+  };
+}
+
