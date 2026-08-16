@@ -308,6 +308,7 @@ export function LiveMoleculeDossier({
     (t) =>
       t.endpointUrl.includes("patentsview") ||
       t.endpointUrl.includes("search.patentsview.org") ||
+      t.endpointUrl.toLowerCase().includes("patentid") ||
       (t.endpointUrl.includes("europepmc") &&
         /patent|USPTO|process for preparing|method of manufacturing/i.test(
           decodeURIComponent(t.endpointUrl)
@@ -324,13 +325,19 @@ export function LiveMoleculeDossier({
   const patentRefsFromDossier = dossier.sourceRefs.filter((r) => r.type === "patent");
   const patentSourceRefs = [
     ...patentRefsFromDossier,
-    {
-      type: "api" as const,
-      id: `patentsview-api:${cid}`,
-      label: "PatentsView (USPTO) search API",
-      url: "https://search.patentsview.org/api/v1/patent/",
-      note: "Free public USPTO PatentsView endpoint (API key optional)",
-    },
+    ...(patentTraces.some((t) =>
+      t.endpointUrl.toLowerCase().includes("patentsview")
+    )
+      ? [
+          {
+            type: "api" as const,
+            id: `patentsview-api:${cid}`,
+            label: "PatentsView (USPTO) search API",
+            url: "https://search.patentsview.org/api/v1/patent/",
+            note: "Free public USPTO PatentsView endpoint (API key optional)",
+          },
+        ]
+      : []),
   ];
   const mfgSourceRefs = [
     {
@@ -1210,13 +1217,7 @@ export function LiveMoleculeDossier({
             <div className="mb-3">
               <ApiProvenance
                 pubchemCid={cid}
-                traces={
-                  mfgTraces.length
-                    ? mfgTraces
-                    : pugViewTraces.length
-                      ? pugViewTraces
-                      : pubchemTraces
-                }
+                traces={mfgTraces}
                 sourceRefs={mfgSourceRefs}
                 title="Use & manufacturing"
                 label="API"
@@ -1243,7 +1244,7 @@ export function LiveMoleculeDossier({
           >
             <div className="mb-3">
               <ApiProvenance
-                traces={litTraces.length ? litTraces : traces}
+                traces={litTraces}
                 sourceRefs={litRefs}
                 title="Europe PMC literature"
                 label="API"
@@ -1277,13 +1278,7 @@ export function LiveMoleculeDossier({
             <div className="mb-3">
               <ApiProvenance
                 pubchemCid={cid}
-                traces={
-                  patentTraces.length
-                    ? patentTraces
-                    : litTraces.length
-                      ? litTraces
-                      : traces
-                }
+                traces={patentTraces}
                 sourceRefs={patentSourceRefs}
                 title="Patents & process IP"
                 label="API"
