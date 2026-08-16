@@ -419,6 +419,12 @@ ok(
     /field="Applications"[\s\S]{0,260}sourceRefs=\{mfgSourceRefs\}/.test(liveDossier) &&
     !/field="Applications"[\s\S]{0,200}traces=\{traces\}/.test(liveDossier)
 );
+ok(
+  "PROV-14 live multi-source provenance uses annotationTraces not all harvest HTTP",
+  /traces=\{annotationTraces\}[\s\S]{0,200}title="Multi-source free APIs"/.test(liveDossier) &&
+    /sourceRefs=\{annotationSourceRefs\}[\s\S]{0,200}title="Multi-source free APIs"/.test(liveDossier) &&
+    !/traces=\{traces\}[\s\S]{0,200}title="Multi-source free APIs"/.test(liveDossier)
+);
 
 const { createRequire } = await import("node:module");
 const { tmpdir } = await import("node:os");

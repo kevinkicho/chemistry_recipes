@@ -207,6 +207,7 @@ Optional before release/deploy:
 | **SEARCH-20** | Live dossier GHS / properties / manufacturing empty vs error vs timeout: PUG View harvest failures are not "No GHS text" / "Awaiting excerpts"; leftover identity/literature HTTP is not a GHS/mfg miss | `test-search-contracts`, `test-product-path` |
 | **SEARCH-21** | Live dossier overview empty vs error vs timeout: PUG View harvest failures are not "No overview text"; leftover GHS/literature/identity HTTP is not an overview miss | `test-search-contracts`, `test-product-path` |
 | **SEARCH-22** | Problem-first search empty vs error vs timeout: literature/multi harvest failures are not "0 molecules · 0 papers" / "No live hits yet" | `test-search-contracts`, `test-product-path` |
+| **SEARCH-23** | Live-dossier Multi-source free APIs empty vs error vs timeout: Rhea / Reactome / ClinicalTrials / OrgSyn / WikiPathways / Pathway Commons harvest failures are not a clean annotation miss; leftover PubChem identity HTTP is not an annotation miss | `test-search-contracts`, `test-product-path` |
 
 ### L. Diagnostics honesty
 
@@ -275,6 +276,7 @@ Machine registry: `web/scripts/fixtures/provenance-surface-registry.json`.
 | **PROV-09** | GHS/safety citations hydrate only PUG View GHS/safety HTTP; unknown pubchem-* ids stay unmatched | `test-provenance` |
 | **PROV-10** | Properties citations hydrate only PUG View chemical/physical + PUG REST /property/ HTTP; patent densify uses pug_view/data/patent/ (not identity/GHS/literature headings) | `test-provenance` |
 | **PROV-13** | Applications chips claim only Use and Manufacturing pug_view HTTP (not leftover identity/GHS/literature/patent/MassBank harvest) | `test-provenance` |
+| **PROV-14** | Multi-source free APIs chips claim only annotation-family harvest HTTP (not leftover PubChem identity / literature / patent harvest) | `test-provenance`, `test-search-contracts` |
 | **PROV-SCAN-*** | Scanner asserts every registry surface still wired | `test-provenance-coverage` |
 
 ## Lifecycle diagram (validated by LIFE-* / DENS-*)

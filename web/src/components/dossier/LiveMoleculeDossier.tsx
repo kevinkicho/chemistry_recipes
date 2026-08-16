@@ -71,7 +71,11 @@ import {
   applyLocalFactEnrichment,
   hydrateVaultIntoDossier,
 } from "@/lib/dossier/enrichClientFacts";
-import { formatSectionEmptyCopy } from "@/lib/dossier/sectionHonesty";
+import {
+  formatSectionEmptyCopy,
+  isAnnotationSectionTrace,
+  isAnnotationSourceRef,
+} from "@/lib/dossier/sectionHonesty";
 import { formatCacheAge } from "@/lib/idb/dossierCache";
 
 import { DossierSectionTitle as SectionTitle } from "@/components/dossier/DossierSectionTitle";
@@ -377,6 +381,10 @@ export function LiveMoleculeDossier({
   const applicationTraces = traces.filter((t) =>
     isApplicationsTrace(t.endpointUrl)
   );
+  const annotationTraces = traces.filter((t) =>
+    isAnnotationSectionTrace(t.endpointUrl)
+  );
+  const annotationSourceRefs = dossier.sourceRefs.filter(isAnnotationSourceRef);
   const overviewSourceRefs = dossier.sourceRefs.filter(isIdentityOverviewSourceRef);
   const litEmpty = formatSectionEmptyCopy({
     family: "literature",
@@ -1190,8 +1198,8 @@ export function LiveMoleculeDossier({
             <div className="mb-3">
               <ApiProvenance
                 pubchemCid={cid}
-                traces={traces}
-                sourceRefs={dossier.sourceRefs}
+                traces={annotationTraces}
+                sourceRefs={annotationSourceRefs}
                 title="Multi-source free APIs"
                 label="API"
               />

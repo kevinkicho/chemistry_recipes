@@ -1517,4 +1517,54 @@ ok(
       .includes("some free sources failed")
 );
 
+ok(
+  "SEARCH-23 clinicaltrials fail is annotation error; identity leftover is not",
+  sectionH.formatSectionEmptyCopy({
+    family: "annotations",
+    fetchErrors: ["soft-fail · clinicaltrials: timeout"],
+  }).kind === "error" &&
+    sectionH.formatSectionEmptyCopy({
+      family: "annotations",
+      traces: [
+        {
+          endpointUrl:
+            "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+          ok: false,
+          error: "HTTP 503",
+        },
+      ],
+    }).kind === "empty"
+);
+ok(
+  "SEARCH-23 rhea / reactome harvest HTTP is annotation family",
+  sectionH.isAnnotationSectionTrace(
+    "https://www.rhea-db.org/rhea?query=aspirin"
+  ) &&
+    sectionH.isAnnotationSectionTrace(
+      "https://reactome.org/ContentService/search/query?query=aspirin"
+    ) &&
+    !sectionH.isAnnotationSectionTrace(
+      "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/Title/JSON"
+    ) &&
+    !sectionH.isAnnotationSectionTrace(
+      "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=aspirin"
+    )
+);
+ok(
+  "SEARCH-23 annotation sourceRefs keep ChEMBL/Rhea, drop PubChem identity",
+  sectionH.isAnnotationSourceRef({ type: "api", id: "chembl:CHEMBL25" }) &&
+    sectionH.isAnnotationSourceRef({ type: "api", id: "rhea:2244" }) &&
+    sectionH.isAnnotationSourceRef({ type: "api", id: "clinicaltrials:2244" }) &&
+    !sectionH.isAnnotationSourceRef({ type: "api", id: "pubchem:2244" }) &&
+    !sectionH.isAnnotationSourceRef({ type: "literature", id: "europepmc:123" })
+);
+ok(
+  "SEARCH-23 live multi-source chip uses annotationTraces not all harvest HTTP",
+  /traces=\{annotationTraces\}/.test(liveDossier) &&
+    /sourceRefs=\{annotationSourceRefs\}/.test(liveDossier) &&
+    !/title="Multi-source free APIs"[\s\S]{0,200}traces=\{traces\}/.test(
+      liveDossier
+    )
+);
+
 console.log(`\n${passed} search-contract checks passed`);

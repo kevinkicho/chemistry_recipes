@@ -236,5 +236,17 @@ ok(
   /formatSearchNoHitsMessage/.test(problemUi) &&
     /formatProblemSearchSummary/.test(read("lib/search/problemMultiSource.ts"))
 );
+ok(
+  "live dossier multi-source chip does not dump all harvest traces",
+  /traces=\{annotationTraces\}/.test(
+    read("components/dossier/LiveMoleculeDossier.tsx")
+  ) &&
+    /isAnnotationSectionTrace/.test(
+      read("components/dossier/LiveMoleculeDossier.tsx")
+    ) &&
+    !/title="Multi-source free APIs"[\s\S]{0,200}traces=\{traces\}/.test(
+      read("components/dossier/LiveMoleculeDossier.tsx")
+    )
+);
 
 console.log(`\n${n} product-path checks passed`);
