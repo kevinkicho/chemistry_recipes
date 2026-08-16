@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import type { ProcessRoute } from "@/lib/types/process";
+import type { ApiFetchTrace } from "@/lib/api/trace";
+import { formatProcessFactsEmptyCopy } from "@/lib/dossier/sectionHonesty";
 import { FreePublicBadge } from "@/components/FreePublicProvenance";
 
 function routeLabel(r: ProcessRoute): string {
@@ -157,7 +159,15 @@ function RoutePlantCard({
 /**
  * Side-by-side comparison of process routes (or single-route plant panel).
  */
-export function RouteCompare({ routes }: { routes: ProcessRoute[] }) {
+export function RouteCompare({
+  routes,
+  traces,
+  fetchErrors,
+}: {
+  routes: ProcessRoute[];
+  traces?: ApiFetchTrace[];
+  fetchErrors?: string[];
+}) {
   const usable = routes.filter((r) => r && r.id);
   const [leftId, setLeftId] = useState(usable[0]?.id || "");
   const [rightId, setRightId] = useState(usable[1]?.id || usable[0]?.id || "");
@@ -171,11 +181,20 @@ export function RouteCompare({ routes }: { routes: ProcessRoute[] }) {
     [usable, rightId]
   );
 
+  // Route compare is lit / patent / manufacturing evidence.
+  // Harvest failure is not "no process routes yet". Leftover
+  // identity / annotation HTTP is not a route-compare miss.
+  const compareEmpty = formatProcessFactsEmptyCopy({
+    traces,
+    fetchErrors,
+  });
+
   if (usable.length === 0) {
     return (
       <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4 text-sm text-slate-500">
-        No process routes yet. Free-public densify leads,
-        Ollama synthesis will populate this panel.
+        {compareEmpty.kind === "error"
+          ? compareEmpty.message
+          : "No process routes yet. Free-public densify leads, Ollama synthesis will populate this panel."}
       </div>
     );
   }

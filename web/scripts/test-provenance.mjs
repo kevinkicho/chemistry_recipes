@@ -387,6 +387,11 @@ ok(
     /recipeEmpty/.test(read("components/RoutePanel.tsx"))
 );
 ok(
+  "SEARCH-29 route-compare empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(read("components/RouteCompare.tsx")) &&
+    /compareEmpty/.test(read("components/RouteCompare.tsx"))
+);
+ok(
   "aside ContentProvenance manufacturing",
   /Manufacturing summary/.test(aside) && /ContentProvenance/.test(aside)
 );
