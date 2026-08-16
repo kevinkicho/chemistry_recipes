@@ -497,6 +497,12 @@ ok(
     /isStubOnlyProcessSequence/.test(read("lib/dossier/idealPage.ts")) &&
     /No GHS text for this CID/.test(read("lib/dossier/idealPage.ts"))
 );
+ok(
+  "SEARCH-40 checklist empty copy uses honestChecklistGap",
+  /honestChecklistGap/.test(read("lib/export/techTransfer.ts")) &&
+    /isStubOnlyProcessSequence/.test(read("lib/export/techTransfer.ts")) &&
+    /No process facts/.test(read("lib/export/techTransfer.ts"))
+);
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
 ok("PdfWorkerPack exists", existsSync(src("components/PdfWorkerPack.tsx")));

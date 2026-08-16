@@ -11,6 +11,11 @@ import {
   PUBLIC_PROCESS_BRIEF_DISCLAIMER,
   type PublicProcessBrief,
 } from "@/lib/dossier/processFacts";
+import {
+  honestChecklistGap,
+  isProcessSequenceStub,
+  isStubOnlyProcessSequence,
+} from "@/lib/dossier/sectionHonesty";
 
 export const REGULATORY_DISCLAIMER =
   "NOT FOR REGULATORY DECISION SUPPORT. Not a GMP procedure, batch record, DMF, CTD module, " +
@@ -162,13 +167,77 @@ function buildValidationChecklist(
 ): NonNullable<TechTransferPack["validationChecklist"]> {
   const routes = dossier.processRoutes || [];
   const steps = routes.flatMap((r) => r.steps || []);
-  const hasCpp = steps.some((s) => s.controls?.criticalParameters?.length);
-  const hasIpc = steps.some((s) => s.controls?.ipcMethods?.length);
-  const hasApparatus = steps.some((s) => s.apparatus?.length);
+  const realSteps = steps.filter((s) => !isProcessSequenceStub(s));
+  const stubOnly = isStubOnlyProcessSequence(steps);
+  const hasCpp = realSteps.some((s) => s.controls?.criticalParameters?.length);
+  const hasIpc = realSteps.some((s) => s.controls?.ipcMethods?.length);
+  const hasApparatus = realSteps.some((s) => s.apparatus?.length);
   const hasBom = routes.some((r) => r.materials?.length);
   const lit = dossier.literature?.length ?? 0;
   const pats = dossier.patents?.length ?? 0;
   const score = dossier.evidenceScore?.score ?? 0;
+  const traces = dossier.traces;
+  const fetchErrors = dossier.fetchErrors;
+
+  const processFactsFilled = Boolean(
+    dossier.processFacts?.productionBriefEligible ||
+      dossier.processFacts?.sourcedConditionCount
+  );
+  const processFacts = honestChecklistGap({
+    family: "process-facts",
+    traces,
+    fetchErrors,
+    filled: processFactsFilled,
+    cleanStatus: dossier.processFacts?.productionBriefEligible
+      ? "ok"
+      : dossier.processFacts?.sourcedConditionCount
+        ? "review"
+        : "gap",
+    cleanNote: dossier.processFacts
+      ? `${dossier.processFacts.sourcedConditionCount} cond · ${dossier.processFacts.unitOpCount} unit ops`
+      : "No process facts",
+  });
+  const sources = honestChecklistGap({
+    family: "process-facts",
+    traces,
+    fetchErrors,
+    filled: lit + pats > 0,
+    cleanStatus: lit + pats >= 3 ? "ok" : lit + pats > 0 ? "review" : "gap",
+    cleanNote: `${lit} lit · ${pats} patents`,
+  });
+  const bom = honestChecklistGap({
+    family: "process-facts",
+    traces,
+    fetchErrors,
+    filled: hasBom,
+    cleanStatus: hasBom ? "ok" : "gap",
+  });
+  const stepsItem = honestChecklistGap({
+    family: "process-facts",
+    traces,
+    fetchErrors,
+    filled: !stubOnly && realSteps.length >= 2,
+    cleanStatus: !stubOnly && realSteps.length >= 2 ? "ok" : "gap",
+    cleanNote: `${realSteps.length} step(s)`,
+  });
+  const apparatus = honestChecklistGap({
+    family: "process-facts",
+    traces,
+    fetchErrors,
+    filled: hasApparatus,
+    cleanStatus: hasApparatus ? "ok" : "review",
+  });
+  const ehsFilled = Boolean(
+    dossier.hazards.hazardStatements?.length ||
+      dossier.synthesis.ehsHighlights?.length
+  );
+  const ehs = honestChecklistGap({
+    family: "hazards",
+    traces,
+    fetchErrors,
+    filled: ehsFilled,
+    cleanStatus: ehsFilled ? "ok" : "gap",
+  });
 
   return [
     {
@@ -186,31 +255,26 @@ function buildValidationChecklist(
     {
       id: "process-facts",
       item: "Public process-fact density (sourced conditions / unit ops)",
-      status: dossier.processFacts?.productionBriefEligible
-        ? "ok"
-        : dossier.processFacts?.sourcedConditionCount
-          ? "review"
-          : "gap",
-      note: dossier.processFacts
-        ? `${dossier.processFacts.sourcedConditionCount} cond · ${dossier.processFacts.unitOpCount} unit ops`
-        : "No process facts",
+      status: processFacts.status,
+      note: processFacts.note,
     },
     {
       id: "sources",
       item: "Primary literature / patents linked for process claims",
-      status: lit + pats >= 3 ? "ok" : lit + pats > 0 ? "review" : "gap",
-      note: `${lit} lit · ${pats} patents`,
+      status: sources.status,
+      note: sources.note,
     },
     {
       id: "bom",
       item: "Bill of materials present for preferred route",
-      status: hasBom ? "ok" : "gap",
+      status: bom.status,
+      note: bom.note,
     },
     {
       id: "steps",
       item: "Process steps with dual-view content (not empty shell only)",
-      status: steps.length >= 2 ? "ok" : "gap",
-      note: `${steps.length} step(s)`,
+      status: stepsItem.status,
+      note: stepsItem.note,
     },
     {
       id: "cpp-ipc",
@@ -221,16 +285,14 @@ function buildValidationChecklist(
     {
       id: "apparatus",
       item: "Equipment classes identified for scale-up discussion",
-      status: hasApparatus ? "ok" : "review",
+      status: apparatus.status,
+      note: apparatus.note,
     },
     {
       id: "ehs",
       item: "Hazards / EHS reviewed (GHS or highlights)",
-      status:
-        (dossier.hazards.hazardStatements?.length ||
-          dossier.synthesis.ehsHighlights?.length)
-          ? "ok"
-          : "gap",
+      status: ehs.status,
+      note: ehs.note,
     },
     {
       id: "not-gmp",
