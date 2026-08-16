@@ -201,6 +201,7 @@ Optional before release/deploy:
 | **SEARCH-14** | Equals-sign prefixes (CID=/CAS=/UNII=), Compound CID, Wikipedia CAS [n], PubChem #query= and Wikipedia /wiki/ titles normalize (not SMILES) | `test-search-contracts` |
 | **SEARCH-15** | Standard InChI/InChIKey, InChI wrapping spaces, DOI/doi.org, ChEBI, and EC Number pastes normalize (DOI/ChEBI/EC are not SMILES; Enter submits the stripped value) | `test-search-contracts` |
 | **SEARCH-16** | Science-agent neighbor densify reports null/throw as fail (not "none needed"); batch densify log has no leftover success checkmark on fail | `test-search-contracts`, `test-product-path` |
+| **SEARCH-17** | DrugBank / KEGG / HMDB / MeSH / ATC / UN-number pastes and URLs normalize to accession ids (names, not SMILES); UN#### is not a CID; Enter submits the stripped id | `test-search-contracts` |
 
 ### L. Diagnostics honesty
 
