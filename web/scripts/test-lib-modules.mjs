@@ -78,6 +78,7 @@ const critical = [
   "lib/dossier/annotationExcerpts.ts",
   "lib/dossier/processKnowledgeDigest.ts",
   "lib/dossier/mergeExtractAtoms.ts",
+  "lib/literature/rank.ts",
   "components/ValidationChecklist.tsx",
   "components/SourceCoverageMap.tsx",
   "components/EvidenceScoreExplainer.tsx",
@@ -325,6 +326,12 @@ ok(
     /gather:\s*"patent-epmc-densify"/.test(
       fs.readFileSync(path.join(__dirname, "test-api-health-full.mjs"), "utf8")
     )
+);
+
+const hubLib = fs.readFileSync(path.join(__dirname, "test-hub-lib.mjs"), "utf8");
+ok(
+  "hub-lib test loads production rank.ts scorer",
+  /lib\/literature\/rank\.ts/.test(hubLib) && !/function scoreProcessRelevance\s*\(/.test(hubLib)
 );
 
 console.log(`\nAll lib-module integrity checks passed (${passed}).`);

@@ -90,4 +90,10 @@ ok(
   fs.existsSync(path.join(repo, ".github/workflows/cold-cid-kpi.yml"))
 );
 
+const readinessUi = read("components/RecipeReadinessPanel.tsx");
+const problemUi = read("components/ProblemFirstSearch.tsx");
+ok("readiness UI has no Teaching package label", !/Teaching package/.test(readinessUi));
+ok("problem search has no hub/live hits copy", !/hub\/live hits/.test(problemUi));
+ok("problem search has no Local hits ready copy", !/Local hits ready/.test(problemUi));
+
 console.log(`\n${n} product-path checks passed`);
