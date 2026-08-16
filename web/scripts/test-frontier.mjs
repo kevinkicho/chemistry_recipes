@@ -51,6 +51,7 @@ ok("buildNextExperiments", /export function buildNextExperiments/.test(qa));
 ok("answerFromEvidencePackage", /export function answerFromEvidencePackage/.test(qa));
 ok("insufficientEvidence first-class", /insufficientEvidence/.test(qa));
 ok("SEARCH-35 science-QA uses honestScienceQaAnswer", /honestScienceQaAnswer/.test(qa) && /formatProcessFactsEmptyCopy/.test(qa));
+ok("SEARCH-36 literature-depth uses honestLiteratureDepthSummary", /honestLiteratureDepthSummary/.test(read("lib/frontier/literatureDepth.ts")) && /formatProcessFactsEmptyCopy/.test(read("lib/frontier/literatureDepth.ts")));
 
 const build = read("lib/frontier/buildKnowledge.ts");
 ok("withProcessKnowledge", /export function withProcessKnowledge/.test(build));

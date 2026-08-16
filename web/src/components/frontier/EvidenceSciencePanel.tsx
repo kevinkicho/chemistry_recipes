@@ -191,6 +191,14 @@ export function EvidenceSciencePanel({
         </div>
       </dl>
 
+      {litDepth.totalWindows === 0 ? (
+        <p className="mt-3 text-xs text-slate-600">
+          {/* Harvest failure is not "No procedure-scored free-public windows yet".
+              Leftover identity HTTP is not a literature-depth miss. */}
+          {litDepth.summary}
+        </p>
+      ) : null}
+
       {guidance.densifyNext.length > 0 ? (
         <div className="mt-3 rounded-lg border border-cyan-500/20 bg-cyan-950/20 p-3">
           <div className="flex flex-wrap items-start justify-between gap-2">

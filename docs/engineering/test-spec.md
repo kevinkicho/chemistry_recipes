@@ -220,6 +220,7 @@ Optional before release/deploy:
 | **SEARCH-33** | Table of contents / CollapsibleSection empty vs error: literature / patent / annotation / manufacturing / GHS / properties / overview / process-recipe harvest failures are not "No content for this section yet" / an "empty" badge; leftover identity / annotation HTTP is not a TOC miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
 | **SEARCH-34** | Evidence critique procedure-window empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No procedure windows densified"; leftover identity / annotation HTTP is not a critique miss. Provenance chips still pass all traces (composite critique). | `test-search-contracts`, `test-product-path`, `test-provenance` |
 | **SEARCH-35** | Evidence science Q&A empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No route hypotheses assembled" / "Insufficient free-public evidence"; leftover identity / annotation HTTP is not a science-QA miss. Provenance chips still pass all traces (composite Q&A). | `test-search-contracts`, `test-product-path`, `test-provenance` |
+| **SEARCH-36** | Literature-depth empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No procedure-scored free-public windows yet"; leftover identity / annotation HTTP is not a literature-depth miss. Provenance chips still pass all traces (composite Q&A panel). | `test-search-contracts`, `test-product-path`, `test-provenance` |
 
 ### L. Diagnostics honesty
 
