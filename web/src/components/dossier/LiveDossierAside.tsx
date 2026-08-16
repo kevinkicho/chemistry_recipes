@@ -37,6 +37,7 @@ export function LiveDossierAside({
   aiAttempt,
   pugViewTraces,
   pubchemTraces,
+  ghsTraces,
   allTraces,
   onRegenerate,
 }: {
@@ -62,6 +63,7 @@ export function LiveDossierAside({
   aiAttempt: AiProvenanceRecord | null;
   pugViewTraces: ApiFetchTrace[];
   pubchemTraces: ApiFetchTrace[];
+  ghsTraces: ApiFetchTrace[];
   allTraces: ApiFetchTrace[];
   onRegenerate?: () => void;
 }) {
@@ -219,7 +221,7 @@ export function LiveDossierAside({
               title="EHS / GHS"
               field="EHS highlights"
               pubchemCid={cid}
-              traces={apiTraces}
+              traces={ghsTraces}
               sourceRefs={dossier.hazards.sourceRefs}
               ai={ehsAi}
               showAi={Boolean(ehsAi)}
@@ -254,7 +256,7 @@ export function LiveDossierAside({
           <h3 className="text-sm font-semibold text-slate-200">Hazards (summary)</h3>
           <ApiProvenance
             pubchemCid={cid}
-            traces={pugViewTraces.length ? pugViewTraces : pubchemTraces}
+            traces={ghsTraces}
             sourceRefs={dossier.hazards.sourceRefs}
             title="PubChem PUG View · GHS / hazards"
             label="API"

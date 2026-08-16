@@ -255,6 +255,9 @@ const SOURCE_FAMILY_PRED: Record<string, EndpointPred> = {
     !e.includes("/classification/"),
   "pubchem-mfg": (e) => e.includes("pug_view") && e.includes("manufacturing"),
   "pubchem-mfg-page": (e) => e.includes("pug_view") && e.includes("manufacturing"),
+  "pubchem-view-ghs": (e) =>
+    e.includes("pug_view") &&
+    (e.includes("ghs") || e.includes("safety") || e.includes("hazards")),
   "pubchem-patents": (e) =>
     e.includes("pubchem.ncbi.nlm.nih.gov") && e.includes("patentid"),
   "pubchem-class": (e) =>
@@ -296,6 +299,7 @@ function sourceFamilyFromRef(ref: SourceRef): string | undefined {
   // Longest multi-segment prefixes first
   const multi = [
     "pubchem-mfg-page",
+    "pubchem-view-ghs",
     "pubchem-patents",
     "pubchem-class",
     "pubchem-mfg",
@@ -343,6 +347,10 @@ export function matchTraceForSourceRef(
   if (family && SOURCE_FAMILY_PRED[family]) {
     return pickBestTrace(traces, SOURCE_FAMILY_PRED[family]!);
   }
+
+  // Hyphenated pubchem-* ids without a family pred must not steal identity HTTP
+  const idLower = (ref.id || "").toLowerCase();
+  if (idLower.startsWith("pubchem-")) return undefined;
 
   // Fallback: label / host heuristics only when id has no known family
   const label = (ref.label || "").toLowerCase();
