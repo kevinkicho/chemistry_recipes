@@ -2,6 +2,11 @@
 
 import type { LiveDossier } from "@/lib/dossier/types";
 import { FreePublicProvenance } from "@/components/FreePublicProvenance";
+import { slimTraces } from "@/lib/api/trace";
+import {
+  isProcessFactSourceRef,
+  isProcessFactTrace,
+} from "@/lib/dossier/sectionHonesty";
 
 export function ProcessFramingBanner({
   dossier,
@@ -15,6 +20,13 @@ export function ProcessFramingBanner({
     dossier.processFacts?.framing ||
     "evidence-lead-pack";
   const m = dossier.processFacts?.metrics;
+  // Framing is process-fact density (lit/patents/mfg/GHS). Leftover identity
+  // / annotation HTTP is not process-framing provenance, and the chip must
+  // not live-fetch identity.
+  const traces = slimTraces(dossier.traces || []).filter((tr) =>
+    isProcessFactTrace(tr.endpointUrl)
+  );
+  const sourceRefs = (dossier.sourceRefs || []).filter(isProcessFactSourceRef);
 
   if (framing === "process-recipe") {
     return (
@@ -28,6 +40,9 @@ export function ProcessFramingBanner({
             dossier={dossier}
             title="Process-recipe framing"
             field="Process framing"
+            traces={traces}
+            sourceRefs={sourceRefs}
+            liveFetch={false}
             onRegenerate={onRegenerate}
           />
         </div>
@@ -50,6 +65,9 @@ export function ProcessFramingBanner({
           dossier={dossier}
           title="Evidence-lead pack framing"
           field="Process framing"
+          traces={traces}
+          sourceRefs={sourceRefs}
+          liveFetch={false}
           onRegenerate={onRegenerate}
         />
       </div>
