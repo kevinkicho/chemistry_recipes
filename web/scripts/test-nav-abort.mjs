@@ -45,6 +45,11 @@ ok("NAV-01 reader cancel on abort", /reader\.cancel/.test(batch));
 ok("NAV-02 warmLiveDossier signal", /signal\?:\s*AbortSignal/.test(warm));
 ok("NAV-02 warm fetch signal", /signal:\s*opts\?\.signal/.test(warm));
 ok("NAV-02 warm does not promote incomplete on abort", /completed \? last : null|Aborted CID/.test(warm));
+ok(
+  "NAV-02 warm does not promote incomplete on stream drop",
+  /Stream incomplete CID/.test(warm) &&
+    /!completed \|\| !last/.test(warm)
+);
 
 // NAV-03 problem densify abort
 ok("NAV-03 problem densify signal option", /signal\?:\s*AbortSignal/.test(problem));

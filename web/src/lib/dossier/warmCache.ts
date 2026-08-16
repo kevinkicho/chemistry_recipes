@@ -111,9 +111,15 @@ export async function warmLiveDossier(
     return completed ? last : null;
   }
 
-  if (last && last.cid === cid && !completed) {
-    // Ensure cache even if complete event lacked type
-    await putCachedDossierAndNotify(last);
+  // Stream drop / HTTP close without type:complete is a failed densify.
+  // Partial shells must not be cached or returned as warm success.
+  if (!completed || !last || last.cid !== cid) {
+    opts?.onStatus?.(
+      last
+        ? `Stream incomplete CID ${cid} — densify did not finish`
+        : `Stream failed CID ${cid} — no complete dossier`
+    );
+    return null;
   }
   return last;
 }

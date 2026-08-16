@@ -12,6 +12,10 @@ import { ingestExcerptsToVault } from "@/lib/idb/bulkVault";
 import { recordDensifyRun } from "@/lib/dossier/densifyTelemetry";
 import { ensureDossierKnowledge } from "@/lib/frontier/knowledgeFingerprint";
 import { packageIsUsable } from "@/lib/frontier/knowledgeFingerprint";
+import {
+  accountForUnfinishedBatchCids,
+  formatBatchDensifyStatus,
+} from "@/lib/dossier/batchStreamStatus";
 
 /** Cache dossier + ingest procedure windows into local bulk vault (client). */
 async function cacheAndVaultDossier(dossier: LiveDossier): Promise<void> {
@@ -372,15 +376,32 @@ export async function streamBatchDensifyCids(
   }
 
   if (!res.ok || !res.body) {
+    const streamError = `Stream HTTP ${res.status}`;
+    const withFails = accountForUnfinishedBatchCids(
+      needBuild,
+      results,
+      streamError
+    );
+    const okCount = withFails.filter((r) => r.ok).length;
+    const failCount = withFails.filter((r) => !r.ok).length;
+    opts?.onProgress?.(
+      formatBatchDensifyStatus({
+        ok: okCount,
+        fail: failCount,
+        error: streamError,
+        prefix: "Stream batch",
+        cacheHits: warm.length,
+      })
+    );
     return {
       schema: "chemistry-recipes.batch-dossier.v1",
       requested: unique.length,
-      ok: warm.length,
-      fail: needBuild.length,
+      ok: okCount,
+      fail: failCount,
       skipped: warm.length,
       durationMs: 0,
-      results,
-      error: `Stream HTTP ${res.status}`,
+      results: withFails,
+      error: streamError,
     };
   }
 
@@ -453,16 +474,33 @@ export async function streamBatchDensifyCids(
     opts?.signal?.removeEventListener("abort", onAbort);
   }
 
+  const unfinishedError = abortedMid
+    ? "aborted"
+    : "stream ended before cid_complete";
+  const finalResults = accountForUnfinishedBatchCids(
+    needBuild,
+    results,
+    unfinishedError
+  );
+  ok = finalResults.filter((r) => r.ok).length;
+  fail = finalResults.filter((r) => !r.ok).length;
+  const hadUnfinished = finalResults.length > results.length;
+  const streamError = abortedMid
+    ? "aborted"
+    : hadUnfinished
+      ? unfinishedError
+      : undefined;
+
   if (abortedMid) {
     opts?.onProgress?.(
-      `Densify cancelled (left page) · ${ok} ok cached · remaining stopped client-side`
+      `Densify cancelled (left page) · ${ok} ok · ${fail} fail · remaining stopped client-side`
     );
     recordDensifyRun({
       kind: "batch-stream",
       cids: unique,
       concurrency,
       ok,
-      fail: fail + Math.max(0, needBuild.length - (ok - warm.length) - fail),
+      fail,
       durationMs,
       detail: `aborted · skippedCache=${warm.length}`,
     });
@@ -470,16 +508,23 @@ export async function streamBatchDensifyCids(
       schema: "chemistry-recipes.batch-dossier.v1",
       requested: unique.length,
       ok,
-      fail: unique.length - ok,
+      fail,
       skipped: warm.length,
       durationMs,
-      results,
+      results: finalResults,
       error: "aborted",
     };
   }
 
   opts?.onProgress?.(
-    `Stream batch done · ${ok} ok (${warm.length} cache) · ${fail} fail · ${Math.round(durationMs / 1000)}s`
+    formatBatchDensifyStatus({
+      ok,
+      fail,
+      error: streamError,
+      prefix: "Stream batch",
+      cacheHits: warm.length,
+      durationMs,
+    })
   );
 
   recordDensifyRun({
@@ -489,7 +534,7 @@ export async function streamBatchDensifyCids(
     ok,
     fail,
     durationMs,
-    detail: `skippedCache=${warm.length}`,
+    detail: `skippedCache=${warm.length}${hadUnfinished ? " · unfinished-as-fail" : ""}`,
   });
 
   return {
@@ -499,6 +544,7 @@ export async function streamBatchDensifyCids(
     fail,
     skipped: warm.length,
     durationMs,
-    results,
+    results: finalResults,
+    error: streamError,
   };
 }

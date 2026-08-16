@@ -23,6 +23,7 @@ import {
   batchDensifyCids,
   streamBatchDensifyCids,
 } from "@/lib/dossier/batchClient";
+import { formatBatchDensifyStatus } from "@/lib/dossier/batchStreamStatus";
 import {
   buildCampaignKnowledgeExport,
   downloadCampaignKnowledge,
@@ -417,16 +418,21 @@ export function CampaignAgentPanel() {
           `[densify] Warming local cache for ${warmCids.length} CID(s)…`,
         ]);
         try {
-          await batchDensifyCids(warmCids, {
+          const warmRes = await batchDensifyCids(warmCids, {
             cacheLocal: true,
             concurrency: 2,
             force: false,
-            includeDossiers: false,
+            includeDossiers: true,
           });
           await refreshHealth(camp);
           setSteps((prev) => [
             ...prev,
-            `[densify] Local cache warm complete`,
+            `[densify] ${formatBatchDensifyStatus({
+              ok: warmRes.ok,
+              fail: warmRes.fail,
+              error: warmRes.error,
+              prefix: "Local cache warm",
+            })}`,
           ]);
         } catch {
           setSteps((prev) => [
