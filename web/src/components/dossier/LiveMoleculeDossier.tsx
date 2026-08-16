@@ -101,7 +101,10 @@ import {
   sectionVisible,
   type WorkerRole,
 } from "@/lib/worker/roleMode";
-import { touchDensifySchedule } from "@/lib/dossier/densifySchedule";
+import {
+  shouldMarkScheduleWarmed,
+  touchDensifySchedule,
+} from "@/lib/dossier/densifySchedule";
 import { ensureDossierKnowledge } from "@/lib/frontier/knowledgeFingerprint";
 
 export type LiveDossierChrome = {
@@ -152,9 +155,9 @@ export function LiveMoleculeDossier({
       label: dossierIn.identity?.name,
       evidenceScore: dossierIn.evidenceScore?.score,
       procedureCharsHint: litChars + patChars,
-      warmed: chrome?.phase === "ready",
+      warmed: shouldMarkScheduleWarmed(chrome),
     });
-  }, [dossierIn, chrome?.phase]);
+  }, [dossierIn, chrome]);
 
   const show = (id: Parameters<typeof sectionVisible>[1]) =>
     sectionVisible(workerRole, id);

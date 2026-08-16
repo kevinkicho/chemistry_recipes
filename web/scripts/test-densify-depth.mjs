@@ -182,6 +182,26 @@ ok(
     /markDensifyWarmed/.test(densifySched) &&
     /Warm failed for CID/.test(densifySched)
 );
+ok(
+  "DENS-12 live dossier uses shouldMarkScheduleWarmed",
+  /shouldMarkScheduleWarmed/.test(read("components/dossier/LiveMoleculeDossier.tsx")) &&
+    /warmed:\s*shouldMarkScheduleWarmed\(chrome\)/.test(
+      read("components/dossier/LiveMoleculeDossier.tsx")
+    )
+);
+ok(
+  "DENS-12 live dossier does not mark warmed on phase ready alone",
+  !/warmed:\s*chrome\?\.phase === ["']ready["']/.test(
+    read("components/dossier/LiveMoleculeDossier.tsx")
+  )
+);
+ok(
+  "DENS-12 shouldMarkScheduleWarmed export",
+  /export function shouldMarkScheduleWarmed/.test(
+    read("lib/dossier/densifySchedule.ts")
+  )
+);
+
 
 
 const warm = read("lib/dossier/warmCache.ts");
@@ -294,6 +314,52 @@ ok(
     fail: 0,
     prefix: "Due densify",
   }) === "Due densify done · 2 ok · 0 fail"
+);
+
+
+const schedFile = path.join(src, "lib/dossier/densifySchedule.ts");
+const schedSource = fs.readFileSync(schedFile, "utf8");
+const schedOut = ts.transpileModule(schedSource, {
+  compilerOptions: {
+    module: ts.ModuleKind.ESNext,
+    target: ts.ScriptTarget.ES2022,
+  },
+  fileName: schedFile,
+});
+const schedJs = path.join(tmpdir(), `densifySchedule-${process.pid}.mjs`);
+fs.writeFileSync(schedJs, schedOut.outputText, "utf8");
+const schedMod = await import(pathToFileURL(schedJs).href);
+
+ok(
+  "DENS-12 ready shell without cache is not warmed",
+  schedMod.shouldMarkScheduleWarmed({ phase: "ready" }) === false &&
+    schedMod.shouldMarkScheduleWarmed({
+      phase: "ready",
+      fromCache: false,
+      cachedAt: null,
+    }) === false &&
+    schedMod.shouldMarkScheduleWarmed({
+      phase: "ready",
+      cachedAt: 0,
+    }) === false
+);
+ok(
+  "DENS-12 cache hit or complete cachedAt is warmed",
+  schedMod.shouldMarkScheduleWarmed({
+    phase: "ready",
+    fromCache: true,
+  }) === true &&
+    schedMod.shouldMarkScheduleWarmed({
+      phase: "ready",
+      fromCache: false,
+      cachedAt: Date.now(),
+    }) === true
+);
+ok(
+  "DENS-12 missing chrome / shell phase is not warmed",
+  schedMod.shouldMarkScheduleWarmed() === false &&
+    schedMod.shouldMarkScheduleWarmed(null) === false &&
+    schedMod.shouldMarkScheduleWarmed({ phase: "shell" }) === false
 );
 
 console.log(`\n${passed} densify-depth checks passed`);

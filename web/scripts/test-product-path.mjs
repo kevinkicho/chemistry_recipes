@@ -195,5 +195,15 @@ ok(
   "batch densify stream log has no leftover success checkmark",
   !/`✓ CID \$\{ev\.cid\}/.test(read("components/frontier/BatchDensifyPanel.tsx"))
 );
+ok(
+  "live dossier schedule warm requires cache, not phase ready",
+  /shouldMarkScheduleWarmed/.test(
+    read("components/dossier/LiveMoleculeDossier.tsx")
+  ) &&
+    !/warmed:\s*chrome\?\.phase === ["']ready["']/.test(
+      read("components/dossier/LiveMoleculeDossier.tsx")
+    )
+);
+
 
 console.log(`\n${n} product-path checks passed`);
