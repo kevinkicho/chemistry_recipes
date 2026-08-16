@@ -198,6 +198,7 @@ Optional before release/deploy:
 | **SEARCH-11** | SMILES/InChI label prefixes (Canonical SMILES:, InChI:) normalize; compare warms prefixed CID/URL | `test-search-contracts` |
 | **SEARCH-12** | Wikipedia CAS Number/No./CAS-RN labels and PubChem name-slug URLs normalize (not SMILES) | `test-search-contracts` |
 | **SEARCH-13** | Compare/densify warm reports stream fail instead of claiming complete | `test-search-contracts`, `test-product-path`, `test-densify-depth` |
+| **SEARCH-14** | Equals-sign prefixes (CID=/CAS=/UNII=), Compound CID, Wikipedia CAS [n], PubChem #query= and Wikipedia /wiki/ titles normalize (not SMILES) | `test-search-contracts` |
 
 ### L. Diagnostics honesty
 
