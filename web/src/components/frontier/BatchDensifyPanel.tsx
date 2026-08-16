@@ -209,7 +209,7 @@ export function BatchDensifyPanel({
             setStreamLog((prev) =>
               [
                 ...prev,
-                `✓ CID ${ev.cid}: ${
+                `CID ${ev.cid}: ${
                   ev.summary?.fromCache
                     ? "cache"
                     : ev.ok

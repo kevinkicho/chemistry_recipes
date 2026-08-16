@@ -63,6 +63,21 @@ async function loadCompareWarm() {
   return import(pathToFileURL(out).href);
 }
 
+async function loadNeighborDensify() {
+  const srcFile = path.join(src, "lib/frontier/neighborDensifyStatus.ts");
+  const source = fs.readFileSync(srcFile, "utf8");
+  const { outputText } = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+    },
+    fileName: srcFile,
+  });
+  const out = path.join(tmpdir(), `neighborDensify-${process.pid}.mjs`);
+  fs.writeFileSync(out, outputText, "utf8");
+  return import(pathToFileURL(out).href);
+}
+
 console.log("test-search-contracts");
 
 // Modules
@@ -700,6 +715,81 @@ ok(
     qk.classifyChemicalQuery("aspirin") === "name" &&
     qk.classifyChemicalQuery(aspirinSmiles) === "smiles" &&
     qk.classifyChemicalQuery("2-propanol") === "name"
+);
+
+const scienceAgent = read("lib/frontier/scienceAgent.ts");
+const sciencePanel = read("components/frontier/ScienceAgentPanel.tsx");
+const batchPanel = read("components/frontier/BatchDensifyPanel.tsx");
+ok(
+  "SEARCH-16 science agent tracks neighbor densify failures",
+  /neighborFailedCids/.test(scienceAgent) &&
+    /neighborFailedCids\.push/.test(scienceAgent)
+);
+ok(
+  "SEARCH-16 science panel uses formatNeighborDensifyStatus",
+  /formatNeighborDensifyStatus/.test(sciencePanel) &&
+    /fail: result\.neighborFailedCids/.test(sciencePanel)
+);
+ok(
+  "SEARCH-16 science panel does not claim none-needed on fail",
+  !/Neighbors densified: \$\{neighborCids\.join/.test(sciencePanel)
+);
+ok(
+  "SEARCH-16 batch densify log has no success checkmark on fail",
+  !/`✓ CID \$\{ev\.cid\}/.test(batchPanel)
+);
+
+const nd = await loadNeighborDensify();
+ok(
+  "SEARCH-16 neighbor fail is not none-needed",
+  nd.formatNeighborDensifyStatus({
+    requested: true,
+    okCids: [],
+    failCids: [3672],
+  }) ===
+    "Neighbor densify failed — CID 3672. Stream did not return a dossier." &&
+    !/none needed/.test(
+      nd.formatNeighborDensifyStatus({
+        requested: true,
+        okCids: [],
+        failCids: [3672],
+      })
+    )
+);
+ok(
+  "SEARCH-16 neighbor partial reports fail",
+  /partial/.test(
+    nd.formatNeighborDensifyStatus({
+      requested: true,
+      okCids: [2244],
+      failCids: [3672],
+    })
+  ) &&
+    /3672/.test(
+      nd.formatNeighborDensifyStatus({
+        requested: true,
+        okCids: [2244],
+        failCids: [3672],
+      })
+    )
+);
+ok(
+  "SEARCH-16 neighbor off and none-available stay distinct from fail",
+  nd.formatNeighborDensifyStatus({
+    requested: false,
+    okCids: [],
+    failCids: [],
+  }) === "Neighbor densify: off" &&
+    nd.formatNeighborDensifyStatus({
+      requested: true,
+      okCids: [],
+      failCids: [],
+    }) === "Neighbor densify: none needed or none available" &&
+    nd.formatNeighborDensifyStatus({
+      requested: true,
+      okCids: [2244],
+      failCids: [],
+    }) === "Neighbors densified: 2244"
 );
 
 console.log(`\n${passed} search-contract checks passed`);
