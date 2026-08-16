@@ -1636,5 +1636,29 @@ ok(
     !sectionH.isProcessFactTrace(identityUrl) &&
     !sectionH.isProcessFactTrace(chemblUrl)
 );
+ok(
+  "PROV-17 process recipe / route / control-points chips use processFactTraces not leftover harvest HTTP",
+  /traces=\{processFactTraces\}/.test(liveDossier) &&
+    /sourceRefs=\{processFactSourceRefs\}/.test(liveDossier) &&
+    /isProcessFactTrace/.test(liveDossier) &&
+    /field="Process recipe"[\s\S]{0,200}traces=\{processFactTraces\}/.test(liveDossier) &&
+    /field="Route compare"[\s\S]{0,200}traces=\{processFactTraces\}/.test(liveDossier) &&
+    /<RoutePanel[\s\S]{0,400}traces=\{processFactTraces\}/.test(liveDossier) &&
+    /<CriticalParametersBoard[\s\S]{0,200}traces=\{processFactTraces\}/.test(liveDossier) &&
+    !/field="Process recipe"[\s\S]{0,200}traces=\{traces\}/.test(liveDossier) &&
+    !/field="Route compare"[\s\S]{0,200}traces=\{traces\}/.test(liveDossier) &&
+    !/field="Process recipe"[\s\S]{0,200}pubchemCid=/.test(liveDossier) &&
+    !/field="Route compare"[\s\S]{0,200}pubchemCid=/.test(liveDossier) &&
+    !/<RoutePanel[\s\S]{0,400}pubchemCid=/.test(liveDossier) &&
+    !/<CriticalParametersBoard[\s\S]{0,200}pubchemCid=/.test(liveDossier)
+);
+ok(
+  "PROV-17 leftover PubChem identity is not process-recipe HTTP",
+  sectionH.isProcessFactTrace(litUrl) &&
+    sectionH.isProcessFactTrace(ghsUrl) &&
+    sectionH.isProcessFactTrace(mfgUrl) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isProcessFactTrace(chemblUrl)
+);
 
 console.log(`\n${passed} search-contract checks passed`);
