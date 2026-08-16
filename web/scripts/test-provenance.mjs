@@ -377,6 +377,11 @@ ok(
     /sequenceEmpty/.test(mondayPack)
 );
 ok(
+  "SEARCH-27 condition-atlas empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(conditionAtlas) &&
+    /atlasEmpty/.test(conditionAtlas)
+);
+ok(
   "aside ContentProvenance manufacturing",
   /Manufacturing summary/.test(aside) && /ContentProvenance/.test(aside)
 );

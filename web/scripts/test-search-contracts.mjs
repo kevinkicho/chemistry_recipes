@@ -2055,5 +2055,64 @@ ok(
   sectionH.formatProcessFactsEmptyCopy({ traces: [] }).kind === "empty" &&
     /Not enough public procedure density/.test(mondayPack)
 );
+ok(
+  "SEARCH-27 condition-atlas empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(conditionAtlas) &&
+    /atlasEmpty\.kind === "error"/.test(conditionAtlas) &&
+    /atlasEmpty\.message/.test(conditionAtlas)
+);
+ok(
+  "SEARCH-27 literature harvest fail is condition-atlas error not empty",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "error" &&
+    /Not an empty result|Not a clean miss/.test(
+      sectionH.formatProcessFactsEmptyCopy({
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).message
+    )
+);
+ok(
+  "SEARCH-27 leftover identity is not a condition-atlas miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-27 leftover ChEMBL annotation fail is not a condition-atlas miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/search",
+        ok: false,
+        error: "HTTP 502",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-27 genuine empty stays no-conditions-extracted copy",
+  sectionH.formatProcessFactsEmptyCopy({ traces: [] }).kind === "empty" &&
+    /No conditions extracted/.test(conditionAtlas)
+);
 
 console.log(`\n${passed} search-contract checks passed`);

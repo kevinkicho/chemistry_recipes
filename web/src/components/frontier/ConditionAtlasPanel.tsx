@@ -6,6 +6,7 @@ import type { ConditionDistribution } from "@/lib/frontier/types";
 import { FreePublicProvenance } from "@/components/FreePublicProvenance";
 import { slimTraces } from "@/lib/api/trace";
 import {
+  formatProcessFactsEmptyCopy,
   isProcessFactSourceRef,
   isProcessFactTrace,
 } from "@/lib/dossier/sectionHonesty";
@@ -83,10 +84,15 @@ export function ConditionAtlasPanel({
   // Atlas is process-fact / densified lit-patent-mfg text. Leftover identity
   // / annotation HTTP is not condition-atlas provenance, and the chip must
   // not live-fetch identity.
-  const traces = slimTraces(dossier.traces || []).filter((tr) =>
+  const allTraces = slimTraces(dossier.traces || []);
+  const traces = allTraces.filter((tr) =>
     isProcessFactTrace(tr.endpointUrl)
   );
   const sourceRefs = (dossier.sourceRefs || []).filter(isProcessFactSourceRef);
+  const atlasEmpty = formatProcessFactsEmptyCopy({
+    traces: allTraces,
+    fetchErrors: dossier.fetchErrors,
+  });
 
   return (
     <div
@@ -125,7 +131,9 @@ export function ConditionAtlasPanel({
 
       {atlas.distributions.length === 0 ? (
         <p className="mt-3 text-xs text-slate-600">
-          No conditions extracted — densify OA/patent procedure text or use paste wizard.
+          {atlasEmpty.kind === "error"
+            ? atlasEmpty.message
+            : "No conditions extracted — densify OA/patent procedure text or use paste wizard."}
         </p>
       ) : (
         <ul className="mt-3 grid gap-2 sm:grid-cols-2">
