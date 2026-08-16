@@ -6,6 +6,10 @@ import type { LiveDossier } from "@/lib/dossier/types";
 import type { ProcessFact } from "@/lib/dossier/processFacts";
 import type { ProcessStep, SourceRef } from "@/lib/types/process";
 import { slimTraces } from "@/lib/api/trace";
+import {
+  isProcessFactSourceRef,
+  isProcessFactTrace,
+} from "@/lib/dossier/sectionHonesty";
 
 type StepEvidence = {
   step: ProcessStep;
@@ -205,6 +209,14 @@ export function OperatorJobAid({
     )
     .slice(0, 12);
 
+  // Job aid is process-fact / public-sequence / GHS. Leftover identity
+  // / annotation HTTP is not job-aid provenance, and the chip must
+  // not live-fetch identity.
+  const traces = slimTraces(dossier.traces || []).filter((tr) =>
+    isProcessFactTrace(tr.endpointUrl)
+  );
+  const sourceRefs = (dossier.sourceRefs || []).filter(isProcessFactSourceRef);
+
   return (
     <div
       id="operator-job-aid"
@@ -219,9 +231,8 @@ export function OperatorJobAid({
             <ContentProvenance
               title="Operator job aid"
               field="Operator job aid"
-              pubchemCid={dossier.cid}
-              traces={slimTraces(dossier.traces || [])}
-              sourceRefs={dossier.sourceRefs}
+              traces={traces}
+              sourceRefs={sourceRefs}
               ai={dossier.synthesis.provenance}
               showAi={Boolean(dossier.synthesis.provenance)}
               onRegenerate={onRegenerate}

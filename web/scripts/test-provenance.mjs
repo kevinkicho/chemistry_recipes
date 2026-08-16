@@ -337,6 +337,16 @@ ok(
     /traces=\{traces\}/.test(conditionAtlas) &&
     /sourceRefs=\{sourceRefs\}/.test(conditionAtlas)
 );
+const operatorJobAid = read("components/OperatorJobAid.tsx");
+ok(
+  "PROV-21 operator-job-aid chips use process-fact traces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(operatorJobAid) &&
+    /isProcessFactSourceRef/.test(operatorJobAid) &&
+    /field="Operator job aid"/.test(operatorJobAid) &&
+    /traces=\{traces\}/.test(operatorJobAid) &&
+    /sourceRefs=\{sourceRefs\}/.test(operatorJobAid) &&
+    !/field="Operator job aid"[\s\S]{0,200}pubchemCid=/.test(operatorJobAid)
+);
 ok(
   "aside ContentProvenance manufacturing",
   /Manufacturing summary/.test(aside) && /ContentProvenance/.test(aside)

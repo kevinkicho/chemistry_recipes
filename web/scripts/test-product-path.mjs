@@ -296,4 +296,13 @@ ok(
     /liveFetch=\{false\}/.test(read("components/frontier/ConditionAtlasPanel.tsx")) &&
     /field="Condition atlas"/.test(read("components/frontier/ConditionAtlasPanel.tsx"))
 );
+ok(
+  "operator job-aid chips do not dump leftover harvest HTTP",
+  /isProcessFactTrace/.test(read("components/OperatorJobAid.tsx")) &&
+    /isProcessFactSourceRef/.test(read("components/OperatorJobAid.tsx")) &&
+    /field="Operator job aid"/.test(read("components/OperatorJobAid.tsx")) &&
+    !/field="Operator job aid"[\s\S]{0,200}pubchemCid=/.test(
+      read("components/OperatorJobAid.tsx")
+    )
+);
 console.log(`\n${n} product-path checks passed`);
