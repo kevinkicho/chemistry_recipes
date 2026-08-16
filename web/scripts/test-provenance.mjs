@@ -355,6 +355,13 @@ ok(
     )
 );
 ok(
+  "SEARCH-25 job-aid empty copy uses formatSectionEmptyCopy / formatProcessFactsEmptyCopy",
+  /formatSectionEmptyCopy/.test(read("components/OperatorJobAid.tsx")) &&
+    /formatProcessFactsEmptyCopy/.test(read("components/OperatorJobAid.tsx")) &&
+    /hazardEmpty/.test(read("components/OperatorJobAid.tsx")) &&
+    /sequenceEmpty/.test(read("components/OperatorJobAid.tsx"))
+);
+ok(
   "aside ContentProvenance manufacturing",
   /Manufacturing summary/.test(aside) && /ContentProvenance/.test(aside)
 );

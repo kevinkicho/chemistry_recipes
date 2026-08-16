@@ -7,6 +7,8 @@ import type { ProcessFact } from "@/lib/dossier/processFacts";
 import type { ProcessStep, SourceRef } from "@/lib/types/process";
 import { slimTraces } from "@/lib/api/trace";
 import {
+  formatProcessFactsEmptyCopy,
+  formatSectionEmptyCopy,
   isProcessFactSourceRef,
   isProcessFactTrace,
 } from "@/lib/dossier/sectionHonesty";
@@ -212,10 +214,20 @@ export function OperatorJobAid({
   // Job aid is process-fact / public-sequence / GHS. Leftover identity
   // / annotation HTTP is not job-aid provenance, and the chip must
   // not live-fetch identity.
-  const traces = slimTraces(dossier.traces || []).filter((tr) =>
+  const allTraces = slimTraces(dossier.traces || []);
+  const traces = allTraces.filter((tr) =>
     isProcessFactTrace(tr.endpointUrl)
   );
   const sourceRefs = (dossier.sourceRefs || []).filter(isProcessFactSourceRef);
+  const hazardEmpty = formatSectionEmptyCopy({
+    family: "hazards",
+    traces: allTraces,
+    fetchErrors: dossier.fetchErrors,
+  });
+  const sequenceEmpty = formatProcessFactsEmptyCopy({
+    traces: allTraces,
+    fetchErrors: dossier.fetchErrors,
+  });
 
   return (
     <div
@@ -512,8 +524,9 @@ export function OperatorJobAid({
           </ol>
         ) : (
           <p className="mt-2 text-sm text-slate-500">
-            No public sequence available. Re-run the live dossier build or open literature /
-            patents panels for process leads.
+            {sequenceEmpty.kind === "error"
+              ? sequenceEmpty.message
+              : "No public sequence available. Re-run the live dossier build or open literature / patents panels for process leads."}
           </p>
         )}
       </section>
@@ -589,7 +602,7 @@ export function OperatorJobAid({
                 </li>
               ))
             ) : (
-              <li className="text-slate-500">No GHS hazard statements on file</li>
+              <li className="text-slate-500">{hazardEmpty.message}</li>
             )}
             {precautions.slice(0, 4).map((p) => (
               <li key={p} className="flex gap-1.5">
