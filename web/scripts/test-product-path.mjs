@@ -213,5 +213,18 @@ ok(
     /litEmpty\.summary/.test(read("components/dossier/LiveMoleculeDossier.tsx")) &&
     /patentEmpty\.summary/.test(read("components/dossier/LiveMoleculeDossier.tsx"))
 );
+ok(
+  "live dossier manufacturing/GHS/properties empty copy is not unconditional",
+  /mfgEmpty\.summary/.test(read("components/dossier/LiveMoleculeDossier.tsx")) &&
+    /emptyMessage=\{mfgEmpty\.message\}/.test(
+      read("components/dossier/LiveMoleculeDossier.tsx")
+    ) &&
+    /hazardEmpty/.test(read("components/dossier/LiveDossierAside.tsx")) &&
+    /propertyEmpty/.test(read("components/dossier/LiveDossierAside.tsx")) &&
+    /mfgEmpty/.test(read("components/dossier/LiveDossierAside.tsx")) &&
+    !/Awaiting PubChem \/ process-fact excerpts/.test(
+      read("components/dossier/LiveMoleculeDossier.tsx")
+    )
+);
 
 console.log(`\n${n} product-path checks passed`);

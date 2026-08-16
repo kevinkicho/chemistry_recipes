@@ -1151,4 +1151,176 @@ ok(
     }).kind === "empty"
 );
 
+ok(
+  "SEARCH-20 GHS heading timeout is error not empty",
+  sectionH.formatSectionEmptyCopy({
+    family: "hazards",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=GHS+Classification",
+        ok: false,
+        error: "timeout",
+      },
+    ],
+  }).kind === "error" &&
+    /Not an empty result/.test(
+      sectionH.formatSectionEmptyCopy({
+        family: "hazards",
+        traces: [
+          {
+            endpointUrl:
+              "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=GHS+Classification",
+            ok: false,
+            error: "timeout",
+          },
+        ],
+      }).message
+    )
+);
+ok(
+  "SEARCH-20 GHS heading 404 is empty not error",
+  sectionH.formatSectionEmptyCopy({
+    family: "hazards",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=GHS+Classification",
+        ok: false,
+        notFound: true,
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-20 leftover literature heading is not a GHS failure",
+  sectionH.formatSectionEmptyCopy({
+    family: "hazards",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=Literature",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-20 pubchem-view soft-fail is GHS/mfg/properties error",
+  sectionH.formatSectionEmptyCopy({
+    family: "hazards",
+    fetchErrors: ["soft-fail · pubchem-view: HTTP 503"],
+  }).kind === "error" &&
+    sectionH.formatSectionEmptyCopy({
+      family: "manufacturing",
+      fetchErrors: ["soft-fail · pubchem-view: HTTP 503"],
+    }).kind === "error" &&
+    sectionH.formatSectionEmptyCopy({
+      family: "properties",
+      fetchErrors: ["soft-fail · pubchem-view: HTTP 503"],
+    }).kind === "error"
+);
+ok(
+  "SEARCH-20 manufacturing heading timeout is error; identity leftover is not",
+  sectionH.formatSectionEmptyCopy({
+    family: "manufacturing",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=Use+and+Manufacturing",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "error" &&
+    sectionH.formatSectionEmptyCopy({
+      family: "manufacturing",
+      traces: [
+        {
+          endpointUrl:
+            "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularWeight/JSON",
+          ok: false,
+          error: "HTTP 503",
+        },
+      ],
+    }).kind === "empty"
+);
+ok(
+  "SEARCH-20 properties /property/ fail is error; GHS leftover is not",
+  sectionH.formatSectionEmptyCopy({
+    family: "properties",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularWeight,MolecularFormula/JSON",
+        ok: false,
+        error: "timeout",
+      },
+    ],
+  }).kind === "error" &&
+    sectionH.formatSectionEmptyCopy({
+      family: "properties",
+      traces: [
+        {
+          endpointUrl:
+            "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=GHS+Classification",
+          ok: false,
+          error: "HTTP 503",
+        },
+      ],
+    }).kind === "empty"
+);
+ok(
+  "SEARCH-20 classification fail is annotation error; identity leftover is not",
+  sectionH.formatSectionEmptyCopy({
+    family: "annotations",
+    fetchErrors: ["soft-fail · pubchem-class: HTTP 503"],
+  }).kind === "error" &&
+    sectionH.formatSectionEmptyCopy({
+      family: "annotations",
+      traces: [
+        {
+          endpointUrl:
+            "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/classification/JSON",
+          ok: false,
+          error: "HTTP 503",
+        },
+      ],
+    }).kind === "error"
+);
+ok(
+  "SEARCH-20 genuine GHS/mfg/properties empty stays empty",
+  sectionH.formatSectionEmptyCopy({
+    family: "hazards",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=GHS+Classification",
+        ok: true,
+      },
+    ],
+  }).kind === "empty" &&
+    sectionH.formatSectionEmptyCopy({
+      family: "manufacturing",
+      traces: [
+        {
+          endpointUrl:
+            "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=Use+and+Manufacturing",
+          ok: true,
+        },
+      ],
+    }).kind === "empty" &&
+    sectionH.formatSectionEmptyCopy({
+      family: "properties",
+      traces: [
+        {
+          endpointUrl:
+            "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularWeight/JSON",
+          ok: true,
+        },
+      ],
+    }).kind === "empty"
+);
+
 console.log(`\n${passed} search-contract checks passed`);

@@ -393,6 +393,16 @@ export function LiveMoleculeDossier({
     traces,
     fetchErrors: dossier.fetchErrors,
   });
+  const mfgEmpty = formatSectionEmptyCopy({
+    family: "manufacturing",
+    traces,
+    fetchErrors: dossier.fetchErrors,
+  });
+  const hazardEmpty = formatSectionEmptyCopy({
+    family: "hazards",
+    traces,
+    fetchErrors: dossier.fetchErrors,
+  });
   const propertySourceRefs = [
     {
       type: "api" as const,
@@ -1263,7 +1273,7 @@ export function LiveMoleculeDossier({
             summary={
               mfgTableRows.length
                 ? `${mfgTableRows.length} rows · sort / filter / search`
-                : "Awaiting PubChem / process-fact excerpts"
+                : mfgEmpty.summary
             }
             badge="API"
             defaultOpen={mfgTableRows.length > 0}
@@ -1282,6 +1292,7 @@ export function LiveMoleculeDossier({
             <ManufacturingTextTable
               rows={mfgTableRows}
               emptyHref={pubchemMfgHref}
+              emptyMessage={mfgEmpty.message}
             />
           </CollapsibleSection>
 
@@ -1410,7 +1421,7 @@ export function LiveMoleculeDossier({
                 </ul>
               ) : (
                 <p className="mt-2 text-xs text-slate-600">
-                  No EHS highlights — check PubChem Safety before plant use.
+                  {hazardEmpty.message} Check PubChem Safety before plant use.
                 </p>
               )}
             </div>

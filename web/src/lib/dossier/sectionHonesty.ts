@@ -1,12 +1,18 @@
 /**
  * Live-dossier section empty vs error vs timeout copy.
  * HTTP 200 + empty hits is not success when literature / patent / annotation
- * families failed or timed out.
+ * / GHS / properties / manufacturing families failed or timed out.
  */
 
 import type { ApiFetchTrace } from "@/lib/api/trace";
 
-export type SectionFamily = "literature" | "patents" | "annotations";
+export type SectionFamily =
+  | "literature"
+  | "patents"
+  | "annotations"
+  | "hazards"
+  | "properties"
+  | "manufacturing";
 
 export type SectionEmptyCopy = {
   kind: "empty" | "error";
@@ -48,12 +54,23 @@ const ANNOTATION_ERROR_FAMILIES = [
   "unichem",
   "chebi",
   "gsrs",
+  "pubchem-class",
+  "massbank",
 ] as const;
+
+const HAZARD_ERROR_FAMILIES = ["pubchem-view"] as const;
+
+const PROPERTY_ERROR_FAMILIES = ["pubchem-view", "pubchem-identity"] as const;
+
+const MFG_ERROR_FAMILIES = ["pubchem-view"] as const;
 
 const FAMILY_ERROR_LABELS: Record<SectionFamily, readonly string[]> = {
   literature: LIT_ERROR_FAMILIES,
   patents: PATENT_ERROR_FAMILIES,
   annotations: ANNOTATION_ERROR_FAMILIES,
+  hazards: HAZARD_ERROR_FAMILIES,
+  properties: PROPERTY_ERROR_FAMILIES,
+  manufacturing: MFG_ERROR_FAMILIES,
 };
 
 function syntheticFamily(url: string): string | undefined {
@@ -101,6 +118,10 @@ export function isAnnotationSectionTrace(endpointUrl: string): boolean {
   const syn = syntheticFamily(endpointUrl);
   if (syn) return (ANNOTATION_ERROR_FAMILIES as readonly string[]).includes(syn);
   const e = endpointUrl.toLowerCase();
+  if (e.includes("massbank")) return true;
+  if (e.includes("pubchem.ncbi.nlm.nih.gov") && e.includes("classification")) {
+    return true;
+  }
   if (e.includes("pubchem.ncbi.nlm.nih.gov")) return false;
   return (
     e.includes("chembl") ||
@@ -121,10 +142,55 @@ export function isAnnotationSectionTrace(endpointUrl: string): boolean {
   );
 }
 
+/** Full-record PUG View fallback feeds GHS, manufacturing, and properties. */
+function isFullRecordPugView(e: string): boolean {
+  return (
+    e.includes("pug_view") &&
+    e.includes("/data/compound/") &&
+    !e.includes("heading=") &&
+    !e.includes("/data/patent/")
+  );
+}
+
+export function isHazardsSectionTrace(endpointUrl: string): boolean {
+  const syn = syntheticFamily(endpointUrl);
+  if (syn) return (HAZARD_ERROR_FAMILIES as readonly string[]).includes(syn);
+  const e = endpointUrl.toLowerCase();
+  if (isFullRecordPugView(e)) return true;
+  if (!e.includes("pug_view") || e.includes("/data/patent/")) return false;
+  return /ghs|safety|hazards/i.test(e);
+}
+
+export function isManufacturingSectionTrace(endpointUrl: string): boolean {
+  const syn = syntheticFamily(endpointUrl);
+  if (syn) return (MFG_ERROR_FAMILIES as readonly string[]).includes(syn);
+  const e = endpointUrl.toLowerCase();
+  if (isFullRecordPugView(e)) return true;
+  if (!e.includes("pug_view") || e.includes("/data/patent/")) return false;
+  return /use\+and\+manufacturing|use%20and%20manufacturing|manufacturing/i.test(
+    endpointUrl
+  );
+}
+
+export function isPropertiesSectionTrace(endpointUrl: string): boolean {
+  const syn = syntheticFamily(endpointUrl);
+  if (syn) return (PROPERTY_ERROR_FAMILIES as readonly string[]).includes(syn);
+  const e = endpointUrl.toLowerCase();
+  if (e.includes("/property/")) return true;
+  if (isFullRecordPugView(e)) return true;
+  if (!e.includes("pug_view") || e.includes("/data/patent/")) return false;
+  return /chemical\+and\+physical|chemical%20and%20physical|experimental\+properties|computed\+properties|physical\+description/i.test(
+    endpointUrl
+  );
+}
+
 const TRACE_PRED: Record<SectionFamily, (url: string) => boolean> = {
   literature: isLiteratureSectionTrace,
   patents: isPatentSectionTrace,
   annotations: isAnnotationSectionTrace,
+  hazards: isHazardsSectionTrace,
+  properties: isPropertiesSectionTrace,
+  manufacturing: isManufacturingSectionTrace,
 };
 
 function fetchErrorFamily(line: string): string | undefined {
@@ -201,6 +267,21 @@ const NOUN: Record<SectionFamily, { short: string; long: string; emptyBody: stri
     emptyBody:
       "No ChEMBL / openFDA / MyChem / related annotations were returned for this capture.",
   },
+  hazards: {
+    short: "GHS / safety sources",
+    long: "GHS",
+    emptyBody: "No GHS text returned for this CID.",
+  },
+  properties: {
+    short: "Property sources",
+    long: "property",
+    emptyBody: "No property excerpts in this capture.",
+  },
+  manufacturing: {
+    short: "Manufacturing sources",
+    long: "manufacturing",
+    emptyBody: "No manufacturing excerpts in this capture.",
+  },
 };
 
 /**
@@ -220,7 +301,16 @@ export function formatSectionEmptyCopy(opts: {
   if (!failed) {
     return {
       kind: "empty",
-      summary: opts.family === "annotations" ? "No extra annotations in this capture" : "No hits",
+      summary:
+        opts.family === "annotations"
+          ? "No extra annotations in this capture"
+          : opts.family === "hazards"
+            ? "No GHS text"
+            : opts.family === "properties"
+              ? "No property excerpts"
+              : opts.family === "manufacturing"
+                ? "No manufacturing excerpts"
+                : "No hits",
       message: noun.emptyBody,
     };
   }
