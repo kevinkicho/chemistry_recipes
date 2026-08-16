@@ -78,6 +78,7 @@ const critical = [
   "lib/dossier/annotationExcerpts.ts",
   "lib/dossier/processKnowledgeDigest.ts",
   "lib/dossier/mergeExtractAtoms.ts",
+  "lib/dossier/sectionHonesty.ts",
   "lib/literature/rank.ts",
   "components/ValidationChecklist.tsx",
   "components/SourceCoverageMap.tsx",

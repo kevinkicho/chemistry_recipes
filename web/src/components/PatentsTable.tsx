@@ -38,10 +38,13 @@ function dateKey(d?: string): number {
 export function PatentsTable({
   hits,
   cid,
+  emptyMessage,
   onPasteAttached,
 }: {
   hits: PatentHit[];
   cid?: number;
+  /** Honest empty vs upstream-failure copy from harvest traces */
+  emptyMessage?: string;
   onPasteAttached?: (info: {
     attached: number;
     chars: number;
@@ -191,7 +194,7 @@ export function PatentsTable({
   if (hits.length === 0) {
     return (
       <p className="text-sm text-slate-500">
-        No patent hits for this capture.
+        {emptyMessage || "No patent hits for this capture."}
       </p>
     );
   }

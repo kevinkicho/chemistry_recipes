@@ -71,6 +71,7 @@ import {
   applyLocalFactEnrichment,
   hydrateVaultIntoDossier,
 } from "@/lib/dossier/enrichClientFacts";
+import { formatSectionEmptyCopy } from "@/lib/dossier/sectionHonesty";
 import { formatCacheAge } from "@/lib/idb/dossierCache";
 
 import { DossierSectionTitle as SectionTitle } from "@/components/dossier/DossierSectionTitle";
@@ -377,6 +378,21 @@ export function LiveMoleculeDossier({
     isApplicationsTrace(t.endpointUrl)
   );
   const overviewSourceRefs = dossier.sourceRefs.filter(isIdentityOverviewSourceRef);
+  const litEmpty = formatSectionEmptyCopy({
+    family: "literature",
+    traces,
+    fetchErrors: dossier.fetchErrors,
+  });
+  const patentEmpty = formatSectionEmptyCopy({
+    family: "patents",
+    traces,
+    fetchErrors: dossier.fetchErrors,
+  });
+  const annotationEmpty = formatSectionEmptyCopy({
+    family: "annotations",
+    traces,
+    fetchErrors: dossier.fetchErrors,
+  });
   const propertySourceRefs = [
     {
       type: "api" as const,
@@ -1150,7 +1166,7 @@ export function LiveMoleculeDossier({
             summary={
               (dossier.annotations?.length ?? 0) > 0
                 ? `${dossier.annotations.length} annotations beyond PubChem identity`
-                : "No extra annotations in this capture"
+                : annotationEmpty.summary
             }
             badge={String(dossier.annotations?.length ?? 0)}
             defaultOpen={(dossier.annotations?.length ?? 0) > 0}
@@ -1215,8 +1231,10 @@ export function LiveMoleculeDossier({
               </ul>
             ) : (
               <p className="text-sm text-slate-500">
-                No ChEMBL / openFDA / MyChem / related annotations were returned for this
-                capture. Identity still comes from PubChem CID {cid}.
+                {annotationEmpty.message}
+                {annotationEmpty.kind === "empty"
+                  ? ` Identity still comes from PubChem CID ${cid}.`
+                  : ""}
               </p>
             )}
           </CollapsibleSection>
@@ -1273,7 +1291,7 @@ export function LiveMoleculeDossier({
             summary={
               dossier.literature.length
                 ? `${dossier.literature.length} hits · sort / filter / search`
-                : "No hits"
+                : litEmpty.summary
             }
             badge="API"
             defaultOpen={dossier.literature.length > 0}
@@ -1291,6 +1309,7 @@ export function LiveMoleculeDossier({
             <LiteratureTable
               hits={dossier.literature}
               cid={cid}
+              emptyMessage={litEmpty.message}
               onPasteAttached={(info) => {
                 setPasteDeltaMsg(
                   `Literature densify paste · ${info.attached} paper(s) · ${info.chars.toLocaleString()} chars · re-extracting local facts… Not GMP.`
@@ -1306,7 +1325,7 @@ export function LiveMoleculeDossier({
             summary={
               dossier.patents.length
                 ? `${dossier.patents.length} hits · sort / filter / search`
-                : "No hits"
+                : patentEmpty.summary
             }
             badge="API"
             defaultOpen={dossier.patents.length > 0}
@@ -1325,6 +1344,7 @@ export function LiveMoleculeDossier({
             <PatentsTable
               hits={dossier.patents}
               cid={cid}
+              emptyMessage={patentEmpty.message}
               onPasteAttached={(info) => {
                 setPasteDeltaMsg(
                   `Patent densify paste · ${info.attached} document(s) · ${info.chars.toLocaleString()} chars · re-extracting local facts… Not GMP.`

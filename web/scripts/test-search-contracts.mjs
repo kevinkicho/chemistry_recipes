@@ -1000,4 +1000,155 @@ ok(
     }) === "Free-public fan-out failed — not an empty result"
 );
 
+
+async function loadSectionHonesty() {
+  const srcFile = path.join(src, "lib/dossier/sectionHonesty.ts");
+  const source = fs.readFileSync(srcFile, "utf8");
+  const { outputText } = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+    },
+    fileName: srcFile,
+  });
+  const out = path.join(tmpdir(), `sectionHonesty-${process.pid}.mjs`);
+  fs.writeFileSync(out, outputText, "utf8");
+  return import(pathToFileURL(out).href);
+}
+
+ok(
+  "SEARCH-19 sectionHonesty helper exists",
+  exists("lib/dossier/sectionHonesty.ts")
+);
+const liveDossier = read("components/dossier/LiveMoleculeDossier.tsx");
+ok(
+  "SEARCH-19 live dossier uses formatSectionEmptyCopy",
+  /formatSectionEmptyCopy/.test(liveDossier) &&
+    /litEmpty/.test(liveDossier) &&
+    /patentEmpty/.test(liveDossier) &&
+    /annotationEmpty/.test(liveDossier)
+);
+ok(
+  "SEARCH-19 literature/patents tables accept emptyMessage",
+  /emptyMessage/.test(read("components/LiteratureTable.tsx")) &&
+    /emptyMessage/.test(read("components/PatentsTable.tsx"))
+);
+
+const sectionH = await loadSectionHonesty();
+ok(
+  "SEARCH-19 literature all-fail is error not empty",
+  sectionH.formatSectionEmptyCopy({
+    family: "literature",
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: false,
+        error: "HTTP 503",
+      },
+      {
+        endpointUrl: "https://api.openalex.org/works",
+        ok: false,
+        error: "timeout",
+      },
+    ],
+  }).kind === "error" &&
+    /Not an empty result/.test(
+      sectionH.formatSectionEmptyCopy({
+        family: "literature",
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).message
+    )
+);
+ok(
+  "SEARCH-19 literature genuine empty stays empty",
+  sectionH.formatSectionEmptyCopy({
+    family: "literature",
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: true,
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-19 literature notFound is empty not error",
+  sectionH.formatSectionEmptyCopy({
+    family: "literature",
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: false,
+        notFound: true,
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-19 europepmc-pat fail is not literature error",
+  sectionH.formatSectionEmptyCopy({
+    family: "literature",
+    fetchErrors: ["soft-fail · europepmc-pat: HTTP 503"],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-19 patent soft-fail is error",
+  sectionH.formatSectionEmptyCopy({
+    family: "patents",
+    fetchErrors: ["soft-fail · patentsview: timeout"],
+  }).kind === "error" &&
+    /Patent sources failed/.test(
+      sectionH.formatSectionEmptyCopy({
+        family: "patents",
+        fetchErrors: ["soft-fail · patentsview: timeout"],
+      }).message
+    )
+);
+ok(
+  "SEARCH-19 mixed ok+fail is not a clean miss",
+  sectionH.formatSectionEmptyCopy({
+    family: "literature",
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: true,
+      },
+      { endpointUrl: "https://api.openalex.org/works", ok: false, error: "HTTP 503" },
+    ],
+  }).kind === "error" &&
+    /some free-public sources failed/.test(
+      sectionH.formatSectionEmptyCopy({
+        family: "literature",
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: true,
+          },
+          { endpointUrl: "https://api.openalex.org/works", ok: false, error: "HTTP 503" },
+        ],
+      }).message
+    )
+);
+ok(
+  "SEARCH-19 annotation chembl fail is error; pubchem leftover is not",
+  sectionH.formatSectionEmptyCopy({
+    family: "annotations",
+    traces: [
+      { endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/search", ok: false, error: "HTTP 502" },
+    ],
+  }).kind === "error" &&
+    sectionH.formatSectionEmptyCopy({
+      family: "annotations",
+      traces: [
+        { endpointUrl: "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON", ok: false, error: "HTTP 503" },
+      ],
+    }).kind === "empty"
+);
+
 console.log(`\n${passed} search-contract checks passed`);

@@ -203,6 +203,7 @@ Optional before release/deploy:
 | **SEARCH-16** | Science-agent neighbor densify reports null/throw as fail (not "none needed"); batch densify log has no leftover success checkmark on fail | `test-search-contracts`, `test-product-path` |
 | **SEARCH-17** | DrugBank / KEGG / HMDB / MeSH / ATC / UN-number pastes and URLs normalize to accession ids (names, not SMILES); UN#### is not a CID; Enter submits the stripped id | `test-search-contracts` |
 | **SEARCH-18** | Search empty vs error vs timeout: PubChem `failure`/`ok:false` and all-source fan-out rejects are not “no hits”; fan-out note splits empty vs failed | `test-search-contracts` |
+| **SEARCH-19** | Live dossier literature / patents / annotations empty vs error vs timeout: harvest failures are not "No hits" | `test-search-contracts`, `test-product-path` |
 
 ### L. Diagnostics honesty
 
