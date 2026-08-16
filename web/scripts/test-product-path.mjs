@@ -376,4 +376,15 @@ ok(
     /hazardEmpty\.kind === "error"/.test(read("components/ManagerBriefPanel.tsx")) &&
     /pathEmpty\.message/.test(read("components/ManagerBriefPanel.tsx"))
 );
+ok(
+  "SEARCH-33 TOC empty copy is not unconditional no-content-yet miss",
+  /harvestFailed/.test(read("components/TableOfContents.tsx")) &&
+    /Sources failed — not empty/.test(read("components/TableOfContents.tsx")) &&
+    /harvestFailed/.test(read("components/CollapsibleSection.tsx")) &&
+    /data-toc-error/.test(read("components/CollapsibleSection.tsx")) &&
+    /tocSectionFlags/.test(read("components/dossier/LiveMoleculeDossier.tsx")) &&
+    /harvestFailed=\{litEmpty\.kind === "error"\}/.test(
+      read("components/dossier/LiveMoleculeDossier.tsx")
+    )
+);
 console.log(`\n${n} product-path checks passed`);

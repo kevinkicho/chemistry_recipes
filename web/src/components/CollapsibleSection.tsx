@@ -18,10 +18,14 @@ export function CollapsibleSection({
   /** When true, section starts open (also re-syncs if defaultOpen flips true after load). */
   forceOpenWhen = false,
   /**
-   * Whether this section has real content for TOC enablement.
+   * Whether this section has real hits for TOC enablement.
    * Defaults to forceOpenWhen || defaultOpen when omitted.
    */
   hasContent,
+  /**
+   * Harvest failure is not a clean empty — no "empty" badge, TOC stays openable.
+   */
+  harvestFailed,
 }: {
   id?: string;
   title: string;
@@ -31,13 +35,16 @@ export function CollapsibleSection({
   badge?: string;
   forceOpenWhen?: boolean;
   hasContent?: boolean;
+  harvestFailed?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen || forceOpenWhen);
   const [userToggled, setUserToggled] = useState(false);
 
   // If data arrives after mount and user hasn't toggled, open to show content
   const effectiveOpen = open || (!userToggled && forceOpenWhen);
-  const contentful = hasContent ?? Boolean(forceOpenWhen || defaultOpen);
+  const hasHits = hasContent ?? Boolean(forceOpenWhen || defaultOpen);
+  const failed = Boolean(harvestFailed) && !hasHits;
+  const contentful = hasHits || failed;
 
   // Expand when TOC (or in-page jump) targets this section
   useEffect(() => {
@@ -58,6 +65,7 @@ export function CollapsibleSection({
       className="scroll-mt-24"
       data-toc-section={id || undefined}
       data-toc-empty={contentful ? "0" : "1"}
+      data-toc-error={failed ? "1" : undefined}
     >
       <button
         type="button"
@@ -76,7 +84,11 @@ export function CollapsibleSection({
                 {badge}
               </span>
             ) : null}
-            {!contentful ? (
+            {failed ? (
+              <span className="rounded-full bg-rose-950 px-2 py-0.5 text-[10px] text-rose-300/80 ring-1 ring-rose-900/60">
+                failed
+              </span>
+            ) : !hasHits ? (
               <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] text-slate-600 ring-1 ring-slate-800">
                 empty
               </span>

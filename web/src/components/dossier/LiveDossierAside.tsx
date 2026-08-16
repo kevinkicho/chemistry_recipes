@@ -9,6 +9,7 @@ import {
   formatSectionEmptyCopy,
   isProcessFactSourceRef,
   isProcessFactTrace,
+  tocSectionFlags,
 } from "@/lib/dossier/sectionHonesty";
 import type { AiProvenanceRecord } from "@/lib/dossier/types";
 
@@ -109,15 +110,38 @@ export function LiveDossierAside({
     traces: allTraces,
     fetchErrors: dossier.fetchErrors,
   });
+  const mfgToc = tocSectionFlags({
+    hasHits: Boolean(manufacturingSummary || mfgPanelLead),
+    emptyCopy: mfgEmpty,
+  });
+  const hazardToc = tocSectionFlags({
+    hasHits: Boolean(
+      dossier.hazards.signalWord ||
+        (dossier.hazards.hazardStatements &&
+          dossier.hazards.hazardStatements.length > 0)
+    ),
+    emptyCopy: hazardEmpty,
+  });
+  const propertyToc = tocSectionFlags({
+    hasHits: Boolean(
+      plantProps.molecularWeight != null ||
+        plantProps.formula ||
+        plantProps.meltingPointC ||
+        plantProps.appearance ||
+        plantProps.solubility ||
+        hit?.smiles ||
+        dossier.propertyTexts.length > 0
+    ),
+    emptyCopy: propertyEmpty,
+  });
 
   return (
     <aside className="space-y-4">
       <div
         id="manufacturing"
         className="scroll-mt-24 rounded-xl border border-slate-800 bg-slate-900/50 p-4"
-        data-toc-empty={
-          manufacturingSummary || mfgPanelLead ? "0" : "1"
-        }
+        data-toc-empty={mfgToc.empty}
+        data-toc-error={mfgToc.error}
       >
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <h3 className="text-sm font-semibold text-teal-300">Manufacturing summary</h3>
@@ -271,13 +295,8 @@ export function LiveDossierAside({
       <div
         id="hazards"
         className="scroll-mt-24 space-y-2 rounded-xl border border-slate-800 bg-slate-900/50 p-4"
-        data-toc-empty={
-          dossier.hazards.signalWord ||
-          (dossier.hazards.hazardStatements &&
-            dossier.hazards.hazardStatements.length > 0)
-            ? "0"
-            : "1"
-        }
+        data-toc-empty={hazardToc.empty}
+        data-toc-error={hazardToc.error}
       >
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-sm font-semibold text-slate-200">Hazards (summary)</h3>
@@ -311,17 +330,8 @@ export function LiveDossierAside({
       <div
         id="properties"
         className="scroll-mt-24 rounded-xl border border-slate-800 bg-slate-900/50 p-4"
-        data-toc-empty={
-          plantProps.molecularWeight != null ||
-          plantProps.formula ||
-          plantProps.meltingPointC ||
-          plantProps.appearance ||
-          plantProps.solubility ||
-          hit?.smiles ||
-          dossier.propertyTexts.length > 0
-            ? "0"
-            : "1"
-        }
+        data-toc-empty={propertyToc.empty}
+        data-toc-error={propertyToc.error}
       >
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <h3 className="text-sm font-semibold text-slate-200">Properties</h3>

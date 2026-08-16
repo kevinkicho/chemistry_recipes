@@ -2504,4 +2504,178 @@ ok(
     /sourceRefs=\{dossier\.sourceRefs\}/.test(managerBrief)
 );
 
+async function loadTocNavigate() {
+  const srcFile = path.join(src, "lib/tocNavigate.ts");
+  const source = fs.readFileSync(srcFile, "utf8");
+  const { outputText } = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+    },
+    fileName: srcFile,
+  });
+  const out = path.join(tmpdir(), `tocNavigate-${process.pid}.mjs`);
+  fs.writeFileSync(out, outputText, "utf8");
+  return import(pathToFileURL(out).href);
+}
+
+const tocNav = await loadTocNavigate();
+const toc = read("components/TableOfContents.tsx");
+const collapsible = read("components/CollapsibleSection.tsx");
+const aside = read("components/dossier/LiveDossierAside.tsx");
+
+ok(
+  "SEARCH-33 TOC chrome uses harvestFailed not unconditional no-content-yet",
+  /harvestFailed/.test(toc) &&
+    /Sources failed — not empty/.test(toc) &&
+    /item\.harvestFailed/.test(toc) &&
+    /data-toc-error/.test(toc)
+);
+ok(
+  "SEARCH-33 CollapsibleSection harvest failure is not empty badge",
+  /harvestFailed/.test(collapsible) &&
+    /data-toc-error/.test(collapsible) &&
+    /failed/.test(collapsible)
+);
+ok(
+  "SEARCH-33 live dossier TOC flags literature/patents/annotations/mfg harvest failure",
+  /harvestFailed=\{litEmpty\.kind === "error"\}/.test(liveDossier) &&
+    /harvestFailed=\{patentEmpty\.kind === "error"\}/.test(liveDossier) &&
+    /harvestFailed=\{annotationEmpty\.kind === "error"\}/.test(liveDossier) &&
+    /harvestFailed=\{mfgEmpty\.kind === "error"\}/.test(liveDossier) &&
+    /tocSectionFlags/.test(liveDossier) &&
+    /formatProcessFactsEmptyCopy/.test(liveDossier)
+);
+ok(
+  "SEARCH-33 aside TOC flags manufacturing/hazards/properties harvest failure",
+  /tocSectionFlags/.test(aside) &&
+    /mfgToc/.test(aside) &&
+    /hazardToc/.test(aside) &&
+    /propertyToc/.test(aside) &&
+    /data-toc-error=\{mfgToc\.error\}/.test(aside)
+);
+
+const litFail = {
+  endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+  ok: false,
+  error: "HTTP 503",
+};
+const identityFail = {
+  endpointUrl:
+    "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+  ok: false,
+  error: "HTTP 503",
+};
+const chemblFail = {
+  endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/search",
+  ok: false,
+  error: "HTTP 502",
+};
+
+ok(
+  "SEARCH-33 literature harvest fail is TOC content not empty",
+  sectionH.tocHasSectionContent({
+    hasHits: false,
+    emptyCopy: sectionH.formatSectionEmptyCopy({
+      family: "literature",
+      traces: [litFail],
+    }),
+  }) === true &&
+    sectionH.tocSectionFlags({
+      hasHits: false,
+      emptyCopy: sectionH.formatSectionEmptyCopy({
+        family: "literature",
+        traces: [litFail],
+      }),
+    }).error === "1"
+);
+ok(
+  "SEARCH-33 leftover identity is not a TOC literature miss",
+  sectionH.tocHasSectionContent({
+    hasHits: false,
+    emptyCopy: sectionH.formatSectionEmptyCopy({
+      family: "literature",
+      traces: [identityFail],
+    }),
+  }) === false &&
+    sectionH.tocSectionFlags({
+      hasHits: false,
+      emptyCopy: sectionH.formatSectionEmptyCopy({
+        family: "literature",
+        traces: [identityFail],
+      }),
+    }).empty === "1"
+);
+ok(
+  "SEARCH-33 leftover ChEMBL annotation fail is not a TOC literature miss",
+  sectionH.tocSectionFlags({
+    hasHits: false,
+    emptyCopy: sectionH.formatSectionEmptyCopy({
+      family: "literature",
+      traces: [chemblFail],
+    }),
+  }).empty === "1"
+);
+ok(
+  "SEARCH-33 genuine empty stays TOC empty",
+  sectionH.tocSectionFlags({
+    hasHits: false,
+    emptyCopy: sectionH.formatSectionEmptyCopy({ family: "literature", traces: [] }),
+  }).empty === "1" &&
+    sectionH.tocHasSectionContent({
+      hasHits: false,
+      emptyCopy: sectionH.formatSectionEmptyCopy({ family: "literature", traces: [] }),
+    }) === false
+);
+ok(
+  "SEARCH-33 process-recipe harvest fail is TOC content not empty",
+  sectionH.tocSectionFlags({
+    hasHits: false,
+    emptyCopy: sectionH.formatProcessFactsEmptyCopy({ traces: [litFail] }),
+  }).error === "1"
+);
+ok(
+  "SEARCH-33 leftover identity is not a process-recipe TOC miss",
+  sectionH.tocSectionFlags({
+    hasHits: false,
+    emptyCopy: sectionH.formatProcessFactsEmptyCopy({ traces: [identityFail] }),
+  }).empty === "1"
+);
+ok(
+  "SEARCH-33 interpretTocFlags data-toc-error is harvest failure not empty",
+  tocNav.interpretTocFlags({
+    present: true,
+    tocEmpty: "1",
+    tocError: "1",
+    text: "Literature",
+  }).harvestFailed === true &&
+    tocNav.interpretTocFlags({
+      present: true,
+      tocEmpty: "1",
+      tocError: "1",
+      text: "Literature",
+    }).hasContent === true
+);
+ok(
+  "SEARCH-33 interpretTocFlags error copy wins over data-toc-empty",
+  tocNav.interpretTocFlags({
+    present: true,
+    tocEmpty: "1",
+    text: "Sources failed — not empty",
+  }).harvestFailed === true
+);
+ok(
+  "SEARCH-33 interpretTocFlags genuine empty stays no-content-yet",
+  tocNav.interpretTocFlags({
+    present: true,
+    tocEmpty: "1",
+    text: "No hits",
+  }).hasContent === false &&
+    tocNav.interpretTocFlags({
+      present: true,
+      tocEmpty: "1",
+      text: "No hits",
+    }).harvestFailed === false
+);
+
 console.log(`\n${passed} search-contract checks passed`);

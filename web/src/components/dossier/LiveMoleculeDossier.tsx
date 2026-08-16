@@ -72,11 +72,13 @@ import {
   hydrateVaultIntoDossier,
 } from "@/lib/dossier/enrichClientFacts";
 import {
+  formatProcessFactsEmptyCopy,
   formatSectionEmptyCopy,
   isAnnotationSectionTrace,
   isAnnotationSourceRef,
   isProcessFactSourceRef,
   isProcessFactTrace,
+  tocSectionFlags,
 } from "@/lib/dossier/sectionHonesty";
 import { formatCacheAge } from "@/lib/idb/dossierCache";
 
@@ -426,6 +428,22 @@ export function LiveMoleculeDossier({
     traces,
     fetchErrors: dossier.fetchErrors,
   });
+  const processFactsEmpty = formatProcessFactsEmptyCopy({
+    traces,
+    fetchErrors: dossier.fetchErrors,
+  });
+  const overviewToc = tocSectionFlags({
+    hasHits: Boolean(overview),
+    emptyCopy: overviewEmpty,
+  });
+  const routesToc = tocSectionFlags({
+    hasHits: (dossier.processRoutes?.length ?? 0) > 0,
+    emptyCopy: processFactsEmpty,
+  });
+  const compareToc = tocSectionFlags({
+    hasHits: (dossier.processRoutes?.length ?? 0) > 1,
+    emptyCopy: processFactsEmpty,
+  });
   const propertySourceRefs = [
     {
       type: "api" as const,
@@ -637,7 +655,12 @@ export function LiveMoleculeDossier({
           </dl>
 
           {/* Overview as clean prose — like example dossiers */}
-          <div id="overview" className="scroll-mt-24 max-w-3xl">
+          <div
+              id="overview"
+              className="scroll-mt-24 max-w-3xl"
+              data-toc-empty={overviewToc.empty}
+              data-toc-error={overviewToc.error}
+            >
             {overview ? (
               <>
                 <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
@@ -897,9 +920,8 @@ export function LiveMoleculeDossier({
             <section
               id="routes"
               className="scroll-mt-24"
-              data-toc-empty={
-                (dossier.processRoutes?.length ?? 0) > 0 ? "0" : "1"
-              }
+              data-toc-empty={routesToc.empty}
+              data-toc-error={routesToc.error}
             >
               <SectionTitle
                 ai={routesFromAi ? aiRoutesField || aiChip : undefined}
@@ -948,9 +970,8 @@ export function LiveMoleculeDossier({
             <section
               id="route-compare"
               className="scroll-mt-24"
-              data-toc-empty={
-                (dossier.processRoutes?.length ?? 0) > 1 ? "0" : "1"
-              }
+              data-toc-empty={compareToc.empty}
+              data-toc-error={compareToc.error}
             >
               <SectionTitle
                 field="Route compare"
@@ -1204,6 +1225,7 @@ export function LiveMoleculeDossier({
             defaultOpen={(dossier.annotations?.length ?? 0) > 0}
             forceOpenWhen={(dossier.annotations?.length ?? 0) > 0}
             hasContent={(dossier.annotations?.length ?? 0) > 0}
+            harvestFailed={annotationEmpty.kind === "error"}
           >
             <div className="mb-3">
               <ApiProvenance
@@ -1301,6 +1323,7 @@ export function LiveMoleculeDossier({
             defaultOpen={mfgTableRows.length > 0}
             forceOpenWhen={mfgTableRows.length > 0}
             hasContent={mfgTableRows.length > 0}
+            harvestFailed={mfgEmpty.kind === "error"}
           >
             <div className="mb-3">
               <ApiProvenance
@@ -1330,6 +1353,7 @@ export function LiveMoleculeDossier({
             defaultOpen={dossier.literature.length > 0}
             forceOpenWhen={dossier.literature.length > 0}
             hasContent={dossier.literature.length > 0}
+            harvestFailed={litEmpty.kind === "error"}
           >
             <div className="mb-3">
               <ApiProvenance
@@ -1364,6 +1388,7 @@ export function LiveMoleculeDossier({
             defaultOpen={dossier.patents.length > 0}
             forceOpenWhen={dossier.patents.length > 0}
             hasContent={dossier.patents.length > 0}
+            harvestFailed={patentEmpty.kind === "error"}
           >
             <div className="mb-3">
               <ApiProvenance

@@ -491,3 +491,23 @@ export function formatProcessFactsEmptyCopy(opts: {
     message: "No condition / unit-op atoms; some free-public sources failed" + detailBit + ". Not a clean miss — retry densify.",
   };
 }
+
+/**
+ * TOC / CollapsibleSection chrome: harvest failure is not a clean miss.
+ * Leftover identity HTTP is not a TOC miss — callers pass the section family copy.
+ */
+export function tocHasSectionContent(opts: {
+  hasHits: boolean;
+  emptyCopy?: Pick<SectionEmptyCopy, "kind">;
+}): boolean {
+  return opts.hasHits || opts.emptyCopy?.kind === "error";
+}
+
+export function tocSectionFlags(opts: {
+  hasHits: boolean;
+  emptyCopy?: Pick<SectionEmptyCopy, "kind">;
+}): { empty: "0" | "1"; error?: "1" } {
+  if (opts.hasHits) return { empty: "0" };
+  if (opts.emptyCopy?.kind === "error") return { empty: "0", error: "1" };
+  return { empty: "1" };
+}
