@@ -282,4 +282,11 @@ ok(
     )
 );
 
+ok(
+  "process framing chips do not dump leftover harvest HTTP",
+  /isProcessFactTrace/.test(read("components/ProcessFramingBanner.tsx")) &&
+    /isProcessFactSourceRef/.test(read("components/ProcessFramingBanner.tsx")) &&
+    /liveFetch=\{false\}/.test(read("components/ProcessFramingBanner.tsx")) &&
+    /field="Process framing"/.test(read("components/ProcessFramingBanner.tsx"))
+);
 console.log(`\n${n} product-path checks passed`);

@@ -317,6 +317,16 @@ ok(
     !/field="Modality unit ops"[\s\S]{0,200}pubchemCid=/.test(liveDossier)
 );
 
+const processFraming = read("components/ProcessFramingBanner.tsx");
+ok(
+  "PROV-19 process-framing chips use process-fact traces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(processFraming) &&
+    /isProcessFactSourceRef/.test(processFraming) &&
+    /liveFetch=\{false\}/.test(processFraming) &&
+    /field="Process framing"/.test(processFraming) &&
+    /traces=\{traces\}/.test(processFraming) &&
+    /sourceRefs=\{sourceRefs\}/.test(processFraming)
+);
 ok(
   "aside ContentProvenance manufacturing",
   /Manufacturing summary/.test(aside) && /ContentProvenance/.test(aside)

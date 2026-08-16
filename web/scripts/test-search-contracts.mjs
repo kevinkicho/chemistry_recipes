@@ -1695,4 +1695,22 @@ ok(
     /liveFetch=\{false\}/.test(unitOpPanel)
 );
 
+const processFraming = read("components/ProcessFramingBanner.tsx");
+ok(
+  "PROV-19 process-framing chips use process-fact traces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(processFraming) &&
+    /isProcessFactSourceRef/.test(processFraming) &&
+    /liveFetch=\{false\}/.test(processFraming) &&
+    /field="Process framing"/.test(processFraming) &&
+    /traces=\{traces\}/.test(processFraming) &&
+    /sourceRefs=\{sourceRefs\}/.test(processFraming)
+);
+ok(
+  "PROV-19 leftover PubChem identity is not process-framing HTTP",
+  sectionH.isProcessFactTrace(litUrl) &&
+    sectionH.isProcessFactTrace(ghsUrl) &&
+    sectionH.isProcessFactTrace(mfgUrl) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isProcessFactTrace(chemblUrl)
+);
 console.log(`\n${passed} search-contract checks passed`);
