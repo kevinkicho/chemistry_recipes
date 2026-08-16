@@ -56,6 +56,12 @@ ok(
   /aiProvenanceWhenParsed/.test(freePub) && /aiProvenanceForField/.test(freePub)
 );
 ok("FreePublicProvenance showNotAi when no AI", /showNotAi/.test(freePub));
+ok(
+  "PROV-18 FreePublicProvenance can take filtered traces and skip identity live-fetch",
+  /liveFetch/.test(freePub) &&
+    /tracesProp \?\? slimTraces/.test(freePub) &&
+    /liveFetch \? dossier\.cid : undefined/.test(freePub)
+);
 
 // --- ApiProvenance pagination on responses ---
 const apiProv = read("components/ApiProvenance.tsx");
@@ -119,6 +125,15 @@ ok(
     !/field="Apparatus catalog"[\s\S]{0,200}traces=\{apiTraces\}/.test(aside) &&
     !/field="Plant environment baseline"[\s\S]{0,200}pubchemCid=/.test(aside) &&
     !/field="Apparatus catalog"[\s\S]{0,200}pubchemCid=/.test(aside)
+);
+ok(
+  "PROV-18 evidence-gaps chip uses plantTraces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(aside) &&
+    /plantTraces/.test(aside) &&
+    /plantSourceRefs/.test(aside) &&
+    /field="Evidence gaps"[\s\S]{0,200}traces=\{plantTraces\}/.test(aside) &&
+    !/field="Evidence gaps"[\s\S]{0,200}traces=\{allTraces\}/.test(aside) &&
+    !/field="Evidence gaps"[\s\S]{0,200}pubchemCid=/.test(aside)
 );
 
 const processFactsLib = read("lib/dossier/processFacts.ts");
@@ -288,6 +303,18 @@ ok(
     !/field="Route compare"[\s\S]{0,200}pubchemCid=/.test(liveDossier) &&
     !/<RoutePanel[\s\S]{0,400}pubchemCid=/.test(liveDossier) &&
     !/<CriticalParametersBoard[\s\S]{0,200}pubchemCid=/.test(liveDossier)
+);
+ok(
+  "PROV-18 related / unit-ops chips use processFactTraces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(liveDossier) &&
+    /processFactTraces/.test(liveDossier) &&
+    /processFactSourceRefs/.test(liveDossier) &&
+    /field="Related materials"[\s\S]{0,200}traces=\{processFactTraces\}/.test(liveDossier) &&
+    /field="Modality unit ops"[\s\S]{0,200}traces=\{processFactTraces\}/.test(liveDossier) &&
+    !/field="Related materials"[\s\S]{0,200}traces=\{traces\}/.test(liveDossier) &&
+    !/field="Modality unit ops"[\s\S]{0,200}traces=\{traces\}/.test(liveDossier) &&
+    !/field="Related materials"[\s\S]{0,200}pubchemCid=/.test(liveDossier) &&
+    !/field="Modality unit ops"[\s\S]{0,200}pubchemCid=/.test(liveDossier)
 );
 
 ok(

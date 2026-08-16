@@ -388,9 +388,10 @@ export function LiveMoleculeDossier({
   );
   const annotationSourceRefs = dossier.sourceRefs.filter(isAnnotationSourceRef);
   const overviewSourceRefs = dossier.sourceRefs.filter(isIdentityOverviewSourceRef);
-  // Process recipe / routes / control points derive from process facts
-  // (literature, patents, manufacturing, GHS). Leftover identity / annotation
-  // HTTP is not recipe provenance, and chips must not live-fetch identity.
+  // Process recipe / routes / control points / related entities / unit-ops
+  // derive from process facts (literature, patents, manufacturing, GHS).
+  // Leftover identity / annotation HTTP is not that family's provenance,
+  // and chips must not live-fetch identity.
   const processFactTraces = traces.filter((t) =>
     isProcessFactTrace(t.endpointUrl)
   );
@@ -971,9 +972,8 @@ export function LiveMoleculeDossier({
               <SectionTitle
                 ai={aiRelated || undefined}
                 field="Related materials"
-                pubchemCid={cid}
-                traces={traces}
-                sourceRefs={dossier.sourceRefs}
+                traces={processFactTraces}
+                sourceRefs={processFactSourceRefs}
                 onRegenerate={onRegenerate}
               >
                 Related entities
@@ -1032,8 +1032,8 @@ export function LiveMoleculeDossier({
               <SectionTitle
                 field="Modality unit ops"
                 ai={aiUnitOps || undefined}
-                pubchemCid={cid}
-                traces={traces}
+                traces={processFactTraces}
+                sourceRefs={processFactSourceRefs}
                 onRegenerate={onRegenerate}
               >
                 Modality unit ops

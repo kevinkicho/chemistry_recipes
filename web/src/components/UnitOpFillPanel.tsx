@@ -1,5 +1,10 @@
 import type { UnitOpFill, LiveDossier } from "@/lib/dossier/types";
 import { FreePublicProvenance } from "@/components/FreePublicProvenance";
+import { slimTraces } from "@/lib/api/trace";
+import {
+  isProcessFactSourceRef,
+  isProcessFactTrace,
+} from "@/lib/dossier/sectionHonesty";
 
 export function UnitOpFillPanel({
   fills,
@@ -39,6 +44,11 @@ export function UnitOpFillPanel({
             title="Modality unit ops"
             field="Modality unit ops"
             aiField="unitOpFills"
+            traces={slimTraces(dossier.traces || []).filter((tr) =>
+              isProcessFactTrace(tr.endpointUrl)
+            )}
+            sourceRefs={(dossier.sourceRefs || []).filter(isProcessFactSourceRef)}
+            liveFetch={false}
             onRegenerate={onRegenerate}
           />
         ) : null}
