@@ -21,7 +21,11 @@ import { searchSemanticScholarProcess } from "@/lib/api/semanticScholar";
 import { searchPubMedProcess } from "@/lib/api/pubmed";
 import { searchArxivProcess } from "@/lib/api/arxiv";
 import type { ApiFetchTrace } from "@/lib/api/trace";
-import { classifyChemicalQuery } from "@/lib/search/queryKind";
+import {
+  classifyChemicalQuery,
+  isStructureOnlyQuery,
+  normalizeChemicalQuery,
+} from "@/lib/search/queryKind";
 
 export type MultiSourceId =
   | "pubchem"
@@ -245,7 +249,7 @@ export async function multiSourceSearch(
   query: string,
   limit = 16
 ): Promise<MultiSourceSearchResult> {
-  const q = query.trim();
+  const q = normalizeChemicalQuery(query);
   const t0 = Date.now();
   if (!q) {
     return {
@@ -262,9 +266,9 @@ export async function multiSourceSearch(
   const traces: ApiFetchTrace[] = [];
 
   const kind = classifyChemicalQuery(q);
-  // SMILES / InChI are not names — do not fan out to name APIs or literature
-  // (those chips would look like the compound was missing from ChEMBL/RxNorm).
-  if (kind === "smiles" || kind === "inchi") {
+  // SMILES / InChI / InChIKey / CID are not names — do not fan out to name
+  // APIs or literature (those chips would look like missing ChEMBL/RxNorm).
+  if (isStructureOnlyQuery(kind)) {
     const pub = await searchPubChem(q, Math.min(12, limit));
     traces.push(...(pub.traces || []));
     for (const h of pub.hits) mergeHit(map, fromPubChem(h, 10));

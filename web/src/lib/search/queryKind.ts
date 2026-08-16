@@ -12,6 +12,50 @@ export type ChemicalQueryKind =
   | "smiles"
   | "name";
 
+/**
+ * Strip copy-paste wrappers so advertised identifiers resolve as written.
+ * PubChem/Wikipedia often prefix InChIKey=, CID, CAS RN, UNII.
+ */
+export function normalizeChemicalQuery(q: string): string {
+  let s = q.trim();
+  if (!s) return s;
+
+  if (
+    (s.startsWith('"') && s.endsWith('"') && s.length >= 2) ||
+    (s.startsWith("'") && s.endsWith("'") && s.length >= 2)
+  ) {
+    s = s.slice(1, -1).trim();
+  }
+
+  const urlCid = s.match(
+    /(?:https?:\/\/)?pubchem\.ncbi\.nlm\.nih\.gov\/compound\/(\d+)/i
+  );
+  if (urlCid) return urlCid[1];
+
+  const cid = s.match(/^(?:pubchem\s+)?cid\s*[:#]?\s*(\d+)$/i);
+  if (cid) return cid[1];
+
+  const ik = s.match(
+    /^(?:inchi\s*key|inchikey)\s*[=:]\s*([A-Za-z]{14}-[A-Za-z]{10}-[A-Za-z])$/i
+  );
+  if (ik) return ik[1];
+
+  const cas = s.match(
+    /^(?:cas(?:\s*rn|\s*reg(?:istry)?(?:\s*number)?)?)\s*[:#]?\s*(\d{2,7}-\d{2}-\d)$/i
+  );
+  if (cas) return cas[1];
+
+  const unii = s.match(/^(?:unii)\s*[:#]?\s*([A-Za-z0-9]{10})$/i);
+  if (unii) return unii[1];
+
+  const compact = s.replace(/\s+/g, "");
+  if (/^InChI=1S?\//i.test(compact) && compact !== s) {
+    return compact;
+  }
+
+  return s;
+}
+
 export function looksLikeCas(q: string): boolean {
   return /^\d{2,7}-\d{2}-\d$/.test(q.trim());
 }
@@ -78,7 +122,7 @@ export function looksLikeSmiles(q: string): boolean {
 }
 
 export function classifyChemicalQuery(q: string): ChemicalQueryKind {
-  const t = q.trim();
+  const t = normalizeChemicalQuery(q);
   if (!t) return "name";
   if (/^\d+$/.test(t)) return "cid";
   if (looksLikeCas(t)) return "cas";
@@ -95,6 +139,16 @@ export function isNameQuery(q: string): boolean {
 
 export function isStructuredChemicalQuery(q: string): boolean {
   return classifyChemicalQuery(q) !== "name";
+}
+
+/** Name APIs must not be queried with these — empty chips look like missing coverage. */
+export function isStructureOnlyQuery(kind: ChemicalQueryKind): boolean {
+  return (
+    kind === "smiles" ||
+    kind === "inchi" ||
+    kind === "inchikey" ||
+    kind === "cid"
+  );
 }
 
 export function structuredQueryLabel(kind: ChemicalQueryKind): string | null {
@@ -119,16 +173,17 @@ export function structuredQueryLabel(kind: ChemicalQueryKind): string | null {
 /**
  * Combobox Enter must not replace a structured identifier with a name suggestion.
  * CID may keep a highlighted compound-card href.
+ * Prefixed pastes submit the identifier as written (prefix stripped).
  */
 export function resolveSearchSubmit(
   typed: string,
   highlighted?: { value: string; href?: string } | null
 ): { value: string; href?: string } {
-  const q = typed.trim();
+  const q = normalizeChemicalQuery(typed);
   const kind = classifyChemicalQuery(q);
   if (kind !== "name") {
     if (kind === "cid" && highlighted?.href) {
-      return { value: highlighted.value, href: highlighted.href };
+      return { value: q, href: highlighted.href };
     }
     return { value: q };
   }

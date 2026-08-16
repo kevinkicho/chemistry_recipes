@@ -15,6 +15,7 @@ import {
   looksLikeInchiKey,
   looksLikeSmiles,
   looksLikeUnii,
+  normalizeChemicalQuery,
 } from "@/lib/search/queryKind";
 
 export type BrowserPubChemHit = {
@@ -41,7 +42,7 @@ async function resolveCids(
   q: string,
   signal?: AbortSignal
 ): Promise<number[]> {
-  const t = q.trim();
+  const t = normalizeChemicalQuery(q);
   if (!t) return [];
   if (/^\d+$/.test(t)) return [Number(t)];
 
@@ -133,7 +134,7 @@ export async function searchPubChemInBrowser(
   limit = 10,
   signal?: AbortSignal
 ): Promise<{ hits: BrowserPubChemHit[]; error?: string }> {
-  const q = query.trim();
+  const q = normalizeChemicalQuery(query);
   if (!q) return { hits: [] };
 
   try {

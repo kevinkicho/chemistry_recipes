@@ -10,6 +10,7 @@ import {
   looksLikeInchiKey,
   looksLikeSmiles,
   looksLikeUnii,
+  normalizeChemicalQuery,
 } from "@/lib/search/queryKind";
 
 const PUG = "https://pubchem.ncbi.nlm.nih.gov/rest/pug";
@@ -224,7 +225,7 @@ export async function searchPubChem(
   limit = 12
 ): Promise<PubChemSearchResult> {
   try {
-    const q = query.trim();
+    const q = normalizeChemicalQuery(query);
     if (!q) return { hits: [], traces: [] };
 
     const traces: ApiFetchTrace[] = [];

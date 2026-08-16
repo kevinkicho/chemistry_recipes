@@ -14,6 +14,7 @@ import type { SuggestItem } from "@/lib/data/suggestions";
 import { pushSearchQuery, readHistory } from "@/lib/search-history";
 import {
   classifyChemicalQuery,
+  normalizeChemicalQuery,
   resolveSearchSubmit,
   structuredQueryLabel,
 } from "@/lib/search/queryKind";
@@ -88,6 +89,7 @@ export function SearchForm({
   // Debounced multi-source autocomplete: history + PubChem + server fan-out
   useEffect(() => {
     const qTrim = q.trim();
+    const qNorm = normalizeChemicalQuery(qTrim);
     const history = recentHistorySuggestions(qTrim);
 
     // Empty field: history only
@@ -100,25 +102,25 @@ export function SearchForm({
       return;
     }
 
-    // Numeric CID: direct open hint + history
-    if (/^\d+$/.test(qTrim)) {
+    // Numeric CID (including "CID 2244" / PubChem URL): direct open hint
+    if (/^\d+$/.test(qNorm)) {
       abortRef.current?.abort();
       setLoading(false);
       setSuggestError(null);
       setSuggestSources(["cid"]);
       const cidItem: SuggestItem = {
-        value: qTrim,
+        value: qNorm,
         detail: "PubChem CID · open compound",
         kind: "cid",
-        href: routes.pubchem(qTrim),
+        href: routes.pubchem(qNorm),
       };
-      const rest = history.filter((h) => h.value !== qTrim);
+      const rest = history.filter((h) => h.value !== qNorm && h.value !== qTrim);
       setSuggestions([cidItem, ...rest].slice(0, MAX_HISTORY + 4));
       return;
     }
 
     // Structured identifiers: search as written — do not fan out name autocomplete
-    const kind = classifyChemicalQuery(qTrim);
+    const kind = classifyChemicalQuery(qNorm);
     if (kind !== "name") {
       abortRef.current?.abort();
       setLoading(false);
@@ -126,11 +128,11 @@ export function SearchForm({
       setSuggestSources([kind]);
       const label = structuredQueryLabel(kind) ?? kind;
       const structuredItem: SuggestItem = {
-        value: qTrim,
+        value: qNorm,
         detail: `${label} · search as written`,
         kind: "pubchem",
       };
-      const rest = history.filter((h) => h.value !== qTrim);
+      const rest = history.filter((h) => h.value !== qNorm && h.value !== qTrim);
       setSuggestions([structuredItem, ...rest].slice(0, MAX_HISTORY + 1));
       return;
     }
