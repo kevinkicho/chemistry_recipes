@@ -183,5 +183,17 @@ ok(
   /Stream incomplete CID/.test(read("lib/dossier/warmCache.ts")) &&
     !/Ensure cache even if complete event lacked type/.test(read("lib/dossier/warmCache.ts"))
 );
+ok(
+  "science agent neighbor fail is not leftover none-needed copy",
+  /formatNeighborDensifyStatus/.test(read("components/frontier/ScienceAgentPanel.tsx")) &&
+    /neighborFailedCids/.test(read("lib/frontier/scienceAgent.ts")) &&
+    !/`Neighbors densified: \$\{neighborCids\.join/.test(
+      read("components/frontier/ScienceAgentPanel.tsx")
+    )
+);
+ok(
+  "batch densify stream log has no leftover success checkmark",
+  !/`✓ CID \$\{ev\.cid\}/.test(read("components/frontier/BatchDensifyPanel.tsx"))
+);
 
 console.log(`\n${n} product-path checks passed`);

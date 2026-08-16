@@ -16,6 +16,7 @@ import { buildAiGuidancePackage } from "@/lib/frontier/aiGuidancePackage";
 import { runDensifyActionQueue } from "@/lib/frontier/densifyActionQueue";
 import { warmLiveDossier } from "@/lib/dossier/warmCache";
 import { recordDensifyRun } from "@/lib/dossier/densifyTelemetry";
+import { formatNeighborDensifyStatus } from "@/lib/frontier/neighborDensifyStatus";
 import { routes } from "@/lib/routes";
 import { FreePublicProvenance } from "@/components/FreePublicProvenance";
 import { aiProvenanceWhenParsed } from "@/lib/dossier/aiFieldProvenance";
@@ -73,7 +74,7 @@ export function ScienceAgentPanel({
         kind: "agent-neighbor",
         cids: [d.cid, ...(result.neighborCids || [])],
         ok: result.neighborCids?.length || 0,
-        fail: 0,
+        fail: result.neighborFailedCids?.length || 0,
         durationMs: Date.now() - t0,
       });
       return result;
@@ -176,6 +177,10 @@ export function ScienceAgentPanel({
           "neighborCids" in data
             ? (data as { neighborCids?: number[] }).neighborCids
             : undefined;
+        const neighborFailedCids =
+          "neighborFailedCids" in data
+            ? (data as { neighborFailedCids?: number[] }).neighborFailedCids
+            : undefined;
         const ingestScore =
           "ingestScore" in data &&
           typeof (data as ScienceAgentResult).ingestScore === "number"
@@ -199,11 +204,11 @@ export function ScienceAgentPanel({
             "usedLlm" in data && data.usedLlm
               ? `LLM: ${(data as { modelUsed?: string }).modelUsed || "yes"}`
               : "retrieval-only",
-            neighborCids?.length
-              ? `Neighbors densified: ${neighborCids.join(", ")}`
-              : densifyNeighbors
-                ? "Neighbor densify: none needed or none available"
-                : "Neighbor densify: off",
+            formatNeighborDensifyStatus({
+              requested: densifyNeighbors,
+              okCids: neighborCids || [],
+              failCids: neighborFailedCids || [],
+            }),
             "note" in data ? String((data as { note?: string }).note || "") : "",
             "",
             answer.answer || "",

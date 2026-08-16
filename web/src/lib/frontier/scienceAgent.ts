@@ -31,6 +31,8 @@ export interface ScienceAgentResult {
   packageMetrics: ProcessKnowledgePackage["metrics"];
   /** Neighbor packages densified during this run */
   neighborCids?: number[];
+  /** Neighbor densify attempted but returned null / threw */
+  neighborFailedCids?: number[];
   /** Densify-next actions for UI / further harvest */
   densifyNext?: DensifyNextAction[];
   /** 0–100 AI ingest readiness from densify package */
@@ -228,6 +230,7 @@ export async function runScienceAgentWithTools(
 
   const neighborPacks: ProcessKnowledgePackage[] = [];
   const neighborCids: number[] = [];
+  const neighborFailedCids: number[] = [];
 
   const wantNeighbors =
     opts?.densifyNeighbors ||
@@ -263,6 +266,7 @@ export async function runScienceAgentWithTools(
             durationMs: Date.now() - tD,
           });
         } else {
+          neighborFailedCids.push(ncid);
           steps.push({
             id: `densify-fail-${ncid}`,
             role: "densify",
@@ -272,6 +276,7 @@ export async function runScienceAgentWithTools(
           });
         }
       } catch (e) {
+        neighborFailedCids.push(ncid);
         steps.push({
           id: `densify-err-${ncid}`,
           role: "densify",
@@ -377,6 +382,7 @@ export async function runScienceAgentWithTools(
       usedLlm: false,
       packageMetrics: knowledge.metrics,
       neighborCids,
+      neighborFailedCids,
     });
   }
 
@@ -398,6 +404,7 @@ export async function runScienceAgentWithTools(
       usedLlm: false,
       packageMetrics: knowledge.metrics,
       neighborCids,
+      neighborFailedCids,
     });
   }
 
@@ -422,6 +429,7 @@ export async function runScienceAgentWithTools(
         usedLlm: false,
         packageMetrics: knowledge.metrics,
         neighborCids,
+        neighborFailedCids,
       });
     }
     const content = res.content.trim();
@@ -450,6 +458,7 @@ export async function runScienceAgentWithTools(
       usedLlm: true,
       packageMetrics: knowledge.metrics,
       neighborCids,
+      neighborFailedCids,
     });
   } catch (e) {
     steps.push({
@@ -465,6 +474,7 @@ export async function runScienceAgentWithTools(
       usedLlm: false,
       packageMetrics: knowledge.metrics,
       neighborCids,
+      neighborFailedCids,
     });
   }
 }

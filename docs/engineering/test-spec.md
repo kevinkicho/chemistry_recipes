@@ -200,6 +200,7 @@ Optional before release/deploy:
 | **SEARCH-13** | Compare/densify warm reports stream fail instead of claiming complete | `test-search-contracts`, `test-product-path`, `test-densify-depth` |
 | **SEARCH-14** | Equals-sign prefixes (CID=/CAS=/UNII=), Compound CID, Wikipedia CAS [n], PubChem #query= and Wikipedia /wiki/ titles normalize (not SMILES) | `test-search-contracts` |
 | **SEARCH-15** | Standard InChI/InChIKey, InChI wrapping spaces, DOI/doi.org, ChEBI, and EC Number pastes normalize (DOI/ChEBI/EC are not SMILES; Enter submits the stripped value) | `test-search-contracts` |
+| **SEARCH-16** | Science-agent neighbor densify reports null/throw as fail (not "none needed"); batch densify log has no leftover success checkmark on fail | `test-search-contracts`, `test-product-path` |
 
 ### L. Diagnostics honesty
 
