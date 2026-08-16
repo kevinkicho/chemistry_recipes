@@ -1,7 +1,7 @@
 /**
  * Live-dossier section empty vs error vs timeout copy.
  * HTTP 200 + empty hits is not success when literature / patent / annotation
- * / GHS / properties / manufacturing / overview families failed or timed out.
+ * / GHS / properties / manufacturing / overview / process-facts families failed or timed out.
  */
 
 import type { ApiFetchTrace } from "@/lib/api/trace";
@@ -431,5 +431,60 @@ export function formatSectionEmptyCopy(opts: {
     kind: "error",
     summary: "No hits; some sources failed",
     message: `No ${noun.long} hits; some free-public sources failed${detailBit}. Not a clean miss — retry densify.`,
+  };
+}
+
+const PROCESS_FACT_EMPTY_FAMILIES = [
+  "literature",
+  "patents",
+  "manufacturing",
+] as const;
+
+/**
+ * Process-fact atoms come from literature, patents, and manufacturing text.
+ * Harvest failure in those families is not "no atoms extracted yet".
+ * Leftover identity / GHS / annotation HTTP is not a process-facts miss.
+ */
+export function formatProcessFactsEmptyCopy(opts: {
+  traces?: Array<
+    Pick<ApiFetchTrace, "endpointUrl" | "ok" | "notFound" | "error" | "httpStatus">
+  >;
+  fetchErrors?: string[];
+}): SectionEmptyCopy {
+  const traces = opts.traces || [];
+  const fetchErrors = opts.fetchErrors || [];
+  const copies = PROCESS_FACT_EMPTY_FAMILIES.map((family) =>
+    formatSectionEmptyCopy({ family, traces, fetchErrors })
+  );
+  const errors = copies.filter((c) => c.kind === "error");
+  if (!errors.length) {
+    return {
+      kind: "empty",
+      summary: "No process-fact atoms",
+      message:
+        "No condition / unit-op atoms extracted from titles and abstracts yet.",
+    };
+  }
+  const details: string[] = [];
+  for (const e of errors) {
+    const m = e.message.match(/\(([^)]+)\)/);
+    if (m && m[1]) details.push(m[1]);
+  }
+  const unique = [...new Set(details)].slice(0, 3);
+  const detailBit = unique.length ? " (" + unique.join("; ") + ")" : "";
+  const allHardFail = copies.every(
+    (c) => c.kind === "error" && c.summary === "Sources failed — not empty"
+  );
+  if (allHardFail) {
+    return {
+      kind: "error",
+      summary: "Sources failed — not empty",
+      message: "Process-fact sources failed" + detailBit + ". Not an empty result — retry densify.",
+    };
+  }
+  return {
+    kind: "error",
+    summary: "No hits; some sources failed",
+    message: "No condition / unit-op atoms; some free-public sources failed" + detailBit + ". Not a clean miss — retry densify.",
   };
 }

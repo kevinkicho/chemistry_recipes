@@ -1749,4 +1749,118 @@ ok(
     !sectionH.isProcessFactTrace(identityUrl) &&
     !sectionH.isProcessFactTrace(chemblUrl)
 );
+ok(
+  "SEARCH-24 process-facts panel uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(read("components/ProcessFactsPanel.tsx")) &&
+    /factEmpty\.message/.test(read("components/ProcessFactsPanel.tsx")) &&
+    !/No condition \/ unit-op atoms extracted from titles and abstracts yet\./.test(
+      read("components/ProcessFactsPanel.tsx")
+    )
+);
+ok(
+  "SEARCH-24 literature harvest fail is process-facts error not empty",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "error" &&
+    /Not an empty result|Not a clean miss/.test(
+      sectionH.formatProcessFactsEmptyCopy({
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).message
+    )
+);
+ok(
+  "SEARCH-24 genuine process-facts empty stays extracted-yet copy",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: true,
+      },
+    ],
+  }).kind === "empty" &&
+    /extracted from titles and abstracts yet/.test(
+      sectionH.formatProcessFactsEmptyCopy({ traces: [] }).message
+    )
+);
+ok(
+  "SEARCH-24 leftover PubChem identity is not a process-facts miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-24 leftover GHS heading fail is not a process-facts miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=GHS+Classification",
+        ok: false,
+        error: "timeout",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-24 leftover ChEMBL annotation fail is not a process-facts miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/search",
+        ok: false,
+        error: "HTTP 502",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-24 mixed lit fail + patent ok is not a clean miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: false,
+        error: "HTTP 503",
+      },
+      {
+        endpointUrl: "https://api.patentsview.org/patents/query",
+        ok: true,
+      },
+    ],
+  }).kind === "error" &&
+    /Not a clean miss/.test(
+      sectionH.formatProcessFactsEmptyCopy({
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+          {
+            endpointUrl: "https://api.patentsview.org/patents/query",
+            ok: true,
+          },
+        ],
+      }).message
+    )
+);
 console.log(`\n${passed} search-contract checks passed`);

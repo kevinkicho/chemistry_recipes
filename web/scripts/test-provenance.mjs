@@ -348,6 +348,13 @@ ok(
     !/field="Operator job aid"[\s\S]{0,200}pubchemCid=/.test(operatorJobAid)
 );
 ok(
+  "SEARCH-24 process-facts empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(read("components/ProcessFactsPanel.tsx")) &&
+    /export function formatProcessFactsEmptyCopy/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    )
+);
+ok(
   "aside ContentProvenance manufacturing",
   /Manufacturing summary/.test(aside) && /ContentProvenance/.test(aside)
 );

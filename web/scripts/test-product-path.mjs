@@ -305,4 +305,12 @@ ok(
       read("components/OperatorJobAid.tsx")
     )
 );
+ok(
+  "process facts empty copy is not unconditional extracted-yet",
+  /formatProcessFactsEmptyCopy/.test(read("components/ProcessFactsPanel.tsx")) &&
+    /factEmpty\.message/.test(read("components/ProcessFactsPanel.tsx")) &&
+    !/No condition \/ unit-op atoms extracted from titles and abstracts yet\./.test(
+      read("components/ProcessFactsPanel.tsx")
+    )
+);
 console.log(`\n${n} product-path checks passed`);
