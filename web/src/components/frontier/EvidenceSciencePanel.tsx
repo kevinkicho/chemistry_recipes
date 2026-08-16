@@ -105,6 +105,9 @@ export function EvidenceSciencePanel({
             <h2 className="text-sm font-semibold text-slate-50">
               Q&amp;A · next experiments · export
             </h2>
+            {/* Seed Q&A from evidenceQa — harvest failure is not "No route hypotheses assembled".
+                Leftover identity HTTP is not a science-QA miss.
+                Provenance chips still pass all traces on purpose (composite Q&A). */}
             <FreePublicProvenance
               dossier={dossier}
               title="Evidence science"

@@ -394,4 +394,11 @@ ok(
     /windowsEmpty\.message/.test(read("components/EvidenceCritiquePanel.tsx")) &&
     /No procedure windows densified/.test(read("components/EvidenceCritiquePanel.tsx"))
 );
+ok(
+  "SEARCH-35 science-QA empty copy is not unconditional no-hypotheses miss",
+  /honestScienceQaAnswer/.test(read("lib/frontier/evidenceQa.ts")) &&
+    /formatProcessFactsEmptyCopy/.test(read("lib/frontier/evidenceQa.ts")) &&
+    /harvest\.kind === "error"/.test(read("lib/frontier/evidenceQa.ts")) &&
+    /No route hypotheses assembled/.test(read("lib/frontier/evidenceQa.ts"))
+);
 console.log(`\n${n} product-path checks passed`);
