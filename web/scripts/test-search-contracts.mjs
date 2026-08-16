@@ -2678,4 +2678,72 @@ ok(
     }).harvestFailed === false
 );
 
+
+const critique = read("components/EvidenceCritiquePanel.tsx");
+ok(
+  "SEARCH-34 critique empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(critique) &&
+    /windowsEmpty\.kind === "error"/.test(critique) &&
+    /windowsEmpty\.message/.test(critique)
+);
+ok(
+  "SEARCH-34 literature harvest fail is critique error not empty",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "error" &&
+    /Not an empty result|Not a clean miss/.test(
+      sectionH.formatProcessFactsEmptyCopy({
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).message
+    )
+);
+ok(
+  "SEARCH-34 leftover identity is not a critique miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-34 leftover ChEMBL annotation fail is not a critique miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/search",
+        ok: false,
+        error: "HTTP 502",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-34 genuine empty stays no-procedure-windows copy",
+  sectionH.formatProcessFactsEmptyCopy({ traces: [] }).kind === "empty" &&
+    /No procedure windows densified/.test(critique)
+);
+ok(
+  "SEARCH-34 critique chips still pass all traces (composite)",
+  /field="Critique"/.test(critique) &&
+    /traces=\{allTraces\}/.test(critique) &&
+    /sourceRefs=\{dossier\.sourceRefs\}/.test(critique)
+);
+
 console.log(`\n${passed} search-contract checks passed`);

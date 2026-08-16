@@ -218,6 +218,7 @@ Optional before release/deploy:
 | **SEARCH-31** | Problem / unit-op search empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No process facts yet" / a clean filter miss; leftover identity / annotation HTTP is not a unit-op-search miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
 | **SEARCH-32** | Manager / MSAT brief preferred-path / alternatives / risks / IP empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "Await process literature" / "No alternate public route" / "No patent numbers in harvest"; leftover identity / annotation HTTP is not a manager-brief miss. Provenance chips still pass all traces (composite brief). | `test-search-contracts`, `test-product-path`, `test-provenance` |
 | **SEARCH-33** | Table of contents / CollapsibleSection empty vs error: literature / patent / annotation / manufacturing / GHS / properties / overview / process-recipe harvest failures are not "No content for this section yet" / an "empty" badge; leftover identity / annotation HTTP is not a TOC miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
+| **SEARCH-34** | Evidence critique procedure-window empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No procedure windows densified"; leftover identity / annotation HTTP is not a critique miss. Provenance chips still pass all traces (composite critique). | `test-search-contracts`, `test-product-path`, `test-provenance` |
 
 ### L. Diagnostics honesty
 

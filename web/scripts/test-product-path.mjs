@@ -387,4 +387,11 @@ ok(
       read("components/dossier/LiveMoleculeDossier.tsx")
     )
 );
+ok(
+  "SEARCH-34 critique empty copy is not unconditional windows-densified miss",
+  /formatProcessFactsEmptyCopy/.test(read("components/EvidenceCritiquePanel.tsx")) &&
+    /windowsEmpty\.kind === "error"/.test(read("components/EvidenceCritiquePanel.tsx")) &&
+    /windowsEmpty\.message/.test(read("components/EvidenceCritiquePanel.tsx")) &&
+    /No procedure windows densified/.test(read("components/EvidenceCritiquePanel.tsx"))
+);
 console.log(`\n${n} product-path checks passed`);

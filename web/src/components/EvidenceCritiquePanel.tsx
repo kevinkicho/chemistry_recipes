@@ -8,6 +8,7 @@ import { ContentProvenance } from "@/components/ContentProvenance";
 import type { LiveDossier } from "@/lib/dossier/types";
 import type { GroundingReport } from "@/lib/dossier/quoteGrounding";
 import { slimTraces } from "@/lib/api/trace";
+import { formatProcessFactsEmptyCopy } from "@/lib/dossier/sectionHonesty";
 
 type ActionId =
   | "local-text-enrich"
@@ -106,6 +107,16 @@ export function EvidenceCritiquePanel({
     });
   }
 
+  // Procedure-window critique comes from literature / patent / manufacturing
+  // harvest. Harvest failure is not "No procedure windows densified".
+  // Leftover identity / annotation HTTP is not a critique miss.
+  // Provenance chips still pass all traces on purpose (composite critique).
+  const allTraces = slimTraces(dossier.traces || []);
+  const windowsEmpty = formatProcessFactsEmptyCopy({
+    traces: allTraces,
+    fetchErrors: dossier.fetchErrors,
+  });
+
   const litProc = (dossier.literature || []).filter(
     (h) => (h.fullTextExcerpt?.length || 0) >= 80
   ).length;
@@ -121,7 +132,10 @@ export function EvidenceCritiquePanel({
   } else {
     items.push({
       severity: "warn",
-      text: "No procedure windows densified — paste public full text or re-run densify/refresh.",
+      text:
+        windowsEmpty.kind === "error"
+          ? windowsEmpty.message
+          : "No procedure windows densified — paste public full text or re-run densify/refresh.",
       action: { id: "local-text-enrich", label: "Paste wizard" },
     });
   }
@@ -166,7 +180,7 @@ export function EvidenceCritiquePanel({
           title="Evidence critique"
           field="Critique"
           pubchemCid={dossier.cid}
-          traces={slimTraces(dossier.traces || [])}
+          traces={allTraces}
           sourceRefs={dossier.sourceRefs}
           ai={prov}
           showAi={Boolean(prov)}
