@@ -14,7 +14,8 @@ export type ChemicalQueryKind =
 
 /**
  * Strip copy-paste wrappers so advertised identifiers resolve as written.
- * PubChem/Wikipedia often prefix InChIKey=, CID, CAS RN, UNII, Canonical/Isomeric SMILES, and InChI labels.
+ * PubChem/Wikipedia often prefix InChIKey=, CID, CAS RN / CAS Number, UNII, Canonical/Isomeric SMILES, and InChI labels.
+ * PubChem compound URLs may use a CID or a name slug.
  */
 export function normalizeChemicalQuery(q: string): string {
   let s = q.trim();
@@ -27,10 +28,18 @@ export function normalizeChemicalQuery(q: string): string {
     s = s.slice(1, -1).trim();
   }
 
-  const urlCid = s.match(
-    /(?:https?:\/\/)?pubchem\.ncbi\.nlm\.nih\.gov\/compound\/(\d+)/i
+  const urlCompound = s.match(
+    /(?:https?:\/\/)?(?:www\.)?pubchem\.ncbi\.nlm\.nih\.gov\/compound\/([^/?#]+)/i
   );
-  if (urlCid) return urlCid[1];
+  if (urlCompound) {
+    let slug = urlCompound[1];
+    try {
+      slug = decodeURIComponent(slug.replace(/\+/g, " ")).trim();
+    } catch {
+      slug = slug.replace(/\+/g, " ").trim();
+    }
+    if (slug) return slug;
+  }
 
   const cid = s.match(/^(?:pubchem\s+)?cid\s*[:#]?\s*(\d+)$/i);
   if (cid) return cid[1];
@@ -41,7 +50,7 @@ export function normalizeChemicalQuery(q: string): string {
   if (ik) return ik[1];
 
   const cas = s.match(
-    /^(?:cas(?:\s*rn|\s*reg(?:istry)?(?:\s*number)?)?)\s*[:#]?\s*(\d{2,7}-\d{2}-\d)$/i
+    /^(?:cas(?:\s*(?:rn|no\.?|number|reg(?:istry)?(?:\s*number)?)|-rn)?)\s*[:#]?\s*(\d{2,7}-\d{2}-\d)$/i
   );
   if (cas) return cas[1];
 
