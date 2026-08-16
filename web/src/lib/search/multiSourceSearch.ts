@@ -26,6 +26,7 @@ import {
   isStructureOnlyQuery,
   normalizeChemicalQuery,
 } from "@/lib/search/queryKind";
+import { formatFanoutNote } from "@/lib/search/searchHonesty";
 
 export type MultiSourceId =
   | "pubchem"
@@ -976,12 +977,7 @@ export async function multiSourceSearch(
     .slice(0, limit);
 
   const okSources = sourceStatus.filter((s) => s.ok).map((s) => s.source);
-  const note =
-    okSources.length > 1
-      ? `Merged ${okSources.length} free-public sources: ${okSources.join(", ")}`
-      : okSources.length === 1
-        ? `Hits from ${okSources[0]} only — other free sources returned empty or timed out`
-        : "No free-public hits from fan-out sources";
+  const note = formatFanoutNote({ okSources, sourceStatus });
 
   return {
     schema: "chemistry-recipes.multi-source-search.v1",

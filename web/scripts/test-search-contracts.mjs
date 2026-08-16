@@ -63,6 +63,21 @@ async function loadCompareWarm() {
   return import(pathToFileURL(out).href);
 }
 
+async function loadSearchHonesty() {
+  const srcFile = path.join(src, "lib/search/searchHonesty.ts");
+  const source = fs.readFileSync(srcFile, "utf8");
+  const { outputText } = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+    },
+    fileName: srcFile,
+  });
+  const out = path.join(tmpdir(), `searchHonesty-${process.pid}.mjs`);
+  fs.writeFileSync(out, outputText, "utf8");
+  return import(pathToFileURL(out).href);
+}
+
 async function loadNeighborDensify() {
   const srcFile = path.join(src, "lib/frontier/neighborDensifyStatus.ts");
   const source = fs.readFileSync(srcFile, "utf8");
@@ -891,6 +906,98 @@ ok(
     qk.classifyChemicalQuery("C/C=C/C") === "smiles" &&
     qk.classifyChemicalQuery("C9H8O4") === "name" &&
     qk.classifyChemicalQuery(aspirinInchi) === "inchi"
+);
+
+
+ok(
+  "SEARCH-18 searchHonesty helper exists",
+  exists("lib/search/searchHonesty.ts")
+);
+ok(
+  "SEARCH-18 SearchResults reads PubChem failure/ok",
+  /failure\?:/.test(results) &&
+    /pubchemFailure/.test(results) &&
+    /formatSearchNoHitsMessage/.test(results)
+);
+ok(
+  "SEARCH-18 SearchResults keeps sourceStatus when fan-out is empty",
+  /multiStatus = data\.sourceStatus/.test(results) &&
+    /if \(multiStatus\.length\) setSourceStatus/.test(results)
+);
+ok(
+  "SEARCH-18 multi-source note uses formatFanoutNote",
+  /formatFanoutNote/.test(multi)
+);
+
+const honesty = await loadSearchHonesty();
+ok(
+  "SEARCH-18 PubChem failure is error not empty",
+  honesty.formatSearchNoHitsMessage({
+    pubchemFailure: "HTTP 503",
+    pubchemOk: false,
+  }).kind === "error" &&
+    /Not an empty result/.test(
+      honesty.formatSearchNoHitsMessage({
+        pubchemFailure: "HTTP 503",
+        pubchemOk: false,
+      }).message
+    )
+);
+ok(
+  "SEARCH-18 genuine empty stays empty",
+  honesty.formatSearchNoHitsMessage({
+    pubchemOk: true,
+    sourceStatus: [
+      { source: "pubchem", ok: false, detail: "no hit" },
+      { source: "chembl", ok: false, detail: "no hit" },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-18 all-source reject is fan-out failure",
+  honesty.isFanoutUpstreamFailure([
+    { source: "pubchem", ok: false, detail: "HTTP 503" },
+    { source: "chembl", ok: false, detail: "TypeError: fetch failed" },
+  ]) &&
+    honesty.formatSearchNoHitsMessage({
+      sourceStatus: [
+        { source: "pubchem", ok: false, detail: "HTTP 503" },
+        { source: "chembl", ok: false, detail: "TypeError: fetch failed" },
+      ],
+    }).kind === "error"
+);
+ok(
+  "SEARCH-18 mixed empty+ok is not fan-out failure",
+  !honesty.isFanoutUpstreamFailure([
+    { source: "pubchem", ok: true, hitCount: 1 },
+    { source: "chembl", ok: false, detail: "no hit" },
+  ])
+);
+ok(
+  "SEARCH-18 fan-out note splits empty vs failed",
+  honesty.formatFanoutNote({
+    okSources: ["pubchem"],
+    sourceStatus: [
+      { source: "pubchem", ok: true, hitCount: 1 },
+      { source: "chembl", ok: false, detail: "no hit" },
+    ],
+  }).includes("returned empty") &&
+    honesty
+      .formatFanoutNote({
+        okSources: ["pubchem"],
+        sourceStatus: [
+          { source: "pubchem", ok: true, hitCount: 1 },
+          { source: "chembl", ok: false, detail: "HTTP 503" },
+        ],
+      })
+      .includes("failed or timed out") &&
+    honesty.formatFanoutNote({
+      okSources: [],
+      sourceStatus: [
+        { source: "pubchem", ok: false, detail: "HTTP 503" },
+        { source: "chembl", ok: false, detail: "timeout" },
+      ],
+    }) === "Free-public fan-out failed — not an empty result"
 );
 
 console.log(`\n${passed} search-contract checks passed`);

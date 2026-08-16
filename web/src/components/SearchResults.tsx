@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { MultiSourceResultCard } from "@/components/SearchResultCards";
 import { searchPubChemInBrowser } from "@/lib/api/pubchemBrowser";
 import { normalizeChemicalQuery, parsePubchemCidQuery } from "@/lib/search/queryKind";
+import {
+  formatSearchNoHitsMessage,
+  isFanoutUpstreamFailure,
+} from "@/lib/search/searchHonesty";
 import type {
   MultiSourceHit,
   MultiSourceSearchResult,
@@ -93,14 +97,16 @@ export function SearchResults({ query }: { query: string }) {
           `/api/search/multi?q=${encodeURIComponent(q)}&limit=16`,
           { signal: ac.signal, cache: "no-store" }
         );
+        let multiStatus: MultiSourceSearchResult["sourceStatus"] = [];
         if (multiRes.ok) {
           const data = (await multiRes.json()) as MultiSourceSearchResult & {
             error?: string;
           };
+          multiStatus = data.sourceStatus || [];
+          if (multiStatus.length) setSourceStatus(multiStatus);
           if (data.hits?.length) {
             const merged = mergeOpenableBrowserHits(data.hits, browserHits);
             setHits(merged);
-            setSourceStatus(data.sourceStatus || []);
             setError(null);
             const keptBrowser = merged.length > data.hits.length;
             setNote(
@@ -134,6 +140,8 @@ export function SearchResults({ query }: { query: string }) {
           `/api/search/pubchem?q=${encodeURIComponent(q)}&limit=10`,
           { signal: ac.signal, cache: "no-store" }
         );
+        let pubchemFailure: string | null = null;
+        let pubchemOk: boolean | undefined;
         if (res.ok) {
           const data = (await res.json()) as {
             hits?: Array<{
@@ -144,7 +152,12 @@ export function SearchResults({ query }: { query: string }) {
               cas?: string;
               inchiKey?: string;
             }>;
+            failure?: string | null;
+            ok?: boolean;
           };
+          pubchemOk = data.ok;
+          if (data.failure) pubchemFailure = data.failure;
+          else if (data.ok === false) pubchemFailure = "PubChem search failed";
           const next = data.hits ?? [];
           if (next.length > 0) {
             const mapped: MultiSourceHit[] = next.map((h) => ({
@@ -166,9 +179,16 @@ export function SearchResults({ query }: { query: string }) {
             }));
             setHits(mergeOpenableBrowserHits(mapped, browserHits));
             setError(null);
-            setNote("PubChem-only results (multi-source empty).");
+            setNote(
+              isFanoutUpstreamFailure(multiStatus)
+                ? "PubChem-only results (multi-source fan-out failed)."
+                : "PubChem-only results (multi-source empty)."
+            );
             return;
           }
+        } else {
+          pubchemOk = false;
+          pubchemFailure = `HTTP ${res.status}`;
         }
 
         const fallbackCid = parsePubchemCidQuery(q);
@@ -200,17 +220,32 @@ export function SearchResults({ query }: { query: string }) {
         if (browserHits.length > 0) {
           setHits(browserHits);
           setError(null);
+          const outcome = formatSearchNoHitsMessage({
+            pubchemFailure,
+            pubchemOk,
+            sourceStatus: multiStatus,
+          });
           setNote(
-            "PubChem browser hits — server multi-source returned no additional matches."
+            outcome.kind === "error"
+              ? "PubChem browser hits — server enrich failed. Open a CID or retry."
+              : "PubChem browser hits — server multi-source returned no additional matches."
           );
           return;
         }
 
+        const outcome = formatSearchNoHitsMessage({
+          pubchemFailure,
+          pubchemOk,
+          sourceStatus: multiStatus,
+        });
         setHits([]);
-        setError(
-          "No free-public hits across identity + process literature sources (PubChem…OpenAlex/Crossref). Try a CID or CAS."
-        );
-        setNote(null);
+        if (outcome.kind === "error") {
+          setError(outcome.message);
+          setNote(null);
+        } else {
+          setError(null);
+          setNote(outcome.message);
+        }
       } catch (e) {
         if (e instanceof Error && e.name === "AbortError") {
           if (browserHits.length > 0) {
@@ -302,7 +337,7 @@ export function SearchResults({ query }: { query: string }) {
         <p className="mb-3 text-sm text-slate-400">{note}</p>
       ) : null}
 
-      {!error && !loading && hits.length === 0 ? (
+      {!error && !note && !loading && hits.length === 0 ? (
         <p className="text-sm text-slate-500">
           No free-public hits for this query. Try a different name, CAS RN, CID,
           SMILES, InChI, InChIKey, or UNII.
