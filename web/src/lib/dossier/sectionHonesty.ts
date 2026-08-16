@@ -1,7 +1,7 @@
 /**
  * Live-dossier section empty vs error vs timeout copy.
  * HTTP 200 + empty hits is not success when literature / patent / annotation
- * / GHS / properties / manufacturing families failed or timed out.
+ * / GHS / properties / manufacturing / overview families failed or timed out.
  */
 
 import type { ApiFetchTrace } from "@/lib/api/trace";
@@ -12,7 +12,8 @@ export type SectionFamily =
   | "annotations"
   | "hazards"
   | "properties"
-  | "manufacturing";
+  | "manufacturing"
+  | "overview";
 
 export type SectionEmptyCopy = {
   kind: "empty" | "error";
@@ -64,6 +65,8 @@ const PROPERTY_ERROR_FAMILIES = ["pubchem-view", "pubchem-identity"] as const;
 
 const MFG_ERROR_FAMILIES = ["pubchem-view"] as const;
 
+const OVERVIEW_ERROR_FAMILIES = ["pubchem-view"] as const;
+
 const FAMILY_ERROR_LABELS: Record<SectionFamily, readonly string[]> = {
   literature: LIT_ERROR_FAMILIES,
   patents: PATENT_ERROR_FAMILIES,
@@ -71,6 +74,7 @@ const FAMILY_ERROR_LABELS: Record<SectionFamily, readonly string[]> = {
   hazards: HAZARD_ERROR_FAMILIES,
   properties: PROPERTY_ERROR_FAMILIES,
   manufacturing: MFG_ERROR_FAMILIES,
+  overview: OVERVIEW_ERROR_FAMILIES,
 };
 
 function syntheticFamily(url: string): string | undefined {
@@ -184,6 +188,21 @@ export function isPropertiesSectionTrace(endpointUrl: string): boolean {
   );
 }
 
+/** PUG View headings that feed overview / identity description text. */
+export function isOverviewSectionTrace(endpointUrl: string): boolean {
+  const syn = syntheticFamily(endpointUrl);
+  if (syn) return (OVERVIEW_ERROR_FAMILIES as readonly string[]).includes(syn);
+  const e = endpointUrl.toLowerCase();
+  if (isFullRecordPugView(e)) return true;
+  if (!e.includes("pug_view") || e.includes("/data/patent/")) return false;
+  return (
+    (e.includes("names") && e.includes("identifiers")) ||
+    e.includes("pharmacology") ||
+    (e.includes("drug") && e.includes("medication")) ||
+    (e.includes("associated") && e.includes("disorders"))
+  );
+}
+
 const TRACE_PRED: Record<SectionFamily, (url: string) => boolean> = {
   literature: isLiteratureSectionTrace,
   patents: isPatentSectionTrace,
@@ -191,6 +210,7 @@ const TRACE_PRED: Record<SectionFamily, (url: string) => boolean> = {
   hazards: isHazardsSectionTrace,
   properties: isPropertiesSectionTrace,
   manufacturing: isManufacturingSectionTrace,
+  overview: isOverviewSectionTrace,
 };
 
 function fetchErrorFamily(line: string): string | undefined {
@@ -282,6 +302,12 @@ const NOUN: Record<SectionFamily, { short: string; long: string; emptyBody: stri
     long: "manufacturing",
     emptyBody: "No manufacturing excerpts in this capture.",
   },
+  overview: {
+    short: "Overview sources",
+    long: "overview",
+    emptyBody:
+      "Overview appears when PubChem description or Ollama synthesis is available. Process steps below use public literature, patents, and manufacturing text.",
+  },
 };
 
 /**
@@ -310,7 +336,9 @@ export function formatSectionEmptyCopy(opts: {
               ? "No property excerpts"
               : opts.family === "manufacturing"
                 ? "No manufacturing excerpts"
-                : "No hits",
+                : opts.family === "overview"
+                  ? "No overview text"
+                  : "No hits",
       message: noun.emptyBody,
     };
   }

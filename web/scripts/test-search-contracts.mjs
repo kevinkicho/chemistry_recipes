@@ -1323,4 +1323,118 @@ ok(
     }).kind === "empty"
 );
 
+
+ok(
+  "SEARCH-21 live dossier overview empty copy uses formatSectionEmptyCopy",
+  /overviewEmpty/.test(liveDossier) &&
+    /family: "overview"/.test(liveDossier) &&
+    /\{overviewEmpty\.message\}/.test(liveDossier) &&
+    !/Overview appears when PubChem description or Ollama synthesis is available/.test(
+      liveDossier
+    )
+);
+ok(
+  "SEARCH-21 pharmacology heading timeout is overview error not empty",
+  sectionH.formatSectionEmptyCopy({
+    family: "overview",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=Pharmacology+and+Biochemistry",
+        ok: false,
+        error: "timeout",
+      },
+    ],
+  }).kind === "error" &&
+    /Not an empty result/.test(
+      sectionH.formatSectionEmptyCopy({
+        family: "overview",
+        traces: [
+          {
+            endpointUrl:
+              "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=Pharmacology+and+Biochemistry",
+            ok: false,
+            error: "timeout",
+          },
+        ],
+      }).message
+    )
+);
+ok(
+  "SEARCH-21 overview heading 404 is empty not error",
+  sectionH.formatSectionEmptyCopy({
+    family: "overview",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=Pharmacology+and+Biochemistry",
+        ok: false,
+        notFound: true,
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-21 leftover GHS heading is not an overview failure",
+  sectionH.formatSectionEmptyCopy({
+    family: "overview",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=GHS+Classification",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-21 leftover literature heading is not an overview failure",
+  sectionH.formatSectionEmptyCopy({
+    family: "overview",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=Literature",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-21 leftover identity /property/ is not an overview failure",
+  sectionH.formatSectionEmptyCopy({
+    family: "overview",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularWeight/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-21 pubchem-view soft-fail is overview error",
+  sectionH.formatSectionEmptyCopy({
+    family: "overview",
+    fetchErrors: ["soft-fail · pubchem-view: HTTP 503"],
+  }).kind === "error"
+);
+ok(
+  "SEARCH-21 genuine overview empty stays empty",
+  sectionH.formatSectionEmptyCopy({
+    family: "overview",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=Pharmacology+and+Biochemistry",
+        ok: true,
+      },
+    ],
+  }).kind === "empty"
+);
+
 console.log(`\n${passed} search-contract checks passed`);

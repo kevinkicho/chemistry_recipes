@@ -403,6 +403,11 @@ export function LiveMoleculeDossier({
     traces,
     fetchErrors: dossier.fetchErrors,
   });
+  const overviewEmpty = formatSectionEmptyCopy({
+    family: "overview",
+    traces,
+    fetchErrors: dossier.fetchErrors,
+  });
   const propertySourceRefs = [
     {
       type: "api" as const,
@@ -641,8 +646,7 @@ export function LiveMoleculeDossier({
               </>
             ) : (
               <p className="text-sm leading-relaxed text-slate-500">
-                Overview appears when PubChem description or Ollama synthesis is available.
-                Process steps below use public literature, patents, and manufacturing text.
+                {overviewEmpty.message}
               </p>
             )}
           </div>
