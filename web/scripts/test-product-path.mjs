@@ -108,4 +108,25 @@ ok(
 ok("e2e home asserts live densify chrome", /Live densify/.test(e2e) && /AI dual-view/.test(e2e));
 ok("e2e covers compare/search/workspace/diagnostics", /\/compare/.test(e2e) && /\/search/.test(e2e) && /\/workspace/.test(e2e) && /\/diagnostics/.test(e2e));
 
+const comparePage = read("app/compare/page.tsx");
+ok("compare placeholder does not advertise unresolved CAS", !/CID, CAS, or name/.test(comparePage));
+ok("compare has no teaching-name aspirin shortcut", !/Teaching name/.test(comparePage) && !/toLowerCase\(\) === "aspirin"/.test(comparePage));
+ok("ORD panel has no hub molecule leftover", !/hub molecule/.test(read("components/OrdBulkPanel.tsx")));
+
+const gettingStarted = readRepo("docs/getting-started.md");
+ok("getting-started has no hub twin leftover", !/hub twin/.test(gettingStarted));
+ok("getting-started does not advertise header Google sign-in", !/Header \*\*Google sign-in\*\*/.test(gettingStarted));
+ok(
+  "security.md does not claim Google sign-in UI exists",
+  !/Google sign-in\*\* UI exists/.test(readRepo("docs/security.md"))
+);
+ok(
+  "product-vision has no unit-op hub hits",
+  !/unit-op hub hits/.test(readRepo("docs/product-vision.md"))
+);
+ok(
+  "chemistry-api-sources.json no curated overlays",
+  !/curated overlays/.test(readRepo("docs/chemistry-api-sources.json"))
+);
+
 console.log(`\n${n} product-path checks passed`);

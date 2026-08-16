@@ -54,7 +54,7 @@ Restart `npm run dev` after env changes.
 
 | Product | Status |
 |---------|--------|
-| Auth (Google) | Header **Google sign-in** · enable provider in Console |
+| Auth (Google) | Header chip hidden (unused; nothing reads uid) · enable provider in Console when it gates something |
 | Firestore / RTDB / Storage | Client + Admin helpers · **rules deny all** until product models need access |
 | Admin SDK | Place JSON under `secrets/firebase/` (gitignored) · probe `GET /api/diagnostics/firebase` |
 | App Hosting | `firebase.json` → `rootDir: "web"` · config `web/apphosting.yaml` · use ADC, not baked JSON |
@@ -109,7 +109,7 @@ See [engineering/testing.md](./engineering/testing.md).
 | AI always skipped | No cloud key / local host, or low evidence score |
 | Host not allowed | AI host outside ollama.com / loopback / private LAN |
 | Empty models (local) | `ollama serve` not running or no model pulled |
-| Search “PubChem busy / 503” | NIH or Cloud egress; try again, use CID, or open a hub twin |
+| Search “PubChem busy / 503” | NIH or Cloud egress; try again, use a CID, or search by name |
 | Admin Firebase probe fails | Missing `secrets/firebase/*.json` or wrong `GOOGLE_APPLICATION_CREDENTIALS` path |
 | Empty models (cloud) | Invalid key / network to ollama.com |
 | Stale dossier | **Refresh live data** (schema bump discards old cache) |
