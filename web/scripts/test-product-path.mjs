@@ -260,5 +260,26 @@ ok(
       read("components/dossier/LiveMoleculeDossier.tsx")
     )
 );
+ok(
+  "live dossier related / unit-ops / gaps chips do not dump leftover harvest HTTP",
+  /field="Related materials"[\s\S]{0,200}traces=\{processFactTraces\}/.test(
+    read("components/dossier/LiveMoleculeDossier.tsx")
+  ) &&
+    /field="Modality unit ops"[\s\S]{0,200}traces=\{processFactTraces\}/.test(
+      read("components/dossier/LiveMoleculeDossier.tsx")
+    ) &&
+    /field="Evidence gaps"[\s\S]{0,200}traces=\{plantTraces\}/.test(
+      read("components/dossier/LiveDossierAside.tsx")
+    ) &&
+    !/field="Related materials"[\s\S]{0,200}traces=\{traces\}/.test(
+      read("components/dossier/LiveMoleculeDossier.tsx")
+    ) &&
+    !/field="Modality unit ops"[\s\S]{0,200}traces=\{traces\}/.test(
+      read("components/dossier/LiveMoleculeDossier.tsx")
+    ) &&
+    !/field="Evidence gaps"[\s\S]{0,200}traces=\{allTraces\}/.test(
+      read("components/dossier/LiveDossierAside.tsx")
+    )
+);
 
 console.log(`\n${n} product-path checks passed`);

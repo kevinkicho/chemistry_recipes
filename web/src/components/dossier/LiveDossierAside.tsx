@@ -85,8 +85,9 @@ export function LiveDossierAside({
       : pugViewTraces.length
         ? pugViewTraces
         : pubchemTraces;
-  // Environment / apparatus derive from process facts (literature, patents,
-  // manufacturing, GHS). Leftover identity / annotation HTTP is not plant provenance.
+  // Environment / apparatus / evidence gaps derive from process facts
+  // (literature, patents, manufacturing, GHS). Leftover identity / annotation
+  // HTTP is not plant or gap provenance.
   const plantTraces = apiTraces.filter((t) => isProcessFactTrace(t.endpointUrl));
   const plantSourceRefs = (dossier.sourceRefs || []).filter(isProcessFactSourceRef);
   const mfgAi = aiMfg || (mfgFromAi ? aiChip : null);
@@ -438,9 +439,8 @@ export function LiveDossierAside({
             <ContentProvenance
               title="Evidence gaps"
               field="Evidence gaps"
-              pubchemCid={cid}
-              traces={allTraces}
-              sourceRefs={dossier.sourceRefs}
+              traces={plantTraces}
+              sourceRefs={plantSourceRefs}
               ai={
                 aiChip && dossier.synthesis.parsed
                   ? aiChip

@@ -12,7 +12,8 @@
 
 import { ContentProvenance } from "@/components/ContentProvenance";
 import type { LiveDossier } from "@/lib/dossier/types";
-import { slimTraces } from "@/lib/api/trace";
+import { slimTraces, type ApiFetchTrace } from "@/lib/api/trace";
+import type { SourceRef } from "@/lib/types/process";
 import {
   aiAttemptProvenance,
   aiProvenanceForField,
@@ -73,6 +74,10 @@ export function FreePublicProvenance({
   className = "",
   /** Show explicit "no AI" when this surface is free-public only (default true) */
   showNotAi = true,
+  traces: tracesProp,
+  sourceRefs: sourceRefsProp,
+  /** When false, do not live-fetch leftover PubChem identity HTTP */
+  liveFetch = true,
 }: {
   dossier: LiveDossier;
   title: string;
@@ -82,6 +87,9 @@ export function FreePublicProvenance({
   onRegenerate?: () => void;
   className?: string;
   showNotAi?: boolean;
+  traces?: ApiFetchTrace[];
+  sourceRefs?: SourceRef[];
+  liveFetch?: boolean;
 }) {
   const mode: FreePublicAiMode =
     aiMode ?? (aiField ? "field-or-parsed" : "when-parsed");
@@ -92,9 +100,9 @@ export function FreePublicProvenance({
       className={className}
       title={title}
       field={field || title}
-      pubchemCid={dossier.cid}
-      traces={slimTraces(dossier.traces || [])}
-      sourceRefs={dossier.sourceRefs}
+      pubchemCid={liveFetch ? dossier.cid : undefined}
+      traces={tracesProp ?? slimTraces(dossier.traces || [])}
+      sourceRefs={sourceRefsProp ?? dossier.sourceRefs}
       ai={ai}
       showAi={Boolean(ai)}
       showNotAi={showNotAi && !ai}

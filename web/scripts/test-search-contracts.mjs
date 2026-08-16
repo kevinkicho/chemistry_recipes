@@ -1616,6 +1616,7 @@ ok(
 );
 
 const asideSrc = read("components/dossier/LiveDossierAside.tsx");
+const unitOpPanel = read("components/UnitOpFillPanel.tsx");
 ok(
   "PROV-16 environment/apparatus chips use plantTraces not leftover harvest HTTP",
   /traces=\{plantTraces\}/.test(asideSrc) &&
@@ -1659,6 +1660,39 @@ ok(
     sectionH.isProcessFactTrace(mfgUrl) &&
     !sectionH.isProcessFactTrace(identityUrl) &&
     !sectionH.isProcessFactTrace(chemblUrl)
+);
+ok(
+  "PROV-18 related / unit-ops chips use processFactTraces not leftover harvest HTTP",
+  /traces=\{processFactTraces\}/.test(liveDossier) &&
+    /sourceRefs=\{processFactSourceRefs\}/.test(liveDossier) &&
+    /isProcessFactTrace/.test(liveDossier) &&
+    /field="Related materials"[\s\S]{0,200}traces=\{processFactTraces\}/.test(liveDossier) &&
+    /field="Modality unit ops"[\s\S]{0,200}traces=\{processFactTraces\}/.test(liveDossier) &&
+    !/field="Related materials"[\s\S]{0,200}traces=\{traces\}/.test(liveDossier) &&
+    !/field="Modality unit ops"[\s\S]{0,200}traces=\{traces\}/.test(liveDossier) &&
+    !/field="Related materials"[\s\S]{0,200}pubchemCid=/.test(liveDossier) &&
+    !/field="Modality unit ops"[\s\S]{0,200}pubchemCid=/.test(liveDossier)
+);
+ok(
+  "PROV-18 evidence-gaps chip uses plantTraces not leftover harvest HTTP",
+  /field="Evidence gaps"[\s\S]{0,200}traces=\{plantTraces\}/.test(asideSrc) &&
+    /sourceRefs=\{plantSourceRefs\}/.test(asideSrc) &&
+    !/field="Evidence gaps"[\s\S]{0,200}traces=\{allTraces\}/.test(asideSrc) &&
+    !/field="Evidence gaps"[\s\S]{0,200}pubchemCid=/.test(asideSrc)
+);
+ok(
+  "PROV-18 leftover PubChem identity is not related/unit-op/gap HTTP",
+  sectionH.isProcessFactTrace(litUrl) &&
+    sectionH.isProcessFactTrace(ghsUrl) &&
+    sectionH.isProcessFactTrace(mfgUrl) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isProcessFactTrace(chemblUrl)
+);
+ok(
+  "PROV-18 unit-op panel filters process-fact traces and does not live-fetch identity",
+  /isProcessFactTrace/.test(unitOpPanel) &&
+    /isProcessFactSourceRef/.test(unitOpPanel) &&
+    /liveFetch=\{false\}/.test(unitOpPanel)
 );
 
 console.log(`\n${passed} search-contract checks passed`);
