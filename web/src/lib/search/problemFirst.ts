@@ -3,7 +3,7 @@
  * Local static mock hits retired — live multi-source API fills ProblemFirstSearch.
  */
 
-export type ProblemHitKind = "hub-live" | "literature" | "multi-source";
+export type ProblemHitKind = "live" | "literature" | "multi-source";
 
 export interface ProblemSearchHit {
   id: string;

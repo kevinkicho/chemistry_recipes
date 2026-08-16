@@ -95,5 +95,17 @@ const problemUi = read("components/ProblemFirstSearch.tsx");
 ok("readiness UI has no Teaching package label", !/Teaching package/.test(readinessUi));
 ok("problem search has no hub/live hits copy", !/hub\/live hits/.test(problemUi));
 ok("problem search has no Local hits ready copy", !/Local hits ready/.test(problemUi));
+ok("problem search UI has no hub-live chip", !/hub-live/.test(problemUi));
+ok(
+  "compare warm alert has no hub names",
+  !/hub names/.test(read("app/compare/page.tsx"))
+);
+const e2e = fs.readFileSync(path.join(__dirname, "..", "e2e", "worker-path.spec.ts"), "utf8");
+ok(
+  "e2e home does not require dossier unit-op heading",
+  !/Problem \/ unit-op search/.test(e2e)
+);
+ok("e2e home asserts live densify chrome", /Live densify/.test(e2e) && /AI dual-view/.test(e2e));
+ok("e2e covers compare/search/workspace/diagnostics", /\/compare/.test(e2e) && /\/search/.test(e2e) && /\/workspace/.test(e2e) && /\/diagnostics/.test(e2e));
 
 console.log(`\n${n} product-path checks passed`);

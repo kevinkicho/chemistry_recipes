@@ -20,7 +20,7 @@ import {
 } from "@/lib/frontier/literatureToPaste";
 
 /**
- * Extract PubChem CIDs from problem-search hits (hub-live, multi-source, example).
+ * Extract PubChem CIDs from problem-search hits (live multi-source molecules).
  */
 export function cidsFromProblemHits(hits: ProblemSearchHit[]): {
   cids: number[];

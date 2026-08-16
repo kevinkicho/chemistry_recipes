@@ -146,7 +146,7 @@ See [test-spec.md](./test-spec.md) § Prompt response quality control.
 
 ## CI
 
-`.github/workflows/ci.yml`: `npm run test:unit` + `tsc` + eslint on `main` push/PR.
+`.github/workflows/ci.yml`: `npm run test:precommit` + `tsc` + eslint on `main` push/PR.
 
 Locally, prefer **`npm run precommit`** so you run the same gates as CI before pushing.
 

@@ -84,7 +84,7 @@ function CompareInner() {
     if (resA?.kind === "cid") cids.push(resA.cid);
     if (resB?.kind === "cid") cids.push(resB.cid);
     if (!cids.length) {
-      alert("Enter two PubChem CIDs (or hub names that resolve to CIDs).");
+      alert("Enter a PubChem CID on at least one side. Molecule names open live search; they do not warm a dossier.");
       return;
     }
     setWarming(true);
