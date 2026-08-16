@@ -45,30 +45,30 @@ export function SearchResults({ query }: { query: string }) {
     const t = window.setTimeout(() => ac.abort(), 45_000);
 
     void (async () => {
+      let browserHits: MultiSourceHit[] = [];
       try {
         // 1) Browser-direct PubChem for fast openable cards
         const browser = await searchPubChemInBrowser(q, 10, ac.signal);
-        if (browser.hits.length > 0) {
-          setHits(
-            browser.hits.map((h) => ({
-              cid: h.cid,
-              name: h.name,
-              formula: h.formula,
-              molecularWeight: h.molecularWeight,
-              cas: h.cas,
-              inchiKey: h.inchiKey,
-              sources: [
-                {
-                  source: "pubchem" as const,
-                  label: "PubChem · NIH",
-                  externalId: String(h.cid),
-                  url: `https://pubchem.ncbi.nlm.nih.gov/compound/${h.cid}`,
-                },
-              ],
-              score: 45,
-              openable: true,
-            }))
-          );
+        browserHits = browser.hits.map((h) => ({
+          cid: h.cid,
+          name: h.name,
+          formula: h.formula,
+          molecularWeight: h.molecularWeight,
+          cas: h.cas,
+          inchiKey: h.inchiKey,
+          sources: [
+            {
+              source: "pubchem" as const,
+              label: "PubChem · NIH",
+              externalId: String(h.cid),
+              url: `https://pubchem.ncbi.nlm.nih.gov/compound/${h.cid}`,
+            },
+          ],
+          score: 45,
+          openable: true,
+        }));
+        if (browserHits.length > 0) {
+          setHits(browserHits);
           setNote("PubChem browser hits — enriching with multi-source fan-out…");
         }
 
@@ -176,6 +176,16 @@ export function SearchResults({ query }: { query: string }) {
           }
         }
 
+        // Keep real browser PubChem hits (CAS/name) when Cloud egress is empty.
+        if (browserHits.length > 0) {
+          setHits(browserHits);
+          setError(null);
+          setNote(
+            "PubChem browser hits — server multi-source returned no additional matches."
+          );
+          return;
+        }
+
         setHits([]);
         setError(
           "No free-public hits across identity + process literature sources (PubChem…OpenAlex/Crossref). Try a CID or CAS."
@@ -183,7 +193,13 @@ export function SearchResults({ query }: { query: string }) {
         setNote(null);
       } catch (e) {
         if (e instanceof Error && e.name === "AbortError") {
-          if (/^\d+$/.test(q)) {
+          if (browserHits.length > 0) {
+            setHits(browserHits);
+            setError(null);
+            setNote(
+              "Search timed out after PubChem browser hits — open a CID or retry."
+            );
+          } else if (/^\d+$/.test(q)) {
             setHits([
               {
                 cid: Number(q),

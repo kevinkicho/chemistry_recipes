@@ -99,5 +99,10 @@ ok(
   "SEARCH-06 consolidate case/identity clones into openable CIDs",
   /consolidateIdentityHits|Fold case|identity-only clones/i.test(multi)
 );
+ok(
+  "SEARCH-06 keep browser PubChem hits when server fan-out empty",
+  /server multi-source returned no additional matches/.test(results) &&
+    /browserHits\.length > 0/.test(results)
+);
 
 console.log(`\n${passed} search-contract checks passed`);

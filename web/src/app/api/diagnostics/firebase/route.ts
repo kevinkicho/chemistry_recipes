@@ -48,7 +48,7 @@ export async function GET() {
       },
     },
     products: {
-      auth: "Google sign-in (client) + Admin Auth",
+      auth: "Admin Auth (client sign-in chrome hidden)",
       firestore: "client + admin",
       rtdb: web?.databaseURL ? "configured" : "set NEXT_PUBLIC_FIREBASE_DATABASE_URL",
       storage: web?.storageBucket ? "configured" : "missing bucket",

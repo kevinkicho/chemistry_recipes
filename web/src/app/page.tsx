@@ -130,7 +130,7 @@ export default function HomePage() {
                 <Link href={routes.compare()} className="text-teal-400 hover:underline">
                   Compare
                 </Link>{" "}
-                — side-by-side live or pinned routes
+                — side-by-side live CID dossiers
               </li>
               <li>
                 <Link href={routes.workspace()} className="text-teal-400 hover:underline">
