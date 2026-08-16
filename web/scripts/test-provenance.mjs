@@ -413,6 +413,12 @@ ok(
   "PROV-11 live patent traces include compound Patents heading",
   /isCompoundPatentsHeadingTrace\(t\.endpointUrl\)/.test(liveDossier)
 );
+ok(
+  "PROV-13 live applications provenance uses applicationTraces not all harvest HTTP",
+  /field="Applications"[\s\S]{0,200}traces=\{applicationTraces\}/.test(liveDossier) &&
+    /field="Applications"[\s\S]{0,260}sourceRefs=\{mfgSourceRefs\}/.test(liveDossier) &&
+    !/field="Applications"[\s\S]{0,200}traces=\{traces\}/.test(liveDossier)
+);
 
 const { createRequire } = await import("node:module");
 const { tmpdir } = await import("node:os");
@@ -449,6 +455,7 @@ const {
   isIdentityOverviewSourceRef,
   isLiteratureHeadingTrace,
   isCompoundPatentsHeadingTrace,
+  isApplicationsTrace,
 } = await import(pathToFileURL(provOut).href);
 
 const propertyTrace = {
@@ -766,6 +773,48 @@ ok(
       label: "Some paper",
     })
 );
+
+ok(
+  "PROV-13 applications keeps Use and Manufacturing pug_view",
+  isApplicationsTrace(mfgViewTrace.endpointUrl)
+);
+ok(
+  "PROV-13 applications rejects identity /property/ HTTP",
+  !isApplicationsTrace(propertyTrace.endpointUrl)
+);
+ok(
+  "PROV-13 applications rejects GHS pug_view",
+  !isApplicationsTrace(ghsViewTrace.endpointUrl)
+);
+ok(
+  "PROV-13 applications rejects Literature heading HTTP",
+  !isApplicationsTrace(litViewTrace.endpointUrl)
+);
+ok(
+  "PROV-13 applications rejects classification HTTP",
+  !isApplicationsTrace(classTrace.endpointUrl)
+);
+ok(
+  "PROV-13 applications rejects patent pug_view densify",
+  !isApplicationsTrace(patentViewTrace.endpointUrl)
+);
+ok(
+  "PROV-13 applications rejects MassBank leftover HTTP",
+  !isApplicationsTrace("https://massbank.eu/MassBank-api/records?query=aspirin")
+);
+ok(
+  "PROV-13 applications citation hydrates from manufacturing pug_view not leftover HTTP",
+  matchLive(
+    {
+      type: "api",
+      id: "pubchem-mfg-page:2244",
+      label: "PubChem · Use and Manufacturing",
+      url: "https://pubchem.ncbi.nlm.nih.gov/compound/2244#section=Use-and-Manufacturing",
+    },
+    leftoverPubchem
+  )?.endpointUrl.includes("Use+and+Manufacturing")
+);
+
 
 
 const massbankSrc = read("lib/api/massbank.ts");

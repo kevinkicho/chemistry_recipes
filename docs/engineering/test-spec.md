@@ -269,6 +269,7 @@ Machine registry: `web/scripts/fixtures/provenance-surface-registry.json`.
 | **PROV-08** | PubChem family citations hydrate only matching harvest HTTP (not identity/property fallbacks) | `test-provenance` |
 | **PROV-09** | GHS/safety citations hydrate only PUG View GHS/safety HTTP; unknown pubchem-* ids stay unmatched | `test-provenance` |
 | **PROV-10** | Properties citations hydrate only PUG View chemical/physical + PUG REST /property/ HTTP; patent densify uses pug_view/data/patent/ (not identity/GHS/literature headings) | `test-provenance` |
+| **PROV-13** | Applications chips claim only Use and Manufacturing pug_view HTTP (not leftover identity/GHS/literature/patent/MassBank harvest) | `test-provenance` |
 | **PROV-SCAN-*** | Scanner asserts every registry surface still wired | `test-provenance-coverage` |
 
 ## Lifecycle diagram (validated by LIFE-* / DENS-*)
