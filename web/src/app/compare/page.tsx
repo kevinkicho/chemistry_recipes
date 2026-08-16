@@ -39,7 +39,7 @@ function resolveInput(raw: string): Resolved | null {
     };
   }
   // Names and CAS open live search — only numeric PubChem CIDs warm a dossier.
-  // Prefixed IDs (CID 2244, PubChem URL, InChIKey=) submit as written.
+  // Prefixed IDs (CID=2244, Compound CID, PubChem URL/#query=, InChIKey) submit as written.
   return { kind: "search", q: t, label: t, href: routes.search(t) };
 }
 

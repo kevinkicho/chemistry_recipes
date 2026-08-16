@@ -534,4 +534,86 @@ ok(
   )
 );
 
+
+ok(
+  "SEARCH-14 CID= and Compound CID are CIDs not SMILES",
+  qk.normalizeChemicalQuery("CID=2244") === "2244" &&
+    qk.classifyChemicalQuery("CID=2244") === "cid" &&
+    qk.parsePubchemCidQuery("CID=2244") === 2244 &&
+    qk.classifyChemicalQuery("Compound CID: 2244") === "cid" &&
+    qk.parsePubchemCidQuery("PubChem Compound CID: 2244") === 2244 &&
+    qk.parsePubchemCidQuery("pubchem cid=2244") === 2244 &&
+    !qk.looksLikeSmiles(qk.normalizeChemicalQuery("CID=2244"))
+);
+ok(
+  "SEARCH-14 CAS= / CAS ID / CAS Number[n] are CAS not SMILES",
+  qk.normalizeChemicalQuery("CAS=50-78-2") === "50-78-2" &&
+    qk.classifyChemicalQuery("CAS=50-78-2") === "cas" &&
+    qk.classifyChemicalQuery("CAS ID: 50-78-2") === "cas" &&
+    qk.classifyChemicalQuery("CAS numbers: 50-78-2") === "cas" &&
+    qk.normalizeChemicalQuery("CAS Number[1]: 50-78-2") === "50-78-2" &&
+    qk.classifyChemicalQuery("CAS Number[1]: 50-78-2") === "cas" &&
+    qk.classifyChemicalQuery("CAS registry no. 50-78-2") === "cas" &&
+    qk.normalizeChemicalQuery("50-78-2[1]") === "50-78-2" &&
+    !qk.looksLikeSmiles(qk.normalizeChemicalQuery("CAS=50-78-2"))
+);
+ok(
+  "SEARCH-14 UNII= and InChIKey space prefix",
+  qk.normalizeChemicalQuery("UNII=R16CO5Y76E") === "R16CO5Y76E" &&
+    qk.classifyChemicalQuery("UNII=R16CO5Y76E") === "unii" &&
+    !qk.looksLikeSmiles(qk.normalizeChemicalQuery("UNII=R16CO5Y76E")) &&
+    qk.normalizeChemicalQuery("InChIKey " + aspirinKey) === aspirinKey &&
+    qk.classifyChemicalQuery("InChIKey " + aspirinKey) === "inchikey"
+);
+ok(
+  "SEARCH-14 PubChem #query= is a name, not SMILES",
+  qk.normalizeChemicalQuery(
+    "https://pubchem.ncbi.nlm.nih.gov/#query=aspirin"
+  ) === "aspirin" &&
+    qk.classifyChemicalQuery(
+      "https://pubchem.ncbi.nlm.nih.gov/#query=aspirin"
+    ) === "name" &&
+    qk.normalizeChemicalQuery(
+      "https://pubchem.ncbi.nlm.nih.gov/#query=CID%3D2244"
+    ) === "2244" &&
+    qk.parsePubchemCidQuery(
+      "https://pubchem.ncbi.nlm.nih.gov/#query=2244"
+    ) === 2244 &&
+    !qk.looksLikeSmiles(
+      qk.normalizeChemicalQuery(
+        "https://pubchem.ncbi.nlm.nih.gov/#query=aspirin"
+      )
+    )
+);
+ok(
+  "SEARCH-14 Wikipedia /wiki/ title is a name, not SMILES",
+  qk.normalizeChemicalQuery("https://en.wikipedia.org/wiki/Aspirin") ===
+    "Aspirin" &&
+    qk.classifyChemicalQuery("https://en.wikipedia.org/wiki/Aspirin") ===
+      "name" &&
+    qk.normalizeChemicalQuery(
+      "https://en.wikipedia.org/wiki/Salicylic_acid"
+    ) === "Salicylic acid" &&
+    qk.classifyChemicalQuery(
+      "https://en.m.wikipedia.org/wiki/2-Propanol"
+    ) === "name" &&
+    !qk.looksLikeSmiles(
+      qk.normalizeChemicalQuery("https://en.wikipedia.org/wiki/Aspirin")
+    )
+);
+ok(
+  "SEARCH-14 equals CID Enter submits CID as written",
+  qk.resolveSearchSubmit("CID=2244", { value: "aspirin" }).value === "2244" &&
+    qk.resolveSearchSubmit("Compound CID: 2244", { value: "aspirin" })
+      .value === "2244" &&
+    qk.resolveSearchSubmit("CAS Number[1]: 50-78-2", { value: "aspirin" })
+      .value === "50-78-2"
+);
+ok(
+  "SEARCH-14 word smiles and plain names still names",
+  qk.classifyChemicalQuery("smiles") === "name" &&
+    qk.classifyChemicalQuery("aspirin") === "name" &&
+    qk.normalizeChemicalQuery("smiles") === "smiles"
+);
+
 console.log(`\n${passed} search-contract checks passed`);

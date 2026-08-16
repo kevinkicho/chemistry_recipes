@@ -14,8 +14,10 @@ export type ChemicalQueryKind =
 
 /**
  * Strip copy-paste wrappers so advertised identifiers resolve as written.
- * PubChem/Wikipedia often prefix InChIKey=, CID, CAS RN / CAS Number, UNII, Canonical/Isomeric SMILES, and InChI labels.
- * PubChem compound URLs may use a CID or a name slug.
+ * PubChem/Wikipedia often prefix InChIKey=, CID / Compound CID, CAS RN / CAS Number[n], UNII,
+ * Canonical/Isomeric SMILES, and InChI labels. Equals-sign forms (CID=2244, CAS=50-78-2)
+ * must not be classified as SMILES. PubChem /compound/ slugs, #query=, and Wikipedia /wiki/
+ * titles extract the identifier or name.
  */
 export function normalizeChemicalQuery(q: string): string {
   let s = q.trim();
@@ -41,20 +43,52 @@ export function normalizeChemicalQuery(q: string): string {
     if (slug) return slug;
   }
 
-  const cid = s.match(/^(?:pubchem\s+)?cid\s*[:#]?\s*(\d+)$/i);
+  const urlQuery = s.match(
+    /(?:https?:\/\/)?(?:www\.)?pubchem\.ncbi\.nlm\.nih\.gov\/?(?:index\.html)?#query=([^&#]+)/i
+  );
+  if (urlQuery) {
+    let qv = urlQuery[1];
+    try {
+      qv = decodeURIComponent(qv.replace(/\+/g, " ")).trim();
+    } catch {
+      qv = qv.replace(/\+/g, " ").trim();
+    }
+    if (qv) return normalizeChemicalQuery(qv);
+  }
+
+  const wiki = s.match(
+    /(?:https?:\/\/)?(?:[\w-]+\.)*wikipedia\.org\/wiki\/([^/?#]+)/i
+  );
+  if (wiki) {
+    let title = wiki[1];
+    try {
+      title = decodeURIComponent(title.replace(/\+/g, " ")).trim();
+    } catch {
+      title = title.replace(/\+/g, " ").trim();
+    }
+    title = title.replace(/_/g, " ");
+    if (title) return title;
+  }
+
+  const cid = s.match(
+    /^(?:pubchem\s+)?(?:compound\s+)?cid\s*[=:#]?\s*(\d+)$/i
+  );
   if (cid) return cid[1];
 
   const ik = s.match(
-    /^(?:inchi\s*key|inchikey)\s*[=:]\s*([A-Za-z]{14}-[A-Za-z]{10}-[A-Za-z])$/i
+    /^(?:inchi\s*key|inchikey)\s*[=:]?\s*([A-Za-z]{14}-[A-Za-z]{10}-[A-Za-z])$/i
   );
   if (ik) return ik[1];
 
   const cas = s.match(
-    /^(?:cas(?:\s*(?:rn|no\.?|number|reg(?:istry)?(?:\s*number)?)|-rn)?)\s*[:#]?\s*(\d{2,7}-\d{2}-\d)$/i
+    /^(?:cas(?:\s*(?:rn|no\.?|numbers?|id|reg(?:istry)?(?:\s*(?:no\.?|numbers?)?)?)|-rn)?)(?:\s*\[\d+\])?\s*[=:#]?\s*(\d{2,7}-\d{2}-\d)$/i
   );
   if (cas) return cas[1];
 
-  const unii = s.match(/^(?:unii)\s*[:#]?\s*([A-Za-z0-9]{10})$/i);
+  const casCite = s.match(/^(\d{2,7}-\d{2}-\d)\s*\[\d+\]$/);
+  if (casCite) return casCite[1];
+
+  const unii = s.match(/^(?:unii)\s*[=:#]?\s*([A-Za-z0-9]{10})$/i);
   if (unii) return unii[1];
 
   // PubChem/Wikipedia labels: "Canonical SMILES: CC(=O)..." / "SMILES=CCO"
