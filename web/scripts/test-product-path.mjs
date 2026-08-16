@@ -110,6 +110,11 @@ ok("e2e covers compare/search/workspace/diagnostics", /\/compare/.test(e2e) && /
 
 const comparePage = read("app/compare/page.tsx");
 ok("compare placeholder does not advertise unresolved CAS", !/CID, CAS, or name/.test(comparePage));
+ok(
+  "compare warms prefixed CID via parsePubchemCidQuery",
+  /parsePubchemCidQuery/.test(comparePage) &&
+    /normalizeChemicalQuery/.test(comparePage)
+);
 ok("compare has no teaching-name aspirin shortcut", !/Teaching name/.test(comparePage) && !/toLowerCase\(\) === "aspirin"/.test(comparePage));
 ok("ORD panel has no hub molecule leftover", !/hub molecule/.test(read("components/OrdBulkPanel.tsx")));
 

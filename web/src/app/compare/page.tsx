@@ -15,16 +15,21 @@ import {
 import { TechTransferExport } from "@/components/TechTransferExport";
 import { warmLiveDossier } from "@/lib/dossier/warmCache";
 import { CompareMsatBoard } from "@/components/CompareMsatBoard";
+import {
+  normalizeChemicalQuery,
+  parsePubchemCidQuery,
+} from "@/lib/search/queryKind";
 
 type Resolved =
   | { kind: "cid"; cid: number; label: string; href: string }
   | { kind: "search"; q: string; label: string; href: string };
 
 function resolveInput(raw: string): Resolved | null {
-  const t = raw.trim();
+  const t = normalizeChemicalQuery(raw);
   if (!t) return null;
-  if (/^\d+$/.test(t)) {
-    const cid = Number(t);
+  const parsedCid = parsePubchemCidQuery(t);
+  if (parsedCid) {
+    const cid = parsedCid;
     return {
       kind: "cid",
       cid,
@@ -33,6 +38,7 @@ function resolveInput(raw: string): Resolved | null {
     };
   }
   // Names and CAS open live search — only numeric PubChem CIDs warm a dossier.
+  // Prefixed IDs (CID 2244, PubChem URL, InChIKey=) submit as written.
   return { kind: "search", q: t, label: t, href: routes.search(t) };
 }
 

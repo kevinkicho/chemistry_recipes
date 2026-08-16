@@ -14,7 +14,7 @@ export type ChemicalQueryKind =
 
 /**
  * Strip copy-paste wrappers so advertised identifiers resolve as written.
- * PubChem/Wikipedia often prefix InChIKey=, CID, CAS RN, UNII.
+ * PubChem/Wikipedia often prefix InChIKey=, CID, CAS RN, UNII, Canonical/Isomeric SMILES, and InChI labels.
  */
 export function normalizeChemicalQuery(q: string): string {
   let s = q.trim();
@@ -47,6 +47,17 @@ export function normalizeChemicalQuery(q: string): string {
 
   const unii = s.match(/^(?:unii)\s*[:#]?\s*([A-Za-z0-9]{10})$/i);
   if (unii) return unii[1];
+
+  // PubChem/Wikipedia labels: "Canonical SMILES: CC(=O)..." / "SMILES=CCO"
+  // Require [=:] so a name query containing the word "smiles" is left alone.
+  const smilesLabeled = s.match(
+    /^(?:(?:canonical|isomeric)\s+)?smiles\s*[=:]\s*(\S+)$/i
+  );
+  if (smilesLabeled) return smilesLabeled[1];
+
+  // "InChI: InChI=1S/..." — do not strip the InChI=1S/ body itself.
+  const inchiLabeled = s.match(/^(?:inchi)\s*[=:]\s*(InChI=1S?\/.+)$/i);
+  if (inchiLabeled) return inchiLabeled[1];
 
   const compact = s.replace(/\s+/g, "");
   if (/^InChI=1S?\//i.test(compact) && compact !== s) {
@@ -135,6 +146,14 @@ export function classifyChemicalQuery(q: string): ChemicalQueryKind {
 
 export function isNameQuery(q: string): boolean {
   return classifyChemicalQuery(q) === "name";
+}
+
+/** Numeric PubChem CID after prefix/URL normalize. */
+export function parsePubchemCidQuery(raw: string): number | null {
+  const t = normalizeChemicalQuery(raw);
+  if (!/^\d+$/.test(t)) return null;
+  const cid = Number(t);
+  return Number.isFinite(cid) && cid > 0 ? cid : null;
 }
 
 export function isStructuredChemicalQuery(q: string): boolean {

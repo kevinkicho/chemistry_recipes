@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { MultiSourceResultCard } from "@/components/SearchResultCards";
 import { searchPubChemInBrowser } from "@/lib/api/pubchemBrowser";
+import { normalizeChemicalQuery, parsePubchemCidQuery } from "@/lib/search/queryKind";
 import type {
   MultiSourceHit,
   MultiSourceSearchResult,
@@ -31,7 +32,7 @@ function mergeOpenableBrowserHits(
  * 4) Numeric CID open card
  */
 export function SearchResults({ query }: { query: string }) {
-  const q = query.trim();
+  const q = normalizeChemicalQuery(query);
   const [hits, setHits] = useState<MultiSourceHit[]>([]);
   const [loading, setLoading] = useState(Boolean(q));
   const [error, setError] = useState<string | null>(null);
@@ -170,8 +171,9 @@ export function SearchResults({ query }: { query: string }) {
           }
         }
 
-        if (/^\d+$/.test(q)) {
-          const cid = Number(q);
+        const fallbackCid = parsePubchemCidQuery(q);
+        if (fallbackCid) {
+          const cid = fallbackCid;
           if (cid > 0) {
             setHits([
               {
@@ -217,16 +219,17 @@ export function SearchResults({ query }: { query: string }) {
             setNote(
               "Search timed out after PubChem browser hits — open a CID or retry."
             );
-          } else if (/^\d+$/.test(q)) {
+          } else if (parsePubchemCidQuery(q)) {
+            const timedCid = parsePubchemCidQuery(q) as number;
             setHits([
               {
-                cid: Number(q),
-                name: `CID ${q}`,
+                cid: timedCid,
+                name: `CID ${timedCid}`,
                 sources: [
                   {
                     source: "pubchem",
                     label: "PubChem · NIH",
-                    externalId: q,
+                    externalId: String(timedCid),
                   },
                 ],
                 score: 30,

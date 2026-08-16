@@ -67,6 +67,7 @@ const multiApi = read("app/api/search/multi/route.ts");
 const suggestApi = read("app/api/search/suggest/route.ts");
 const problemApi = read("app/api/search/problem/route.ts");
 const searchPage = read("app/search/page.tsx");
+const comparePage = read("app/compare/page.tsx");
 const results = read("components/SearchResults.tsx");
 const form = read("components/SearchForm.tsx");
 const problemUi = read("components/ProblemFirstSearch.tsx");
@@ -359,6 +360,52 @@ ok(
   /normalizeChemicalQuery/.test(form) &&
     /PubChem CID · open compound/.test(form) &&
     /qNorm/.test(form)
+);
+
+
+ok(
+  "SEARCH-11 normalize Canonical/Isomeric SMILES labels",
+  qk.normalizeChemicalQuery("SMILES: " + aspirinSmiles) === aspirinSmiles &&
+    qk.classifyChemicalQuery("Canonical SMILES: " + aspirinSmiles) === "smiles" &&
+    qk.classifyChemicalQuery("Isomeric SMILES=C/C=C/C") === "smiles" &&
+    qk.normalizeChemicalQuery("SMILES=" + aspirinSmiles) === aspirinSmiles
+);
+ok(
+  "SEARCH-11 SMILES label Enter submits SMILES as written",
+  qk.resolveSearchSubmit("SMILES: " + aspirinSmiles, { value: "aspirin" })
+    .value === aspirinSmiles
+);
+ok(
+  "SEARCH-11 InChI label prefix strips to InChI body",
+  qk.normalizeChemicalQuery("InChI: " + aspirinInchi) === aspirinInchi &&
+    qk.classifyChemicalQuery("InChI: " + aspirinInchi) === "inchi" &&
+    qk.classifyChemicalQuery(aspirinInchi) === "inchi"
+);
+ok(
+  "SEARCH-11 word smiles is still a name",
+  qk.classifyChemicalQuery("smiles") === "name" &&
+    qk.normalizeChemicalQuery("smiles") === "smiles"
+);
+ok(
+  "SEARCH-11 parsePubchemCidQuery prefixes and URLs",
+  qk.parsePubchemCidQuery("CID 2244") === 2244 &&
+    qk.parsePubchemCidQuery("CID: 2244") === 2244 &&
+    qk.parsePubchemCidQuery(
+      "https://pubchem.ncbi.nlm.nih.gov/compound/2244"
+    ) === 2244 &&
+    qk.parsePubchemCidQuery("2244") === 2244 &&
+    qk.parsePubchemCidQuery("aspirin") === null &&
+    qk.parsePubchemCidQuery("50-78-2") === null
+);
+ok(
+  "SEARCH-11 compare warms prefixed CID / PubChem URL",
+  /parsePubchemCidQuery/.test(comparePage) &&
+    /normalizeChemicalQuery/.test(comparePage)
+);
+ok(
+  "SEARCH-11 SearchResults normalizes before CID fallback",
+  /normalizeChemicalQuery/.test(results) &&
+    /parsePubchemCidQuery/.test(results)
 );
 
 console.log(`\n${passed} search-contract checks passed`);
