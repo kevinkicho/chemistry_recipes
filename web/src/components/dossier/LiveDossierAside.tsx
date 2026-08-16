@@ -5,6 +5,7 @@ import { AiProvenance } from "@/components/AiProvenance";
 import { ApiProvenance } from "@/components/ApiProvenance";
 import type { LiveDossier } from "@/lib/dossier/types";
 import type { ApiFetchTrace } from "@/lib/api/trace";
+import { formatSectionEmptyCopy } from "@/lib/dossier/sectionHonesty";
 import type { AiProvenanceRecord } from "@/lib/dossier/types";
 
 type PlantProps = {
@@ -84,6 +85,21 @@ export function LiveDossierAside({
   const envAi = aiEnv || (envFromAi ? aiChip : null);
   const apparatusAi = aiApparatus || (apparatusFromAi ? aiChip : null);
   const ehsAi = aiEhs || (ehsFromAi ? aiChip : null);
+  const hazardEmpty = formatSectionEmptyCopy({
+    family: "hazards",
+    traces: allTraces,
+    fetchErrors: dossier.fetchErrors,
+  });
+  const propertyEmpty = formatSectionEmptyCopy({
+    family: "properties",
+    traces: allTraces,
+    fetchErrors: dossier.fetchErrors,
+  });
+  const mfgEmpty = formatSectionEmptyCopy({
+    family: "manufacturing",
+    traces: allTraces,
+    fetchErrors: dossier.fetchErrors,
+  });
 
   return (
     <aside className="space-y-4">
@@ -118,7 +134,7 @@ export function LiveDossierAside({
           </p>
         ) : (
           <p className="mt-2 text-sm text-slate-600">
-            No manufacturing summary in free evidence yet. See Public manufacturing
+            {mfgEmpty.message} See Public manufacturing
             panel and literature below, or open{" "}
             <a
               href={`https://pubchem.ncbi.nlm.nih.gov/compound/${cid}#section=Use-and-Manufacturing`}
@@ -280,7 +296,7 @@ export function LiveDossierAside({
           </ul>
         ) : (
           <p className="text-sm text-slate-600">
-            {dossier.hazards.notes || "No GHS text returned for this CID."}
+            {hazardEmpty.message}
           </p>
         )}
       </div>
@@ -350,7 +366,7 @@ export function LiveDossierAside({
           {hit?.molecularWeight == null &&
           !plantProps.meltingPointC &&
           !plantProps.appearance ? (
-            <div className="text-slate-600">No property excerpts in this capture.</div>
+            <div className="text-slate-600">{propertyEmpty.message}</div>
           ) : null}
         </dl>
         {dossier.propertyTexts.length > 0 ? (

@@ -4,6 +4,7 @@ import { ContentProvenance } from "@/components/ContentProvenance";
 import type { LiveDossier } from "@/lib/dossier/types";
 import { assessRecipeReadiness } from "@/lib/dossier/recipeReadiness";
 import { slimTraces } from "@/lib/api/trace";
+import { formatSectionEmptyCopy } from "@/lib/dossier/sectionHonesty";
 
 /**
  * Pinned "Monday morning" worker pack — EHS, steps, gaps, actions under 2 minutes.
@@ -132,7 +133,14 @@ export function MondayMorningPack({
             </ul>
           ) : (
             <p className="mt-2 text-xs text-slate-500">
-              No GHS / EHS highlights in this capture — check PubChem Safety before any plant use.
+              {
+                formatSectionEmptyCopy({
+                  family: "hazards",
+                  traces: slimTraces(dossier.traces),
+                  fetchErrors: dossier.fetchErrors,
+                }).message
+              }{" "}
+              Check PubChem Safety before any plant use.
             </p>
           )}
         </div>

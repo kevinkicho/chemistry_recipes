@@ -92,10 +92,13 @@ export function rowsFromPlainTexts(
 export function ManufacturingTextTable({
   rows: inputRows,
   emptyHref,
+  emptyMessage,
 }: {
   rows: MfgTextRow[];
   /** Fallback link when a row has no href (e.g. PubChem Use & Manufacturing) */
   emptyHref?: string;
+  /** Honest empty vs upstream-failure copy from harvest traces */
+  emptyMessage?: string;
 }) {
   const [q, setQ] = useState("");
   const [kindFilter, setKindFilter] = useState<MfgTextKind | "all">("all");
@@ -207,6 +210,14 @@ export function ManufacturingTextTable({
       })}
     </>
   );
+
+  if (inputRows.length === 0) {
+    return (
+      <p className="text-sm text-slate-500">
+        {emptyMessage || "No manufacturing excerpts in this capture."}
+      </p>
+    );
+  }
 
   return (
     <div className="space-y-3">
