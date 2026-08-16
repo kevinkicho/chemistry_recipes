@@ -4,6 +4,11 @@ import type { LiveDossier } from "@/lib/dossier/types";
 import { buildConditionAtlas } from "@/lib/frontier/conditionAtlas";
 import type { ConditionDistribution } from "@/lib/frontier/types";
 import { FreePublicProvenance } from "@/components/FreePublicProvenance";
+import { slimTraces } from "@/lib/api/trace";
+import {
+  isProcessFactSourceRef,
+  isProcessFactTrace,
+} from "@/lib/dossier/sectionHonesty";
 
 function DistCard({ d }: { d: ConditionDistribution }) {
   return (
@@ -75,6 +80,13 @@ export function ConditionAtlasPanel({
   // (e.g. BUN≠atmosphere, quote dedupe) apply without forcing re-densify.
   // processKnowledge.conditionAtlas remains for export/agent packages until next densify.
   const atlas = buildConditionAtlas(dossier);
+  // Atlas is process-fact / densified lit-patent-mfg text. Leftover identity
+  // / annotation HTTP is not condition-atlas provenance, and the chip must
+  // not live-fetch identity.
+  const traces = slimTraces(dossier.traces || []).filter((tr) =>
+    isProcessFactTrace(tr.endpointUrl)
+  );
+  const sourceRefs = (dossier.sourceRefs || []).filter(isProcessFactSourceRef);
 
   return (
     <div
@@ -95,6 +107,9 @@ export function ConditionAtlasPanel({
               title="Public condition atlas"
               field="Condition atlas"
               aiMode="when-parsed"
+              traces={traces}
+              sourceRefs={sourceRefs}
+              liveFetch={false}
               onRegenerate={onRegenerate}
             />
           </div>
