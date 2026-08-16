@@ -460,6 +460,12 @@ ok(
     /tocSectionFlags/.test(read("components/dossier/LiveDossierAside.tsx"))
 );
 
+ok(
+  "SEARCH-34 critique empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(read("components/EvidenceCritiquePanel.tsx")) &&
+    /windowsEmpty/.test(read("components/EvidenceCritiquePanel.tsx")) &&
+    /No procedure windows densified/.test(read("components/EvidenceCritiquePanel.tsx"))
+);
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
 ok("PdfWorkerPack exists", existsSync(src("components/PdfWorkerPack.tsx")));
