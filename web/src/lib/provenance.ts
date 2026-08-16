@@ -97,11 +97,15 @@ function classifyTrace(url: string): {
       name: "PubChem PUG View",
       organization: "NCBI / NLM (NIH)",
       docsUrl: "https://pubchem.ncbi.nlm.nih.gov/docs/pug-view",
-      datapoint: u.includes("ghs")
-        ? "GHS / hazards"
-        : u.includes("manufacturing")
-          ? "Use and manufacturing"
-          : "PUG View section",
+      datapoint: u.includes("/data/patent/")
+        ? "Patent record"
+        : u.includes("ghs")
+          ? "GHS / hazards"
+          : u.includes("manufacturing")
+            ? "Use and manufacturing"
+            : u.includes("chemical") && u.includes("physical")
+              ? "Chemical and physical properties"
+              : "PUG View section",
     };
   }
   if (u.includes("pubchem")) {
@@ -258,6 +262,14 @@ const SOURCE_FAMILY_PRED: Record<string, EndpointPred> = {
   "pubchem-view-ghs": (e) =>
     e.includes("pug_view") &&
     (e.includes("ghs") || e.includes("safety") || e.includes("hazards")),
+  "pubchem-view-props": (e) =>
+    e.includes("pug_view") &&
+    !e.includes("/data/patent/") &&
+    ((e.includes("chemical") && e.includes("physical")) ||
+      (e.includes("experimental") && e.includes("properties")) ||
+      (e.includes("computed") && e.includes("properties"))),
+  "pubchem-view-patent": (e) =>
+    e.includes("pug_view") && e.includes("/data/patent/"),
   "pubchem-patents": (e) =>
     e.includes("pubchem.ncbi.nlm.nih.gov") && e.includes("patentid"),
   "pubchem-class": (e) =>
@@ -300,6 +312,8 @@ function sourceFamilyFromRef(ref: SourceRef): string | undefined {
   const multi = [
     "pubchem-mfg-page",
     "pubchem-view-ghs",
+    "pubchem-view-props",
+    "pubchem-view-patent",
     "pubchem-patents",
     "pubchem-class",
     "pubchem-mfg",

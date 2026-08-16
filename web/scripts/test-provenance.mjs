@@ -365,6 +365,35 @@ ok(
   /traces=\{ghsTraces\}[\s\S]{0,80}sourceRefs=\{dossier\.hazards\.sourceRefs\}/.test(liveDossier)
 );
 
+ok(
+  "PROV-10 pubchem-view-props pred requires pug_view chemical/physical",
+  /"pubchem-view-props":[\s\S]{0,160}pug_view/.test(provLib) &&
+    /"pubchem-view-props":[\s\S]{0,220}chemical/.test(provLib) &&
+    /"pubchem-view-props":[\s\S]{0,280}physical/.test(provLib)
+);
+ok(
+  "PROV-10 pubchem-view-patent pred requires pug_view/data/patent",
+  /"pubchem-view-patent":[\s\S]{0,160}pug_view/.test(provLib) &&
+    /"pubchem-view-patent":[\s\S]{0,200}\/data\/patent\//.test(provLib)
+);
+ok(
+  "PROV-10 live property traces exclude patent pug_view and generic fallback",
+  /const propertyTraces = traces\.filter/.test(liveDossier) &&
+    /pug_view\/data\/patent\//.test(liveDossier) &&
+    !/traces=\{pugViewTraces\.length \? pugViewTraces : pubchemTraces\}/.test(aside)
+);
+ok(
+  "PROV-10 live properties provenance uses only propertyTraces",
+  /traces=\{propertyTraces\}/.test(aside) &&
+    /sourceRefs=\{propertySourceRefs\}/.test(aside) &&
+    /title="PubChem properties"/.test(aside)
+);
+ok(
+  "PROV-10 live patent traces include pug_view/data/patent densify",
+  /patentTraces = traces\.filter/.test(liveDossier) &&
+    /includes\("pug_view\/data\/patent\/"\)/.test(liveDossier)
+);
+
 const { createRequire } = await import("node:module");
 const { tmpdir } = await import("node:os");
 const { pathToFileURL } = await import("node:url");
@@ -540,6 +569,96 @@ ok(
       url: "https://pubchem.ncbi.nlm.nih.gov/compound/2244#section=Spectra",
     },
     mixedWithGhs
+  ) == null
+);
+
+const propsViewTrace = {
+  endpointUrl:
+    "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=Chemical+and+Physical+Properties",
+  method: "GET",
+  fetchedAt: "2026-08-16T18:00:05.000Z",
+  httpStatus: 200,
+  responseBody: '{"Record":{}}',
+  ok: true,
+};
+const patentViewTrace = {
+  endpointUrl:
+    "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/patent/US-10029448-B2/JSON",
+  method: "GET",
+  fetchedAt: "2026-08-16T18:00:06.000Z",
+  httpStatus: 200,
+  responseBody: '{"Record":{}}',
+  ok: true,
+};
+const litViewTrace = {
+  endpointUrl:
+    "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=Literature",
+  method: "GET",
+  fetchedAt: "2026-08-16T18:00:07.000Z",
+  httpStatus: 200,
+  responseBody: '{"Record":{}}',
+  ok: true,
+};
+const leftoverPubchem = [...mixedWithGhs, propsViewTrace, patentViewTrace, litViewTrace];
+
+ok(
+  "PROV-10 properties citation hydrates from properties pug_view not GHS/identity",
+  matchLive(
+    {
+      type: "api",
+      id: "pubchem-view-props:2244",
+      label: "PubChem · Chemical and Physical Properties",
+      url: "https://pubchem.ncbi.nlm.nih.gov/compound/2244#section=Chemical-and-Physical-Properties",
+    },
+    leftoverPubchem
+  )?.endpointUrl.includes("Chemical+and+Physical")
+);
+ok(
+  "PROV-10 properties citation stays unmatched without properties pug_view",
+  matchLive(
+    {
+      type: "api",
+      id: "pubchem-view-props:2244",
+      label: "PubChem · Chemical and Physical Properties",
+      url: "https://pubchem.ncbi.nlm.nih.gov/compound/2244#section=Chemical-and-Physical-Properties",
+    },
+    mixedWithGhs
+  ) == null
+);
+ok(
+  "PROV-10 patent-view citation hydrates from pug_view/data/patent not PatentID",
+  matchLive(
+    {
+      type: "api",
+      id: "pubchem-view-patent:US-10029448-B2",
+      label: "PubChem PUG View patent record",
+      url: "https://pubchem.ncbi.nlm.nih.gov/patent/US-10029448-B2",
+    },
+    leftoverPubchem
+  )?.endpointUrl.includes("/data/patent/")
+);
+ok(
+  "PROV-10 patent-view citation stays unmatched without patent pug_view",
+  matchLive(
+    {
+      type: "api",
+      id: "pubchem-view-patent:US-10029448-B2",
+      label: "PubChem PUG View patent record",
+      url: "https://pubchem.ncbi.nlm.nih.gov/patent/US-10029448-B2",
+    },
+    mixedWithGhs
+  ) == null
+);
+ok(
+  "PROV-10 literature pug_view heading does not hydrate properties citation",
+  matchLive(
+    {
+      type: "api",
+      id: "pubchem-view-props:2244",
+      label: "PubChem · Chemical and Physical Properties",
+      url: "https://pubchem.ncbi.nlm.nih.gov/compound/2244#section=Chemical-and-Physical-Properties",
+    },
+    [propertyTrace, litViewTrace, ghsViewTrace]
   ) == null
 );
 
