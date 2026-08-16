@@ -25,7 +25,7 @@ export default async function SearchPage({ searchParams }: Props) {
         </strong>{" "}
         (live free-public APIs only — no mock catalog). Query by{" "}
         <strong className="font-medium text-slate-300">
-          name, CAS RN, SMILES, InChIKey, UNII, or CID
+          name, CAS RN, SMILES, InChI, InChIKey, UNII, or CID
         </strong>
         . Hits merge toward openable{" "}
         <strong className="font-medium text-slate-300">live multi-API dossiers</strong>
@@ -49,7 +49,7 @@ export default async function SearchPage({ searchParams }: Props) {
           <Link href={routes.search("2244")} className="text-teal-400 hover:underline">
             2244
           </Link>
-          , or paste an InChIKey.
+          , or paste an InChI / InChIKey.
         </p>
       ) : (
         <SearchResults query={query} />

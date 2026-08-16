@@ -7,6 +7,7 @@ import { fetchPubChemAutocomplete } from "@/lib/api/pubchemAutocomplete";
 import { fetchRxNormByName } from "@/lib/api/rxnorm";
 import { fetchOpenFdaByName } from "@/lib/api/openFda";
 import type { SuggestItem } from "@/lib/data/suggestions";
+import { isNameQuery } from "@/lib/search/queryKind";
 
 export interface MultiSourceSuggestResult {
   schema: "chemistry-recipes.multi-source-suggest.v1";
@@ -19,6 +20,7 @@ export interface MultiSourceSuggestResult {
 /**
  * Build ranked autocomplete rows for the search combobox.
  * Safe for short prefixes; never invents chemical names.
+ * Structured identifiers (CAS, SMILES, InChI, …) skip name fan-out.
  */
 export async function multiSourceSuggest(
   term: string,
@@ -33,6 +35,16 @@ export async function multiSourceSuggest(
       suggestions: [],
       sourcesUsed: [],
       durationMs: 0,
+    };
+  }
+
+  if (!isNameQuery(q)) {
+    return {
+      schema: "chemistry-recipes.multi-source-suggest.v1",
+      q,
+      suggestions: [],
+      sourcesUsed: [],
+      durationMs: Date.now() - t0,
     };
   }
 

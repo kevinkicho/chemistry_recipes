@@ -302,7 +302,7 @@ export function SearchResults({ query }: { query: string }) {
       {!error && !loading && hits.length === 0 ? (
         <p className="text-sm text-slate-500">
           No free-public hits for this query. Try a different name, CAS RN, CID,
-          InChIKey, or UNII.
+          SMILES, InChI, InChIKey, or UNII.
         </p>
       ) : null}
 
