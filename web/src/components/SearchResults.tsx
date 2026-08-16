@@ -8,6 +8,21 @@ import type {
   MultiSourceSearchResult,
 } from "@/lib/search/multiSourceSearch";
 
+/** Keep real browser PubChem CID cards when server fan-out is identity-only or missed them. */
+function mergeOpenableBrowserHits(
+  serverHits: MultiSourceHit[],
+  browserHits: MultiSourceHit[]
+): MultiSourceHit[] {
+  if (!browserHits.length) return serverHits;
+  const seen = new Set<number>();
+  for (const h of serverHits) {
+    if (h.cid && h.cid > 0) seen.add(h.cid);
+  }
+  const extra = browserHits.filter((h) => h.cid && h.cid > 0 && !seen.has(h.cid));
+  if (!extra.length) return serverHits;
+  return [...extra, ...serverHits];
+}
+
 /**
  * Search order (live free-public only):
  * 1) Browser → PubChem (user IP)
@@ -82,16 +97,20 @@ export function SearchResults({ query }: { query: string }) {
             error?: string;
           };
           if (data.hits?.length) {
-            setHits(data.hits);
+            const merged = mergeOpenableBrowserHits(data.hits, browserHits);
+            setHits(merged);
             setSourceStatus(data.sourceStatus || []);
             setError(null);
+            const keptBrowser = merged.length > data.hits.length;
             setNote(
-              data.note
-                ? `${data.note} · AI dual-view densifies free-public evidence on open.`
-                : "Multi-source free-public hits — open a CID for AI dual-view dossier."
+              keptBrowser
+                ? `${data.note ? `${data.note} · ` : ""}kept PubChem browser CID cards that server fan-out missed.`
+                : data.note
+                  ? `${data.note} · AI dual-view densifies free-public evidence on open.`
+                  : "Multi-source free-public hits — open a CID for AI dual-view dossier."
             );
             // Latency: warm top openable CIDs in background (server densify cache)
-            const warmCids = data.hits
+            const warmCids = merged
               .filter((h) => h.openable && h.cid && h.cid > 0)
               .slice(0, 2)
               .map((h) => h.cid as number);
@@ -127,25 +146,24 @@ export function SearchResults({ query }: { query: string }) {
           };
           const next = data.hits ?? [];
           if (next.length > 0) {
-            setHits(
-              next.map((h) => ({
-                cid: h.cid,
-                name: h.name,
-                formula: h.formula,
-                molecularWeight: h.molecularWeight,
-                cas: h.cas,
-                inchiKey: h.inchiKey,
-                sources: [
-                  {
-                    source: "pubchem" as const,
-                    label: "PubChem · NIH",
-                    externalId: String(h.cid),
-                  },
-                ],
-                score: 40,
-                openable: true,
-              }))
-            );
+            const mapped: MultiSourceHit[] = next.map((h) => ({
+              cid: h.cid,
+              name: h.name,
+              formula: h.formula,
+              molecularWeight: h.molecularWeight,
+              cas: h.cas,
+              inchiKey: h.inchiKey,
+              sources: [
+                {
+                  source: "pubchem" as const,
+                  label: "PubChem · NIH",
+                  externalId: String(h.cid),
+                },
+              ],
+              score: 40,
+              openable: true,
+            }));
+            setHits(mergeOpenableBrowserHits(mapped, browserHits));
             setError(null);
             setNote("PubChem-only results (multi-source empty).");
             return;
@@ -220,6 +238,12 @@ export function SearchResults({ query }: { query: string }) {
           } else {
             setError("Search timed out. Try a CID or retry shortly.");
           }
+        } else if (browserHits.length > 0) {
+          setHits(browserHits);
+          setError(null);
+          setNote(
+            "PubChem browser hits — server enrich failed. Open a CID or retry."
+          );
         } else {
           setError(e instanceof Error ? e.message : "Search failed");
         }

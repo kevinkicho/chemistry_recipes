@@ -4,6 +4,7 @@
  * App Hosting / Cloud Run egress often gets HTTP 503 from PubChem.
  * The user's browser IP usually still works — use this path for search UI
  * and related-entity CID resolve, with a serial queue + 503 backoff.
+ * Resolves CID, CAS, InChIKey, UNII, SMILES, and name (same types as server).
  */
 
 import { pubchemQueuedFetch } from "@/lib/api/pubchemQueue";
@@ -29,6 +30,32 @@ function looksLikeInchiKey(q: string): boolean {
   return /^[A-Z]{14}-[A-Z]{10}-[A-Z]$/i.test(q.trim());
 }
 
+function looksLikeUnii(q: string): boolean {
+  return /^[A-Z0-9]{10}$/i.test(q.trim()) && !/^\d+$/.test(q.trim());
+}
+
+/** Same structured-SMILES heuristic as server searchPubChem — no invention. */
+function looksLikeSmiles(q: string): boolean {
+  const s = q.trim();
+  if (s.length < 2 || s.length > 500) return false;
+  if (/\s/.test(s)) return false;
+  if (/^\d+$/.test(s)) return false;
+  if (looksLikeCas(s) || looksLikeInchiKey(s) || looksLikeUnii(s)) return false;
+  if (/^[A-Za-z]+$/.test(s)) return false;
+  const hasSmilesSyntax = /[=#@()\[\]\\/%]/.test(s) || /[0-9]/.test(s);
+  if (!hasSmilesSyntax) return false;
+  return /[A-Za-z]/.test(s);
+}
+
+function isNameQuery(q: string): boolean {
+  return (
+    !looksLikeCas(q) &&
+    !looksLikeInchiKey(q) &&
+    !looksLikeUnii(q) &&
+    !looksLikeSmiles(q)
+  );
+}
+
 async function fetchJson(
   url: string,
   signal?: AbortSignal
@@ -49,6 +76,10 @@ async function resolveCids(
     url = `${PUG}/compound/xref/RN/${encodeURIComponent(t)}/cids/JSON`;
   } else if (looksLikeInchiKey(t)) {
     url = `${PUG}/compound/inchikey/${encodeURIComponent(t.toUpperCase())}/cids/JSON`;
+  } else if (looksLikeUnii(t)) {
+    url = `${PUG}/compound/name/${encodeURIComponent(t.toUpperCase())}/cids/JSON`;
+  } else if (looksLikeSmiles(t)) {
+    url = `${PUG}/compound/smiles/${encodeURIComponent(t)}/cids/JSON`;
   } else {
     url = `${PUG}/compound/name/${encodeURIComponent(t)}/cids/JSON`;
   }
@@ -62,7 +93,7 @@ async function resolveCids(
   }
 
   // Word match only if exact name failed with 404 (not 503)
-  if (!looksLikeCas(t) && !looksLikeInchiKey(t) && r.status === 404) {
+  if (isNameQuery(t) && r.status === 404) {
     const word = await fetchJson(
       `${PUG}/compound/name/${encodeURIComponent(t)}/cids/JSON?name_type=word`,
       signal
@@ -76,7 +107,7 @@ async function resolveCids(
   }
 
   // Autocomplete → first terms → name resolve (still queued)
-  if (!looksLikeCas(t) && !looksLikeInchiKey(t) && t.length >= 2 && r.status !== 503) {
+  if (isNameQuery(t) && t.length >= 2 && r.status !== 503) {
     const acUrl = `https://pubchem.ncbi.nlm.nih.gov/rest/autocomplete/compound/${encodeURIComponent(t)}/json?limit=6`;
     const ac = await fetchJson(acUrl, signal);
     if (ac.ok && ac.data && typeof ac.data === "object") {
