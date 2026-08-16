@@ -40,6 +40,9 @@ function decodeUrlPart(raw: string): string {
  * Equals-sign forms (CID=2244, CAS=50-78-2) must not be classified as SMILES.
  * PubChem /compound/ slugs, #query=, Wikipedia /wiki/, doi.org, and ChEBI URLs
  * extract the identifier or name. InChI wrapping spaces are compacted.
+ * DrugBank / KEGG / HMDB / MeSH / ATC / UN-number pastes and URLs compact to the
+ * accession id and must not be classified as SMILES (letter+digit heuristic).
+ * UN numbers stay UN#### — never a bare 4-digit CID.
  */
 export function normalizeChemicalQuery(q: string): string {
   let s = q.trim();
@@ -89,6 +92,27 @@ export function normalizeChemicalQuery(q: string): string {
   );
   if (chebiUrl) return `CHEBI:${chebiUrl[1]}`;
 
+
+  const drugbankUrl = s.match(
+    /(?:https?:\/\/)?(?:go\.|www\.)?drugbank\.(?:com|ca)\/drugs\/(DB\d{5,7})/i
+  );
+  if (drugbankUrl) return drugbankUrl[1].toUpperCase();
+
+  const keggUrl = s.match(
+    /(?:https?:\/\/)?(?:www\.)?(?:kegg|genome)\.jp\/(?:entry\/|dbget-bin\/www_bget\?)([CDGR]\d{5})/i
+  );
+  if (keggUrl) return keggUrl[1].toUpperCase();
+
+  const hmdbUrl = s.match(
+    /(?:https?:\/\/)?(?:www\.)?hmdb\.ca\/metabolites\/(HMDB\d{5,7})/i
+  );
+  if (hmdbUrl) return hmdbUrl[1].toUpperCase();
+
+  const meshUrl = s.match(
+    /(?:https?:\/\/)?(?:meshb\.nlm\.nih\.gov\/record\/ui\?ui=|(?:www\.)?ncbi\.nlm\.nih\.gov\/mesh\/|id\.nlm\.nih\.gov\/mesh\/)([DC]\d{6})/i
+  );
+  if (meshUrl) return meshUrl[1].toUpperCase();
+
   const cid = s.match(
     /^(?:pubchem\s+)?(?:compound\s+)?cid\s*[=:#]?\s*(\d+)$/i
   );
@@ -136,6 +160,41 @@ export function normalizeChemicalQuery(q: string): string {
   const doiPref = s.match(/^(?:doi)\s*[=:]?\s*(10\.\d{4,}\/\S+)$/i);
   if (doiPref) return doiPref[1].replace(/[)\].,;]+$/, "");
 
+
+  const drugbank = s.match(
+    /^(?:drugbank(?:\s*(?:id|accession(?:\s*number)?))?)(?:\s*\[\d+\])?\s*[=:#]?\s*(DB\d{5,7})$/i
+  );
+  if (drugbank) return drugbank[1].toUpperCase();
+
+  const kegg = s.match(
+    /^(?:kegg(?:\s*(?:id|compound|drug|glycan|reaction))?|cpd)(?:\s*\[\d+\])?\s*[=:#]?\s*([CDGR]\d{5})$/i
+  );
+  if (kegg) return kegg[1].toUpperCase();
+
+  const hmdb = s.match(
+    /^(?:hmdb(?:\s*id)?)(?:\s*\[\d+\])?\s*[=:#]?\s*(HMDB\d{5,7}|\d{5,7})$/i
+  );
+  if (hmdb) {
+    const body = hmdb[1].toUpperCase();
+    return body.startsWith("HMDB") ? body : `HMDB${body}`;
+  }
+
+  const mesh = s.match(
+    /^(?:mesh(?:\s*(?:id|ui|unique\s*id))?)(?:\s*\[\d+\])?\s*[=:#]?\s*([DC]\d{6})$/i
+  );
+  if (mesh) return mesh[1].toUpperCase();
+
+  const atc = s.match(
+    /^(?:atc(?:\s*(?:code|classification|class))?)(?:\s*\[\d+\])?\s*[=:#]?\s*([A-Z]\d{2}[A-Z]{2}\d{2})$/i
+  );
+  if (atc) return atc[1].toUpperCase();
+
+  // After UNII. Bare 4-digit UN numbers must stay UN#### (not CID).
+  const unNum = s.match(
+    /^(?:un(?:\s*(?:no\.?|numbers?|id))?)(?:\s*\[\d+\])?\s*[=:#]?\s*(\d{4})$/i
+  );
+  if (unNum) return `UN${unNum[1]}`;
+
   return compactIfInchi(s);
 }
 
@@ -166,6 +225,49 @@ export function looksLikeChebi(q: string): boolean {
   return /^CHEBI:\d+$/i.test(q.trim());
 }
 
+/** DrugBank accession after prefix/URL normalize (DB00945). */
+export function looksLikeDrugbank(q: string): boolean {
+  return /^DB\d{5,7}$/i.test(q.trim());
+}
+
+/** KEGG compound/drug/glycan/reaction id (C00031). */
+export function looksLikeKegg(q: string): boolean {
+  return /^[CDGR]\d{5}$/i.test(q.trim());
+}
+
+/** HMDB metabolite accession (HMDB0000122). */
+export function looksLikeHmdb(q: string): boolean {
+  return /^HMDB\d{5,7}$/i.test(q.trim());
+}
+
+/** MeSH unique id (D001241). Distinct from KEGG D##### (5 digits). */
+export function looksLikeMesh(q: string): boolean {
+  return /^[DC]\d{6}$/i.test(q.trim());
+}
+
+/** WHO ATC code (N02BA01). */
+export function looksLikeAtc(q: string): boolean {
+  return /^[A-Z]\d{2}[A-Z]{2}\d{2}$/i.test(q.trim());
+}
+
+/** UN transport number after normalize (UN1993). Never a bare CID. */
+export function looksLikeUnNumber(q: string): boolean {
+  return /^UN\d{4}$/i.test(q.trim());
+}
+
+/** Database accession ids that the SMILES letter+digit heuristic must not steal. */
+export function looksLikeAccessionId(q: string): boolean {
+  const t = q.trim();
+  return (
+    looksLikeDrugbank(t) ||
+    looksLikeKegg(t) ||
+    looksLikeHmdb(t) ||
+    looksLikeMesh(t) ||
+    looksLikeAtc(t) ||
+    looksLikeUnNumber(t)
+  );
+}
+
 /** Numbered organic names: "2-propanol", "1,3-butadiene", "4-aminophenol". */
 export function looksLikeNumberedChemicalName(q: string): boolean {
   const s = q.trim();
@@ -192,7 +294,7 @@ export function looksLikeMolecularFormula(q: string): boolean {
   return true;
 }
 
-/** Structured SMILES — not numbered names, formulas, DOI, or other identifier kinds. */
+/** Structured SMILES — not numbered names, formulas, DOI, accession ids, or other identifier kinds. */
 export function looksLikeSmiles(q: string): boolean {
   const s = q.trim();
   if (s.length < 2 || s.length > 500) return false;
@@ -205,6 +307,7 @@ export function looksLikeSmiles(q: string): boolean {
     looksLikeUnii(s) ||
     looksLikeDoi(s) ||
     looksLikeChebi(s) ||
+    looksLikeAccessionId(s) ||
     looksLikeNumberedChemicalName(s) ||
     looksLikeMolecularFormula(s)
   ) {
@@ -224,7 +327,7 @@ export function classifyChemicalQuery(q: string): ChemicalQueryKind {
   if (looksLikeInchiKey(t)) return "inchikey";
   if (looksLikeInchi(t)) return "inchi";
   if (looksLikeUnii(t)) return "unii";
-  if (looksLikeDoi(t) || looksLikeChebi(t)) return "name";
+  if (looksLikeDoi(t) || looksLikeChebi(t) || looksLikeAccessionId(t)) return "name";
   if (looksLikeSmiles(t)) return "smiles";
   return "name";
 }
@@ -291,9 +394,12 @@ export function resolveSearchSubmit(
     }
     return { value: q };
   }
-  // DOI / ChEBI / EC Number / URL pastes normalize to a name-shaped id.
+  // DOI / ChEBI / EC Number / accession-id / URL pastes normalize to a name-shaped id.
   // Do not let a leftover autocomplete highlight replace the pasted value.
   if (q && q !== typed.trim()) {
+    return { value: q };
+  }
+  if (looksLikeDoi(q) || looksLikeChebi(q) || looksLikeAccessionId(q)) {
     return { value: q };
   }
   if (highlighted?.value) {

@@ -792,4 +792,105 @@ ok(
     }) === "Neighbors densified: 2244"
 );
 
+
+ok(
+  "SEARCH-17 DrugBank id/URL/prefix are names, not SMILES",
+  qk.normalizeChemicalQuery("DB00945") === "DB00945" &&
+    qk.classifyChemicalQuery("DB00945") === "name" &&
+    qk.looksLikeDrugbank("DB00945") &&
+    qk.looksLikeAccessionId("DB00945") &&
+    !qk.looksLikeSmiles("DB00945") &&
+    qk.normalizeChemicalQuery("DrugBank ID: DB00945") === "DB00945" &&
+    qk.classifyChemicalQuery("DrugBank: DB00945") === "name" &&
+    qk.normalizeChemicalQuery(
+      "https://go.drugbank.com/drugs/DB00945"
+    ) === "DB00945" &&
+    qk.classifyChemicalQuery(
+      "https://go.drugbank.com/drugs/DB00945"
+    ) === "name" &&
+    !qk.looksLikeSmiles(
+      qk.normalizeChemicalQuery("https://go.drugbank.com/drugs/DB00945")
+    ) &&
+    !qk.isStructureOnlyQuery(qk.classifyChemicalQuery("DB00945"))
+);
+ok(
+  "SEARCH-17 KEGG C00031 / URL / cpd: are names, not SMILES",
+  qk.normalizeChemicalQuery("C00031") === "C00031" &&
+    qk.classifyChemicalQuery("C00031") === "name" &&
+    qk.looksLikeKegg("C00031") &&
+    !qk.looksLikeSmiles("C00031") &&
+    qk.normalizeChemicalQuery("KEGG Compound: C00031") === "C00031" &&
+    qk.normalizeChemicalQuery("cpd:C00031") === "C00031" &&
+    qk.normalizeChemicalQuery("https://www.kegg.jp/entry/C00031") ===
+      "C00031" &&
+    qk.classifyChemicalQuery("https://www.genome.jp/entry/C00031") ===
+      "name" &&
+    qk.classifyChemicalQuery("C1CCCCC1") === "smiles"
+);
+ok(
+  "SEARCH-17 HMDB / MeSH / ATC are names, not SMILES",
+  qk.normalizeChemicalQuery("HMDB0000122") === "HMDB0000122" &&
+    qk.classifyChemicalQuery("HMDB0000122") === "name" &&
+    qk.looksLikeHmdb("HMDB0000122") &&
+    !qk.looksLikeSmiles("HMDB0000122") &&
+    qk.normalizeChemicalQuery("HMDB ID: 0000122") === "HMDB0000122" &&
+    qk.normalizeChemicalQuery(
+      "https://hmdb.ca/metabolites/HMDB0000122"
+    ) === "HMDB0000122" &&
+    qk.normalizeChemicalQuery("MeSH: D001241") === "D001241" &&
+    qk.classifyChemicalQuery("D001241") === "name" &&
+    qk.looksLikeMesh("D001241") &&
+    !qk.looksLikeKegg("D001241") &&
+    !qk.looksLikeSmiles("D001241") &&
+    qk.normalizeChemicalQuery(
+      "https://meshb.nlm.nih.gov/record/ui?ui=D001241"
+    ) === "D001241" &&
+    qk.normalizeChemicalQuery("ATC code: N02BA01") === "N02BA01" &&
+    qk.classifyChemicalQuery("N02BA01") === "name" &&
+    qk.looksLikeAtc("N02BA01") &&
+    !qk.looksLikeSmiles("N02BA01")
+);
+ok(
+  "SEARCH-17 UN number is UN#### name, not CID or SMILES",
+  qk.normalizeChemicalQuery("UN1993") === "UN1993" &&
+    qk.classifyChemicalQuery("UN1993") === "name" &&
+    qk.looksLikeUnNumber("UN1993") &&
+    !qk.looksLikeSmiles("UN1993") &&
+    qk.parsePubchemCidQuery("UN1993") === null &&
+    qk.normalizeChemicalQuery("UN Number: 1993") === "UN1993" &&
+    qk.classifyChemicalQuery("UN Number: 1993") === "name" &&
+    qk.normalizeChemicalQuery("UN No. 1993") === "UN1993" &&
+    qk.parsePubchemCidQuery("UN Number: 1993") === null &&
+    qk.classifyChemicalQuery("1993") === "cid" &&
+    qk.parsePubchemCidQuery("1993") === 1993 &&
+    qk.classifyChemicalQuery("UNII=R16CO5Y76E") === "unii"
+);
+ok(
+  "SEARCH-17 accession Enter submits id as written (not highlight/SMILES)",
+  qk.resolveSearchSubmit("DB00945", { value: "aspirin" }).value ===
+    "DB00945" &&
+    qk.resolveSearchSubmit("DrugBank ID: DB00945", { value: "aspirin" })
+      .value === "DB00945" &&
+    qk.resolveSearchSubmit("C00031", { value: "glucose" }).value ===
+      "C00031" &&
+    qk.resolveSearchSubmit("https://go.drugbank.com/drugs/DB00945", null)
+      .value === "DB00945" &&
+    qk.resolveSearchSubmit("UN Number: 1993", { value: "1993" }).value ===
+      "UN1993" &&
+    qk.resolveSearchSubmit("ATC: N02BA01", { value: "aspirin" }).value ===
+      "N02BA01"
+);
+ok(
+  "SEARCH-17 prior identifiers still classify after accession ids",
+  qk.classifyChemicalQuery("CID=2244") === "cid" &&
+    qk.classifyChemicalQuery("CAS=50-78-2") === "cas" &&
+    qk.classifyChemicalQuery("smiles") === "name" &&
+    qk.classifyChemicalQuery("aspirin") === "name" &&
+    qk.classifyChemicalQuery(aspirinSmiles) === "smiles" &&
+    qk.classifyChemicalQuery("2-propanol") === "name" &&
+    qk.classifyChemicalQuery("C/C=C/C") === "smiles" &&
+    qk.classifyChemicalQuery("C9H8O4") === "name" &&
+    qk.classifyChemicalQuery(aspirinInchi) === "inchi"
+);
+
 console.log(`\n${passed} search-contract checks passed`);
