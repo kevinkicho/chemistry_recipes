@@ -105,7 +105,11 @@ function classifyTrace(url: string): {
             ? "Use and manufacturing"
             : u.includes("chemical") && u.includes("physical")
               ? "Chemical and physical properties"
-              : "PUG View section",
+              : u.includes("heading=literature")
+                ? "Literature"
+                : u.includes("heading=patents")
+                  ? "Compound patents heading"
+                  : "PUG View section",
     };
   }
   if (u.includes("pubchem")) {
@@ -248,6 +252,50 @@ function classifyTrace(url: string): {
   };
 }
 
+
+/** PUG View headings that actually feed overview / identity description text. */
+function isOverviewPugViewHeading(endpointLower: string): boolean {
+  return (
+    (endpointLower.includes("names") && endpointLower.includes("identifiers")) ||
+    endpointLower.includes("pharmacology") ||
+    (endpointLower.includes("drug") && endpointLower.includes("medication")) ||
+    (endpointLower.includes("associated") && endpointLower.includes("disorders"))
+  );
+}
+
+/** Identity / overview cards must not claim literature, classification, or other leftover HTTP. */
+export function isIdentityOverviewTrace(endpointUrl: string): boolean {
+  const e = endpointUrl.toLowerCase();
+  if (!e.includes("pubchem.ncbi.nlm.nih.gov")) return false;
+  if (e.includes("patentid") || e.includes("/data/patent/")) return false;
+  if (e.includes("/classification/")) return false;
+  if (e.includes("pubmedid")) return false;
+  if (e.includes("pug_view")) return isOverviewPugViewHeading(e);
+  return true;
+}
+
+export function isLiteratureHeadingTrace(endpointUrl: string): boolean {
+  const e = endpointUrl.toLowerCase();
+  return e.includes("pug_view") && e.includes("heading=literature");
+}
+
+export function isCompoundPatentsHeadingTrace(endpointUrl: string): boolean {
+  const e = endpointUrl.toLowerCase();
+  return (
+    e.includes("pug_view") &&
+    !e.includes("/data/patent/") &&
+    e.includes("heading=patents")
+  );
+}
+
+export function isIdentityOverviewSourceRef(ref: SourceRef): boolean {
+  if (ref.type === "literature" || ref.type === "patent") return false;
+  const id = (ref.id || "").toLowerCase();
+  if (id.startsWith("pubchem:")) return true;
+  if (id.startsWith("pubchem-")) return false;
+  return /^(chebi|gsrs|mychem|unichem|rxnorm|drugcentral):/.test(id);
+}
+
 type EndpointPred = (endpointLower: string) => boolean;
 
 /** Family → harvest endpoint matcher. Id prefix wins over URL heuristics. */
@@ -270,6 +318,8 @@ const SOURCE_FAMILY_PRED: Record<string, EndpointPred> = {
       (e.includes("computed") && e.includes("properties"))),
   "pubchem-view-patent": (e) =>
     e.includes("pug_view") && e.includes("/data/patent/"),
+  "pubchem-view-lit": (e) =>
+    e.includes("pug_view") && e.includes("heading=literature"),
   "pubchem-patents": (e) =>
     e.includes("pubchem.ncbi.nlm.nih.gov") && e.includes("patentid"),
   "pubchem-class": (e) =>
@@ -314,6 +364,7 @@ function sourceFamilyFromRef(ref: SourceRef): string | undefined {
     "pubchem-view-ghs",
     "pubchem-view-props",
     "pubchem-view-patent",
+    "pubchem-view-lit",
     "pubchem-patents",
     "pubchem-class",
     "pubchem-mfg",

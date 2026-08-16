@@ -394,6 +394,26 @@ ok(
     /includes\("pug_view\/data\/patent\/"\)/.test(liveDossier)
 );
 
+ok(
+  "PROV-11 pubchem-view-lit pred requires pug_view Literature heading",
+  /"pubchem-view-lit":[\s\S]{0,160}pug_view/.test(provLib) &&
+    /"pubchem-view-lit":[\s\S]{0,200}heading=literature/.test(provLib)
+);
+ok(
+  "PROV-11 live overview provenance uses identityTraces not all pubchem",
+  /traces=\{identityTraces\}/.test(liveDossier) &&
+    /sourceRefs=\{overviewSourceRefs\}/.test(liveDossier) &&
+    !/field=\"Overview\"[\s\S]{0,120}traces=\{pubchemTraces\}/.test(liveDossier)
+);
+ok(
+  "PROV-11 live literature traces include pug_view Literature heading",
+  /isLiteratureHeadingTrace\(t\.endpointUrl\)/.test(liveDossier)
+);
+ok(
+  "PROV-11 live patent traces include compound Patents heading",
+  /isCompoundPatentsHeadingTrace\(t\.endpointUrl\)/.test(liveDossier)
+);
+
 const { createRequire } = await import("node:module");
 const { tmpdir } = await import("node:os");
 const { pathToFileURL } = await import("node:url");
@@ -423,7 +443,13 @@ const { outputText: provJs } = ts.transpileModule(provSrc, {
 });
 const provOut = join(tmpdir(), `provenance-match-${process.pid}.mjs`);
 writeFileSync(provOut, provJs, "utf8");
-const { matchTraceForSourceRef: matchLive } = await import(pathToFileURL(provOut).href);
+const {
+  matchTraceForSourceRef: matchLive,
+  isIdentityOverviewTrace,
+  isIdentityOverviewSourceRef,
+  isLiteratureHeadingTrace,
+  isCompoundPatentsHeadingTrace,
+} = await import(pathToFileURL(provOut).href);
 
 const propertyTrace = {
   endpointUrl:
@@ -660,6 +686,85 @@ ok(
     },
     [propertyTrace, litViewTrace, ghsViewTrace]
   ) == null
+);
+
+ok(
+  "PROV-11 identity/overview keeps PUG REST property HTTP",
+  isIdentityOverviewTrace(propertyTrace.endpointUrl)
+);
+ok(
+  "PROV-11 identity/overview keeps pharmacology pug_view",
+  isIdentityOverviewTrace(
+    "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=Pharmacology+and+Biochemistry"
+  )
+);
+ok(
+  "PROV-11 identity/overview rejects Literature heading HTTP",
+  !isIdentityOverviewTrace(litViewTrace.endpointUrl)
+);
+ok(
+  "PROV-11 identity/overview rejects classification HTTP",
+  !isIdentityOverviewTrace(classTrace.endpointUrl)
+);
+ok(
+  "PROV-11 identity/overview rejects GHS pug_view",
+  !isIdentityOverviewTrace(ghsViewTrace.endpointUrl)
+);
+ok(
+  "PROV-11 identity/overview rejects PatentID HTTP",
+  !isIdentityOverviewTrace(patentIdTrace.endpointUrl)
+);
+ok(
+  "PROV-11 literature heading matcher accepts pug_view Literature",
+  isLiteratureHeadingTrace(litViewTrace.endpointUrl)
+);
+ok(
+  "PROV-11 compound patents heading is not /data/patent densify",
+  isCompoundPatentsHeadingTrace(
+    "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=Patents"
+  ) && !isCompoundPatentsHeadingTrace(patentViewTrace.endpointUrl)
+);
+ok(
+  "PROV-11 literature heading citation does not hydrate from identity HTTP",
+  matchLive(
+    {
+      type: "api",
+      id: "pubchem-view-lit:2244",
+      label: "PubChem PUG View · Literature",
+      url: "https://pubchem.ncbi.nlm.nih.gov/compound/2244#section=Literature",
+    },
+    leftoverPubchem
+  )?.endpointUrl.includes("heading=Literature")
+);
+ok(
+  "PROV-11 literature heading citation stays unmatched without Literature pug_view",
+  matchLive(
+    {
+      type: "api",
+      id: "pubchem-view-lit:2244",
+      label: "PubChem PUG View · Literature",
+      url: "https://pubchem.ncbi.nlm.nih.gov/compound/2244#section=Literature",
+    },
+    mixedWithGhs
+  ) == null
+);
+ok(
+  "PROV-11 identity source ref kept; classification leftover dropped",
+  isIdentityOverviewSourceRef({
+    type: "api",
+    id: "pubchem:2244",
+    label: "PubChem compound record",
+  }) &&
+    !isIdentityOverviewSourceRef({
+      type: "api",
+      id: "pubchem-class:2244",
+      label: "PubChem classification / MeSH",
+    }) &&
+    !isIdentityOverviewSourceRef({
+      type: "literature",
+      id: "doi:10.1000/foo",
+      label: "Some paper",
+    })
 );
 
 console.log(`\n${passed} provenance checks passed`);
