@@ -248,5 +248,17 @@ ok(
       read("components/dossier/LiveMoleculeDossier.tsx")
     )
 );
+ok(
+  "live dossier process recipe chips do not dump leftover harvest HTTP",
+  /traces=\{processFactTraces\}/.test(
+    read("components/dossier/LiveMoleculeDossier.tsx")
+  ) &&
+    /isProcessFactTrace/.test(
+      read("components/dossier/LiveMoleculeDossier.tsx")
+    ) &&
+    !/field="Process recipe"[\s\S]{0,200}traces=\{traces\}/.test(
+      read("components/dossier/LiveMoleculeDossier.tsx")
+    )
+);
 
 console.log(`\n${n} product-path checks passed`);

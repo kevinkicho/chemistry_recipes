@@ -75,6 +75,8 @@ import {
   formatSectionEmptyCopy,
   isAnnotationSectionTrace,
   isAnnotationSourceRef,
+  isProcessFactSourceRef,
+  isProcessFactTrace,
 } from "@/lib/dossier/sectionHonesty";
 import { formatCacheAge } from "@/lib/idb/dossierCache";
 
@@ -386,6 +388,13 @@ export function LiveMoleculeDossier({
   );
   const annotationSourceRefs = dossier.sourceRefs.filter(isAnnotationSourceRef);
   const overviewSourceRefs = dossier.sourceRefs.filter(isIdentityOverviewSourceRef);
+  // Process recipe / routes / control points derive from process facts
+  // (literature, patents, manufacturing, GHS). Leftover identity / annotation
+  // HTTP is not recipe provenance, and chips must not live-fetch identity.
+  const processFactTraces = traces.filter((t) =>
+    isProcessFactTrace(t.endpointUrl)
+  );
+  const processFactSourceRefs = dossier.sourceRefs.filter(isProcessFactSourceRef);
   const litEmpty = formatSectionEmptyCopy({
     family: "literature",
     traces,
@@ -851,8 +860,7 @@ export function LiveMoleculeDossier({
           {show("critical-params") ? (
             <CriticalParametersBoard
               routes={dossier.processRoutes}
-              pubchemCid={cid}
-              traces={traces}
+              traces={processFactTraces}
               onRegenerate={onRegenerate}
               ai={aiCritical || (routesFromAi ? aiChip : null)}
             />
@@ -895,9 +903,8 @@ export function LiveMoleculeDossier({
               <SectionTitle
                 ai={routesFromAi ? aiRoutesField || aiChip : undefined}
                 field="Process recipe"
-                pubchemCid={cid}
-                traces={traces}
-                sourceRefs={dossier.sourceRefs}
+                traces={processFactTraces}
+                sourceRefs={processFactSourceRefs}
                 onRegenerate={onRegenerate}
               >
                 Process recipe
@@ -923,8 +930,7 @@ export function LiveMoleculeDossier({
                 }
                 processFacts={dossier.processFacts?.facts}
                 onRegenerate={onRegenerate}
-                pubchemCid={cid}
-                traces={traces}
+                traces={processFactTraces}
               />
               {routesFromAi ? (
                 <FieldRegenerateBar
@@ -946,9 +952,8 @@ export function LiveMoleculeDossier({
             >
               <SectionTitle
                 field="Route compare"
-                pubchemCid={cid}
-                traces={traces}
-                sourceRefs={dossier.sourceRefs}
+                traces={processFactTraces}
+                sourceRefs={processFactSourceRefs}
                 ai={routesFromAi ? aiRoutesField || aiChip : undefined}
                 showAi={routesFromAi}
                 onRegenerate={onRegenerate}

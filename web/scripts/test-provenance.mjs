@@ -273,6 +273,22 @@ ok(
   /Applications/.test(liveDossier) && /ContentProvenance/.test(liveDossier)
 );
 ok("live processRoutesFromAi", /processRoutesFromAi/.test(liveDossier));
+ok(
+  "PROV-17 process recipe / route / control-points chips use processFactTraces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(liveDossier) &&
+    /processFactTraces/.test(liveDossier) &&
+    /processFactSourceRefs/.test(liveDossier) &&
+    /field="Process recipe"[\s\S]{0,200}traces=\{processFactTraces\}/.test(liveDossier) &&
+    /field="Route compare"[\s\S]{0,200}traces=\{processFactTraces\}/.test(liveDossier) &&
+    /<RoutePanel[\s\S]{0,400}traces=\{processFactTraces\}/.test(liveDossier) &&
+    /<CriticalParametersBoard[\s\S]{0,200}traces=\{processFactTraces\}/.test(liveDossier) &&
+    !/field="Process recipe"[\s\S]{0,200}traces=\{traces\}/.test(liveDossier) &&
+    !/field="Route compare"[\s\S]{0,200}traces=\{traces\}/.test(liveDossier) &&
+    !/field="Process recipe"[\s\S]{0,200}pubchemCid=/.test(liveDossier) &&
+    !/field="Route compare"[\s\S]{0,200}pubchemCid=/.test(liveDossier) &&
+    !/<RoutePanel[\s\S]{0,400}pubchemCid=/.test(liveDossier) &&
+    !/<CriticalParametersBoard[\s\S]{0,200}pubchemCid=/.test(liveDossier)
+);
 
 ok(
   "aside ContentProvenance manufacturing",
