@@ -50,6 +50,7 @@ ok("buildSeedAnswers", /export function buildSeedAnswers/.test(qa));
 ok("buildNextExperiments", /export function buildNextExperiments/.test(qa));
 ok("answerFromEvidencePackage", /export function answerFromEvidencePackage/.test(qa));
 ok("insufficientEvidence first-class", /insufficientEvidence/.test(qa));
+ok("SEARCH-35 science-QA uses honestScienceQaAnswer", /honestScienceQaAnswer/.test(qa) && /formatProcessFactsEmptyCopy/.test(qa));
 
 const build = read("lib/frontier/buildKnowledge.ts");
 ok("withProcessKnowledge", /export function withProcessKnowledge/.test(build));

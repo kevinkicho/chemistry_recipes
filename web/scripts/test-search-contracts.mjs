@@ -2746,4 +2746,73 @@ ok(
     /sourceRefs=\{dossier\.sourceRefs\}/.test(critique)
 );
 
+
+const scienceQa = read("lib/frontier/evidenceQa.ts");
+const evidenceSciencePanel = read("components/frontier/EvidenceSciencePanel.tsx");
+ok(
+  "SEARCH-35 science-QA empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(scienceQa) &&
+    /honestScienceQaAnswer/.test(scienceQa) &&
+    /harvest\.kind === "error"/.test(scienceQa)
+);
+ok(
+  "SEARCH-35 literature harvest fail is science-QA error not empty",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "error" &&
+    /Not an empty result|Not a clean miss/.test(
+      sectionH.formatProcessFactsEmptyCopy({
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).message
+    )
+);
+ok(
+  "SEARCH-35 leftover identity is not a science-QA miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-35 leftover ChEMBL annotation fail is not a science-QA miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/search",
+        ok: false,
+        error: "HTTP 502",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-35 genuine empty stays no-route-hypotheses copy",
+  sectionH.formatProcessFactsEmptyCopy({ traces: [] }).kind === "empty" &&
+    /No route hypotheses assembled/.test(scienceQa)
+);
+ok(
+  "SEARCH-35 science chips still pass all traces (composite)",
+  /field="Evidence science Q&A"/.test(evidenceSciencePanel) &&
+    /dossier=\{dossier\}/.test(evidenceSciencePanel) &&
+    /composite Q&A/.test(evidenceSciencePanel)
+);
+
 console.log(`\n${passed} search-contract checks passed`);

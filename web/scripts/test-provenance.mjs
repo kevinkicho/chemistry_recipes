@@ -466,6 +466,12 @@ ok(
     /windowsEmpty/.test(read("components/EvidenceCritiquePanel.tsx")) &&
     /No procedure windows densified/.test(read("components/EvidenceCritiquePanel.tsx"))
 );
+ok(
+  "SEARCH-35 science-QA empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(read("lib/frontier/evidenceQa.ts")) &&
+    /honestScienceQaAnswer/.test(read("lib/frontier/evidenceQa.ts")) &&
+    /No route hypotheses assembled/.test(read("lib/frontier/evidenceQa.ts"))
+);
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
 ok("PdfWorkerPack exists", existsSync(src("components/PdfWorkerPack.tsx")));

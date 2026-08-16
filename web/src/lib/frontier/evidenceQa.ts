@@ -1,16 +1,33 @@
 /**
  * Evidence-grounded seed Q&A + next-experiment generator.
  * Answers only from free-public package text; insufficientEvidence is first-class.
+ * Harvest failure is not "No route hypotheses assembled" / a clean insufficient miss.
+ * Leftover identity / annotation HTTP is not a science-QA miss.
  */
 
 import type { LiveDossier } from "@/lib/dossier/types";
 import type { ConditionAtlas } from "@/lib/frontier/types";
+import { formatProcessFactsEmptyCopy } from "@/lib/dossier/sectionHonesty";
 import type {
   EvidenceAnswer,
   NextExperiment,
   RouteHypothesis,
   ScientificConflict,
 } from "@/lib/frontier/types";
+
+
+/**
+ * Evidence-science Q&A comes from literature / patent / manufacturing harvest.
+ * Harvest failure is not "No route hypotheses assembled" / a clean insufficient miss.
+ * Leftover identity / annotation HTTP is not a science-QA miss.
+ */
+function honestScienceQaAnswer(dossier: LiveDossier, cleanEmpty: string): string {
+  const harvest = formatProcessFactsEmptyCopy({
+    traces: dossier.traces,
+    fetchErrors: dossier.fetchErrors,
+  });
+  return harvest.kind === "error" ? harvest.message : cleanEmpty;
+}
 
 function packageBlob(
   dossier: LiveDossier,
@@ -104,12 +121,14 @@ const SEED_QUESTIONS: Array<{
     id: "q-temp",
     question: "What temperature ranges appear in free-public process text?",
     needles: ["°c", "temperature", "heated", "reflux"],
-    build: ({ atlas }) => {
+    build: ({ atlas, dossier }) => {
       const d = atlas.distributions.find((x) => x.kind === "temperature");
       if (!d || d.n === 0) {
         return {
-          answer:
-            "Insufficient free-public temperature mentions in densified windows. Densify OA full text / patent examples or paste public procedures.",
+          answer: honestScienceQaAnswer(
+            dossier,
+            "Insufficient free-public temperature mentions in densified windows. Densify OA full text / patent examples or paste public procedures."
+          ),
           grounded: false,
           insufficient: true,
         };
@@ -125,10 +144,13 @@ const SEED_QUESTIONS: Array<{
     id: "q-routes",
     question: "What competing public process hypotheses exist?",
     needles: ["route", "process", "synthesis", "preparation"],
-    build: ({ hypotheses }) => {
+    build: ({ hypotheses, dossier }) => {
       if (!hypotheses.length || hypotheses[0]?.id === "hyp-none") {
         return {
-          answer: "No route hypotheses assembled from free-public evidence yet.",
+          answer: honestScienceQaAnswer(
+            dossier,
+            "No route hypotheses assembled from free-public evidence yet."
+          ),
           grounded: false,
           insufficient: true,
         };
@@ -158,8 +180,10 @@ const SEED_QUESTIONS: Array<{
       );
       if (!ehs.length && !proc?.length) {
         return {
-          answer:
-            "Insufficient process-hazard narrative beyond sparse GHS (if any). Do not invent plant EHS controls.",
+          answer: honestScienceQaAnswer(
+            dossier,
+            "Insufficient process-hazard narrative beyond sparse GHS (if any). Do not invent plant EHS controls."
+          ),
           grounded: Boolean(dossier.hazards.hazardStatements?.length),
           insufficient: true,
         };
@@ -188,8 +212,10 @@ const SEED_QUESTIONS: Array<{
       );
       if (!imps.length) {
         return {
-          answer:
-            "No impurity/intermediate entities extracted from free-public evidence for this capture.",
+          answer: honestScienceQaAnswer(
+            dossier,
+            "No impurity/intermediate entities extracted from free-public evidence for this capture."
+          ),
           grounded: false,
           insufficient: true,
         };
@@ -209,6 +235,17 @@ const SEED_QUESTIONS: Array<{
     question: "What is the strongest evidence gap blocking a recipe-grade public path?",
     needles: ["gap", "missing", "densify", "example"],
     build: ({ dossier, atlas, hypotheses }) => {
+      const harvest = formatProcessFactsEmptyCopy({
+        traces: dossier.traces,
+        fetchErrors: dossier.fetchErrors,
+      });
+      if (harvest.kind === "error") {
+        return {
+          answer: harvest.message,
+          grounded: false,
+          insufficient: true,
+        };
+      }
       const gaps = [
         ...(dossier.recipeReadiness?.gaps || []).map((g) => g.label),
         ...(dossier.processFacts?.openGaps || []),
@@ -392,8 +429,10 @@ export function answerFromEvidencePackage(
     return {
       id: `live:${Date.now()}`,
       question: q,
-      answer:
-        "Insufficient free-public evidence in the current densified package to answer. Densify OA/patent full text, paste public procedures, or narrow the question to temperature/routes/hazards/impurities.",
+      answer: honestScienceQaAnswer(
+        dossier,
+        "Insufficient free-public evidence in the current densified package to answer. Densify OA/patent full text, paste public procedures, or narrow the question to temperature/routes/hazards/impurities."
+      ),
       grounded: false,
       citations: [],
       insufficientEvidence: true,
