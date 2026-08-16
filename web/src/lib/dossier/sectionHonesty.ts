@@ -57,6 +57,12 @@ const ANNOTATION_ERROR_FAMILIES = [
   "gsrs",
   "pubchem-class",
   "massbank",
+  "rhea",
+  "orgsyn",
+  "reactome",
+  "wikipathways",
+  "pathway-commons",
+  "clinicaltrials",
 ] as const;
 
 const HAZARD_ERROR_FAMILIES = ["pubchem-view"] as const;
@@ -142,7 +148,26 @@ export function isAnnotationSectionTrace(endpointUrl: string): boolean {
     e.includes("unichem") ||
     e.includes("chebi") ||
     e.includes("gsrs") ||
-    e.includes("ginas")
+    e.includes("ginas") ||
+    e.includes("rhea") ||
+    e.includes("orgsyn") ||
+    e.includes("reactome") ||
+    e.includes("wikipathways") ||
+    e.includes("pathwaycommons") ||
+    e.includes("pathway-commons") ||
+    e.includes("clinicaltrials.gov")
+  );
+}
+
+/** Citation rows that belong on the Multi-source free APIs card. */
+export function isAnnotationSourceRef(ref: {
+  id?: string;
+  type?: string;
+}): boolean {
+  if (ref.type === "literature" || ref.type === "patent") return false;
+  const id = (ref.id || "").toLowerCase();
+  return (ANNOTATION_ERROR_FAMILIES as readonly string[]).some(
+    (p) => id === p || id.startsWith(`${p}:`)
   );
 }
 
