@@ -444,8 +444,8 @@ const PROCESS_FACT_EMPTY_FAMILIES = [
  * Process-fact atoms come from literature, patents, and manufacturing text.
  * Harvest failure in those families is not "no atoms extracted yet".
  * Leftover identity / GHS / annotation HTTP is not a process-facts miss.
- * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, reaction-network, and process-sequence stub empty copy reuse this helper —
- * no extracted conditions / no process recipe / no process routes / no public process hypothesis / no process facts yet / no route assembled / no procedure windows densified / no route hypotheses assembled / no procedure-scored windows yet / network is center-only / no extractable public process sequence yet / process route synthesis pending is not a clean miss when
+ * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, reaction-network, process-sequence stub, and ideal-page empty copy reuse this helper —
+ * no extracted conditions / no process recipe / no process routes / no public process hypothesis / no process facts yet / no route assembled / no procedure windows densified / no route hypotheses assembled / no procedure-scored windows yet / network is center-only / no extractable public process sequence yet / process route synthesis pending / no process steps yet / no GHS text for this CID / missing process overview is not a clean miss when
  * lit / patent / manufacturing harvest failed.
  */
 export function formatProcessFactsEmptyCopy(opts: {
@@ -572,6 +572,53 @@ export function honestProcessSequenceStub(opts: {
       "No process-oriented literature or patent abstracts were retrieved yet for " +
       opts.name +
       ". Ollama synthesis (when available) builds dual-view manufacturing routes from free public evidence. Open PubChem, literature, and patent panels below for raw sources.",
+  };
+}
+
+export type IdealEmptyFamily =
+  | "hazards"
+  | "overview"
+  | "properties"
+  | "manufacturing"
+  | "process-facts";
+
+/**
+ * Ideal-page empty copy: harvest failure is not "No GHS text for this CID" /
+ * "No process steps yet" / "Missing process overview" / manufacturing "Empty" /
+ * properties "Sparse".
+ * Leftover identity / annotation HTTP is not an ideal-page miss.
+ */
+export function honestIdealEmptyCopy(opts: {
+  family: IdealEmptyFamily;
+  traces?: Array<
+    Pick<ApiFetchTrace, "endpointUrl" | "ok" | "notFound" | "error" | "httpStatus">
+  >;
+  fetchErrors?: string[];
+  cleanDetail: string;
+  cleanHowToClose?: string;
+}): { detail: string; howToClose?: string; harvestFail: boolean } {
+  const harvest =
+    opts.family === "process-facts"
+      ? formatProcessFactsEmptyCopy({
+          traces: opts.traces,
+          fetchErrors: opts.fetchErrors,
+        })
+      : formatSectionEmptyCopy({
+          family: opts.family,
+          traces: opts.traces,
+          fetchErrors: opts.fetchErrors,
+        });
+  if (harvest.kind === "error") {
+    return {
+      detail: harvest.message,
+      howToClose: "Retry densify — not a clean miss.",
+      harvestFail: true,
+    };
+  }
+  return {
+    detail: opts.cleanDetail,
+    howToClose: opts.cleanHowToClose,
+    harvestFail: false,
   };
 }
 

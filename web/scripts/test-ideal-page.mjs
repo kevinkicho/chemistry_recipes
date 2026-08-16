@@ -49,6 +49,16 @@ ok("pipeline has no tier-A baseline", !/applyTierABaseline/.test(pipe));
 
 const types = read("lib/dossier/types.ts");
 ok("LiveDossier idealParity field", /idealParity\?/.test(types));
+ok(
+  "ideal page overlays harvest-failure copy",
+  /honestIdealEmptyCopy/.test(ideal) &&
+    /isStubOnlyProcessSequence/.test(ideal) &&
+    /harvest-fail/.test(ideal)
+);
+ok(
+  "ideal panel labels harvest-fail",
+  /harvest-fail/.test(read("components/IdealPageParityPanel.tsx"))
+);
 
 // Mock molecule JSON removed — live densify is the product
 const moleculesDir = join(root, "src/data/molecules");

@@ -2,12 +2,19 @@
  * Ideal page model — live densify dual-view inventory depth goal (0–100 parity).
  *
  * Live free-API builds chase this inventory without inventing plant numbers.
- * Fill status is honest: evidence | AI (grounded) | user paste | empty.
+ * Fill status is honest: evidence | AI (grounded) | user paste | empty | harvest-fail.
+ * Harvest failure is not "No GHS text for this CID" / "No process steps yet".
+ * Leftover identity / annotation HTTP is not an ideal-page miss.
  */
 
 import type { LiveDossier } from "@/lib/dossier/types";
 
 import type { ProcessRoute } from "@/lib/types/process";
+import {
+  honestIdealEmptyCopy,
+  isStubOnlyProcessSequence,
+  type IdealEmptyFamily,
+} from "@/lib/dossier/sectionHonesty";
 
 export type IdealSectionId =
   | "identity"
@@ -31,7 +38,8 @@ export type IdealFillSource =
   | "process-facts"
   | "ai"
   | "tier-a-teaching"
-  | "user-local";
+  | "user-local"
+  | "harvest-fail";
 
 export type IdealSectionStatus = {
   id: IdealSectionId;
@@ -73,7 +81,7 @@ function routeDepth(route: ProcessRoute | undefined): {
   source: IdealFillSource;
   detail: string;
 } {
-  if (!route?.steps?.length) {
+  if (!route?.steps?.length || isStubOnlyProcessSequence(route.steps)) {
     return { depth: 0, source: "empty", detail: "No process steps yet" };
   }
   const steps = route.steps;
@@ -270,7 +278,9 @@ export function assessIdealPageParity(dossier: LiveDossier): IdealPageParity {
 
   // route compare
   {
-    const n = dossier.processRoutes?.length ?? 0;
+    const n = (dossier.processRoutes || []).filter(
+      (r) => !isStubOnlyProcessSequence(r.steps)
+    ).length;
     sections.push({
       id: "route-compare",
       label: "Route compare",
@@ -475,6 +485,40 @@ export function assessIdealPageParity(dossier: LiveDossier): IdealPageParity {
       detail: `${lit} lit · ${patents} patents · ${dossier.traces?.length ?? 0} HTTP traces`,
       scrollId: "sources",
     });
+  }
+
+
+  const traces = dossier.traces;
+  const fetchErrors = dossier.fetchErrors;
+  const IDEAL_EMPTY_FAMILY: Partial<Record<IdealSectionId, IdealEmptyFamily>> = {
+    overview: "overview",
+    "critical-params": "process-facts",
+    "process-recipe": "process-facts",
+    "route-compare": "process-facts",
+    "manufacturing-summary": "manufacturing",
+    environment: "process-facts",
+    apparatus: "process-facts",
+    ehs: "hazards",
+    hazards: "hazards",
+    properties: "properties",
+  };
+  for (let i = 0; i < sections.length; i++) {
+    const fam = IDEAL_EMPTY_FAMILY[sections[i].id];
+    if (!fam || sections[i].filled) continue;
+    const honest = honestIdealEmptyCopy({
+      family: fam,
+      traces,
+      fetchErrors,
+      cleanDetail: sections[i].detail,
+      cleanHowToClose: sections[i].howToClose,
+    });
+    if (!honest.harvestFail) continue;
+    sections[i] = {
+      ...sections[i],
+      source: "harvest-fail",
+      detail: honest.detail,
+      howToClose: honest.howToClose,
+    };
   }
 
   const totalCount = sections.length;

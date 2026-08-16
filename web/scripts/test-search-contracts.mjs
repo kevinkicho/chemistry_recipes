@@ -3114,4 +3114,196 @@ ok(
   }).kind === "empty"
 );
 
+
+const idealPageSrc = read("lib/dossier/idealPage.ts");
+const idealPanelSrc = read("components/IdealPageParityPanel.tsx");
+ok(
+  "SEARCH-39 ideal-page empty copy uses honestIdealEmptyCopy",
+  /honestIdealEmptyCopy/.test(idealPageSrc) &&
+    /isStubOnlyProcessSequence/.test(idealPageSrc) &&
+    /harvest-fail/.test(idealPageSrc) &&
+    /harvest-fail/.test(idealPanelSrc) &&
+    /export function honestIdealEmptyCopy/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    )
+);
+ok(
+  "SEARCH-39 literature harvest fail is ideal process-recipe error not empty",
+  sectionH.honestIdealEmptyCopy({
+    family: "process-facts",
+    cleanDetail: "No process steps yet",
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).harvestFail &&
+    /Not an empty result|Not a clean miss/.test(
+      sectionH.honestIdealEmptyCopy({
+        family: "process-facts",
+        cleanDetail: "No process steps yet",
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).detail
+    ) &&
+    !/No process steps yet/.test(
+      sectionH.honestIdealEmptyCopy({
+        family: "process-facts",
+        cleanDetail: "No process steps yet",
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).detail
+    )
+);
+ok(
+  "SEARCH-39 GHS harvest fail is ideal hazards error not No GHS text",
+  sectionH.honestIdealEmptyCopy({
+    family: "hazards",
+    cleanDetail: "No GHS text for this CID",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=GHS+Classification",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).harvestFail &&
+    /Not an empty result|Not a clean miss/.test(
+      sectionH.honestIdealEmptyCopy({
+        family: "hazards",
+        cleanDetail: "No GHS text for this CID",
+        traces: [
+          {
+            endpointUrl:
+              "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=GHS+Classification",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).detail
+    ) &&
+    !/No GHS text for this CID/.test(
+      sectionH.honestIdealEmptyCopy({
+        family: "hazards",
+        cleanDetail: "No GHS text for this CID",
+        traces: [
+          {
+            endpointUrl:
+              "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=GHS+Classification",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).detail
+    )
+);
+ok(
+  "SEARCH-39 leftover identity is not an ideal-page GHS miss",
+  sectionH.honestIdealEmptyCopy({
+    family: "hazards",
+    cleanDetail: "No GHS text for this CID",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).harvestFail === false &&
+    sectionH.honestIdealEmptyCopy({
+      family: "hazards",
+      cleanDetail: "No GHS text for this CID",
+      traces: [
+        {
+          endpointUrl:
+            "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+          ok: false,
+          error: "HTTP 503",
+        },
+      ],
+    }).detail === "No GHS text for this CID"
+);
+ok(
+  "SEARCH-39 leftover identity is not an ideal-page process-recipe miss",
+  sectionH.honestIdealEmptyCopy({
+    family: "process-facts",
+    cleanDetail: "No process steps yet",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).harvestFail === false &&
+    sectionH.honestIdealEmptyCopy({
+      family: "process-facts",
+      cleanDetail: "No process steps yet",
+      traces: [
+        {
+          endpointUrl:
+            "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+          ok: false,
+          error: "HTTP 503",
+        },
+      ],
+    }).detail === "No process steps yet"
+);
+ok(
+  "SEARCH-39 leftover ChEMBL annotation fail is not an ideal-page miss",
+  sectionH.honestIdealEmptyCopy({
+    family: "process-facts",
+    cleanDetail: "No process steps yet",
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/search",
+        ok: false,
+        error: "HTTP 502",
+      },
+    ],
+  }).detail === "No process steps yet"
+);
+ok(
+  "SEARCH-39 genuine empty stays No process steps / No GHS text copy",
+  sectionH.honestIdealEmptyCopy({
+    family: "process-facts",
+    cleanDetail: "No process steps yet",
+    traces: [],
+  }).detail === "No process steps yet" &&
+    sectionH.honestIdealEmptyCopy({
+      family: "hazards",
+      cleanDetail: "No GHS text for this CID",
+      traces: [],
+    }).detail === "No GHS text for this CID" &&
+    sectionH.honestIdealEmptyCopy({
+      family: "overview",
+      cleanDetail: "Missing process overview",
+      traces: [],
+    }).detail === "Missing process overview"
+);
+ok(
+  "SEARCH-39 stub-only routes do not count as process-recipe fill",
+  /isStubOnlyProcessSequence\(route\.steps\)/.test(idealPageSrc) &&
+    /isStubOnlyProcessSequence\(r\.steps\)/.test(idealPageSrc)
+);
+ok(
+  "SEARCH-39 ideal chips still pass all traces (composite)",
+  /slimTraces\(dossier\.traces/.test(idealPanelSrc)
+);
+
 console.log(`\n${passed} search-contract checks passed`);
