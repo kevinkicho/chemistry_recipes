@@ -1713,4 +1713,22 @@ ok(
     !sectionH.isProcessFactTrace(identityUrl) &&
     !sectionH.isProcessFactTrace(chemblUrl)
 );
+const conditionAtlas = read("components/frontier/ConditionAtlasPanel.tsx");
+ok(
+  "PROV-20 condition-atlas chips use process-fact traces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(conditionAtlas) &&
+    /isProcessFactSourceRef/.test(conditionAtlas) &&
+    /liveFetch=\{false\}/.test(conditionAtlas) &&
+    /field="Condition atlas"/.test(conditionAtlas) &&
+    /traces=\{traces\}/.test(conditionAtlas) &&
+    /sourceRefs=\{sourceRefs\}/.test(conditionAtlas)
+);
+ok(
+  "PROV-20 leftover PubChem identity is not condition-atlas HTTP",
+  sectionH.isProcessFactTrace(litUrl) &&
+    sectionH.isProcessFactTrace(ghsUrl) &&
+    sectionH.isProcessFactTrace(mfgUrl) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isProcessFactTrace(chemblUrl)
+);
 console.log(`\n${passed} search-contract checks passed`);

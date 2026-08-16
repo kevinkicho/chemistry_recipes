@@ -289,4 +289,11 @@ ok(
     /liveFetch=\{false\}/.test(read("components/ProcessFramingBanner.tsx")) &&
     /field="Process framing"/.test(read("components/ProcessFramingBanner.tsx"))
 );
+ok(
+  "condition atlas chips do not dump leftover harvest HTTP",
+  /isProcessFactTrace/.test(read("components/frontier/ConditionAtlasPanel.tsx")) &&
+    /isProcessFactSourceRef/.test(read("components/frontier/ConditionAtlasPanel.tsx")) &&
+    /liveFetch=\{false\}/.test(read("components/frontier/ConditionAtlasPanel.tsx")) &&
+    /field="Condition atlas"/.test(read("components/frontier/ConditionAtlasPanel.tsx"))
+);
 console.log(`\n${n} product-path checks passed`);

@@ -327,6 +327,16 @@ ok(
     /traces=\{traces\}/.test(processFraming) &&
     /sourceRefs=\{sourceRefs\}/.test(processFraming)
 );
+const conditionAtlas = read("components/frontier/ConditionAtlasPanel.tsx");
+ok(
+  "PROV-20 condition-atlas chips use process-fact traces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(conditionAtlas) &&
+    /isProcessFactSourceRef/.test(conditionAtlas) &&
+    /liveFetch=\{false\}/.test(conditionAtlas) &&
+    /field="Condition atlas"/.test(conditionAtlas) &&
+    /traces=\{traces\}/.test(conditionAtlas) &&
+    /sourceRefs=\{sourceRefs\}/.test(conditionAtlas)
+);
 ok(
   "aside ContentProvenance manufacturing",
   /Manufacturing summary/.test(aside) && /ContentProvenance/.test(aside)
