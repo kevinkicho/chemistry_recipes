@@ -226,5 +226,10 @@ ok(
       read("components/dossier/LiveMoleculeDossier.tsx")
     )
 );
+ok(
+  "live dossier overview empty copy is not unconditional",
+  /overviewEmpty/.test(read("components/dossier/LiveMoleculeDossier.tsx")) &&
+    /family: "overview"/.test(read("components/dossier/LiveMoleculeDossier.tsx"))
+);
 
 console.log(`\n${n} product-path checks passed`);
