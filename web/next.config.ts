@@ -40,9 +40,9 @@ const nextConfig: NextConfig = {
       { source: "/packages/:path*", destination: "/search", permanent: false },
       { source: "/examples", destination: "/search", permanent: false },
       { source: "/examples/:path*", destination: "/search", permanent: false },
-      { source: "/molecules/:slug*", destination: "/search", permanent: false },
+      { source: "/molecules/:slug*", destination: "/search?q=:slug*", permanent: false },
       { source: "/molecule/cid/:cid", destination: "/compounds/pubchem/:cid", permanent: true },
-      { source: "/molecule/:id", destination: "/search", permanent: false },
+      { source: "/molecule/:id", destination: "/search?q=:id", permanent: false },
     ];
   },
 };

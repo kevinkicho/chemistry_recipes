@@ -102,7 +102,7 @@ export function ProblemFirstSearch() {
     }
 
     setLoading(true);
-    setStatus("Local hits ready — multi-source enriching…");
+    setStatus("Searching free-public sources…");
     setWizardStep((s) => (s < 2 ? 2 : s));
     const ac = new AbortController();
     const t = window.setTimeout(() => {
@@ -142,7 +142,7 @@ export function ProblemFirstSearch() {
 
   function spinCampaign() {
     if (!q.trim() || !cids.length) {
-      setCampMsg("Need hub/live hits with PubChem CIDs to spin a campaign.");
+      setCampMsg("Need live search hits with PubChem CIDs to spin a campaign.");
       return;
     }
     const camp = createCampaignFromProblemHits(q, hits);
@@ -158,7 +158,7 @@ export function ProblemFirstSearch() {
   /** Primary MSAT path: campaign → densify → route neighborhood → brief + agent */
   async function runMsatPath() {
     if (!q.trim() || !cids.length) {
-      setCampMsg("Need hub/live hits with PubChem CIDs for MSAT journey.");
+      setCampMsg("Need live search hits with PubChem CIDs for MSAT journey.");
       return;
     }
     densifyAbortRef.current?.abort();
@@ -225,7 +225,7 @@ export function ProblemFirstSearch() {
   /** Densify-only (no agent handoff, no neighborhood expand) */
   async function spinCampaignAndDensify() {
     if (!q.trim() || !cids.length) {
-      setCampMsg("Need hub/live hits with PubChem CIDs to densify.");
+      setCampMsg("Need live search hits with PubChem CIDs to densify.");
       return;
     }
     densifyAbortRef.current?.abort();
@@ -478,7 +478,7 @@ export function ProblemFirstSearch() {
         <ul className="mt-3 max-h-72 space-y-1.5 overflow-y-auto">
           {hits.length === 0 ? (
             <li className="text-xs text-slate-600">
-              No hub/package match — try{" "}
+              No live hits yet — try{" "}
               <Link
                 href={routes.search(q)}
                 className="text-teal-400 hover:underline"
@@ -512,7 +512,7 @@ export function ProblemFirstSearch() {
                     ) : null}
                   </span>
                   <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] uppercase text-slate-500">
-                    {h.kind}
+                    {h.kind === "hub-live" ? "live" : h.kind}
                     {h.tags?.includes("literature") ? " · lit" : ""}
                     {h.tags?.includes("multi-source") ? " · multi" : ""}
                   </span>
