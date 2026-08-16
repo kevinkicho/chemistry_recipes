@@ -300,7 +300,7 @@ export const CHEMISTRY_API_SOURCES: ApiSource[] = [
     name: "MassBank",
     organization: "MassBank",
     priority: "P2",
-    role: "MS reference spectra for IPC method design",
+    role: "MS reference spectra (REST API retired — site search only; no harvest)",
     endpointUrl: "https://massbank.eu/MassBank-api/records",
     docsUrl: "https://massbank.eu/MassBank-api",
     category: "supporting",

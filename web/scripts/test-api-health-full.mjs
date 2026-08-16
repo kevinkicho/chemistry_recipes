@@ -376,21 +376,13 @@ const PROBES = [
     accept: [200, 301, 302, 303, 307, 308],
   },
   {
-    id: "massbank-pubchem",
-    name: "MassBank-class via PubChem identity (gather path)",
-    category: "supporting",
-    gather: "massbank",
-    url: `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encodeURIComponent(Q)}/property/MolecularFormula,Title,InChIKey/JSON`,
-    body: /PropertyTable|MolecularFormula|InChIKey/i,
-    notes: "MassBank REST retired; gather uses PubChem + site deep link",
-  },
-  {
     id: "massbank-site",
     name: "MassBank EU site",
     category: "supporting",
     gather: "massbank",
     url: "https://massbank.eu/MassBank/Search",
     accept: [200, 301, 302, 303, 307, 308],
+    notes: "MassBank REST retired — site probe only; gather does not claim PubChem identity as spectra",
   },
 ];
 

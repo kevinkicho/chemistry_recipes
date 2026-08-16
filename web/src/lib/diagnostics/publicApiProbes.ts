@@ -393,16 +393,6 @@ export const PUBLIC_API_PROBE_DEFS: PublicProbeDef[] = [
     acceptStatus: [200, 301, 302, 303, 307, 308],
   },
   {
-    id: "massbank-pubchem",
-    name: "MassBank-class via PubChem identity",
-    organization: "PubChem / MassBank",
-    category: "supporting",
-    url: `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encodeURIComponent(Q)}/property/MolecularFormula,Title,InChIKey/JSON`,
-    gatherFamilies: ["massbank"],
-    bodyMustMatch: "PropertyTable|MolecularFormula|InChIKey",
-    notes: "MassBank REST retired; gather uses PubChem + site deep link",
-  },
-  {
     id: "massbank-site",
     name: "MassBank EU site",
     organization: "MassBank",
@@ -410,6 +400,7 @@ export const PUBLIC_API_PROBE_DEFS: PublicProbeDef[] = [
     url: "https://massbank.eu/MassBank/Search",
     gatherFamilies: ["massbank"],
     acceptStatus: [200, 301, 302, 303, 307, 308],
+    notes: "MassBank REST retired — site probe only; gather does not claim PubChem identity as spectra",
   },
 ];
 
