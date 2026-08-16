@@ -367,4 +367,13 @@ ok(
     /factEmpty\.message/.test(read("components/ProblemUnitOpSearch.tsx")) &&
     !/No process facts yet\./.test(read("components/ProblemUnitOpSearch.tsx"))
 );
+ok(
+  "SEARCH-32 manager-brief empty copy is not unconditional await-literature miss",
+  /formatProcessFactsEmptyCopy/.test(read("components/ManagerBriefPanel.tsx")) &&
+    /formatSectionEmptyCopy/.test(read("components/ManagerBriefPanel.tsx")) &&
+    /pathEmpty\.kind === "error"/.test(read("components/ManagerBriefPanel.tsx")) &&
+    /patentEmpty\.kind === "error"/.test(read("components/ManagerBriefPanel.tsx")) &&
+    /hazardEmpty\.kind === "error"/.test(read("components/ManagerBriefPanel.tsx")) &&
+    /pathEmpty\.message/.test(read("components/ManagerBriefPanel.tsx"))
+);
 console.log(`\n${n} product-path checks passed`);

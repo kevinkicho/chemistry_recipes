@@ -2406,4 +2406,102 @@ ok(
     /formatSectionEmptyCopy/.test(problemUnitOp)
 );
 
+const managerBrief = read("components/ManagerBriefPanel.tsx");
+ok(
+  "SEARCH-32 manager-brief empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(managerBrief) &&
+    /formatSectionEmptyCopy/.test(managerBrief) &&
+    /pathEmpty\.kind === "error"/.test(managerBrief) &&
+    /patentEmpty\.kind === "error"/.test(managerBrief) &&
+    /hazardEmpty\.kind === "error"/.test(managerBrief) &&
+    /pathEmpty\.message/.test(managerBrief)
+);
+ok(
+  "SEARCH-32 literature harvest fail is manager-brief path error not empty",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "error" &&
+    /Not an empty result|Not a clean miss/.test(
+      sectionH.formatProcessFactsEmptyCopy({
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).message
+    )
+);
+ok(
+  "SEARCH-32 leftover identity is not a manager-brief path miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-32 leftover ChEMBL annotation fail is not a manager-brief path miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/search",
+        ok: false,
+        error: "HTTP 502",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-32 genuine empty stays await-literature copy",
+  sectionH.formatProcessFactsEmptyCopy({ traces: [] }).kind === "empty" &&
+    /Await process literature\/patents/.test(managerBrief)
+);
+ok(
+  "SEARCH-32 patent harvest fail is manager-brief IP error not empty",
+  sectionH.formatSectionEmptyCopy({
+    family: "patents",
+    traces: [
+      {
+        endpointUrl: "https://search.patentsview.org/api/v1/patent/",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "error" &&
+    /patentEmpty\.message/.test(managerBrief)
+);
+ok(
+  "SEARCH-32 leftover identity is not a manager-brief patent miss",
+  sectionH.formatSectionEmptyCopy({
+    family: "patents",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-32 manager-brief chips still pass all traces (composite)",
+  /field="Manager brief"/.test(managerBrief) &&
+    /traces=\{slimTraces\(dossier\.traces/.test(managerBrief) &&
+    /sourceRefs=\{dossier\.sourceRefs\}/.test(managerBrief)
+);
+
 console.log(`\n${passed} search-contract checks passed`);
