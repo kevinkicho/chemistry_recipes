@@ -288,6 +288,20 @@ export function isCompoundPatentsHeadingTrace(endpointUrl: string): boolean {
   );
 }
 
+/** Applications chips come from Use and Manufacturing text — not leftover harvest HTTP. */
+export function isApplicationsTrace(endpointUrl: string): boolean {
+  const e = endpointUrl.toLowerCase();
+  if (!e.includes("pubchem.ncbi.nlm.nih.gov")) return false;
+  if (!e.includes("pug_view")) return false;
+  if (e.includes("/data/patent/")) return false;
+  if (e.includes("heading=literature")) return false;
+  if (e.includes("heading=patents")) return false;
+  if (e.includes("/classification/")) return false;
+  return /use\+and\+manufacturing|use%20and%20manufacturing|manufacturing/i.test(
+    endpointUrl
+  );
+}
+
 export function isIdentityOverviewSourceRef(ref: SourceRef): boolean {
   if (ref.type === "literature" || ref.type === "patent") return false;
   const id = (ref.id || "").toLowerCase();

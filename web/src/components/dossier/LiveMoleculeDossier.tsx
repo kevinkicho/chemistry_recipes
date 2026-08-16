@@ -21,6 +21,7 @@ import { PubchemStructureImage } from "@/components/PubchemStructureImage";
 import type { LiveDossier } from "@/lib/dossier/types";
 import { slimTraces } from "@/lib/api/trace";
 import {
+  isApplicationsTrace,
   isCompoundPatentsHeadingTrace,
   isIdentityOverviewSourceRef,
   isIdentityOverviewTrace,
@@ -372,6 +373,9 @@ export function LiveMoleculeDossier({
   const identityTraces = traces.filter((t) =>
     isIdentityOverviewTrace(t.endpointUrl)
   );
+  const applicationTraces = traces.filter((t) =>
+    isApplicationsTrace(t.endpointUrl)
+  );
   const overviewSourceRefs = dossier.sourceRefs.filter(isIdentityOverviewSourceRef);
   const propertySourceRefs = [
     {
@@ -627,8 +631,8 @@ export function LiveMoleculeDossier({
                   title="Applications"
                   field="Applications"
                   pubchemCid={cid}
-                  traces={traces}
-                  sourceRefs={dossier.sourceRefs}
+                  traces={applicationTraces}
+                  sourceRefs={mfgSourceRefs}
                   ai={aiApplications}
                   showAi={Boolean(aiApplications)}
                   onRegenerate={onRegenerate}
