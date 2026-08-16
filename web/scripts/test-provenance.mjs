@@ -108,6 +108,19 @@ ok(
     /familyTraces/.test(processFactsPanel) &&
     !/pubchemCid=\{pubchemCid\}/.test(processFactsPanel)
 );
+ok(
+  "PROV-16 environment/apparatus chips use plantTraces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(aside) &&
+    /plantTraces/.test(aside) &&
+    /plantSourceRefs/.test(aside) &&
+    /field="Plant environment baseline"[\s\S]{0,200}traces=\{plantTraces\}/.test(aside) &&
+    /field="Apparatus catalog"[\s\S]{0,200}traces=\{plantTraces\}/.test(aside) &&
+    !/field="Plant environment baseline"[\s\S]{0,200}traces=\{apiTraces\}/.test(aside) &&
+    !/field="Apparatus catalog"[\s\S]{0,200}traces=\{apiTraces\}/.test(aside) &&
+    !/field="Plant environment baseline"[\s\S]{0,200}pubchemCid=/.test(aside) &&
+    !/field="Apparatus catalog"[\s\S]{0,200}pubchemCid=/.test(aside)
+);
+
 const processFactsLib = read("lib/dossier/processFacts.ts");
 ok(
   "PROV-15 GHS process-fact ids use pubchem-view-ghs not leftover ghs:",
