@@ -382,6 +382,11 @@ ok(
     /atlasEmpty/.test(conditionAtlas)
 );
 ok(
+  "SEARCH-28 route-panel empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(read("components/RoutePanel.tsx")) &&
+    /recipeEmpty/.test(read("components/RoutePanel.tsx"))
+);
+ok(
   "aside ContentProvenance manufacturing",
   /Manufacturing summary/.test(aside) && /ContentProvenance/.test(aside)
 );

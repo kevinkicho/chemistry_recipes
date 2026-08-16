@@ -932,6 +932,7 @@ export function LiveMoleculeDossier({
                 processFacts={dossier.processFacts?.facts}
                 onRegenerate={onRegenerate}
                 traces={processFactTraces}
+                fetchErrors={dossier.fetchErrors}
               />
               {routesFromAi ? (
                 <FieldRegenerateBar

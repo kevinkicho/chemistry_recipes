@@ -444,8 +444,9 @@ const PROCESS_FACT_EMPTY_FAMILIES = [
  * Process-fact atoms come from literature, patents, and manufacturing text.
  * Harvest failure in those families is not "no atoms extracted yet".
  * Leftover identity / GHS / annotation HTTP is not a process-facts miss.
- * Condition-atlas empty copy reuses this helper — no extracted conditions
- * is not a clean miss when lit / patent / manufacturing harvest failed.
+ * Condition-atlas and process-recipe (RoutePanel) empty copy reuse this helper —
+ * no extracted conditions / no process recipe is not a clean miss when
+ * lit / patent / manufacturing harvest failed.
  */
 export function formatProcessFactsEmptyCopy(opts: {
   traces?: Array<

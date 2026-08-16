@@ -7,6 +7,7 @@ import type { AiProvenanceRecord } from "@/lib/dossier/types";
 import type { ProcessFact } from "@/lib/dossier/processFacts";
 import type { ProcessRoute, ProcessStep } from "@/lib/types/process";
 import type { ApiFetchTrace } from "@/lib/api/trace";
+import { formatProcessFactsEmptyCopy } from "@/lib/dossier/sectionHonesty";
 import { ViewToggle, type AudienceView } from "./ViewToggle";
 
 function Tag({ children }: { children: React.ReactNode }) {
@@ -369,6 +370,7 @@ export function RoutePanel({
   onRegenerate,
   pubchemCid,
   traces,
+  fetchErrors,
 }: {
   routes: ProcessRoute[];
   emptyMessage?: string;
@@ -377,6 +379,7 @@ export function RoutePanel({
   onRegenerate?: () => void;
   pubchemCid?: number;
   traces?: ApiFetchTrace[];
+  fetchErrors?: string[];
 }) {
   const [routeId, setRouteId] = useState(routes[0]?.id ?? "");
   const [view, setView] = useState<AudienceView>("manufacturing");
@@ -389,12 +392,21 @@ export function RoutePanel({
       [f.sourceLabel, f.exampleRef, f.quote?.slice(0, 80)].filter(Boolean).join(" · ")
     );
   }
+  // Process recipe is lit / patent / manufacturing evidence. Harvest
+  // failure is not "wait for public process literature". Leftover
+  // identity / annotation HTTP is not a process-recipe miss.
+  const recipeEmpty = formatProcessFactsEmptyCopy({
+    traces,
+    fetchErrors,
+  });
 
   if (!route) {
     return (
       <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/30 p-6 text-sm text-slate-500">
-        {emptyMessage ||
-          "No process recipe yet. Configure Ollama Cloud or wait for public process literature."}
+        {recipeEmpty.kind === "error"
+          ? recipeEmpty.message
+          : emptyMessage ||
+            "No process recipe yet. Configure Ollama Cloud or wait for public process literature."}
       </div>
     );
   }

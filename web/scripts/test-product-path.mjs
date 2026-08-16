@@ -342,4 +342,10 @@ ok(
     /atlasEmpty\.kind === "error"/.test(read("components/frontier/ConditionAtlasPanel.tsx")) &&
     /atlasEmpty\.message/.test(read("components/frontier/ConditionAtlasPanel.tsx"))
 );
+ok(
+  "SEARCH-28 route-panel empty copy is not unconditional literature miss",
+  /formatProcessFactsEmptyCopy/.test(read("components/RoutePanel.tsx")) &&
+    /recipeEmpty\.kind === "error"/.test(read("components/RoutePanel.tsx")) &&
+    /recipeEmpty\.message/.test(read("components/RoutePanel.tsx"))
+);
 console.log(`\n${n} product-path checks passed`);
