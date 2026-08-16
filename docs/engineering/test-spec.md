@@ -266,6 +266,7 @@ Machine registry: `web/scripts/fixtures/provenance-surface-registry.json`.
 | **PROV-05** | Aside plant cards use ContentProvenance + field AI | `test-provenance-coverage` |
 | **PROV-06** | Process facts use API provenance (not fake AI) | `test-provenance-coverage` |
 | **PROV-07** | Registry lists ≥28 content surfaces | `test-provenance-coverage` |
+| **PROV-08** | PubChem family citations hydrate only matching harvest HTTP (not identity/property fallbacks) | `test-provenance` |
 | **PROV-SCAN-*** | Scanner asserts every registry surface still wired | `test-provenance-coverage` |
 
 ## Lifecycle diagram (validated by LIFE-* / DENS-*)

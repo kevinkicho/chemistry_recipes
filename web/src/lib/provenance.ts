@@ -248,11 +248,19 @@ type EndpointPred = (endpointLower: string) => boolean;
 
 /** Family → harvest endpoint matcher. Id prefix wins over URL heuristics. */
 const SOURCE_FAMILY_PRED: Record<string, EndpointPred> = {
-  pubchem: (e) => e.includes("pubchem.ncbi.nlm.nih.gov"),
-  "pubchem-mfg": (e) => e.includes("pubchem.ncbi.nlm.nih.gov"),
-  "pubchem-mfg-page": (e) => e.includes("pubchem.ncbi.nlm.nih.gov"),
-  "pubchem-patents": (e) => e.includes("pubchem.ncbi.nlm.nih.gov"),
-  "pubchem-class": (e) => e.includes("pubchem.ncbi.nlm.nih.gov"),
+  pubchem: (e) =>
+    e.includes("pubchem.ncbi.nlm.nih.gov") &&
+    !e.includes("pug_view") &&
+    !e.includes("patentid") &&
+    !e.includes("/classification/"),
+  "pubchem-mfg": (e) => e.includes("pug_view") && e.includes("manufacturing"),
+  "pubchem-mfg-page": (e) => e.includes("pug_view") && e.includes("manufacturing"),
+  "pubchem-patents": (e) =>
+    e.includes("pubchem.ncbi.nlm.nih.gov") && e.includes("patentid"),
+  "pubchem-class": (e) =>
+    e.includes("pubchem.ncbi.nlm.nih.gov") && e.includes("classification"),
+  patentsview: (e) => e.includes("patentsview"),
+  "patentsview-api": (e) => e.includes("patentsview"),
   chembl: (e) => e.includes("chembl") && (e.includes("api") || e.includes("/data/")),
   mychem: (e) => e.includes("mychem.info"),
   rxnorm: (e) => e.includes("rxnav.nlm.nih.gov") || e.includes("rxnorm"),
@@ -291,6 +299,7 @@ function sourceFamilyFromRef(ref: SourceRef): string | undefined {
     "pubchem-patents",
     "pubchem-class",
     "pubchem-mfg",
+    "patentsview-api",
     "europepmc-pat",
     "pathway-commons",
     "semanticscholar",

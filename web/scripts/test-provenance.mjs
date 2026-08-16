@@ -5,7 +5,7 @@
  * - Synthesize stores large response preview for pagination
  */
 import assert from "node:assert/strict";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -290,5 +290,179 @@ const fixture = JSON.parse(readFileSync(fixturePath, "utf8"));
 for (const k of fixture.requiredKeys || []) {
   ok(`fixture provenance has ${k}`, fixture.provenance?.[k] != null);
 }
+
+
+// --- PROV-08: do not invent HTTP matches across PubChem families ---
+ok(
+  "PROV-08 pubchem-patents pred requires PatentID",
+  /"pubchem-patents":[\s\S]{0,160}patentid/i.test(provLib)
+);
+ok(
+  "PROV-08 pubchem-mfg-page pred is pug_view manufacturing",
+  /"pubchem-mfg-page":[\s\S]{0,120}pug_view/.test(provLib) &&
+    /"pubchem-mfg-page":[\s\S]{0,160}manufacturing/.test(provLib)
+);
+ok(
+  "PROV-08 pubchem-class pred requires classification",
+  /"pubchem-class":[\s\S]{0,160}classification/.test(provLib)
+);
+ok(
+  "PROV-08 generic pubchem pred excludes pug_view / PatentID / classification",
+  /pubchem: \(e\) =>[\s\S]{0,220}!e\.includes\("pug_view"\)/.test(provLib) &&
+    /!e\.includes\("patentid"\)/.test(provLib)
+);
+ok(
+  "PROV-08 live mfg provenance uses only mfgTraces",
+  /traces=\{mfgTraces\}/.test(liveDossier)
+);
+ok(
+  "PROV-08 live mfg provenance does not fall back to identity traces",
+  !/mfgTraces\.length[\s\S]{0,160}pubchemTraces/.test(liveDossier)
+);
+ok(
+  "PROV-08 live literature provenance uses only litTraces",
+  /traces=\{litTraces\}/.test(liveDossier) &&
+    !/litTraces\.length \? litTraces : traces/.test(liveDossier)
+);
+ok(
+  "PROV-08 live patent provenance uses only patentTraces",
+  /traces=\{patentTraces\}/.test(liveDossier) &&
+    !/patentTraces\.length[\s\S]{0,180}: traces/.test(liveDossier)
+);
+ok(
+  "PROV-08 PatentsView source ref only when harvest traces exist",
+  /patentTraces\.some\(\(t\) =>/.test(liveDossier) &&
+    /includes\("patentsview"\)/.test(liveDossier)
+);
+
+const { createRequire } = await import("node:module");
+const { tmpdir } = await import("node:os");
+const { pathToFileURL } = await import("node:url");
+const requireTs = createRequire(import.meta.url);
+const ts = requireTs("typescript");
+const provFile = src("lib/provenance.ts");
+let provSrc = readFileSync(provFile, "utf8");
+provSrc = provSrc
+  .replace(
+    /import type \{[^}]+\} from "[^"]+";\s*/g,
+    ""
+  )
+  .replace(
+    /import \{ isFreePublicUrl \} from "@\/lib\/api\/publicSources";/,
+    "function isFreePublicUrl(url) { try { const u = new URL(url); return u.protocol === \"http:\" || u.protocol === \"https:\"; } catch { return false; } }"
+  )
+  .replace(
+    /import \{ pubchemDeepLink \} from "@\/lib\/api\/pubchem";/,
+    "function pubchemDeepLink(cid) { return \"https://pubchem.ncbi.nlm.nih.gov/compound/\" + cid; }"
+  );
+const { outputText: provJs } = ts.transpileModule(provSrc, {
+  compilerOptions: {
+    module: ts.ModuleKind.ESNext,
+    target: ts.ScriptTarget.ES2022,
+  },
+  fileName: provFile,
+});
+const provOut = join(tmpdir(), `provenance-match-${process.pid}.mjs`);
+writeFileSync(provOut, provJs, "utf8");
+const { matchTraceForSourceRef: matchLive } = await import(pathToFileURL(provOut).href);
+
+const propertyTrace = {
+  endpointUrl:
+    "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/Title/JSON",
+  method: "GET",
+  fetchedAt: "2026-08-16T18:00:00.000Z",
+  httpStatus: 200,
+  responseBody: '{"PropertyTable":{}}',
+  ok: true,
+};
+const patentIdTrace = {
+  endpointUrl:
+    "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/xrefs/PatentID/JSON",
+  method: "GET",
+  fetchedAt: "2026-08-16T18:00:01.000Z",
+  httpStatus: 200,
+  responseBody: '{"InformationList":{}}',
+  ok: true,
+};
+const mfgViewTrace = {
+  endpointUrl:
+    "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=Use+and+Manufacturing",
+  method: "GET",
+  fetchedAt: "2026-08-16T18:00:02.000Z",
+  httpStatus: 200,
+  responseBody: '{"Record":{}}',
+  ok: true,
+};
+const classTrace = {
+  endpointUrl:
+    "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/classification/JSON",
+  method: "GET",
+  fetchedAt: "2026-08-16T18:00:03.000Z",
+  httpStatus: 200,
+  responseBody: '{"Hierarchies":{}}',
+  ok: true,
+};
+const mixedPubchem = [propertyTrace, patentIdTrace, mfgViewTrace, classTrace];
+
+ok(
+  "PROV-08 patents citation does not hydrate from property HTTP",
+  matchLive(
+    {
+      type: "api",
+      id: "pubchem-patents:2244",
+      label: "PubChem patent xrefs",
+      url: "https://pubchem.ncbi.nlm.nih.gov/compound/2244#section=Patents",
+    },
+    mixedPubchem
+  )?.endpointUrl.includes("PatentID")
+);
+ok(
+  "PROV-08 manufacturing citation does not hydrate from property HTTP",
+  matchLive(
+    {
+      type: "api",
+      id: "pubchem-mfg-page:2244",
+      label: "PubChem · Use and Manufacturing",
+      url: "https://pubchem.ncbi.nlm.nih.gov/compound/2244#section=Use-and-Manufacturing",
+    },
+    mixedPubchem
+  )?.endpointUrl.includes("pug_view")
+);
+ok(
+  "PROV-08 classification citation does not hydrate from property HTTP",
+  matchLive(
+    {
+      type: "api",
+      id: "pubchem-class:2244",
+      label: "PubChem classification / MeSH",
+      url: "https://pubchem.ncbi.nlm.nih.gov/compound/2244#section=Classification",
+    },
+    mixedPubchem
+  )?.endpointUrl.includes("classification")
+);
+ok(
+  "PROV-08 identity citation does not hydrate from PatentID HTTP",
+  matchLive(
+    {
+      type: "api",
+      id: "pubchem:2244",
+      label: "PubChem compound record",
+      url: "https://pubchem.ncbi.nlm.nih.gov/compound/2244",
+    },
+    mixedPubchem
+  )?.endpointUrl.includes("/property/")
+);
+ok(
+  "PROV-08 manufacturing citation stays unmatched without pug_view",
+  matchLive(
+    {
+      type: "api",
+      id: "pubchem-mfg-page:2244",
+      label: "PubChem · Use and Manufacturing",
+      url: "https://pubchem.ncbi.nlm.nih.gov/compound/2244#section=Use-and-Manufacturing",
+    },
+    [propertyTrace]
+  ) == null
+);
 
 console.log(`\n${passed} provenance checks passed`);
