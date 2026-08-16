@@ -1615,4 +1615,26 @@ ok(
     !sectionH.isProcessFactSourceRef({ type: "api", id: "chembl:CHEMBL25" })
 );
 
+const asideSrc = read("components/dossier/LiveDossierAside.tsx");
+ok(
+  "PROV-16 environment/apparatus chips use plantTraces not leftover harvest HTTP",
+  /traces=\{plantTraces\}/.test(asideSrc) &&
+    /sourceRefs=\{plantSourceRefs\}/.test(asideSrc) &&
+    /isProcessFactTrace/.test(asideSrc) &&
+    /field="Plant environment baseline"[\s\S]{0,200}traces=\{plantTraces\}/.test(asideSrc) &&
+    /field="Apparatus catalog"[\s\S]{0,200}traces=\{plantTraces\}/.test(asideSrc) &&
+    !/field="Plant environment baseline"[\s\S]{0,200}traces=\{apiTraces\}/.test(asideSrc) &&
+    !/field="Apparatus catalog"[\s\S]{0,200}traces=\{apiTraces\}/.test(asideSrc) &&
+    !/field="Plant environment baseline"[\s\S]{0,200}pubchemCid=/.test(asideSrc) &&
+    !/field="Apparatus catalog"[\s\S]{0,200}pubchemCid=/.test(asideSrc)
+);
+ok(
+  "PROV-16 leftover PubChem identity is not plant environment/apparatus HTTP",
+  sectionH.isProcessFactTrace(litUrl) &&
+    sectionH.isProcessFactTrace(ghsUrl) &&
+    sectionH.isProcessFactTrace(mfgUrl) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isProcessFactTrace(chemblUrl)
+);
+
 console.log(`\n${passed} search-contract checks passed`);

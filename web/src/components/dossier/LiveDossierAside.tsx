@@ -5,7 +5,11 @@ import { AiProvenance } from "@/components/AiProvenance";
 import { ApiProvenance } from "@/components/ApiProvenance";
 import type { LiveDossier } from "@/lib/dossier/types";
 import type { ApiFetchTrace } from "@/lib/api/trace";
-import { formatSectionEmptyCopy } from "@/lib/dossier/sectionHonesty";
+import {
+  formatSectionEmptyCopy,
+  isProcessFactSourceRef,
+  isProcessFactTrace,
+} from "@/lib/dossier/sectionHonesty";
 import type { AiProvenanceRecord } from "@/lib/dossier/types";
 
 type PlantProps = {
@@ -81,6 +85,10 @@ export function LiveDossierAside({
       : pugViewTraces.length
         ? pugViewTraces
         : pubchemTraces;
+  // Environment / apparatus derive from process facts (literature, patents,
+  // manufacturing, GHS). Leftover identity / annotation HTTP is not plant provenance.
+  const plantTraces = apiTraces.filter((t) => isProcessFactTrace(t.endpointUrl));
+  const plantSourceRefs = (dossier.sourceRefs || []).filter(isProcessFactSourceRef);
   const mfgAi = aiMfg || (mfgFromAi ? aiChip : null);
   const envAi = aiEnv || (envFromAi ? aiChip : null);
   const apparatusAi = aiApparatus || (apparatusFromAi ? aiChip : null);
@@ -161,9 +169,8 @@ export function LiveDossierAside({
             <ContentProvenance
               title="Plant environment baseline"
               field="Plant environment baseline"
-              pubchemCid={cid}
-              traces={apiTraces}
-              sourceRefs={dossier.sourceRefs}
+              traces={plantTraces}
+              sourceRefs={plantSourceRefs}
               ai={envAi}
               showAi={Boolean(envAi)}
               onRegenerate={onRegenerate}
@@ -208,9 +215,8 @@ export function LiveDossierAside({
             <ContentProvenance
               title="Apparatus catalog"
               field="Apparatus catalog"
-              pubchemCid={cid}
-              traces={apiTraces}
-              sourceRefs={dossier.sourceRefs}
+              traces={plantTraces}
+              sourceRefs={plantSourceRefs}
               ai={apparatusAi}
               showAi={Boolean(apparatusAi)}
               onRegenerate={onRegenerate}

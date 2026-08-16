@@ -175,6 +175,8 @@ export function isAnnotationSourceRef(ref: {
  * Harvest HTTP that actually feeds public process facts
  * (literature, patents, PubChem manufacturing, GHS).
  * Leftover identity / properties / annotation HTTP is not process-fact provenance.
+ * Plant environment / apparatus cards reuse this family — they derive from
+ * process facts, not leftover PubChem identity HTTP.
  */
 export function isProcessFactTrace(endpointUrl: string): boolean {
   return (
