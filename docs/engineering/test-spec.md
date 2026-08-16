@@ -208,6 +208,7 @@ Optional before release/deploy:
 | **SEARCH-21** | Live dossier overview empty vs error vs timeout: PUG View harvest failures are not "No overview text"; leftover GHS/literature/identity HTTP is not an overview miss | `test-search-contracts`, `test-product-path` |
 | **SEARCH-22** | Problem-first search empty vs error vs timeout: literature/multi harvest failures are not "0 molecules · 0 papers" / "No live hits yet" | `test-search-contracts`, `test-product-path` |
 | **SEARCH-23** | Live-dossier Multi-source free APIs empty vs error vs timeout: Rhea / Reactome / ClinicalTrials / OrgSyn / WikiPathways / Pathway Commons harvest failures are not a clean annotation miss; leftover PubChem identity HTTP is not an annotation miss | `test-search-contracts`, `test-product-path` |
+| **SEARCH-24** | Public process facts empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No condition / unit-op atoms extracted yet"; leftover identity / GHS / annotation HTTP is not a process-facts miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
 
 ### L. Diagnostics honesty
 

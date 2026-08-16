@@ -10,6 +10,7 @@ import {
   isProcessFactSourceRef,
   isProcessFactTrace,
   tracesForProcessFactProvenance,
+  formatProcessFactsEmptyCopy,
 } from "@/lib/dossier/sectionHonesty";
 
 const KIND_STYLE: Record<string, string> = {
@@ -135,6 +136,10 @@ export function ProcessFactsPanel({
   const traces = slimTraces(dossier.traces || []);
   const factTraces = traces.filter((t) => isProcessFactTrace(t.endpointUrl));
   const factSourceRefs = (dossier.sourceRefs || []).filter(isProcessFactSourceRef);
+  const factEmpty = formatProcessFactsEmptyCopy({
+    traces,
+    fetchErrors: dossier.fetchErrors,
+  });
   const ai = dossier.synthesis.provenance;
 
   return (
@@ -186,7 +191,7 @@ export function ProcessFactsPanel({
         </ul>
       ) : (
         <p className="mt-3 text-xs text-slate-600">
-          No condition / unit-op atoms extracted from titles and abstracts yet.
+          {factEmpty.message}
         </p>
       )}
 
