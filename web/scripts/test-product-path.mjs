@@ -360,4 +360,11 @@ ok(
     /hypoEmpty\.kind === "error"/.test(read("components/frontier/RouteHypothesesPanel.tsx")) &&
     /hypoEmpty\.message/.test(read("components/frontier/RouteHypothesesPanel.tsx"))
 );
+ok(
+  "SEARCH-31 unit-op-search empty copy is not unconditional process-facts miss",
+  /formatProcessFactsEmptyCopy/.test(read("components/ProblemUnitOpSearch.tsx")) &&
+    /factEmpty\.kind === "error"/.test(read("components/ProblemUnitOpSearch.tsx")) &&
+    /factEmpty\.message/.test(read("components/ProblemUnitOpSearch.tsx")) &&
+    !/No process facts yet\./.test(read("components/ProblemUnitOpSearch.tsx"))
+);
 console.log(`\n${n} product-path checks passed`);
