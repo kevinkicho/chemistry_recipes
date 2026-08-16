@@ -1863,4 +1863,120 @@ ok(
       }).message
     )
 );
+const jobAidSrc = read("components/OperatorJobAid.tsx");
+ok(
+  "SEARCH-25 job-aid empty copy uses section honesty helpers",
+  /formatSectionEmptyCopy/.test(jobAidSrc) &&
+    /formatProcessFactsEmptyCopy/.test(jobAidSrc) &&
+    /hazardEmpty\.message/.test(jobAidSrc) &&
+    /sequenceEmpty\.kind === "error"/.test(jobAidSrc) &&
+    !/No GHS hazard statements on file/.test(jobAidSrc)
+);
+ok(
+  "SEARCH-25 GHS harvest fail is job-aid error not empty",
+  sectionH.formatSectionEmptyCopy({
+    family: "hazards",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=GHS+Classification",
+        ok: false,
+        error: "timeout",
+      },
+    ],
+  }).kind === "error" &&
+    /Not an empty result|Not a clean miss/.test(
+      sectionH.formatSectionEmptyCopy({
+        family: "hazards",
+        traces: [
+          {
+            endpointUrl:
+              "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=GHS+Classification",
+            ok: false,
+            error: "timeout",
+          },
+        ],
+      }).message
+    )
+);
+ok(
+  "SEARCH-25 genuine GHS empty stays no-GHS-text copy",
+  sectionH.formatSectionEmptyCopy({
+    family: "hazards",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=GHS+Classification",
+        ok: true,
+      },
+    ],
+  }).kind === "empty" &&
+    /No GHS text/.test(
+      sectionH.formatSectionEmptyCopy({ family: "hazards", traces: [] }).message
+    )
+);
+ok(
+  "SEARCH-25 leftover PubChem identity is not a job-aid GHS miss",
+  sectionH.formatSectionEmptyCopy({
+    family: "hazards",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-25 leftover ChEMBL annotation fail is not a job-aid GHS miss",
+  sectionH.formatSectionEmptyCopy({
+    family: "hazards",
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/search",
+        ok: false,
+        error: "HTTP 502",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-25 literature harvest fail is job-aid sequence error not empty",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "error" &&
+    /Not an empty result|Not a clean miss/.test(
+      sectionH.formatProcessFactsEmptyCopy({
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).message
+    )
+);
+ok(
+  "SEARCH-25 leftover identity is not a job-aid sequence miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+
 console.log(`\n${passed} search-contract checks passed`);

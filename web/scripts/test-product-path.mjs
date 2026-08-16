@@ -313,4 +313,12 @@ ok(
       read("components/ProcessFactsPanel.tsx")
     )
 );
+ok(
+  "SEARCH-25 job-aid empty copy is not unconditional GHS/sequence miss",
+  /formatSectionEmptyCopy/.test(read("components/OperatorJobAid.tsx")) &&
+    /formatProcessFactsEmptyCopy/.test(read("components/OperatorJobAid.tsx")) &&
+    /hazardEmpty\.message/.test(read("components/OperatorJobAid.tsx")) &&
+    /sequenceEmpty\.kind === "error"/.test(read("components/OperatorJobAid.tsx")) &&
+    !/No GHS hazard statements on file/.test(read("components/OperatorJobAid.tsx"))
+);
 console.log(`\n${n} product-path checks passed`);

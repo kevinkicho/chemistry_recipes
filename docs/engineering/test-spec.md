@@ -209,6 +209,7 @@ Optional before release/deploy:
 | **SEARCH-22** | Problem-first search empty vs error vs timeout: literature/multi harvest failures are not "0 molecules · 0 papers" / "No live hits yet" | `test-search-contracts`, `test-product-path` |
 | **SEARCH-23** | Live-dossier Multi-source free APIs empty vs error vs timeout: Rhea / Reactome / ClinicalTrials / OrgSyn / WikiPathways / Pathway Commons harvest failures are not a clean annotation miss; leftover PubChem identity HTTP is not an annotation miss | `test-search-contracts`, `test-product-path` |
 | **SEARCH-24** | Public process facts empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No condition / unit-op atoms extracted yet"; leftover identity / GHS / annotation HTTP is not a process-facts miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
+| **SEARCH-25** | Operator job-aid GHS / public-sequence empty vs error vs timeout: GHS harvest failures are not "No GHS hazard statements on file"; literature / patent / manufacturing harvest failures are not "No public sequence available"; leftover identity / annotation HTTP is not a job-aid GHS or sequence miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
 
 ### L. Diagnostics honesty
 
