@@ -391,6 +391,21 @@ ok(
   /formatProcessFactsEmptyCopy/.test(read("components/RouteCompare.tsx")) &&
     /compareEmpty/.test(read("components/RouteCompare.tsx"))
 );
+const routeHypotheses = read("components/frontier/RouteHypothesesPanel.tsx");
+ok(
+  "PROV-23 route-hypotheses chips use process-fact traces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(routeHypotheses) &&
+    /isProcessFactSourceRef/.test(routeHypotheses) &&
+    /liveFetch=\{false\}/.test(routeHypotheses) &&
+    /field="Route hypotheses"/.test(routeHypotheses) &&
+    /traces=\{traces\}/.test(routeHypotheses) &&
+    /sourceRefs=\{sourceRefs\}/.test(routeHypotheses)
+);
+ok(
+  "SEARCH-30 route-hypotheses empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(routeHypotheses) &&
+    /hypoEmpty/.test(routeHypotheses)
+);
 ok(
   "aside ContentProvenance manufacturing",
   /Manufacturing summary/.test(aside) && /ContentProvenance/.test(aside)

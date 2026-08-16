@@ -214,6 +214,7 @@ Optional before release/deploy:
 | **SEARCH-27** | Condition-atlas empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No conditions extracted"; leftover identity / annotation HTTP is not a condition-atlas miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
 | **SEARCH-28** | Process-recipe (RoutePanel) empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No process recipe yet / wait for public process literature"; leftover identity / annotation HTTP is not a process-recipe miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
 | **SEARCH-29** | Route-compare empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No process routes yet"; leftover identity / annotation HTTP is not a route-compare miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
+| **SEARCH-30** | Route-hypotheses empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No public process hypothesis yet"; leftover identity / annotation HTTP is not a route-hypothesis miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
 
 ### L. Diagnostics honesty
 
@@ -291,6 +292,7 @@ Machine registry: `web/scripts/fixtures/provenance-surface-registry.json`.
 | **PROV-20** | Condition-atlas chips claim only literature / patent / manufacturing / GHS harvest HTTP (not leftover PubChem identity or annotation HTTP); they do not live-fetch identity | `test-provenance`, `test-search-contracts` |
 | **PROV-21** | Operator-job-aid chips claim only literature / patent / manufacturing / GHS harvest HTTP (not leftover PubChem identity or annotation HTTP); they do not live-fetch identity | `test-provenance`, `test-search-contracts` |
 | **PROV-22** | Monday-pack chips claim only literature / patent / manufacturing / GHS harvest HTTP (not leftover PubChem identity or annotation HTTP); they do not live-fetch identity | `test-provenance`, `test-search-contracts` |
+| **PROV-23** | Route-hypotheses chips claim only literature / patent / manufacturing / GHS harvest HTTP (not leftover PubChem identity or annotation HTTP); they do not live-fetch identity | `test-provenance`, `test-search-contracts` |
 | **PROV-SCAN-*** | Scanner asserts every registry surface still wired | `test-provenance-coverage` |
 
 ## Lifecycle diagram (validated by LIFE-* / DENS-*)

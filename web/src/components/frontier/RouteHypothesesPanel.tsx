@@ -8,6 +8,12 @@ import {
 } from "@/lib/frontier/routeHypotheses";
 import type { RouteHypothesis } from "@/lib/frontier/types";
 import { FreePublicProvenance } from "@/components/FreePublicProvenance";
+import { slimTraces } from "@/lib/api/trace";
+import {
+  formatProcessFactsEmptyCopy,
+  isProcessFactSourceRef,
+  isProcessFactTrace,
+} from "@/lib/dossier/sectionHonesty";
 
 const STATUS_STYLE: Record<RouteHypothesis["status"], string> = {
   "evidence-backed": "bg-emerald-500/15 text-emerald-100 ring-emerald-500/35",
@@ -33,6 +39,22 @@ export function RouteHypothesesPanel({
   const conflicts =
     pack?.conflicts || buildScientificConflicts(dossier, atlas, hypotheses);
 
+  // Route hypotheses are lit / patent / manufacturing evidence.
+  // Harvest failure is not "no public process hypothesis yet". Leftover
+  // identity / annotation HTTP is not a route-hypothesis miss or chip.
+  const allTraces = slimTraces(dossier.traces || []);
+  const traces = allTraces.filter((tr) =>
+    isProcessFactTrace(tr.endpointUrl)
+  );
+  const sourceRefs = (dossier.sourceRefs || []).filter(isProcessFactSourceRef);
+  const hypoEmpty = formatProcessFactsEmptyCopy({
+    traces: allTraces,
+    fetchErrors: dossier.fetchErrors,
+  });
+  const isPlaceholder =
+    hypotheses.length === 0 ||
+    (hypotheses.length === 1 && hypotheses[0]?.id === "hyp-none");
+
   return (
     <div
       id="route-hypotheses"
@@ -51,6 +73,9 @@ export function RouteHypothesesPanel({
           field="Route hypotheses"
           aiField="routes"
           aiMode="field-or-parsed"
+          traces={traces}
+          sourceRefs={sourceRefs}
+          liveFetch={false}
           onRegenerate={onRegenerate}
         />
       </div>
@@ -59,6 +84,9 @@ export function RouteHypothesesPanel({
         process selection.
       </p>
 
+      {isPlaceholder && hypoEmpty.kind === "error" ? (
+        <p className="mt-3 text-xs text-slate-600">{hypoEmpty.message}</p>
+      ) : (
       <ul className="mt-3 space-y-3">
         {hypotheses.map((h) => (
           <li
@@ -119,6 +147,7 @@ export function RouteHypothesesPanel({
           </li>
         ))}
       </ul>
+      )}
 
       {conflicts.length > 0 ? (
         <div className="mt-4">
