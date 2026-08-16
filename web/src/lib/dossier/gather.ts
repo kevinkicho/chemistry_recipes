@@ -401,7 +401,7 @@ export async function gatherCompoundEvidenceLive(
       },
       {
         label: "massbank",
-        run: () => fetchMassBankByName(name, { limit: 5 }),
+        run: () => fetchMassBankByName(name),
         fallback: { hits: [], annotations: [], traces: [], query: "" },
       },
       {
