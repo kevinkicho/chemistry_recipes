@@ -472,6 +472,12 @@ ok(
     /honestScienceQaAnswer/.test(read("lib/frontier/evidenceQa.ts")) &&
     /No route hypotheses assembled/.test(read("lib/frontier/evidenceQa.ts"))
 );
+ok(
+  "SEARCH-36 literature-depth empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(read("lib/frontier/literatureDepth.ts")) &&
+    /honestLiteratureDepthSummary/.test(read("lib/frontier/literatureDepth.ts")) &&
+    /No procedure-scored free-public windows yet/.test(read("lib/frontier/literatureDepth.ts"))
+);
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
 ok("PdfWorkerPack exists", existsSync(src("components/PdfWorkerPack.tsx")));

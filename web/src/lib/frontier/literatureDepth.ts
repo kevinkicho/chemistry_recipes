@@ -1,9 +1,12 @@
 /**
  * Literature / patent densify depth — rank free-public windows by
  * procedure richness before atlas and AI packaging.
+ * Harvest failure is not "No procedure-scored free-public windows yet".
+ * Leftover identity / annotation HTTP is not a literature-depth miss.
  */
 
 import type { LiveDossier } from "@/lib/dossier/types";
+import { formatProcessFactsEmptyCopy } from "@/lib/dossier/sectionHonesty";
 import {
   pickBestProcedureText,
   scoreProcedureWindow,
@@ -33,6 +36,22 @@ export interface LiteratureDepthReport {
 }
 
 const RICH_THRESHOLD = 8;
+
+const CLEAN_EMPTY_WINDOWS = "No procedure-scored free-public windows yet";
+
+/**
+ * Literature-depth empty copy comes from literature / patent / manufacturing harvest.
+ * Harvest failure is not a clean "no windows yet" miss.
+ * Leftover identity / annotation HTTP is not a literature-depth miss.
+ */
+function honestLiteratureDepthSummary(dossier: LiveDossier, cleanEmpty: string): string {
+  const harvest = formatProcessFactsEmptyCopy({
+    traces: dossier.traces,
+    fetchErrors: dossier.fetchErrors,
+  });
+  return harvest.kind === "error" ? harvest.message : cleanEmpty;
+}
+
 
 /**
  * Score and rank densified literature/patent/mfg windows for one dossier.
@@ -123,7 +142,7 @@ export function buildLiteratureDepthReport(
 
   const summary =
     windows.length === 0
-      ? "No procedure-scored free-public windows yet"
+      ? honestLiteratureDepthSummary(dossier, CLEAN_EMPTY_WINDOWS)
       : `Literature depth ${depthScore}/100 · ${rich}/${windows.length} procedure-rich · max score ${maxScore} · top: ${windows[0]?.label.slice(0, 40) || "—"}`;
 
   return {

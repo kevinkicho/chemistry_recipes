@@ -2815,4 +2815,77 @@ ok(
     /composite Q&A/.test(evidenceSciencePanel)
 );
 
+
+const litDepthSrc = read("lib/frontier/literatureDepth.ts");
+ok(
+  "SEARCH-36 literature-depth empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(litDepthSrc) &&
+    /honestLiteratureDepthSummary/.test(litDepthSrc) &&
+    /harvest\.kind === "error"/.test(litDepthSrc)
+);
+ok(
+  "SEARCH-36 literature harvest fail is literature-depth error not empty",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "error" &&
+    /Not an empty result|Not a clean miss/.test(
+      sectionH.formatProcessFactsEmptyCopy({
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).message
+    )
+);
+ok(
+  "SEARCH-36 leftover identity is not a literature-depth miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-36 leftover ChEMBL annotation fail is not a literature-depth miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/search",
+        ok: false,
+        error: "HTTP 502",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-36 genuine empty stays no-procedure-scored-windows copy",
+  sectionH.formatProcessFactsEmptyCopy({ traces: [] }).kind === "empty" &&
+    /No procedure-scored free-public windows yet/.test(litDepthSrc)
+);
+ok(
+  "SEARCH-36 science panel shows literature-depth harvest empty copy",
+  /litDepth\.totalWindows === 0/.test(evidenceSciencePanel) &&
+    /litDepth\.summary/.test(evidenceSciencePanel) &&
+    /literature-depth miss/.test(evidenceSciencePanel)
+);
+ok(
+  "SEARCH-36 science chips still pass all traces (composite)",
+  /field="Evidence science Q&A"/.test(evidenceSciencePanel) &&
+    /dossier=\{dossier\}/.test(evidenceSciencePanel)
+);
+
 console.log(`\n${passed} search-contract checks passed`);

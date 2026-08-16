@@ -401,4 +401,12 @@ ok(
     /harvest\.kind === "error"/.test(read("lib/frontier/evidenceQa.ts")) &&
     /No route hypotheses assembled/.test(read("lib/frontier/evidenceQa.ts"))
 );
+ok(
+  "SEARCH-36 literature-depth empty copy is not unconditional no-windows miss",
+  /honestLiteratureDepthSummary/.test(read("lib/frontier/literatureDepth.ts")) &&
+    /formatProcessFactsEmptyCopy/.test(read("lib/frontier/literatureDepth.ts")) &&
+    /harvest\.kind === "error"/.test(read("lib/frontier/literatureDepth.ts")) &&
+    /No procedure-scored free-public windows yet/.test(read("lib/frontier/literatureDepth.ts")) &&
+    /litDepth\.totalWindows === 0/.test(read("components/frontier/EvidenceSciencePanel.tsx"))
+);
 console.log(`\n${n} product-path checks passed`);
