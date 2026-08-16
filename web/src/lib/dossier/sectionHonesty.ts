@@ -171,6 +171,54 @@ export function isAnnotationSourceRef(ref: {
   );
 }
 
+/**
+ * Harvest HTTP that actually feeds public process facts
+ * (literature, patents, PubChem manufacturing, GHS).
+ * Leftover identity / properties / annotation HTTP is not process-fact provenance.
+ */
+export function isProcessFactTrace(endpointUrl: string): boolean {
+  return (
+    isLiteratureSectionTrace(endpointUrl) ||
+    isPatentSectionTrace(endpointUrl) ||
+    isManufacturingSectionTrace(endpointUrl) ||
+    isHazardsSectionTrace(endpointUrl)
+  );
+}
+
+/** Citation rows that belong on the Public process facts card. */
+export function isProcessFactSourceRef(ref: {
+  id?: string;
+  type?: string;
+}): boolean {
+  if (ref.type === "literature" || ref.type === "patent") return true;
+  const id = (ref.id || "").toLowerCase();
+  return (
+    id === "pubchem-mfg" ||
+    id.startsWith("pubchem-mfg:") ||
+    id.startsWith("pubchem-mfg-page:") ||
+    id === "pubchem-view-ghs" ||
+    id.startsWith("pubchem-view-ghs:") ||
+    id.startsWith("ghs:")
+  );
+}
+
+const FACT_TRACE_PRED: Record<string, (url: string) => boolean> = {
+  literature: isLiteratureSectionTrace,
+  patent: isPatentSectionTrace,
+  "pubchem-mfg": isManufacturingSectionTrace,
+  ghs: isHazardsSectionTrace,
+  annotation: isAnnotationSectionTrace,
+};
+
+/** Per-fact harvest HTTP. Local paste / editorial gaps have no harvest family. */
+export function tracesForProcessFactProvenance<
+  T extends { endpointUrl: string },
+>(traces: T[] | undefined, provenance: string): T[] {
+  const pred = FACT_TRACE_PRED[provenance];
+  if (!pred) return [];
+  return (traces || []).filter((t) => pred(t.endpointUrl));
+}
+
 /** Full-record PUG View fallback feeds GHS, manufacturing, and properties. */
 function isFullRecordPugView(e: string): boolean {
   return (

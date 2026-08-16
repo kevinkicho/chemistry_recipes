@@ -94,6 +94,27 @@ ok(
   /allTraces\.length/.test(aside) && /apiTraces/.test(aside)
 );
 
+const processFactsPanel = read("components/ProcessFactsPanel.tsx");
+ok(
+  "PROV-15 process facts header uses factTraces not all harvest HTTP",
+  /traces=\{factTraces\}/.test(processFactsPanel) &&
+    /sourceRefs=\{factSourceRefs\}/.test(processFactsPanel) &&
+    /isProcessFactTrace/.test(processFactsPanel) &&
+    !/field="Process facts"[\s\S]{0,200}traces=\{traces\}/.test(processFactsPanel)
+);
+ok(
+  "PROV-15 process fact rows filter traces by provenance family",
+  /tracesForProcessFactProvenance/.test(processFactsPanel) &&
+    /familyTraces/.test(processFactsPanel) &&
+    !/pubchemCid=\{pubchemCid\}/.test(processFactsPanel)
+);
+const processFactsLib = read("lib/dossier/processFacts.ts");
+ok(
+  "PROV-15 GHS process-fact ids use pubchem-view-ghs not leftover ghs:",
+  /sourceId: `pubchem-view-ghs:\$\{evidence\.cid\}`/.test(processFactsLib) &&
+    !/sourceId: `ghs:\$\{evidence\.cid\}`/.test(processFactsLib)
+);
+
 // Behavioral: id-prefix family wins (MyChem must not match ChEMBL HTML URL)
 function matchTraceForSourceRef(ref, traces) {
   if (!traces.length) return undefined;
