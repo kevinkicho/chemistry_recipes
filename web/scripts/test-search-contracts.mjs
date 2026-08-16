@@ -3306,4 +3306,239 @@ ok(
   /slimTraces\(dossier\.traces/.test(idealPanelSrc)
 );
 
+const techTransferSrc = read("lib/export/techTransfer.ts");
+ok(
+  "SEARCH-40 checklist empty copy uses honestChecklistGap",
+  /honestChecklistGap/.test(techTransferSrc) &&
+    /isStubOnlyProcessSequence/.test(techTransferSrc) &&
+    /isProcessSequenceStub/.test(techTransferSrc) &&
+    /export function honestChecklistGap/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    )
+);
+ok(
+  "SEARCH-40 literature harvest fail is checklist review not Gap",
+  sectionH.honestChecklistGap({
+    family: "process-facts",
+    filled: false,
+    cleanStatus: "gap",
+    cleanNote: "No process facts",
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).harvestFail &&
+    sectionH.honestChecklistGap({
+      family: "process-facts",
+      filled: false,
+      cleanStatus: "gap",
+      cleanNote: "No process facts",
+      traces: [
+        {
+          endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+          ok: false,
+          error: "HTTP 503",
+        },
+      ],
+    }).status === "review" &&
+    /Not an empty result|Not a clean miss/.test(
+      sectionH.honestChecklistGap({
+        family: "process-facts",
+        filled: false,
+        cleanStatus: "gap",
+        cleanNote: "No process facts",
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).note
+    ) &&
+    !/No process facts/.test(
+      sectionH.honestChecklistGap({
+        family: "process-facts",
+        filled: false,
+        cleanStatus: "gap",
+        cleanNote: "No process facts",
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).note
+    )
+);
+ok(
+  "SEARCH-40 GHS harvest fail is checklist EHS review not Gap",
+  sectionH.honestChecklistGap({
+    family: "hazards",
+    filled: false,
+    cleanStatus: "gap",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=GHS+Classification",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).harvestFail &&
+    sectionH.honestChecklistGap({
+      family: "hazards",
+      filled: false,
+      cleanStatus: "gap",
+      traces: [
+        {
+          endpointUrl:
+            "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/2244/JSON?heading=GHS+Classification",
+          ok: false,
+          error: "HTTP 503",
+        },
+      ],
+    }).status === "review"
+);
+ok(
+  "SEARCH-40 leftover identity is not a checklist process-facts miss",
+  sectionH.honestChecklistGap({
+    family: "process-facts",
+    filled: false,
+    cleanStatus: "gap",
+    cleanNote: "No process facts",
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).harvestFail === false &&
+    sectionH.honestChecklistGap({
+      family: "process-facts",
+      filled: false,
+      cleanStatus: "gap",
+      cleanNote: "No process facts",
+      traces: [
+        {
+          endpointUrl:
+            "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+          ok: false,
+          error: "HTTP 503",
+        },
+      ],
+    }).status === "gap" &&
+    sectionH.honestChecklistGap({
+      family: "process-facts",
+      filled: false,
+      cleanStatus: "gap",
+      cleanNote: "No process facts",
+      traces: [
+        {
+          endpointUrl:
+            "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+          ok: false,
+          error: "HTTP 503",
+        },
+      ],
+    }).note === "No process facts"
+);
+ok(
+  "SEARCH-40 leftover ChEMBL annotation fail is not a checklist miss",
+  sectionH.honestChecklistGap({
+    family: "process-facts",
+    filled: false,
+    cleanStatus: "gap",
+    cleanNote: "No process facts",
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/search",
+        ok: false,
+        error: "HTTP 502",
+      },
+    ],
+  }).status === "gap" &&
+    sectionH.honestChecklistGap({
+      family: "process-facts",
+      filled: false,
+      cleanStatus: "gap",
+      cleanNote: "No process facts",
+      traces: [
+        {
+          endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/search",
+          ok: false,
+          error: "HTTP 502",
+        },
+      ],
+    }).note === "No process facts"
+);
+ok(
+  "SEARCH-40 genuine empty stays Gap / No process facts copy",
+  sectionH.honestChecklistGap({
+    family: "process-facts",
+    filled: false,
+    cleanStatus: "gap",
+    cleanNote: "No process facts",
+    traces: [],
+  }).status === "gap" &&
+    sectionH.honestChecklistGap({
+      family: "process-facts",
+      filled: false,
+      cleanStatus: "gap",
+      cleanNote: "No process facts",
+      traces: [],
+    }).note === "No process facts" &&
+    sectionH.honestChecklistGap({
+      family: "hazards",
+      filled: false,
+      cleanStatus: "gap",
+      traces: [],
+    }).status === "gap"
+);
+ok(
+  "SEARCH-40 filled checklist items stay ok despite harvest fail",
+  sectionH.honestChecklistGap({
+    family: "process-facts",
+    filled: true,
+    cleanStatus: "ok",
+    cleanNote: "2 cond · 1 unit ops",
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).status === "ok" &&
+    sectionH.honestChecklistGap({
+      family: "process-facts",
+      filled: true,
+      cleanStatus: "ok",
+      cleanNote: "2 cond · 1 unit ops",
+      traces: [
+        {
+          endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+          ok: false,
+          error: "HTTP 503",
+        },
+      ],
+    }).harvestFail === false
+);
+ok(
+  "SEARCH-40 stub-only routes do not count as checklist step fill",
+  /isStubOnlyProcessSequence\(steps\)/.test(techTransferSrc) &&
+    /isProcessSequenceStub/.test(techTransferSrc)
+);
+ok(
+  "SEARCH-40 checklist chips still pass all traces (composite)",
+  /FreePublicProvenance/.test(read("components/ValidationChecklist.tsx")) &&
+    /dossier=\{dossier\}/.test(read("components/ValidationChecklist.tsx"))
+);
+
 console.log(`\n${passed} search-contract checks passed`);

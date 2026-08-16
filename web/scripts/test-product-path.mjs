@@ -437,4 +437,11 @@ ok(
     /No GHS text for this CID/.test(read("lib/dossier/idealPage.ts")) &&
     /No process steps yet/.test(read("lib/dossier/idealPage.ts"))
 );
+ok(
+  "SEARCH-40 checklist empty copy is not unconditional Gap / No process facts miss",
+  /honestChecklistGap/.test(read("lib/export/techTransfer.ts")) &&
+    /isStubOnlyProcessSequence/.test(read("lib/export/techTransfer.ts")) &&
+    /honestChecklistGap/.test(read("lib/dossier/sectionHonesty.ts")) &&
+    /No process facts/.test(read("lib/export/techTransfer.ts"))
+);
 console.log(`\n${n} product-path checks passed`);
