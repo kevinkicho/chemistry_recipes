@@ -29,7 +29,33 @@ export function looksLikeUnii(q: string): boolean {
   return /^[A-Z0-9]{10}$/i.test(q.trim()) && !/^\d+$/.test(q.trim());
 }
 
-/** Same structured-SMILES heuristic as historical searchPubChem — no invention. */
+/** Numbered organic names: "2-propanol", "1,3-butadiene", "4-aminophenol". */
+export function looksLikeNumberedChemicalName(q: string): boolean {
+  const s = q.trim();
+  if (/[=#@()\[\]\\/%]/.test(s)) return false;
+  return /^\d+(,\d+)*-/.test(s) && /[A-Za-z]{2,}/.test(s);
+}
+
+/**
+ * Hill-like molecular formula (C9H8O4), not SMILES.
+ * Repeated counts (C1CCCCC1) look like ring closures and are left to SMILES.
+ */
+export function looksLikeMolecularFormula(q: string): boolean {
+  const s = q.trim();
+  if (!s || /[=#@()\[\]\\/%+\-]/.test(s)) return false;
+  if (!/^[A-Z]/.test(s)) return false;
+  if (!/^(?:[A-Z][a-z]?\d*){2,}$/.test(s)) return false;
+  if (!/\d/.test(s)) return false;
+  const digits = s.match(/\d+/g) || [];
+  const seen = new Set<string>();
+  for (const d of digits) {
+    if (seen.has(d)) return false;
+    seen.add(d);
+  }
+  return true;
+}
+
+/** Structured SMILES — not numbered names, formulas, or other identifier kinds. */
 export function looksLikeSmiles(q: string): boolean {
   const s = q.trim();
   if (s.length < 2 || s.length > 500) return false;
@@ -39,12 +65,14 @@ export function looksLikeSmiles(q: string): boolean {
     looksLikeCas(s) ||
     looksLikeInchiKey(s) ||
     looksLikeInchi(s) ||
-    looksLikeUnii(s)
+    looksLikeUnii(s) ||
+    looksLikeNumberedChemicalName(s) ||
+    looksLikeMolecularFormula(s)
   ) {
     return false;
   }
   if (/^[A-Za-z]+$/.test(s)) return false;
-  const hasSmilesSyntax = /[=#@()\[\]\\/%]/.test(s) || /[0-9]/.test(s);
+  const hasSmilesSyntax = /[=#@()\[\]\\/%]/.test(s) || /[A-Za-z][0-9]/.test(s);
   if (!hasSmilesSyntax) return false;
   return /[A-Za-z]/.test(s);
 }
