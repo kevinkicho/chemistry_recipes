@@ -146,4 +146,25 @@ ok(
   !/Google sign-in \(client\)/.test(read("app/api/diagnostics/firebase/route.ts"))
 );
 
+ok(
+  "compare does not claim warm complete unconditionally",
+  !/Warm complete — dual export ready when both sides loaded/.test(comparePage)
+);
+ok(
+  "compare uses formatCompareWarmStatus",
+  /formatCompareWarmStatus/.test(comparePage)
+);
+ok(
+  "compare export alert does not require both when one loaded",
+  !/Warm or open both live dossiers first/.test(comparePage)
+);
+const densifySched = read("components/DensifySchedulePanel.tsx");
+ok(
+  "densify schedule only marks warmed when dossier returned",
+  /const d = await warmLiveDossier/.test(densifySched) &&
+    /if \(!d\)/.test(densifySched) &&
+    /markDensifyWarmed/.test(densifySched) &&
+    /Warm failed for CID/.test(densifySched)
+);
+
 console.log(`\n${n} product-path checks passed`);

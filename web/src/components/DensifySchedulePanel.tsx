@@ -39,10 +39,14 @@ export function DensifySchedulePanel() {
     setBusy(cid);
     setStatus(`Warming CID ${cid}…`);
     try {
-      await warmLiveDossier(cid, {
+      const d = await warmLiveDossier(cid, {
         force: true,
         onStatus: (s) => setStatus(s),
       });
+      if (!d) {
+        setStatus(`Warm failed for CID ${cid} — stream did not return a dossier.`);
+        return;
+      }
       markDensifyWarmed(cid);
       setStatus(`Warm complete for CID ${cid}`);
       reload();
