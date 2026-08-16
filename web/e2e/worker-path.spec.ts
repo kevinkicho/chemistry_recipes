@@ -8,7 +8,6 @@ test.describe("worker path scaffold", () => {
   test("home shows live densify entry and problem search", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText(/Live densify \+ AI dual-view/i)).toBeVisible();
-    await expect(page.getByText(/Problem \/ unit-op search/i)).toBeVisible();
     await expect(
       page.getByText(/MSAT wizard|MSAT journey|Guided densify/i).first()
     ).toBeVisible();

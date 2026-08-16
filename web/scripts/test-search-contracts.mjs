@@ -60,11 +60,17 @@ ok("SEARCH-02 multiSourceSuggest export", /export (async )?function|multiSourceS
 ok("SEARCH-02 suggest API", /suggest|multiSource/.test(suggestApi));
 ok("SEARCH-02 SearchForm uses suggest API", /\/api\/search\/suggest/.test(form));
 
-// SEARCH-03 problem-first local + live
+// SEARCH-03 problem-first live multi-source
 ok("SEARCH-03 searchProblemFirst", /export function searchProblemFirst/.test(problemFirst));
 ok("SEARCH-03 PROBLEM_SEARCH_HINTS", /PROBLEM_SEARCH_HINTS/.test(problemFirst));
 ok("SEARCH-03 problem multi-source", /export async function|problemMultiSource|unified/.test(problemMulti));
 ok("SEARCH-03 problem API route", /problem|limit/.test(problemApi));
+ok("SEARCH-03 no hub-live leftover kind", !/hub-live/.test(problemFirst) && !/hub-live/.test(problemMulti));
+ok("SEARCH-03 live molecule kind", /kind:\s*"live"/.test(problemMulti));
+ok(
+  "SEARCH-03 status summary has no local catalog count",
+  !/`\$\{localHits\.length\} local`/.test(problemMulti)
+);
 
 // SEARCH-04 UI wiring
 ok("SEARCH-04 SearchResults multi path", /\/api\/search\/multi/.test(results));

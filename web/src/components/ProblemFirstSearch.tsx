@@ -512,7 +512,7 @@ export function ProblemFirstSearch() {
                     ) : null}
                   </span>
                   <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] uppercase text-slate-500">
-                    {h.kind === "hub-live" ? "live" : h.kind}
+                    {h.kind}
                     {h.tags?.includes("literature") ? " · lit" : ""}
                     {h.tags?.includes("multi-source") ? " · multi" : ""}
                   </span>

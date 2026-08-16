@@ -57,7 +57,7 @@ function moleculeToProblemHit(h: MultiSourceHit): ProblemSearchHit | null {
   if (!h.cid || h.cid <= 0) return null;
   return {
     id: `ms-${h.cid}`,
-    kind: "hub-live",
+    kind: "live",
     title: h.name,
     subtitle: [
       `CID ${h.cid}`,
@@ -192,9 +192,8 @@ export async function searchProblemFirstMulti(
   const trimmed = unified.slice(0, limit);
 
   const summary = [
-    `${localHits.length} local`,
-    `${moleculeHits.length} multi-source molecules`,
-    `${litUnique.length} process papers`,
+    `${moleculeHits.length} multi-source molecule${moleculeHits.length === 1 ? "" : "s"}`,
+    `${litUnique.length} process paper${litUnique.length === 1 ? "" : "s"}`,
   ].join(" · ");
 
   return {
