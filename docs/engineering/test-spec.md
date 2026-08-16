@@ -221,6 +221,7 @@ Optional before release/deploy:
 | **SEARCH-34** | Evidence critique procedure-window empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No procedure windows densified"; leftover identity / annotation HTTP is not a critique miss. Provenance chips still pass all traces (composite critique). | `test-search-contracts`, `test-product-path`, `test-provenance` |
 | **SEARCH-35** | Evidence science Q&A empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No route hypotheses assembled" / "Insufficient free-public evidence"; leftover identity / annotation HTTP is not a science-QA miss. Provenance chips still pass all traces (composite Q&A). | `test-search-contracts`, `test-product-path`, `test-provenance` |
 | **SEARCH-36** | Literature-depth empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No procedure-scored free-public windows yet"; leftover identity / annotation HTTP is not a literature-depth miss. Provenance chips still pass all traces (composite Q&A panel). | `test-search-contracts`, `test-product-path`, `test-provenance` |
+| **SEARCH-37** | Reaction-network empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "Network is center-only" / "No related PubChem CIDs for densify queue"; leftover identity / annotation HTTP is not a reaction-network miss. Provenance chips still pass all traces (composite network). | `test-search-contracts`, `test-product-path`, `test-provenance` |
 
 ### L. Diagnostics honesty
 

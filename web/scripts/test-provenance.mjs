@@ -478,6 +478,12 @@ ok(
     /honestLiteratureDepthSummary/.test(read("lib/frontier/literatureDepth.ts")) &&
     /No procedure-scored free-public windows yet/.test(read("lib/frontier/literatureDepth.ts"))
 );
+ok(
+  "SEARCH-37 reaction-network empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(read("lib/frontier/reactionNetwork.ts")) &&
+    /honestReactionNetworkSummary/.test(read("lib/frontier/reactionNetwork.ts")) &&
+    /Network is center-only/.test(read("lib/frontier/reactionNetwork.ts"))
+);
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
 ok("PdfWorkerPack exists", existsSync(src("components/PdfWorkerPack.tsx")));

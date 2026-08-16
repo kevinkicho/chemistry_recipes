@@ -15,10 +15,13 @@ import { NetworkEdgeComparePanel } from "@/components/frontier/NetworkEdgeCompar
 import { streamBatchDensifyCids } from "@/lib/dossier/batchClient";
 import { formatBatchDensifyStatus } from "@/lib/dossier/batchStreamStatus";
 import { FreePublicProvenance } from "@/components/FreePublicProvenance";
+import { formatProcessFactsEmptyCopy } from "@/lib/dossier/sectionHonesty";
 import { useState } from "react";
 
 /**
  * Multi-CID process network + impurity densify queue + campaign hooks.
+ * Harvest failure is not "Network is center-only".
+ * Leftover identity / annotation HTTP is not a reaction-network miss.
  */
 export function ReactionNetworkPanel({
   dossier,
@@ -33,6 +36,21 @@ export function ReactionNetworkPanel({
     dossier.processKnowledge?.reactionNetwork ||
     buildReactionNetwork(dossier, atlas);
   const neighborGraph = buildNeighborDensifyGraph(dossier, net);
+  // Harvest failure is not "Network is center-only" / a clean neighbor-queue miss.
+  // Leftover identity / annotation HTTP is not a reaction-network miss.
+  const networkEmpty = formatProcessFactsEmptyCopy({
+    traces: dossier.traces,
+    fetchErrors: dossier.fetchErrors,
+  });
+  const isCenterOnly = net.nodes.length <= 1;
+  const networkSummary =
+    isCenterOnly && networkEmpty.kind === "error"
+      ? networkEmpty.message
+      : net.summary;
+  const neighborSummary =
+    neighborGraph.queue.length === 0 && networkEmpty.kind === "error"
+      ? null
+      : neighborGraph.summary;
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<string[]>([]);
@@ -163,8 +181,10 @@ export function ReactionNetworkPanel({
         />
       </div>
       <p className="mt-1 text-[11px] text-slate-500">{net.disclaimer}</p>
-      <p className="mt-2 text-xs text-slate-300">{net.summary}</p>
-      <p className="mt-1 text-[11px] text-amber-100/80">{neighborGraph.summary}</p>
+      <p className="mt-2 text-xs text-slate-300">{networkSummary}</p>
+      {neighborSummary ? (
+        <p className="mt-1 text-[11px] text-amber-100/80">{neighborSummary}</p>
+      ) : null}
 
       <div className="mt-3 flex flex-wrap gap-2">
         <button

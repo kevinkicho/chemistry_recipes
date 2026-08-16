@@ -2,6 +2,8 @@
  * Impurity / related-entity densify priority graph.
  * Ranks neighbor PubChem CIDs for batch densify (impurities first).
  * Free-public evidence only — not a validated impurity control strategy.
+ * Harvest failure is not "No related PubChem CIDs for densify queue".
+ * Leftover identity / annotation HTTP is not a neighbor-queue miss.
  */
 
 import type { LiveDossier } from "@/lib/dossier/types";
@@ -9,6 +11,7 @@ import type { RelatedEntity } from "@/lib/types/process";
 import type { ReactionNetwork } from "@/lib/frontier/reactionNetwork";
 import { buildReactionNetwork } from "@/lib/frontier/reactionNetwork";
 import { buildConditionAtlas } from "@/lib/frontier/conditionAtlas";
+import { formatProcessFactsEmptyCopy } from "@/lib/dossier/sectionHonesty";
 
 export const NEIGHBOR_DENSIFY_SCHEMA =
   "chemistry-recipes.neighbor-densify-graph.v1" as const;
@@ -182,9 +185,16 @@ export function buildNeighborDensifyGraph(
     ...queue.map((t) => t.cid),
   ].filter((c, i, a) => a.indexOf(c) === i);
 
+  const cleanEmptyQueue = `No related PubChem CIDs for densify queue (CID ${dossier.cid})`;
+  const harvest = formatProcessFactsEmptyCopy({
+    traces: dossier.traces,
+    fetchErrors: dossier.fetchErrors,
+  });
   const summary =
     queue.length === 0
-      ? `No related PubChem CIDs for densify queue (CID ${dossier.cid})`
+      ? harvest.kind === "error"
+        ? harvest.message
+        : cleanEmptyQueue
       : `Neighbor densify · ${queue.length} CID(s) · ${impurityCids.length} impurity · ${intermediateCids.length} intermediate · top: ${queue
           .slice(0, 3)
           .map((t) => `${t.label}(${t.role})`)

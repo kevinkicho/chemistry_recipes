@@ -2888,4 +2888,86 @@ ok(
     /dossier=\{dossier\}/.test(evidenceSciencePanel)
 );
 
+
+const reactionNetSrc = read("lib/frontier/reactionNetwork.ts");
+const reactionNetPanel = read("components/frontier/ReactionNetworkPanel.tsx");
+const neighborGraphSrc = read("lib/frontier/neighborDensifyGraph.ts");
+ok(
+  "SEARCH-37 reaction-network empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(reactionNetSrc) &&
+    /honestReactionNetworkSummary/.test(reactionNetSrc) &&
+    /harvest\.kind === "error"/.test(reactionNetSrc)
+);
+ok(
+  "SEARCH-37 literature harvest fail is reaction-network error not empty",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "error" &&
+    /Not an empty result|Not a clean miss/.test(
+      sectionH.formatProcessFactsEmptyCopy({
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).message
+    )
+);
+ok(
+  "SEARCH-37 leftover identity is not a reaction-network miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-37 leftover ChEMBL annotation fail is not a reaction-network miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/search",
+        ok: false,
+        error: "HTTP 502",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-37 genuine empty stays center-only copy",
+  sectionH.formatProcessFactsEmptyCopy({ traces: [] }).kind === "empty" &&
+    /Network is center-only/.test(reactionNetSrc)
+);
+ok(
+  "SEARCH-37 panel overlays harvest empty copy on cached center-only network",
+  /networkEmpty\.kind === "error"/.test(reactionNetPanel) &&
+    /networkSummary/.test(reactionNetPanel) &&
+    /isCenterOnly/.test(reactionNetPanel) &&
+    /reaction-network miss/.test(reactionNetPanel)
+);
+ok(
+  "SEARCH-37 neighbor queue harvest fail is not clean CID miss",
+  /formatProcessFactsEmptyCopy/.test(neighborGraphSrc) &&
+    /harvest\.kind === "error"/.test(neighborGraphSrc) &&
+    /No related PubChem CIDs for densify queue/.test(neighborGraphSrc)
+);
+ok(
+  "SEARCH-37 network chips still pass all traces (composite)",
+  /field="Reaction network"/.test(reactionNetPanel) &&
+    /dossier=\{dossier\}/.test(reactionNetPanel)
+);
+
 console.log(`\n${passed} search-contract checks passed`);

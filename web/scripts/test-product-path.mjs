@@ -409,4 +409,13 @@ ok(
     /No procedure-scored free-public windows yet/.test(read("lib/frontier/literatureDepth.ts")) &&
     /litDepth\.totalWindows === 0/.test(read("components/frontier/EvidenceSciencePanel.tsx"))
 );
+ok(
+  "SEARCH-37 reaction-network empty copy is not unconditional center-only miss",
+  /honestReactionNetworkSummary/.test(read("lib/frontier/reactionNetwork.ts")) &&
+    /formatProcessFactsEmptyCopy/.test(read("lib/frontier/reactionNetwork.ts")) &&
+    /harvest\.kind === "error"/.test(read("lib/frontier/reactionNetwork.ts")) &&
+    /Network is center-only/.test(read("lib/frontier/reactionNetwork.ts")) &&
+    /networkEmpty\.kind === "error"/.test(read("components/frontier/ReactionNetworkPanel.tsx")) &&
+    /networkSummary/.test(read("components/frontier/ReactionNetworkPanel.tsx"))
+);
 console.log(`\n${n} product-path checks passed`);

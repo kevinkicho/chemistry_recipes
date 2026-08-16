@@ -1,11 +1,14 @@
 /**
  * Multi-CID reaction / process network from related entities + densified cues.
  * Edges are evidence-linked when possible — not invented reaction schemes.
+ * Harvest failure is not "Network is center-only".
+ * Leftover identity / annotation HTTP is not a reaction-network miss.
  */
 
 import type { LiveDossier } from "@/lib/dossier/types";
 import type { RelatedEntity } from "@/lib/types/process";
 import type { ConditionAtlas } from "@/lib/frontier/types";
+import { formatProcessFactsEmptyCopy } from "@/lib/dossier/sectionHonesty";
 
 export type NetworkNodeRole =
   | "center"
@@ -90,6 +93,23 @@ function relationFor(role: NetworkNodeRole): NetworkEdge["relation"] {
     default:
       return "process-related";
   }
+}
+
+
+const CLEAN_EMPTY_NETWORK =
+  "Network is center-only — densify related entities / route materials to expand the multi-CID graph.";
+
+/**
+ * Reaction-network empty copy comes from literature / patent / manufacturing harvest.
+ * Harvest failure is not a clean "center-only" miss.
+ * Leftover identity / annotation HTTP is not a reaction-network miss.
+ */
+function honestReactionNetworkSummary(dossier: LiveDossier, cleanEmpty: string): string {
+  const harvest = formatProcessFactsEmptyCopy({
+    traces: dossier.traces,
+    fetchErrors: dossier.fetchErrors,
+  });
+  return harvest.kind === "error" ? harvest.message : cleanEmpty;
 }
 
 /**
@@ -209,7 +229,7 @@ export function buildReactionNetwork(
 
   const summary =
     nodes.length <= 1
-      ? "Network is center-only — densify related entities / route materials to expand the multi-CID graph."
+      ? honestReactionNetworkSummary(dossier, CLEAN_EMPTY_NETWORK)
       : `${nodes.length} nodes · ${edges.length} evidence edges · ${uniqueCids.length} PubChem CID(s) for campaign densify`;
 
   return {
