@@ -70,11 +70,6 @@ export function matchPubchemCid(pathname: string): string | null {
   return m?.[1] ?? null;
 }
 
-/** Match example dossier: `/examples/aspirin` */
-export function matchExampleId(pathname: string): string | null {
-  const m = pathname.match(/^\/examples\/([a-z0-9-]+)$/i);
-  return m?.[1] ?? null;
-}
 
 export function isSearchPath(pathname: string): boolean {
   return pathname === "/search";

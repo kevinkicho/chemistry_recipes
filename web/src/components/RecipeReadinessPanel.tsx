@@ -139,9 +139,7 @@ export function RecipeReadinessPanel({
         Modes: <strong className="font-medium text-slate-500">Scout</strong> =
         evidence map always.{" "}
         <strong className="font-medium text-slate-500">Recipe draft</strong> =
-        only when public process-fact density clears blockers.{" "}
-        <strong className="font-medium text-slate-500">Teaching package</strong> =
-        live densify dual-view inventory. Never GMP.
+        only when public process-fact density clears blockers. Never GMP.
       </p>
     </div>
   );

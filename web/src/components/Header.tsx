@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { HeaderHeightSync } from "@/components/HeaderHeightSync";
 import { AiStatusBadge } from "@/components/AiStatusBadge";
-import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { getServerAiEnv } from "@/lib/ai/serverEnv";
 import { routes } from "@/lib/routes";
 
@@ -65,7 +64,6 @@ export function Header() {
           >
             Science lab
           </Link>
-          <GoogleSignInButton />
           <Suspense
             fallback={
               <span className="rounded-md px-2.5 py-1.5 text-sm text-slate-500">

@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
-import { matchExampleId, matchPubchemCid } from "@/lib/routes";
+import { matchPubchemCid } from "@/lib/routes";
 import {
   assessTocSection,
   navigateToSection,
@@ -24,7 +24,7 @@ export interface TocLink {
 export { navigateToSection, assessTocSection, TOC_NAVIGATE_EVENT } from "@/lib/tocNavigate";
 
 /**
- * Canonical section anchors on live + example molecule pages.
+ * Canonical section anchors on live compound pages.
  * Always listed; empty/missing targets are dimmed and disabled.
  */
 const LIVE_SECTIONS: Omit<TocLink, "href" | "present" | "hasContent" | "enabled">[] = [
@@ -57,28 +57,6 @@ const LIVE_SECTIONS: Omit<TocLink, "href" | "present" | "hasContent" | "enabled"
   { id: "disclaimer", label: "Disclaimer" },
 ];
 
-const EXAMPLE_SECTIONS: Omit<
-  TocLink,
-  "href" | "present" | "hasContent" | "enabled"
->[] = [
-  { id: "identity", label: "Identity" },
-  { id: "structure", label: "Structure" },
-  { id: "overview", label: "Overview" },
-  { id: "critical-board", label: "Critical parameters" },
-  { id: "process-parameters", label: "Process parameters" },
-  { id: "routes", label: "Routes & steps" },
-  { id: "route-compare", label: "Route compare" },
-  { id: "related-entities", label: "Related entities" },
-  { id: "manufacturing", label: "Manufacturing summary" },
-  { id: "environment", label: "Environment" },
-  { id: "apparatus", label: "Apparatus" },
-  { id: "ehs", label: "EHS" },
-  { id: "hazards", label: "Hazards" },
-  { id: "properties", label: "Properties" },
-  { id: "sources", label: "Sources" },
-  { id: "disclaimer", label: "Disclaimer" },
-];
-
 function collectSections(
   candidates: Omit<TocLink, "href" | "present" | "hasContent" | "enabled">[]
 ): TocLink[] {
@@ -95,17 +73,16 @@ function collectSections(
 }
 
 /**
- * Table of contents — only on molecule/compound and example views.
+ * Table of contents — only on live PubChem compound views.
  * Lists all canonical sections; missing/empty ones are dimmed and non-interactive.
  */
 function TocInner() {
   const pathname = usePathname() || "/";
   const cid = matchPubchemCid(pathname);
-  const exampleId = matchExampleId(pathname);
   const [hash, setHash] = useState("");
   const [items, setItems] = useState<TocLink[]>([]);
-  const onMoleculePage = Boolean(cid || exampleId);
-  const candidates = exampleId ? EXAMPLE_SECTIONS : LIVE_SECTIONS;
+  const onMoleculePage = Boolean(cid);
+  const candidates = LIVE_SECTIONS;
 
   const refreshItems = useCallback(() => {
     if (!onMoleculePage) {
@@ -177,7 +154,7 @@ function TocInner() {
           Contents
         </div>
         <div className="text-[10px] text-slate-600">
-          {exampleId ? `Example · ${exampleId}` : `Live dossier · CID ${cid}`}
+          {`Live dossier · CID ${cid}`}
         </div>
         {items.length > 0 ? (
           <div className="mt-1 text-[10px] tabular-nums text-slate-600">
@@ -255,7 +232,7 @@ function TocInner() {
 function TocBalanceInner() {
   const pathname = usePathname() || "/";
   const show =
-    Boolean(matchPubchemCid(pathname)) || Boolean(matchExampleId(pathname));
+    Boolean(matchPubchemCid(pathname));
   if (!show) return null;
 
   return (
