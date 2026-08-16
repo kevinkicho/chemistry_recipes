@@ -128,5 +128,17 @@ ok(
   "chemistry-api-sources.json no curated overlays",
   !/curated overlays/.test(readRepo("docs/chemistry-api-sources.json"))
 );
+ok(
+  "home compare has no pinned routes leftover",
+  !/pinned routes/.test(read("app/page.tsx"))
+);
+ok(
+  "route compare has no teaching-route leftover",
+  !/public\/teaching route/.test(read("components/RouteCompare.tsx"))
+);
+ok(
+  "firebase diagnostics has no Google sign-in leftover",
+  !/Google sign-in \(client\)/.test(read("app/api/diagnostics/firebase/route.ts"))
+);
 
 console.log(`\n${n} product-path checks passed`);

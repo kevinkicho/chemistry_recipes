@@ -185,7 +185,7 @@ export function RouteCompare({ routes }: { routes: ProcessRoute[] }) {
     return (
       <div id="route-compare" className="scroll-mt-24 space-y-3">
         <p className="text-xs text-slate-500">
-          One public/teaching route on this dossier — plant scouting panel (BOM,
+          One public process route on this dossier — plant scouting panel (BOM,
           equipment, conditions). A second route (e.g. densified lit/patent or AI
           alternative) enables side-by-side compare.
         </p>
