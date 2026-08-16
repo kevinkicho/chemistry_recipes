@@ -21,6 +21,7 @@ import { searchSemanticScholarProcess } from "@/lib/api/semanticScholar";
 import { searchPubMedProcess } from "@/lib/api/pubmed";
 import { searchArxivProcess } from "@/lib/api/arxiv";
 import type { ApiFetchTrace } from "@/lib/api/trace";
+import { classifyChemicalQuery } from "@/lib/search/queryKind";
 
 export type MultiSourceId =
   | "pubchem"
@@ -259,6 +260,39 @@ export async function multiSourceSearch(
   const map = new Map<string, MultiSourceHit>();
   const sourceStatus: MultiSourceSearchResult["sourceStatus"] = [];
   const traces: ApiFetchTrace[] = [];
+
+  const kind = classifyChemicalQuery(q);
+  // SMILES / InChI are not names — do not fan out to name APIs or literature
+  // (those chips would look like the compound was missing from ChEMBL/RxNorm).
+  if (kind === "smiles" || kind === "inchi") {
+    const pub = await searchPubChem(q, Math.min(12, limit));
+    traces.push(...(pub.traces || []));
+    for (const h of pub.hits) mergeHit(map, fromPubChem(h, 10));
+    sourceStatus.push({
+      source: "pubchem",
+      ok: pub.hits.length > 0,
+      hitCount: pub.hits.length,
+      detail: pub.failure || "structured identifier — PubChem only",
+    });
+    const hits = [...map.values()]
+      .map((h) => ({
+        ...h,
+        openable: Boolean(h.cid && h.cid > 0),
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit);
+    return {
+      schema: "chemistry-recipes.multi-source-search.v1",
+      q,
+      hits,
+      sourceStatus,
+      durationMs: Date.now() - t0,
+      note: pub.hits.length
+        ? "Structured identifier resolved via PubChem only — name APIs were not queried."
+        : pub.failure || "No PubChem hit for this structured identifier.",
+      traces: traces.slice(0, 40),
+    };
+  }
 
   // Parallel free-public sources (bounded timeouts via each client)
   const tasks = await Promise.allSettled([

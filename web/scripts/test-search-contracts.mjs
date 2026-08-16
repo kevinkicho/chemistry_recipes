@@ -143,9 +143,9 @@ ok(
 );
 
 ok(
-  "SEARCH-07 browser PubChem resolves advertised SMILES",
+  "SEARCH-07 browser PubChem resolves advertised SMILES via query param",
   /looksLikeSmiles/.test(browser) &&
-    /compound\/smiles\//.test(browser)
+    /compound\/smiles\/cids\/JSON\?smiles=/.test(browser)
 );
 ok(
   "SEARCH-07 browser PubChem resolves advertised UNII",
@@ -237,6 +237,56 @@ ok(
   typeof qk.structuredQueryLabel === "function" &&
     qk.structuredQueryLabel("inchi") === "InChI" &&
     /resolveSearchSubmit/.test(queryKindSrc)
+);
+
+ok(
+  "SEARCH-09 numbered names are not SMILES",
+  qk.classifyChemicalQuery("2-propanol") === "name" &&
+    qk.classifyChemicalQuery("1,3-butadiene") === "name" &&
+    qk.classifyChemicalQuery("4-aminophenol") === "name" &&
+    qk.looksLikeNumberedChemicalName("2-propanol") &&
+    !qk.looksLikeSmiles("2-propanol")
+);
+ok(
+  "SEARCH-09 stereo SMILES still SMILES",
+  qk.classifyChemicalQuery("C/C=C/C") === "smiles" &&
+    qk.classifyChemicalQuery("C#C") === "smiles" &&
+    qk.classifyChemicalQuery("c1ccccc1") === "smiles" &&
+    qk.classifyChemicalQuery("C1CCCCC1") === "smiles"
+);
+ok(
+  "SEARCH-09 formula is not SMILES",
+  qk.looksLikeMolecularFormula("C9H8O4") &&
+    qk.classifyChemicalQuery("C9H8O4") === "name" &&
+    !qk.looksLikeSmiles("C9H8O4")
+);
+ok(
+  "SEARCH-09 server SMILES uses query param not path",
+  /compound\/smiles\/cids\/JSON\?smiles=/.test(serverPubchem) &&
+    !/compound\/smiles\/\$\{encodeURIComponent/.test(serverPubchem)
+);
+ok(
+  "SEARCH-09 SMILES not-found falls back to name",
+  /looksLikeSmiles/.test(serverPubchem) &&
+    /compound\/name\/\$\{encodeURIComponent/.test(serverPubchem) &&
+    /notFound/.test(serverPubchem)
+);
+ok(
+  "SEARCH-09 browser SMILES 400\/404 falls back to name",
+  /looksLikeSmiles\(t\) && \(r\.status === 404 \|\| r\.status === 400\)/.test(
+    browser
+  )
+);
+ok(
+  "SEARCH-09 multi-source skips name fan-out for SMILES\/InChI",
+  /classifyChemicalQuery/.test(multi) &&
+    /kind === "smiles" \|\| kind === "inchi"/.test(multi) &&
+    /name APIs were not queried/.test(multi)
+);
+ok(
+  "SEARCH-09 numbered-name Enter still uses highlight",
+  qk.resolveSearchSubmit("2-prop", { value: "2-propanol" }).value ===
+    "2-propanol"
 );
 
 console.log(`\n${passed} search-contract checks passed`);

@@ -56,7 +56,8 @@ async function resolveCids(
     // InChI has slashes — query param, not path (PubChem PUG REST).
     url = `${PUG}/compound/inchi/cids/JSON?inchi=${encodeURIComponent(t)}`;
   } else if (looksLikeSmiles(t)) {
-    url = `${PUG}/compound/smiles/${encodeURIComponent(t)}/cids/JSON`;
+    // Query param — path form breaks on / \ # (stereo / triple bonds).
+    url = `${PUG}/compound/smiles/cids/JSON?smiles=${encodeURIComponent(t)}`;
   } else {
     url = `${PUG}/compound/name/${encodeURIComponent(t)}/cids/JSON`;
   }
@@ -67,6 +68,20 @@ async function resolveCids(
       (r.data as { IdentifierList?: { CID?: number[] } }).IdentifierList?.CID ??
       [];
     if (cids.length) return cids;
+  }
+
+  // Name fallback when SMILES was a numbered name / invalid SMILES (400/404).
+  if (looksLikeSmiles(t) && (r.status === 404 || r.status === 400)) {
+    const named = await fetchJson(
+      `${PUG}/compound/name/${encodeURIComponent(t)}/cids/JSON`,
+      signal
+    );
+    if (named.ok && named.data && typeof named.data === "object") {
+      const cids =
+        (named.data as { IdentifierList?: { CID?: number[] } }).IdentifierList
+          ?.CID ?? [];
+      if (cids.length) return cids;
+    }
   }
 
   // Word match only if exact name failed with 404 (not 503)

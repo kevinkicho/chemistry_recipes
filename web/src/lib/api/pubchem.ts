@@ -266,12 +266,22 @@ export async function searchPubChem(
       cids = out.cids;
       hardFailed = out.hardFailed;
     } else if (looksLikeSmiles(q)) {
+      // Query param — path form breaks on / \ # (stereo / triple bonds).
       const out = await fetchCids(
-        `${PUG}/compound/smiles/${encodeURIComponent(q)}/cids/JSON`,
+        `${PUG}/compound/smiles/cids/JSON?smiles=${encodeURIComponent(q)}`,
         traces
       );
       cids = out.cids;
       hardFailed = out.hardFailed;
+      // Numbered names / formulas that slipped the heuristic still resolve as names.
+      if (cids.length === 0 && out.notFound) {
+        const primary = await fetchCids(
+          `${PUG}/compound/name/${encodeURIComponent(q)}/cids/JSON`,
+          traces
+        );
+        cids = primary.cids;
+        hardFailed = primary.hardFailed;
+      }
     } else {
       const primary = await fetchCids(
         `${PUG}/compound/name/${encodeURIComponent(q)}/cids/JSON`,

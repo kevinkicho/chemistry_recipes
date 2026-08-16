@@ -191,6 +191,7 @@ Optional before release/deploy:
 | **SEARCH-06** | Openable vs identity-only honesty | `test-search-contracts` |
 | **SEARCH-07** | Browser PubChem resolves advertised SMILES/UNII | `test-search-contracts` |
 | **SEARCH-08** | Structured submit + InChI resolve (not SMILES-misclassified) | `test-search-contracts` |
+| **SEARCH-09** | Numbered names are names; stereo SMILES use query-param resolve | `test-search-contracts` |
 
 ### L. Diagnostics honesty
 
