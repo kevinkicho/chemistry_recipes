@@ -247,7 +247,7 @@
       "file": "components/ProblemUnitOpSearch.tsx",
       "api": "required",
       "ai": "optional",
-      "patterns": ["ContentProvenance"]
+      "patterns": ["FreePublicProvenance", "isProcessFactTrace", "liveFetch"]
     },
     {
       "id": "helper.field-map",

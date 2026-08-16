@@ -406,6 +406,22 @@ ok(
   /formatProcessFactsEmptyCopy/.test(routeHypotheses) &&
     /hypoEmpty/.test(routeHypotheses)
 );
+const problemUnitOp = read("components/ProblemUnitOpSearch.tsx");
+ok(
+  "PROV-24 unit-op-search chips use process-fact traces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(problemUnitOp) &&
+    /isProcessFactSourceRef/.test(problemUnitOp) &&
+    /liveFetch=\{false\}/.test(problemUnitOp) &&
+    /field="Unit-op search"/.test(problemUnitOp) &&
+    /traces=\{traces\}/.test(problemUnitOp) &&
+    /sourceRefs=\{sourceRefs\}/.test(problemUnitOp)
+);
+ok(
+  "SEARCH-31 unit-op-search empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(problemUnitOp) &&
+    /factEmpty/.test(problemUnitOp) &&
+    !/No process facts yet\./.test(problemUnitOp)
+);
 ok(
   "aside ContentProvenance manufacturing",
   /Manufacturing summary/.test(aside) && /ContentProvenance/.test(aside)

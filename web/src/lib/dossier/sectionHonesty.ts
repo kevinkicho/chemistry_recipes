@@ -176,7 +176,7 @@ export function isAnnotationSourceRef(ref: {
  * (literature, patents, PubChem manufacturing, GHS).
  * Leftover identity / properties / annotation HTTP is not process-fact provenance.
  * Plant environment / apparatus, process recipe / route / control-points,
- * related entities / unit-ops, evidence-gaps, process-framing, condition-atlas, operator-job-aid, Monday-pack, and route-hypotheses chips reuse this family —
+ * related entities / unit-ops, evidence-gaps, process-framing, condition-atlas, operator-job-aid, Monday-pack, route-hypotheses, and problem-unit-op-search chips reuse this family —
  * they derive from process facts, not leftover PubChem identity HTTP.
  */
 export function isProcessFactTrace(endpointUrl: string): boolean {
@@ -444,8 +444,8 @@ const PROCESS_FACT_EMPTY_FAMILIES = [
  * Process-fact atoms come from literature, patents, and manufacturing text.
  * Harvest failure in those families is not "no atoms extracted yet".
  * Leftover identity / GHS / annotation HTTP is not a process-facts miss.
- * Condition-atlas, process-recipe (RoutePanel), route-compare, and route-hypotheses empty copy reuse this helper —
- * no extracted conditions / no process recipe / no process routes / no public process hypothesis is not a clean miss when
+ * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, and problem-unit-op-search empty copy reuse this helper —
+ * no extracted conditions / no process recipe / no process routes / no public process hypothesis / no process facts yet is not a clean miss when
  * lit / patent / manufacturing harvest failed.
  */
 export function formatProcessFactsEmptyCopy(opts: {

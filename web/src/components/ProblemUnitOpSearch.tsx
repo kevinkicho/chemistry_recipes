@@ -3,8 +3,14 @@
 import { useMemo, useState } from "react";
 import type { LiveDossier } from "@/lib/dossier/types";
 import type { ProcessFact } from "@/lib/dossier/processFacts";
-import { ContentProvenance } from "@/components/ContentProvenance";
+import { FreePublicProvenance } from "@/components/FreePublicProvenance";
 import { slimTraces } from "@/lib/api/trace";
+import {
+  formatProcessFactsEmptyCopy,
+  formatSectionEmptyCopy,
+  isProcessFactSourceRef,
+  isProcessFactTrace,
+} from "@/lib/dossier/sectionHonesty";
 
 const UNIT_OP_HINTS = [
   "crystalliz",
@@ -71,6 +77,32 @@ export function ProblemUnitOpSearch({
       .slice(0, 8);
   }, [dossier.patents, query]);
 
+  // Unit-op search is lit / patent / manufacturing evidence.
+  // Harvest failure is not "No process facts yet" / a clean filter miss.
+  // Leftover identity / annotation HTTP is not a unit-op-search miss or chip.
+  const allTraces = slimTraces(dossier.traces || []);
+  const traces = allTraces.filter((tr) =>
+    isProcessFactTrace(tr.endpointUrl)
+  );
+  const sourceRefs = (dossier.sourceRefs || []).filter(isProcessFactSourceRef);
+  const factEmpty = formatProcessFactsEmptyCopy({
+    traces: allTraces,
+    fetchErrors: dossier.fetchErrors,
+  });
+  const litEmpty = formatSectionEmptyCopy({
+    family: "literature",
+    traces: allTraces,
+    fetchErrors: dossier.fetchErrors,
+  });
+  const patentEmpty = formatSectionEmptyCopy({
+    family: "patents",
+    traces: allTraces,
+    fetchErrors: dossier.fetchErrors,
+  });
+  const sourcedFactCount = (dossier.processFacts?.facts || []).filter(
+    (f) => f.kind !== "open-gap"
+  ).length;
+
   return (
     <div
       id="problem-unit-op-search"
@@ -80,14 +112,13 @@ export function ProblemUnitOpSearch({
         <h2 className="text-sm font-semibold text-slate-100">
           Problem / unit-op search
         </h2>
-        <ContentProvenance
+        <FreePublicProvenance
+          dossier={dossier}
           title="Problem / unit-op search"
           field="Unit-op search"
-          pubchemCid={dossier.cid}
-          traces={slimTraces(dossier.traces || [])}
-          sourceRefs={dossier.sourceRefs}
-          ai={dossier.synthesis.provenance}
-          showAi={Boolean(dossier.synthesis.provenance)}
+          traces={traces}
+          sourceRefs={sourceRefs}
+          liveFetch={false}
           onRegenerate={onRegenerate}
         />
       </div>
@@ -143,8 +174,10 @@ export function ProblemUnitOpSearch({
           {matchedFacts.length === 0 ? (
             <p className="mt-1 text-xs text-slate-600">
               {query
-                ? "No facts match — try a broader unit-op or paste public procedure text."
-                : "No process facts yet."}
+                ? sourcedFactCount === 0 && factEmpty.kind === "error"
+                  ? factEmpty.message
+                  : "No facts match — try a broader unit-op or paste public procedure text."
+                : factEmpty.message}
             </p>
           ) : (
             <ul className="mt-1 max-h-48 space-y-1 overflow-y-auto">
@@ -197,7 +230,12 @@ export function ProblemUnitOpSearch({
                   </li>
                 ))}
                 {!matchedLit.length ? (
-                  <li className="text-slate-600">No literature title/abstract match.</li>
+                  <li className="text-slate-600">
+                    {(dossier.literature || []).length === 0 &&
+                    litEmpty.kind === "error"
+                      ? litEmpty.message
+                      : "No literature title/abstract match."}
+                  </li>
                 ) : null}
               </ul>
             </section>
@@ -223,7 +261,12 @@ export function ProblemUnitOpSearch({
                   </li>
                 ))}
                 {!matchedPatents.length ? (
-                  <li className="text-slate-600">No patent title/abstract match.</li>
+                  <li className="text-slate-600">
+                    {(dossier.patents || []).length === 0 &&
+                    patentEmpty.kind === "error"
+                      ? patentEmpty.message
+                      : "No patent title/abstract match."}
+                  </li>
                 ) : null}
               </ul>
             </section>

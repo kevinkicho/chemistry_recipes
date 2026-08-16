@@ -2319,4 +2319,91 @@ ok(
     /No public process hypothesis yet/.test(read("lib/frontier/routeHypotheses.ts"))
 );
 
+const problemUnitOp = read("components/ProblemUnitOpSearch.tsx");
+ok(
+  "PROV-24 unit-op-search chips use process-fact traces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(problemUnitOp) &&
+    /isProcessFactSourceRef/.test(problemUnitOp) &&
+    /liveFetch=\{false\}/.test(problemUnitOp) &&
+    /field="Unit-op search"/.test(problemUnitOp) &&
+    /traces=\{traces\}/.test(problemUnitOp) &&
+    /sourceRefs=\{sourceRefs\}/.test(problemUnitOp)
+);
+ok(
+  "PROV-24 leftover PubChem identity is not unit-op-search HTTP",
+  sectionH.isProcessFactTrace(litUrl) &&
+    sectionH.isProcessFactTrace(ghsUrl) &&
+    sectionH.isProcessFactTrace(mfgUrl) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isProcessFactTrace(chemblUrl)
+);
+ok(
+  "SEARCH-31 unit-op-search empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(problemUnitOp) &&
+    /factEmpty\.kind === "error"/.test(problemUnitOp) &&
+    /factEmpty\.message/.test(problemUnitOp) &&
+    !/No process facts yet\./.test(problemUnitOp)
+);
+ok(
+  "SEARCH-31 literature harvest fail is unit-op-search error not empty",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "error" &&
+    /Not an empty result|Not a clean miss/.test(
+      sectionH.formatProcessFactsEmptyCopy({
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).message
+    )
+);
+ok(
+  "SEARCH-31 leftover identity is not a unit-op-search miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-31 leftover ChEMBL annotation fail is not a unit-op-search miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/search",
+        ok: false,
+        error: "HTTP 502",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-31 genuine empty stays extracted-yet copy",
+  sectionH.formatProcessFactsEmptyCopy({ traces: [] }).kind === "empty" &&
+    /extracted from titles and abstracts yet/.test(
+      sectionH.formatProcessFactsEmptyCopy({ traces: [] }).message
+    )
+);
+ok(
+  "SEARCH-31 query filter uses harvest empty-vs-error not clean miss",
+  /litEmpty\.kind === "error"/.test(problemUnitOp) &&
+    /patentEmpty\.kind === "error"/.test(problemUnitOp) &&
+    /formatSectionEmptyCopy/.test(problemUnitOp)
+);
+
 console.log(`\n${passed} search-contract checks passed`);
