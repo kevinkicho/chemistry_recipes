@@ -348,4 +348,10 @@ ok(
     /recipeEmpty\.kind === "error"/.test(read("components/RoutePanel.tsx")) &&
     /recipeEmpty\.message/.test(read("components/RoutePanel.tsx"))
 );
+ok(
+  "SEARCH-29 route-compare empty copy is not unconditional routes miss",
+  /formatProcessFactsEmptyCopy/.test(read("components/RouteCompare.tsx")) &&
+    /compareEmpty\.kind === "error"/.test(read("components/RouteCompare.tsx")) &&
+    /compareEmpty\.message/.test(read("components/RouteCompare.tsx"))
+);
 console.log(`\n${n} product-path checks passed`);

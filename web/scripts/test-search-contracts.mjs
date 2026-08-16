@@ -2177,4 +2177,67 @@ ok(
     /No process recipe yet/.test(routePanel)
 );
 
+const routeCompare = read("components/RouteCompare.tsx");
+ok(
+  "SEARCH-29 route-compare empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(routeCompare) &&
+    /compareEmpty\.kind === "error"/.test(routeCompare) &&
+    /compareEmpty\.message/.test(routeCompare) &&
+    /<RouteCompare[\s\S]{0,250}traces=\{processFactTraces\}/.test(liveDossier) &&
+    /<RouteCompare[\s\S]{0,250}fetchErrors=\{dossier\.fetchErrors\}/.test(liveDossier)
+);
+ok(
+  "SEARCH-29 literature harvest fail is route-compare error not empty",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "error" &&
+    /Not an empty result|Not a clean miss/.test(
+      sectionH.formatProcessFactsEmptyCopy({
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).message
+    )
+);
+ok(
+  "SEARCH-29 leftover identity is not a route-compare miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-29 leftover ChEMBL annotation fail is not a route-compare miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/search",
+        ok: false,
+        error: "HTTP 502",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-29 genuine empty stays no-process-routes copy",
+  sectionH.formatProcessFactsEmptyCopy({ traces: [] }).kind === "empty" &&
+    /No process routes yet/.test(routeCompare)
+);
+
 console.log(`\n${passed} search-contract checks passed`);

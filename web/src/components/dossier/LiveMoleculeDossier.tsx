@@ -962,7 +962,11 @@ export function LiveMoleculeDossier({
               >
                 Route compare
               </SectionTitle>
-              <RouteCompare routes={dossier.processRoutes} />
+              <RouteCompare
+                routes={dossier.processRoutes}
+                traces={processFactTraces}
+                fetchErrors={dossier.fetchErrors}
+              />
             </section>
           ) : null}
 
