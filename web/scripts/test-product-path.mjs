@@ -321,4 +321,19 @@ ok(
     /sequenceEmpty\.kind === "error"/.test(read("components/OperatorJobAid.tsx")) &&
     !/No GHS hazard statements on file/.test(read("components/OperatorJobAid.tsx"))
 );
+ok(
+  "monday-pack chips do not dump leftover harvest HTTP",
+  /isProcessFactTrace/.test(read("components/MondayMorningPack.tsx")) &&
+    /isProcessFactSourceRef/.test(read("components/MondayMorningPack.tsx")) &&
+    /field="Monday pack"/.test(read("components/MondayMorningPack.tsx")) &&
+    !/field="Monday pack"[\s\S]{0,200}pubchemCid=/.test(
+      read("components/MondayMorningPack.tsx")
+    )
+);
+ok(
+  "SEARCH-26 monday-pack empty copy is not unconditional density miss",
+  /formatProcessFactsEmptyCopy/.test(read("components/MondayMorningPack.tsx")) &&
+    /sequenceEmpty\.kind === "error"/.test(read("components/MondayMorningPack.tsx")) &&
+    /sequenceEmpty\.message/.test(read("components/MondayMorningPack.tsx"))
+);
 console.log(`\n${n} product-path checks passed`);

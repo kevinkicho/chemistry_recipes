@@ -1978,5 +1978,82 @@ ok(
     ],
   }).kind === "empty"
 );
+const mondayPack = read("components/MondayMorningPack.tsx");
+ok(
+  "PROV-22 monday-pack chips use process-fact traces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(mondayPack) &&
+    /isProcessFactSourceRef/.test(mondayPack) &&
+    /field="Monday pack"/.test(mondayPack) &&
+    /traces=\{traces\}/.test(mondayPack) &&
+    /sourceRefs=\{sourceRefs\}/.test(mondayPack) &&
+    !/field="Monday pack"[\s\S]{0,200}pubchemCid=/.test(mondayPack)
+);
+ok(
+  "PROV-22 leftover PubChem identity is not Monday-pack HTTP",
+  sectionH.isProcessFactTrace(litUrl) &&
+    sectionH.isProcessFactTrace(ghsUrl) &&
+    sectionH.isProcessFactTrace(mfgUrl) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isProcessFactTrace(chemblUrl)
+);
+ok(
+  "SEARCH-26 monday-pack empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(mondayPack) &&
+    /sequenceEmpty\.kind === "error"/.test(mondayPack) &&
+    /sequenceEmpty\.message/.test(mondayPack)
+);
+ok(
+  "SEARCH-26 literature harvest fail is monday-pack sequence error not empty",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "error" &&
+    /Not an empty result|Not a clean miss/.test(
+      sectionH.formatProcessFactsEmptyCopy({
+        traces: [
+          {
+            endpointUrl: "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+            ok: false,
+            error: "HTTP 503",
+          },
+        ],
+      }).message
+    )
+);
+ok(
+  "SEARCH-26 leftover identity is not a monday-pack sequence miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl:
+          "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/MolecularFormula/JSON",
+        ok: false,
+        error: "HTTP 503",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-26 leftover ChEMBL annotation fail is not a monday-pack sequence miss",
+  sectionH.formatProcessFactsEmptyCopy({
+    traces: [
+      {
+        endpointUrl: "https://www.ebi.ac.uk/chembl/api/data/molecule/search",
+        ok: false,
+        error: "HTTP 502",
+      },
+    ],
+  }).kind === "empty"
+);
+ok(
+  "SEARCH-26 genuine empty stays not-enough-density copy",
+  sectionH.formatProcessFactsEmptyCopy({ traces: [] }).kind === "empty" &&
+    /Not enough public procedure density/.test(mondayPack)
+);
 
 console.log(`\n${passed} search-contract checks passed`);

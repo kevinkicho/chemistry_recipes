@@ -210,6 +210,7 @@ Optional before release/deploy:
 | **SEARCH-23** | Live-dossier Multi-source free APIs empty vs error vs timeout: Rhea / Reactome / ClinicalTrials / OrgSyn / WikiPathways / Pathway Commons harvest failures are not a clean annotation miss; leftover PubChem identity HTTP is not an annotation miss | `test-search-contracts`, `test-product-path` |
 | **SEARCH-24** | Public process facts empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "No condition / unit-op atoms extracted yet"; leftover identity / GHS / annotation HTTP is not a process-facts miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
 | **SEARCH-25** | Operator job-aid GHS / public-sequence empty vs error vs timeout: GHS harvest failures are not "No GHS hazard statements on file"; literature / patent / manufacturing harvest failures are not "No public sequence available"; leftover identity / annotation HTTP is not a job-aid GHS or sequence miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
+| **SEARCH-26** | Monday-pack preferred-path empty vs error vs timeout: literature / patent / manufacturing harvest failures are not "Not enough public procedure density"; leftover identity / annotation HTTP is not a Monday-pack sequence miss | `test-search-contracts`, `test-product-path`, `test-provenance` |
 
 ### L. Diagnostics honesty
 
@@ -286,6 +287,7 @@ Machine registry: `web/scripts/fixtures/provenance-surface-registry.json`.
 | **PROV-19** | Process-framing chips claim only literature / patent / manufacturing / GHS harvest HTTP (not leftover PubChem identity or annotation HTTP); they do not live-fetch identity | `test-provenance`, `test-search-contracts` |
 | **PROV-20** | Condition-atlas chips claim only literature / patent / manufacturing / GHS harvest HTTP (not leftover PubChem identity or annotation HTTP); they do not live-fetch identity | `test-provenance`, `test-search-contracts` |
 | **PROV-21** | Operator-job-aid chips claim only literature / patent / manufacturing / GHS harvest HTTP (not leftover PubChem identity or annotation HTTP); they do not live-fetch identity | `test-provenance`, `test-search-contracts` |
+| **PROV-22** | Monday-pack chips claim only literature / patent / manufacturing / GHS harvest HTTP (not leftover PubChem identity or annotation HTTP); they do not live-fetch identity | `test-provenance`, `test-search-contracts` |
 | **PROV-SCAN-*** | Scanner asserts every registry surface still wired | `test-provenance-coverage` |
 
 ## Lifecycle diagram (validated by LIFE-* / DENS-*)

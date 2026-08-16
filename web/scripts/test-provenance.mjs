@@ -361,6 +361,21 @@ ok(
     /hazardEmpty/.test(read("components/OperatorJobAid.tsx")) &&
     /sequenceEmpty/.test(read("components/OperatorJobAid.tsx"))
 );
+const mondayPack = read("components/MondayMorningPack.tsx");
+ok(
+  "PROV-22 monday-pack chips use process-fact traces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(mondayPack) &&
+    /isProcessFactSourceRef/.test(mondayPack) &&
+    /field="Monday pack"/.test(mondayPack) &&
+    /traces=\{traces\}/.test(mondayPack) &&
+    /sourceRefs=\{sourceRefs\}/.test(mondayPack) &&
+    !/field="Monday pack"[\s\S]{0,200}pubchemCid=/.test(mondayPack)
+);
+ok(
+  "SEARCH-26 monday-pack empty copy uses formatProcessFactsEmptyCopy",
+  /formatProcessFactsEmptyCopy/.test(mondayPack) &&
+    /sequenceEmpty/.test(mondayPack)
+);
 ok(
   "aside ContentProvenance manufacturing",
   /Manufacturing summary/.test(aside) && /ContentProvenance/.test(aside)

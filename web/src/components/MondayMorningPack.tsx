@@ -4,7 +4,12 @@ import { ContentProvenance } from "@/components/ContentProvenance";
 import type { LiveDossier } from "@/lib/dossier/types";
 import { assessRecipeReadiness } from "@/lib/dossier/recipeReadiness";
 import { slimTraces } from "@/lib/api/trace";
-import { formatSectionEmptyCopy } from "@/lib/dossier/sectionHonesty";
+import {
+  formatProcessFactsEmptyCopy,
+  formatSectionEmptyCopy,
+  isProcessFactSourceRef,
+  isProcessFactTrace,
+} from "@/lib/dossier/sectionHonesty";
 
 /**
  * Pinned "Monday morning" worker pack — EHS, steps, gaps, actions under 2 minutes.
@@ -69,6 +74,19 @@ export function MondayMorningPack({
   const mode = dossier.productMode || readiness.mode;
   const isScout = mode === "scout-dossier" || readiness.framing === "evidence-lead-pack";
 
+  // Pack is EHS / preferred path / site gaps. Leftover identity
+  // / annotation HTTP is not Monday-pack provenance, and the chip must
+  // not live-fetch identity.
+  const allTraces = slimTraces(dossier.traces || []);
+  const traces = allTraces.filter((tr) =>
+    isProcessFactTrace(tr.endpointUrl)
+  );
+  const sourceRefs = (dossier.sourceRefs || []).filter(isProcessFactSourceRef);
+  const sequenceEmpty = formatProcessFactsEmptyCopy({
+    traces: allTraces,
+    fetchErrors: dossier.fetchErrors,
+  });
+
   return (
     <section
       id="monday-pack"
@@ -83,9 +101,8 @@ export function MondayMorningPack({
             <ContentProvenance
               title="Monday morning pack"
               field="Monday pack"
-              pubchemCid={dossier.cid}
-              traces={slimTraces(dossier.traces || [])}
-              sourceRefs={dossier.sourceRefs}
+              traces={traces}
+              sourceRefs={sourceRefs}
               ai={dossier.synthesis.provenance}
               showAi={Boolean(dossier.synthesis.provenance)}
               onRegenerate={onRegenerate}
@@ -136,7 +153,7 @@ export function MondayMorningPack({
               {
                 formatSectionEmptyCopy({
                   family: "hazards",
-                  traces: slimTraces(dossier.traces),
+                  traces: allTraces,
                   fetchErrors: dossier.fetchErrors,
                 }).message
               }{" "}
@@ -193,8 +210,9 @@ export function MondayMorningPack({
           </ol>
         ) : (
           <p className="mt-2 text-sm text-slate-500">
-            Not enough public procedure density for a plant sequence. Paste public patent
-            procedure windows via Local enrich (paste public experimental text).
+            {sequenceEmpty.kind === "error"
+              ? sequenceEmpty.message
+              : "Not enough public procedure density for a plant sequence. Paste public patent procedure windows via Local enrich (paste public experimental text)."}
           </p>
         )}
       </div>
