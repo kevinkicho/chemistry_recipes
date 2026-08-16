@@ -418,4 +418,14 @@ ok(
     /networkEmpty\.kind === "error"/.test(read("components/frontier/ReactionNetworkPanel.tsx")) &&
     /networkSummary/.test(read("components/frontier/ReactionNetworkPanel.tsx"))
 );
+ok(
+  "SEARCH-38 process-sequence empty copy is not unconditional retrieved-yet miss",
+  /honestProcessSequenceStub/.test(read("lib/dossier/scaffold.ts")) &&
+    /honestProcessSequenceStub/.test(read("lib/dossier/processFacts.ts")) &&
+    /isStubOnlyProcessSequence/.test(read("components/MondayMorningPack.tsx")) &&
+    /isStubOnlyProcessSequence/.test(read("components/OperatorJobAid.tsx")) &&
+    /isStubOnlyProcessSequence/.test(read("components/RoutePanel.tsx")) &&
+    /isStubOnlyProcessSequence/.test(read("components/RouteCompare.tsx")) &&
+    /No extractable public process sequence yet/.test(read("lib/dossier/sectionHonesty.ts"))
+);
 console.log(`\n${n} product-path checks passed`);

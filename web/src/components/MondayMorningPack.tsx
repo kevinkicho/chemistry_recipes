@@ -9,6 +9,7 @@ import {
   formatSectionEmptyCopy,
   isProcessFactSourceRef,
   isProcessFactTrace,
+  isStubOnlyProcessSequence,
 } from "@/lib/dossier/sectionHonesty";
 
 /**
@@ -86,6 +87,11 @@ export function MondayMorningPack({
     traces: allTraces,
     fetchErrors: dossier.fetchErrors,
   });
+  // Cached await-ai / await-facts stubs are not a real preferred path.
+  // Harvest failure is not "Not enough public procedure density".
+  const showPreferredSteps =
+    steps.length > 0 &&
+    !(isStubOnlyProcessSequence(steps) && sequenceEmpty.kind === "error");
 
   return (
     <section
@@ -184,9 +190,9 @@ export function MondayMorningPack({
 
       <div className="mt-3 rounded-lg border border-slate-700/80 bg-slate-950/40 p-3 print:border-slate-300 print:bg-white">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 print:text-slate-700">
-          Preferred path ({steps.length || 0} step{steps.length === 1 ? "" : "s"})
+          Preferred path ({showPreferredSteps ? steps.length : 0} step{!showPreferredSteps || steps.length === 1 ? "" : "s"})
         </h3>
-        {steps.length ? (
+        {showPreferredSteps ? (
           <ol className="mt-2 space-y-2">
             {steps.map((s, i) => (
               <li

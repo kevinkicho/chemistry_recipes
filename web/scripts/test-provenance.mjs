@@ -484,6 +484,13 @@ ok(
     /honestReactionNetworkSummary/.test(read("lib/frontier/reactionNetwork.ts")) &&
     /Network is center-only/.test(read("lib/frontier/reactionNetwork.ts"))
 );
+ok(
+  "SEARCH-38 process-sequence empty copy uses honestProcessSequenceStub",
+  /honestProcessSequenceStub/.test(read("lib/dossier/scaffold.ts")) &&
+    /honestProcessSequenceStub/.test(read("lib/dossier/processFacts.ts")) &&
+    /isStubOnlyProcessSequence/.test(read("components/MondayMorningPack.tsx")) &&
+    /No extractable public process sequence yet/.test(read("lib/dossier/sectionHonesty.ts"))
+);
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
 ok("PdfWorkerPack exists", existsSync(src("components/PdfWorkerPack.tsx")));
