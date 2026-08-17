@@ -647,6 +647,16 @@ ok(
       read("lib/dossier/sectionHonesty.ts")
     )
 );
+
+ok(
+  "SEARCH-50 critique process-facts empty copy uses honestEvidenceCritiqueProcessFacts",
+  /honestEvidenceCritiqueProcessFacts/.test(read("components/EvidenceCritiquePanel.tsx")) &&
+    /export function honestEvidenceCritiqueProcessFacts/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    ) &&
+    /field="Critique"/.test(read("components/EvidenceCritiquePanel.tsx")) &&
+    /traces=\{allTraces\}/.test(read("components/EvidenceCritiquePanel.tsx"))
+);
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
 ok("PdfWorkerPack exists", existsSync(src("components/PdfWorkerPack.tsx")));

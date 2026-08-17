@@ -8,7 +8,10 @@ import { ContentProvenance } from "@/components/ContentProvenance";
 import type { LiveDossier } from "@/lib/dossier/types";
 import type { GroundingReport } from "@/lib/dossier/quoteGrounding";
 import { slimTraces } from "@/lib/api/trace";
-import { formatProcessFactsEmptyCopy } from "@/lib/dossier/sectionHonesty";
+import {
+  formatProcessFactsEmptyCopy,
+  honestEvidenceCritiqueProcessFacts,
+} from "@/lib/dossier/sectionHonesty";
 
 type ActionId =
   | "local-text-enrich"
@@ -97,25 +100,38 @@ export function EvidenceCritiquePanel({
     });
   }
 
-  if (pf) {
-    items.push({
-      severity: pf.productionBriefEligible ? "good" : "warn",
-      text: `Process facts: ${pf.sourcedConditionCount} conditions · ${pf.unitOpCount} unit ops · accuracy ${pf.metrics?.accuracyScore ?? "—"}/100.`,
-      action: !pf.productionBriefEligible
-        ? { id: "local-text-enrich", label: "Densify facts" }
-        : { id: "operator-job-aid", label: "Open job aid" },
-    });
-  }
-
-  // Procedure-window critique comes from literature / patent / manufacturing
-  // harvest. Harvest failure is not "No procedure windows densified".
-  // Leftover identity / annotation HTTP is not a critique miss.
+  // Process-facts metric + procedure-window critique come from literature /
+  // patent / manufacturing harvest. Harvest failure is not
+  // "Process facts: 0 conditions · 0 unit ops" / "No procedure windows densified".
+  // Leftover identity / annotation / GHS HTTP is not a critique miss.
   // Provenance chips still pass all traces on purpose (composite critique).
   const allTraces = slimTraces(dossier.traces || []);
   const windowsEmpty = formatProcessFactsEmptyCopy({
     traces: allTraces,
     fetchErrors: dossier.fetchErrors,
   });
+
+  if (pf) {
+    const critiqueFacts = honestEvidenceCritiqueProcessFacts({
+      conditionCount: pf.sourcedConditionCount,
+      unitOpCount: pf.unitOpCount,
+      accuracyScore: pf.metrics?.accuracyScore,
+      traces: allTraces,
+      fetchErrors: dossier.fetchErrors,
+    });
+    items.push({
+      severity: critiqueFacts.harvestFail
+        ? "warn"
+        : pf.productionBriefEligible
+          ? "good"
+          : "warn",
+      text: critiqueFacts.value,
+      action:
+        critiqueFacts.harvestFail || !pf.productionBriefEligible
+          ? { id: "local-text-enrich", label: "Densify facts" }
+          : { id: "operator-job-aid", label: "Open job aid" },
+    });
+  }
 
   const litProc = (dossier.literature || []).filter(
     (h) => (h.fullTextExcerpt?.length || 0) >= 80

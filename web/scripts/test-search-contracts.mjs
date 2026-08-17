@@ -4663,4 +4663,74 @@ ok(
     sectionH.isManufacturingSectionTrace(mfgUrl)
 );
 
+
+ok(
+  "SEARCH-50 critique process-facts empty copy uses honestEvidenceCritiqueProcessFacts",
+  /honestEvidenceCritiqueProcessFacts/.test(critique) &&
+    /export function honestEvidenceCritiqueProcessFacts/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    )
+);
+ok(
+  "SEARCH-50 critique chips still pass all traces (composite)",
+  /field="Critique"/.test(critique) &&
+    /traces=\{allTraces\}/.test(critique) &&
+    /sourceRefs=\{dossier\.sourceRefs\}/.test(critique)
+);
+
+function critiqueFacts(traces, cond, ops, acc) {
+  return sectionH.honestEvidenceCritiqueProcessFacts({
+    conditionCount: cond ?? 0,
+    unitOpCount: ops ?? 0,
+    accuracyScore: acc,
+    traces,
+  });
+}
+
+ok(
+  "SEARCH-50 literature harvest fail is critique error not 0 conditions",
+  critiqueFacts([litFail]).harvestFail &&
+    /harvest failed.{0,3}not 0 conditions/.test(critiqueFacts([litFail]).value) &&
+    !/Process facts: 0 conditions/.test(critiqueFacts([litFail]).value)
+);
+ok(
+  "SEARCH-50 manufacturing harvest fail is critique error not 0 conditions",
+  critiqueFacts([mfgFail]).harvestFail &&
+    /harvest failed.{0,3}not 0 conditions/.test(critiqueFacts([mfgFail]).value) &&
+    !/Process facts: 0 conditions/.test(critiqueFacts([mfgFail]).value)
+);
+ok(
+  "SEARCH-50 leftover identity is not a critique process-facts miss",
+  critiqueFacts([identityFail]).harvestFail !== true &&
+    /Process facts: 0 conditions/.test(critiqueFacts([identityFail]).value)
+);
+ok(
+  "SEARCH-50 leftover ChEMBL annotation fail is not a critique process-facts miss",
+  critiqueFacts([chemblFail]).harvestFail !== true &&
+    /Process facts: 0 conditions/.test(critiqueFacts([chemblFail]).value)
+);
+ok(
+  "SEARCH-50 leftover GHS fail is not a critique process-facts miss",
+  critiqueFacts([ghsFail]).harvestFail !== true &&
+    /Process facts: 0 conditions/.test(critiqueFacts([ghsFail]).value)
+);
+ok(
+  "SEARCH-50 genuine process-facts empty stays 0 conditions",
+  critiqueFacts([]).harvestFail !== true &&
+    /Process facts: 0 conditions/.test(critiqueFacts([]).value) &&
+    /0 unit ops/.test(critiqueFacts([]).value)
+);
+ok(
+  "SEARCH-50 filled process facts stay despite leftover identity fail",
+  critiqueFacts([identityFail], 4, 3, 72).harvestFail !== true &&
+    critiqueFacts([identityFail], 4, 3, 72).value ===
+      "Process facts: 4 conditions · 3 unit ops · accuracy 72/100."
+);
+ok(
+  "SEARCH-50 leftover PubChem identity is not a critique process-facts miss",
+  !sectionH.isProcessFactTrace(identityUrl) &&
+    sectionH.isProcessFactTrace(litUrl) &&
+    sectionH.isManufacturingSectionTrace(mfgUrl)
+);
+
 console.log(`\n${passed} search-contract checks passed`);
