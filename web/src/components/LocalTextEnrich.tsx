@@ -136,6 +136,8 @@ export function LocalTextEnrich({
     reader.readAsText(file);
   }
 
+  // Paste wizard is a local/offline hook. Leftover identity HTTP is not
+  // local public-text enrich provenance — do not live-fetch PubChem.
   return (
     <div
       id="local-text-enrich"
@@ -152,7 +154,6 @@ export function LocalTextEnrich({
             : "Paste wizard · local full-text enrich"}
         </h2>
         <ApiProvenance
-          pubchemCid={cid}
           title="Local public-text enrich"
           label="API"
         />

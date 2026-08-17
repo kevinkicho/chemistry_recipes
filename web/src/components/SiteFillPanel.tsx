@@ -60,6 +60,8 @@ export function SiteFillPanel({
     );
   }
 
+  // Site fill is a local site gap. Leftover identity HTTP is not
+  // site-fill provenance — do not live-fetch PubChem.
   return (
     <div
       id="site-fill"
@@ -70,7 +72,6 @@ export function SiteFillPanel({
         <ContentProvenance
           title="Site fill"
           field="Site fill"
-          pubchemCid={cid}
           showNotAi
         />
       </div>

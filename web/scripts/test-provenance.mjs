@@ -446,6 +446,31 @@ ok(
     /sourceRefs=\{sourceRefs\}/.test(playbooks) &&
     !/field="Playbooks"[\s\S]{0,200}pubchemCid=/.test(playbooks)
 );
+
+const siteFill = read("components/SiteFillPanel.tsx");
+ok(
+  "PROV-27 site-fill chips do not live-fetch leftover identity HTTP",
+  /field="Site fill"/.test(siteFill) &&
+    /showNotAi/.test(siteFill) &&
+    /ContentProvenance/.test(siteFill) &&
+    !/pubchemCid=/.test(siteFill)
+);
+const ordBulk = read("components/OrdBulkPanel.tsx");
+ok(
+  "PROV-27 ord-bulk chips do not live-fetch leftover identity HTTP",
+  /field="ORD bulk"/.test(ordBulk) &&
+    /showNotAi/.test(ordBulk) &&
+    /ContentProvenance/.test(ordBulk) &&
+    !/pubchemCid=/.test(ordBulk)
+);
+const localText = read("components/LocalTextEnrich.tsx");
+ok(
+  "PROV-27 local-text-enrich chips do not live-fetch leftover identity HTTP",
+  /title="Local public-text enrich"/.test(localText) &&
+    /ApiProvenance/.test(localText) &&
+    /FreePublicBadge/.test(localText) &&
+    !/pubchemCid=/.test(localText)
+);
 ok(
   "SEARCH-31 unit-op-search empty copy uses formatProcessFactsEmptyCopy",
   /formatProcessFactsEmptyCopy/.test(problemUnitOp) &&

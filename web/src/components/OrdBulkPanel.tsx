@@ -39,6 +39,8 @@ export function OrdBulkPanel({
   void tick;
   const inv = ordBridgeInventory();
 
+  // ORD bulk is a local/offline hook. Leftover identity HTTP is not
+  // ORD-bulk provenance — do not live-fetch PubChem.
   return (
     <div
       id="ord-bulk"
@@ -49,7 +51,6 @@ export function OrdBulkPanel({
         <ContentProvenance
           title="ORD bulk hooks"
           field="ORD bulk"
-          pubchemCid={cid}
           showNotAi
         />
       </div>
