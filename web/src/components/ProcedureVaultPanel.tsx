@@ -13,10 +13,16 @@ import {
   summarizeVaultForCid,
 } from "@/lib/idb/campaignVault";
 import { FreePublicProvenance } from "@/components/FreePublicProvenance";
+import { slimTraces } from "@/lib/api/trace";
+import {
+  isProcessFactSourceRef,
+  isProcessFactTrace,
+} from "@/lib/dossier/sectionHonesty";
 
 /**
  * Procedure vault hero — local densify memory (OA/patent/paste windows).
  * Competitive moat under free-public law: durable offline procedure text.
+ * Leftover identity / annotation HTTP is not procedure-vault provenance.
  */
 export function ProcedureVaultPanel({
   dossier,
@@ -117,6 +123,15 @@ export function ProcedureVaultPanel({
     }
   }
 
+  // Vault windows come from OA/patent/paste procedure excerpts.
+  // Leftover identity / annotation HTTP is not procedure-vault
+  // provenance, and the chip must not live-fetch identity.
+  const allTraces = slimTraces(dossier.traces || []);
+  const traces = allTraces.filter((tr) =>
+    isProcessFactTrace(tr.endpointUrl)
+  );
+  const sourceRefs = (dossier.sourceRefs || []).filter(isProcessFactSourceRef);
+
   return (
     <div
       id="procedure-vault"
@@ -130,6 +145,9 @@ export function ProcedureVaultPanel({
           dossier={dossier}
           title="Procedure vault"
           field="Procedure vault"
+          traces={traces}
+          sourceRefs={sourceRefs}
+          liveFetch={false}
           onRegenerate={onRegenerate}
         />
       </div>
