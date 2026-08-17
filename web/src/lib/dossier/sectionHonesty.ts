@@ -444,8 +444,8 @@ const PROCESS_FACT_EMPTY_FAMILIES = [
  * Process-fact atoms come from literature, patents, and manufacturing text.
  * Harvest failure in those families is not "no atoms extracted yet".
  * Leftover identity / GHS / annotation HTTP is not a process-facts miss.
- * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, reaction-network, process-sequence stub, ideal-page, validation-checklist, recipe-readiness, campaign-brief, shift-pack, MSAT-compare, PDF-pack manifest, PDF-pack process-facts count, and site-handoff process-facts empty copy reuse this helper —
- * no extracted conditions / no process recipe / no process routes / no public process hypothesis / no process facts yet / no route assembled / no procedure windows densified / no route hypotheses assembled / no procedure-scored windows yet / network is center-only / no extractable public process sequence yet / process route synthesis pending / no process steps yet / no GHS text for this CID / missing process overview / checklist Gap / Only 0 sourced condition atom(s) / Few condition observations / No reaction-network edges yet / Insufficient free-public evidence in the campaign package / Similar public density / 0 / 0 literature-patents / Lit: 0 · Patents: 0 / Process facts: 0 / 0 sourced atoms is not a clean miss when
+ * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, reaction-network, process-sequence stub, ideal-page, validation-checklist, recipe-readiness, campaign-brief, shift-pack, MSAT-compare, PDF-pack manifest, PDF-pack process-facts count, site-handoff process-facts, and evidence-critique process-facts empty copy reuse this helper —
+ * no extracted conditions / no process recipe / no process routes / no public process hypothesis / no process facts yet / no route assembled / no procedure windows densified / no route hypotheses assembled / no procedure-scored windows yet / network is center-only / no extractable public process sequence yet / process route synthesis pending / no process steps yet / no GHS text for this CID / missing process overview / checklist Gap / Only 0 sourced condition atom(s) / Few condition observations / No reaction-network edges yet / Insufficient free-public evidence in the campaign package / Similar public density / 0 / 0 literature-patents / Lit: 0 · Patents: 0 / Process facts: 0 / 0 sourced atoms / 0 conditions · 0 unit ops is not a clean miss when
  * lit / patent / manufacturing harvest failed.
  */
 export function formatProcessFactsEmptyCopy(opts: {
@@ -1080,4 +1080,53 @@ export function honestSiteHandoffProcessFacts(opts: {
     };
   }
   return { value: "Process facts: **0** sourced atoms", harvestFail: false };
+}
+
+/**
+ * Evidence-critique process-facts metric: harvest failure is not a clean
+ * "Process facts: 0 conditions · 0 unit ops" miss. Leftover identity /
+ * annotation / GHS HTTP is not a critique process-facts miss. Filled
+ * counts stay. SEARCH-34 only overlays procedure windows. Provenance
+ * chips stay composite (no leftover-identity live-fetch).
+ */
+export function honestEvidenceCritiqueProcessFacts(opts: {
+  conditionCount: number;
+  unitOpCount: number;
+  accuracyScore?: number | string | null;
+  traces?: Array<
+    Pick<ApiFetchTrace, "endpointUrl" | "ok" | "notFound" | "error" | "httpStatus">
+  >;
+  fetchErrors?: string[];
+}): { value: string; harvestFail: boolean } {
+  const acc = opts.accuracyScore ?? "—";
+  if (opts.conditionCount > 0 || opts.unitOpCount > 0) {
+    return {
+      value:
+        "Process facts: " +
+        opts.conditionCount +
+        " conditions · " +
+        opts.unitOpCount +
+        " unit ops · accuracy " +
+        acc +
+        "/100.",
+      harvestFail: false,
+    };
+  }
+  const harvest = formatProcessFactsEmptyCopy({
+    traces: opts.traces,
+    fetchErrors: opts.fetchErrors,
+  });
+  if (harvest.kind === "error") {
+    return {
+      value: "Process facts: harvest failed — not 0 conditions · 0 unit ops",
+      harvestFail: true,
+    };
+  }
+  return {
+    value:
+      "Process facts: 0 conditions · 0 unit ops · accuracy " +
+      acc +
+      "/100.",
+    harvestFail: false,
+  };
 }

@@ -683,4 +683,16 @@ ok(
     !/`- Process facts: \*\*\$\{/.test(read("lib/export/siteHandoff.ts"))
 );
 
+ok(
+  "SEARCH-50 critique process-facts empty copy is not unconditional 0 conditions",
+  /honestEvidenceCritiqueProcessFacts/.test(read("components/EvidenceCritiquePanel.tsx")) &&
+    /export function honestEvidenceCritiqueProcessFacts/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    ) &&
+    /0 conditions/.test(read("lib/dossier/sectionHonesty.ts")) &&
+    !/`Process facts: \$\{pf\.sourcedConditionCount\}/.test(
+      read("components/EvidenceCritiquePanel.tsx")
+    )
+);
+
 console.log(`\n${n} product-path checks passed`);
