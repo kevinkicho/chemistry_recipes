@@ -355,6 +355,27 @@ ok(
       read("components/WorkerPlaybookPanel.tsx")
     )
 );
+
+ok(
+  "site-fill chips do not dump leftover harvest HTTP",
+  /field="Site fill"/.test(read("components/SiteFillPanel.tsx")) &&
+    /showNotAi/.test(read("components/SiteFillPanel.tsx")) &&
+    !/pubchemCid=/.test(read("components/SiteFillPanel.tsx"))
+);
+ok(
+  "ord-bulk chips do not dump leftover harvest HTTP",
+  /field="ORD bulk"/.test(read("components/OrdBulkPanel.tsx")) &&
+    /showNotAi/.test(read("components/OrdBulkPanel.tsx")) &&
+    !/pubchemCid=/.test(read("components/OrdBulkPanel.tsx"))
+);
+ok(
+  "local-text-enrich chips do not dump leftover harvest HTTP",
+  /title="Local public-text enrich"/.test(
+    read("components/LocalTextEnrich.tsx")
+  ) &&
+    /ApiProvenance/.test(read("components/LocalTextEnrich.tsx")) &&
+    !/pubchemCid=/.test(read("components/LocalTextEnrich.tsx"))
+);
 ok(
   "SEARCH-26 monday-pack empty copy is not unconditional density miss",
   /formatProcessFactsEmptyCopy/.test(read("components/MondayMorningPack.tsx")) &&

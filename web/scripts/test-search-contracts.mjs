@@ -4032,4 +4032,37 @@ ok(
     !sectionH.isProcessFactTrace(chemblUrl)
 );
 
+const siteFill = read("components/SiteFillPanel.tsx");
+ok(
+  "PROV-27 site-fill chips do not live-fetch leftover identity HTTP",
+  /field="Site fill"/.test(siteFill) &&
+    /showNotAi/.test(siteFill) &&
+    /ContentProvenance/.test(siteFill) &&
+    !/pubchemCid=/.test(siteFill)
+);
+const ordBulk = read("components/OrdBulkPanel.tsx");
+ok(
+  "PROV-27 ord-bulk chips do not live-fetch leftover identity HTTP",
+  /field="ORD bulk"/.test(ordBulk) &&
+    /showNotAi/.test(ordBulk) &&
+    /ContentProvenance/.test(ordBulk) &&
+    !/pubchemCid=/.test(ordBulk)
+);
+const localText = read("components/LocalTextEnrich.tsx");
+ok(
+  "PROV-27 local-text-enrich chips do not live-fetch leftover identity HTTP",
+  /title="Local public-text enrich"/.test(localText) &&
+    /ApiProvenance/.test(localText) &&
+    /FreePublicBadge/.test(localText) &&
+    !/pubchemCid=/.test(localText)
+);
+ok(
+  "PROV-27 leftover PubChem identity is not site-fill / ORD-bulk / paste HTTP",
+  sectionH.isProcessFactTrace(litUrl) &&
+    sectionH.isProcessFactTrace(ghsUrl) &&
+    sectionH.isProcessFactTrace(mfgUrl) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isProcessFactTrace(chemblUrl)
+);
+
 console.log(`\n${passed} search-contract checks passed`);
