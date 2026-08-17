@@ -672,4 +672,15 @@ ok(
     !/`Process facts: \$\{dossier\.processFacts/.test(read("components/PdfWorkerPack.tsx"))
 );
 
+
+ok(
+  "SEARCH-49 site-handoff process-facts empty copy is not unconditional 0 sourced atoms",
+  /honestSiteHandoffProcessFacts/.test(read("lib/export/siteHandoff.ts")) &&
+    /export function honestSiteHandoffProcessFacts/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    ) &&
+    /0 sourced atoms/.test(read("lib/dossier/sectionHonesty.ts")) &&
+    !/`- Process facts: \*\*\$\{/.test(read("lib/export/siteHandoff.ts"))
+);
+
 console.log(`\n${n} product-path checks passed`);
