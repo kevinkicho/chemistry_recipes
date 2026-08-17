@@ -426,6 +426,26 @@ ok(
     /traces=\{traces\}/.test(procedureVault) &&
     /sourceRefs=\{sourceRefs\}/.test(procedureVault)
 );
+const pdfPack = read("components/PdfWorkerPack.tsx");
+ok(
+  "PROV-26 pdf-pack chips use process-fact traces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(pdfPack) &&
+    /isProcessFactSourceRef/.test(pdfPack) &&
+    /field="PDF pack"/.test(pdfPack) &&
+    /traces=\{traces\}/.test(pdfPack) &&
+    /sourceRefs=\{sourceRefs\}/.test(pdfPack) &&
+    !/field="PDF pack"[\s\S]{0,200}pubchemCid=/.test(pdfPack)
+);
+const playbooks = read("components/WorkerPlaybookPanel.tsx");
+ok(
+  "PROV-26 playbook chips use process-fact traces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(playbooks) &&
+    /isProcessFactSourceRef/.test(playbooks) &&
+    /field="Playbooks"/.test(playbooks) &&
+    /traces=\{traces\}/.test(playbooks) &&
+    /sourceRefs=\{sourceRefs\}/.test(playbooks) &&
+    !/field="Playbooks"[\s\S]{0,200}pubchemCid=/.test(playbooks)
+);
 ok(
   "SEARCH-31 unit-op-search empty copy uses formatProcessFactsEmptyCopy",
   /formatProcessFactsEmptyCopy/.test(problemUnitOp) &&

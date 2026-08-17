@@ -8,6 +8,10 @@
 import { ContentProvenance } from "@/components/ContentProvenance";
 import type { LiveDossier } from "@/lib/dossier/types";
 import { slimTraces } from "@/lib/api/trace";
+import {
+  isProcessFactSourceRef,
+  isProcessFactTrace,
+} from "@/lib/dossier/sectionHonesty";
 
 type Playbook = {
   id: string;
@@ -72,6 +76,15 @@ export function WorkerPlaybookPanel({
   onScroll?: (id: string) => void;
   onRegenerate?: () => void;
 }) {
+  // Playbooks are guided paths over process facts. Leftover identity
+  // / annotation HTTP is not playbook provenance, and the chip must
+  // not live-fetch identity.
+  const allTraces = slimTraces(dossier.traces || []);
+  const traces = allTraces.filter((tr) =>
+    isProcessFactTrace(tr.endpointUrl)
+  );
+  const sourceRefs = (dossier.sourceRefs || []).filter(isProcessFactSourceRef);
+
   return (
     <div
       id="worker-playbooks"
@@ -82,9 +95,8 @@ export function WorkerPlaybookPanel({
         <ContentProvenance
           title="Worker playbooks"
           field="Playbooks"
-          pubchemCid={dossier.cid}
-          traces={slimTraces(dossier.traces || [])}
-          sourceRefs={dossier.sourceRefs}
+          traces={traces}
+          sourceRefs={sourceRefs}
           ai={dossier.synthesis.provenance}
           showAi={Boolean(dossier.synthesis.provenance)}
           onRegenerate={onRegenerate}
