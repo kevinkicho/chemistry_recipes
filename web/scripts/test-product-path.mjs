@@ -642,6 +642,16 @@ ok(
 );
 
 ok(
+  "SEARCH-47 MSAT compare GHS empty copy is not unconditional 0",
+  /honestMsatCompareGhs/.test(read("components/CompareMsatBoard.tsx")) &&
+    /export function honestMsatCompareGhs/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    ) &&
+    /harvest failed.{0,3}not 0/.test(read("lib/dossier/sectionHonesty.ts")) &&
+    !/va: ma \? String\(ma\.ehs\)/.test(read("components/CompareMsatBoard.tsx"))
+);
+
+ok(
   "SEARCH-46 PDF-pack manifest empty copy is not unconditional Lit: 0 · Patents: 0",
   /honestPdfPackManifestLitPatent/.test(read("components/PdfWorkerPack.tsx")) &&
     /export function honestPdfPackManifestLitPatent/.test(

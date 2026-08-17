@@ -915,7 +915,7 @@ export type MsatCompareSideIn = {
 /**
  * MSAT compare board: harvest failure is not "Similar public density" /
  * "0 / 0" literature-patents. Leftover identity / annotation HTTP is not
- * an MSAT-compare miss.
+ * an MSAT-compare miss. GHS "0" is a separate hazards-family overlay.
  */
 export function honestMsatCompareLitPatent(opts: {
   literatureCount: number;
@@ -933,6 +933,33 @@ export function honestMsatCompareLitPatent(opts: {
     value: opts.literatureCount + " / " + opts.patentCount,
     harvestFail: false,
   };
+}
+
+
+/**
+ * MSAT compare GHS statements: GHS harvest failure is not a clean "0" miss.
+ * Leftover identity / annotation / literature / patent HTTP is not an
+ * MSAT-compare GHS miss. Filled counts stay.
+ */
+export function honestMsatCompareGhs(opts: {
+  ghsCount: number;
+  traces?: Array<
+    Pick<ApiFetchTrace, "endpointUrl" | "ok" | "notFound" | "error" | "httpStatus">
+  >;
+  fetchErrors?: string[];
+}): { value: string; harvestFail: boolean } {
+  if (opts.ghsCount > 0) {
+    return { value: String(opts.ghsCount), harvestFail: false };
+  }
+  const harvest = formatSectionEmptyCopy({
+    family: "hazards",
+    traces: opts.traces,
+    fetchErrors: opts.fetchErrors,
+  });
+  if (harvest.kind === "error") {
+    return { value: "harvest failed — not 0", harvestFail: true };
+  }
+  return { value: "0", harvestFail: false };
 }
 
 export function honestMsatCompareHint(opts: {
