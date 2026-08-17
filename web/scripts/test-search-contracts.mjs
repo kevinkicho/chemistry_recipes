@@ -4524,4 +4524,75 @@ ok(
     sectionH.isHazardsSectionTrace(ghsUrl)
 );
 
+
+ok(
+  "SEARCH-48 PDF-pack process-facts empty copy uses honestPdfPackManifestProcessFacts",
+  /honestPdfPackManifestProcessFacts/.test(pdfPack) &&
+    /export function honestPdfPackManifestProcessFacts/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    )
+);
+ok(
+  "SEARCH-48 PDF-pack chips stay process-fact (no leftover-identity claim)",
+  /field="PDF pack"/.test(pdfPack) &&
+    /isProcessFactTrace/.test(pdfPack) &&
+    /isProcessFactSourceRef/.test(pdfPack) &&
+    !/field="PDF pack"[\s\S]{0,200}pubchemCid=/.test(pdfPack)
+);
+
+const mfgFail = {
+  endpointUrl: mfgUrl,
+  ok: false,
+  error: "HTTP 503",
+};
+function pdfFacts(traces, count) {
+  return sectionH.honestPdfPackManifestProcessFacts({
+    factCount: count ?? 0,
+    traces,
+  });
+}
+
+ok(
+  "SEARCH-48 literature harvest fail is PDF-pack error not Process facts: 0",
+  pdfFacts([litFail]).harvestFail &&
+    /harvest failed.{0,3}not 0/.test(pdfFacts([litFail]).value) &&
+    pdfFacts([litFail]).value !== "Process facts: 0"
+);
+ok(
+  "SEARCH-48 manufacturing harvest fail is PDF-pack error not Process facts: 0",
+  pdfFacts([mfgFail]).harvestFail &&
+    /harvest failed.{0,3}not 0/.test(pdfFacts([mfgFail]).value) &&
+    pdfFacts([mfgFail]).value !== "Process facts: 0"
+);
+ok(
+  "SEARCH-48 leftover identity is not a PDF-pack process-facts miss",
+  pdfFacts([identityFail]).harvestFail !== true &&
+    pdfFacts([identityFail]).value === "Process facts: 0"
+);
+ok(
+  "SEARCH-48 leftover ChEMBL annotation fail is not a PDF-pack process-facts miss",
+  pdfFacts([chemblFail]).harvestFail !== true &&
+    pdfFacts([chemblFail]).value === "Process facts: 0"
+);
+ok(
+  "SEARCH-48 leftover GHS fail is not a PDF-pack process-facts miss",
+  pdfFacts([ghsFail]).harvestFail !== true &&
+    pdfFacts([ghsFail]).value === "Process facts: 0"
+);
+ok(
+  "SEARCH-48 genuine process-facts empty stays Process facts: 0",
+  pdfFacts([]).harvestFail !== true && pdfFacts([]).value === "Process facts: 0"
+);
+ok(
+  "SEARCH-48 filled process facts stay despite leftover identity fail",
+  pdfFacts([identityFail], 4).harvestFail !== true &&
+    pdfFacts([identityFail], 4).value === "Process facts: 4"
+);
+ok(
+  "SEARCH-48 leftover PubChem identity is not a PDF-pack process-facts miss",
+  !sectionH.isProcessFactTrace(identityUrl) &&
+    sectionH.isProcessFactTrace(litUrl) &&
+    sectionH.isManufacturingSectionTrace(mfgUrl)
+);
+
 console.log(`\n${passed} search-contract checks passed`);
