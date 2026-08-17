@@ -669,6 +669,14 @@ ok(
     /field="Operator job aid"/.test(read("components/OperatorJobAid.tsx")) &&
     /traces=\{traces\}/.test(read("components/OperatorJobAid.tsx"))
 );
+ok(
+  "SEARCH-52 densify-ready banner empty copy uses honestDensifyReadyBanner",
+  /honestDensifyReadyBanner/.test(read("components/dossier/DossierClientLoader.tsx")) &&
+    /export function honestDensifyReadyBanner/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    ) &&
+    !/pubchemCid=/.test(read("components/dossier/DossierClientLoader.tsx"))
+);
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
 ok("PdfWorkerPack exists", existsSync(src("components/PdfWorkerPack.tsx")));

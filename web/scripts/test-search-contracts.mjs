@@ -4810,4 +4810,102 @@ ok(
     sectionH.isManufacturingSectionTrace(mfgUrl)
 );
 
+
+ok(
+  "SEARCH-52 densify-ready banner empty copy uses honestDensifyReadyBanner",
+  /honestDensifyReadyBanner/.test(read("components/dossier/DossierClientLoader.tsx")) &&
+    /export function honestDensifyReadyBanner/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    )
+);
+ok(
+  "SEARCH-52 densify-ready banner has no leftover-identity live-fetch",
+  /honestDensifyReadyBanner/.test(read("components/dossier/DossierClientLoader.tsx")) &&
+    !/pubchemCid=/.test(read("components/dossier/DossierClientLoader.tsx"))
+);
+
+const patentFail = {
+  endpointUrl: "https://search.patentsview.org/api/v1/patent/",
+  ok: false,
+  error: "HTTP 503",
+};
+function readyBanner(traces, lit, pat, cond, ops) {
+  return sectionH.honestDensifyReadyBanner({
+    literatureCount: lit ?? 0,
+    patentCount: pat ?? 0,
+    conditionCount: cond ?? 0,
+    unitOpCount: ops ?? 0,
+    traces,
+  });
+}
+
+ok(
+  "SEARCH-52 literature harvest fail is banner Lit error not Lit 0",
+  readyBanner([litFail]).harvestFail &&
+    /harvest failed.{0,3}not 0/.test(readyBanner([litFail]).literature) &&
+    readyBanner([litFail]).literature !== "Lit 0" &&
+    /harvest failed.{0,3}not 0 cond/.test(readyBanner([litFail]).facts) &&
+    readyBanner([litFail]).patents === "Patents 0"
+);
+ok(
+  "SEARCH-52 patent harvest fail is banner Patents error not Patents 0",
+  readyBanner([patentFail]).harvestFail &&
+    /harvest failed.{0,3}not 0/.test(readyBanner([patentFail]).patents) &&
+    readyBanner([patentFail]).patents !== "Patents 0" &&
+    /harvest failed.{0,3}not 0 cond/.test(readyBanner([patentFail]).facts) &&
+    readyBanner([patentFail]).literature === "Lit 0"
+);
+ok(
+  "SEARCH-52 manufacturing harvest fail is banner Facts error not 0 cond",
+  readyBanner([mfgFail]).harvestFail &&
+    /harvest failed.{0,3}not 0 cond/.test(readyBanner([mfgFail]).facts) &&
+    readyBanner([mfgFail]).facts !== "Facts 0 cond · 0 ops" &&
+    readyBanner([mfgFail]).literature === "Lit 0" &&
+    readyBanner([mfgFail]).patents === "Patents 0"
+);
+ok(
+  "SEARCH-52 leftover identity is not a densify-ready banner miss",
+  readyBanner([identityFail]).harvestFail !== true &&
+    readyBanner([identityFail]).literature === "Lit 0" &&
+    readyBanner([identityFail]).patents === "Patents 0" &&
+    readyBanner([identityFail]).facts === "Facts 0 cond · 0 ops"
+);
+ok(
+  "SEARCH-52 leftover ChEMBL annotation fail is not a densify-ready banner miss",
+  readyBanner([chemblFail]).harvestFail !== true &&
+    readyBanner([chemblFail]).literature === "Lit 0" &&
+    readyBanner([chemblFail]).patents === "Patents 0" &&
+    readyBanner([chemblFail]).facts === "Facts 0 cond · 0 ops"
+);
+ok(
+  "SEARCH-52 leftover GHS fail is not a densify-ready banner miss",
+  readyBanner([ghsFail]).harvestFail !== true &&
+    readyBanner([ghsFail]).literature === "Lit 0" &&
+    readyBanner([ghsFail]).patents === "Patents 0" &&
+    readyBanner([ghsFail]).facts === "Facts 0 cond · 0 ops"
+);
+ok(
+  "SEARCH-52 genuine empty stays Lit 0 / Patents 0 / Facts 0 cond",
+  readyBanner([]).harvestFail !== true &&
+    readyBanner([]).literature === "Lit 0" &&
+    readyBanner([]).patents === "Patents 0" &&
+    readyBanner([]).facts === "Facts 0 cond · 0 ops"
+);
+ok(
+  "SEARCH-52 filled banner counts stay despite leftover identity fail",
+  readyBanner([identityFail], 3, 1, 4, 2).harvestFail !== true &&
+    readyBanner([identityFail], 3, 1, 4, 2).literature === "Lit 3" &&
+    readyBanner([identityFail], 3, 1, 4, 2).patents === "Patents 1" &&
+    readyBanner([identityFail], 3, 1, 4, 2).facts === "Facts 4 cond · 2 ops"
+);
+ok(
+  "SEARCH-52 leftover PubChem identity is not a densify-ready banner miss",
+  !sectionH.isLiteratureSectionTrace(identityUrl) &&
+    !sectionH.isPatentSectionTrace(identityUrl) &&
+    sectionH.isLiteratureSectionTrace(litUrl) &&
+    sectionH.isPatentSectionTrace("https://search.patentsview.org/api/v1/patent/") &&
+    sectionH.isManufacturingSectionTrace(mfgUrl)
+);
+
+
 console.log(`\n${passed} search-contract checks passed`);

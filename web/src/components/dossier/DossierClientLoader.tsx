@@ -16,6 +16,7 @@ import { DossierSnapshots } from "@/components/DossierSnapshots";
 import { routes } from "@/lib/routes";
 import { pushHistory } from "@/lib/search-history";
 import { readAiConfig } from "@/lib/ai/config";
+import { honestDensifyReadyBanner } from "@/lib/dossier/sectionHonesty";
 
 type Phase = "checking-cache" | "loading" | "shell" | "ready" | "error";
 
@@ -234,6 +235,17 @@ export function DossierClientLoader({ cid }: { cid: number }) {
     });
   }, [cid]);
 
+  const readyBanner = dossier
+    ? honestDensifyReadyBanner({
+        literatureCount: dossier.literature?.length ?? 0,
+        patentCount: dossier.patents?.length ?? 0,
+        conditionCount: dossier.processFacts?.sourcedConditionCount ?? 0,
+        unitOpCount: dossier.processFacts?.unitOpCount ?? 0,
+        traces: dossier.traces,
+        fetchErrors: dossier.fetchErrors,
+      })
+    : null;
+
   // Full-screen freeze only before shell; after partial use compact banner
   const showOverlay = phase === "loading" || phase === "error";
   const showShellProgress = phase === "shell";
@@ -256,7 +268,7 @@ export function DossierClientLoader({ cid }: { cid: number }) {
         onCancel={phase === "error" ? retry : undefined}
       />
 
-      {showShellProgress && dossier ? (
+      {showShellProgress && dossier && readyBanner ? (
         <div className="print:hidden sticky top-[var(--app-header-height)] z-40 border-b border-teal-500/25 bg-teal-950/95 px-4 py-3 text-sm text-teal-50 backdrop-blur">
           <div className="mx-auto max-w-6xl space-y-2">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -269,18 +281,16 @@ export function DossierClientLoader({ cid }: { cid: number }) {
             </div>
             <div className="flex flex-wrap gap-2 text-[11px] text-teal-100/90">
               <span className="rounded-md bg-teal-500/20 px-2 py-0.5 ring-1 ring-teal-400/30">
-                Lit {dossier.literature?.length ?? 0}
+                {readyBanner.literature}
               </span>
               <span className="rounded-md bg-teal-500/20 px-2 py-0.5 ring-1 ring-teal-400/30">
-                Patents {dossier.patents?.length ?? 0}
+                {readyBanner.patents}
               </span>
               <span className="rounded-md bg-teal-500/20 px-2 py-0.5 ring-1 ring-teal-400/30">
                 Densify {dossier.procedureExcerpts?.length ?? 0} windows
               </span>
               <span className="rounded-md bg-teal-500/20 px-2 py-0.5 ring-1 ring-teal-400/30">
-                Facts{" "}
-                {dossier.processFacts?.sourcedConditionCount ?? 0} cond ·{" "}
-                {dossier.processFacts?.unitOpCount ?? 0} ops
+                {readyBanner.facts}
               </span>
               <span className="rounded-md bg-teal-500/20 px-2 py-0.5 ring-1 ring-teal-400/30">
                 Score {dossier.evidenceScore?.score ?? "—"}/100

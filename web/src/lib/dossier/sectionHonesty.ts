@@ -444,8 +444,8 @@ const PROCESS_FACT_EMPTY_FAMILIES = [
  * Process-fact atoms come from literature, patents, and manufacturing text.
  * Harvest failure in those families is not "no atoms extracted yet".
  * Leftover identity / GHS / annotation HTTP is not a process-facts miss.
- * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, reaction-network, process-sequence stub, ideal-page, validation-checklist, recipe-readiness, campaign-brief, shift-pack, MSAT-compare, PDF-pack manifest, PDF-pack process-facts count, site-handoff process-facts, evidence-critique process-facts, and process-facts header counts empty copy reuse this helper —
- * no extracted conditions / no process recipe / no process routes / no public process hypothesis / no process facts yet / no route assembled / no procedure windows densified / no route hypotheses assembled / no procedure-scored windows yet / network is center-only / no extractable public process sequence yet / process route synthesis pending / no process steps yet / no GHS text for this CID / missing process overview / checklist Gap / Only 0 sourced condition atom(s) / Few condition observations / No reaction-network edges yet / Insufficient free-public evidence in the campaign package / Similar public density / 0 / 0 literature-patents / Lit: 0 · Patents: 0 / Process facts: 0 / 0 sourced atoms / 0 conditions · 0 unit ops is not a clean miss when
+ * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, reaction-network, process-sequence stub, ideal-page, validation-checklist, recipe-readiness, campaign-brief, shift-pack, MSAT-compare, PDF-pack manifest, PDF-pack process-facts count, site-handoff process-facts, evidence-critique process-facts, process-facts header counts, and densify-ready banner empty copy reuse this helper —
+ * no extracted conditions / no process recipe / no process routes / no public process hypothesis / no process facts yet / no route assembled / no procedure windows densified / no route hypotheses assembled / no procedure-scored windows yet / network is center-only / no extractable public process sequence yet / process route synthesis pending / no process steps yet / no GHS text for this CID / missing process overview / checklist Gap / Only 0 sourced condition atom(s) / Few condition observations / No reaction-network edges yet / Insufficient free-public evidence in the campaign package / Similar public density / 0 / 0 literature-patents / Lit: 0 · Patents: 0 / Process facts: 0 / 0 sourced atoms / 0 conditions · 0 unit ops / Lit 0 / Patents 0 / Facts 0 cond · 0 ops is not a clean miss when
  * lit / patent / manufacturing harvest failed.
  */
 export function formatProcessFactsEmptyCopy(opts: {
@@ -1170,5 +1170,95 @@ export function honestProcessFactsCountHeader(opts: {
   return {
     value: "0 conditions · 0 unit ops",
     harvestFail: false,
+  };
+}
+
+/**
+ * Densify-ready banner (DossierClientLoader loading chrome): harvest
+ * failure is not a clean "Lit 0" / "Patents 0" / "Facts 0 cond · 0 ops"
+ * miss. Leftover identity / annotation / GHS HTTP is not a densify-ready
+ * banner miss. Filled counts stay. SEARCH-51 still only overlays the
+ * process-facts header. Loading chrome has no leftover-identity live-fetch.
+ */
+export function honestDensifyReadyBanner(opts: {
+  literatureCount: number;
+  patentCount: number;
+  conditionCount: number;
+  unitOpCount: number;
+  traces?: Array<
+    Pick<ApiFetchTrace, "endpointUrl" | "ok" | "notFound" | "error" | "httpStatus">
+  >;
+  fetchErrors?: string[];
+}): {
+  literature: string;
+  patents: string;
+  facts: string;
+  harvestFail: boolean;
+} {
+  let literature: string;
+  let litFail = false;
+  if (opts.literatureCount > 0) {
+    literature = "Lit " + opts.literatureCount;
+  } else {
+    const harvest = formatSectionEmptyCopy({
+      family: "literature",
+      traces: opts.traces,
+      fetchErrors: opts.fetchErrors,
+    });
+    if (harvest.kind === "error") {
+      literature = "Lit harvest failed — not 0";
+      litFail = true;
+    } else {
+      literature = "Lit 0";
+    }
+  }
+
+  let patents: string;
+  let patentFail = false;
+  if (opts.patentCount > 0) {
+    patents = "Patents " + opts.patentCount;
+  } else {
+    const harvest = formatSectionEmptyCopy({
+      family: "patents",
+      traces: opts.traces,
+      fetchErrors: opts.fetchErrors,
+    });
+    if (harvest.kind === "error") {
+      patents = "Patents harvest failed — not 0";
+      patentFail = true;
+    } else {
+      patents = "Patents 0";
+    }
+  }
+
+  let facts: string;
+  let factsFail = false;
+  if (opts.conditionCount > 0 || opts.unitOpCount > 0) {
+    facts =
+      "Facts " +
+      opts.conditionCount +
+      " cond " +
+      "\u00b7" +
+      " " +
+      opts.unitOpCount +
+      " ops";
+  } else {
+    const harvest = formatProcessFactsEmptyCopy({
+      traces: opts.traces,
+      fetchErrors: opts.fetchErrors,
+    });
+    if (harvest.kind === "error") {
+      facts = "Facts harvest failed — not 0 cond · 0 ops";
+      factsFail = true;
+    } else {
+      facts = "Facts 0 cond · 0 ops";
+    }
+  }
+
+  return {
+    literature,
+    patents,
+    facts,
+    harvestFail: litFail || patentFail || factsFail,
   };
 }

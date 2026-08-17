@@ -710,4 +710,19 @@ ok(
     )
 );
 
+
+ok(
+  "SEARCH-52 densify-ready banner empty copy is not unconditional Lit 0 / Facts 0 cond",
+  /honestDensifyReadyBanner/.test(read("components/dossier/DossierClientLoader.tsx")) &&
+    /export function honestDensifyReadyBanner/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    ) &&
+    !/Lit \{dossier\.literature\?\.length \?\? 0\}/.test(
+      read("components/dossier/DossierClientLoader.tsx")
+    ) &&
+    !/sourcedConditionCount \?\? 0\} cond/.test(
+      read("components/dossier/DossierClientLoader.tsx")
+    )
+);
+
 console.log(`\n${n} product-path checks passed`);
