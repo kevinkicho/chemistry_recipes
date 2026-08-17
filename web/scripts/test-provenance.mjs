@@ -608,6 +608,15 @@ ok(
     /field="Shift pack"/.test(read("components/ShiftPackPanel.tsx")) &&
     !/field="Shift pack"[\s\S]{0,200}pubchemCid=/.test(read("components/ShiftPackPanel.tsx"))
 );
+ok(
+  "SEARCH-45 MSAT compare empty copy uses honestMsatCompareHint",
+  /honestMsatCompareHint/.test(read("components/CompareMsatBoard.tsx")) &&
+    /honestMsatCompareLitPatent/.test(read("components/CompareMsatBoard.tsx")) &&
+    /formatProcessFactsEmptyCopy/.test(read("components/CompareMsatBoard.tsx")) &&
+    /field="MSAT compare"/.test(read("components/CompareMsatBoard.tsx")) &&
+    /liveFetch=\{false\}/.test(read("components/CompareMsatBoard.tsx")) &&
+    !/field="MSAT compare"[\s\S]{0,200}pubchemCid=/.test(read("components/CompareMsatBoard.tsx"))
+);
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
 ok("PdfWorkerPack exists", existsSync(src("components/PdfWorkerPack.tsx")));

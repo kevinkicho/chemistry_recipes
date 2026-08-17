@@ -7,6 +7,11 @@ import {
   FreePublicBadge,
   FreePublicProvenance,
 } from "@/components/FreePublicProvenance";
+import {
+  formatProcessFactsEmptyCopy,
+  honestMsatCompareHint,
+  honestMsatCompareLitPatent,
+} from "@/lib/dossier/sectionHonesty";
 
 function sideMetrics(d: LiveDossier | null) {
   if (!d) return null;
@@ -14,6 +19,17 @@ function sideMetrics(d: LiveDossier | null) {
   const conditions = d.processFacts?.sourcedConditionCount ?? 0;
   const unitOps = d.processFacts?.unitOpCount ?? 0;
   const ehs = (d.hazards.hazardStatements || []).length;
+  const harvestFail =
+    formatProcessFactsEmptyCopy({
+      traces: d.traces,
+      fetchErrors: d.fetchErrors,
+    }).kind === "error";
+  const litPatent = honestMsatCompareLitPatent({
+    literatureCount: d.literature?.length ?? 0,
+    patentCount: d.patents?.length ?? 0,
+    traces: d.traces,
+    fetchErrors: d.fetchErrors,
+  }).value;
   return {
     name: d.identity?.name || `CID ${d.cid}`,
     cid: d.cid,
@@ -30,19 +46,15 @@ function sideMetrics(d: LiveDossier | null) {
     accuracy: d.processFacts?.metrics?.accuracyScore ?? null,
     ai: d.synthesis.parsed ? d.synthesis.model || "AI" : "shell",
     href: routes.pubchem(d.cid),
+    harvestFail,
+    litPatent,
   };
 }
 
 function pickHint(a: ReturnType<typeof sideMetrics>, b: ReturnType<typeof sideMetrics>) {
-  if (!a || !b) return "Warm both live CIDs to compare route pick metrics.";
-  const as = a.score ?? 0;
-  const bs = b.score ?? 0;
-  if (as === bs && a.conditions === b.conditions) {
-    return "Similar public density — open patents/lit on both and check EHS before preferring either.";
-  }
-  const better = as >= bs ? a : b;
-  const weaker = as >= bs ? b : a;
-  return `Public evidence leans ${better.name} (score ${better.score ?? "—"} vs ${weaker.score ?? "—"}, ${better.conditions} vs ${weaker.conditions} conditions). Still scouting only — not a site selection decision.`;
+  // Harvest failure is not "Similar public density" / a clean 0/0 miss.
+  // Leftover identity HTTP is not an MSAT-compare miss.
+  return honestMsatCompareHint({ a, b });
 }
 
 /**
@@ -91,8 +103,8 @@ export function CompareMsatBoard({
     {
       key: "lit",
       label: "Literature / patents",
-      va: ma ? `${ma.lit} / ${ma.patents}` : "—",
-      vb: mb ? `${mb.lit} / ${mb.patents}` : "—",
+      va: ma ? ma.litPatent : "—",
+      vb: mb ? mb.litPatent : "—",
     },
     {
       key: "ehs",

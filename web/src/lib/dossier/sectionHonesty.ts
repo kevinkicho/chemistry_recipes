@@ -444,8 +444,8 @@ const PROCESS_FACT_EMPTY_FAMILIES = [
  * Process-fact atoms come from literature, patents, and manufacturing text.
  * Harvest failure in those families is not "no atoms extracted yet".
  * Leftover identity / GHS / annotation HTTP is not a process-facts miss.
- * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, reaction-network, process-sequence stub, ideal-page, validation-checklist, recipe-readiness, campaign-brief, and shift-pack empty copy reuse this helper —
- * no extracted conditions / no process recipe / no process routes / no public process hypothesis / no process facts yet / no route assembled / no procedure windows densified / no route hypotheses assembled / no procedure-scored windows yet / network is center-only / no extractable public process sequence yet / process route synthesis pending / no process steps yet / no GHS text for this CID / missing process overview / checklist Gap / Only 0 sourced condition atom(s) / Few condition observations / No reaction-network edges yet / Insufficient free-public evidence in the campaign package is not a clean miss when
+ * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, reaction-network, process-sequence stub, ideal-page, validation-checklist, recipe-readiness, campaign-brief, shift-pack, and MSAT-compare empty copy reuse this helper —
+ * no extracted conditions / no process recipe / no process routes / no public process hypothesis / no process facts yet / no route assembled / no procedure windows densified / no route hypotheses assembled / no procedure-scored windows yet / network is center-only / no extractable public process sequence yet / process route synthesis pending / no process steps yet / no GHS text for this CID / missing process overview / checklist Gap / Only 0 sourced condition atom(s) / Few condition observations / No reaction-network edges yet / Insufficient free-public evidence in the campaign package / Similar public density / 0 / 0 literature-patents is not a clean miss when
  * lit / patent / manufacturing harvest failed.
  */
 export function formatProcessFactsEmptyCopy(opts: {
@@ -903,4 +903,71 @@ export function honestShiftPackContent(opts: {
     litPatentLabel,
     saveDetail,
   };
+}
+
+export type MsatCompareSideIn = {
+  score: number | null;
+  conditions: number;
+  harvestFail: boolean;
+  name: string;
+};
+
+/**
+ * MSAT compare board: harvest failure is not "Similar public density" /
+ * "0 / 0" literature-patents. Leftover identity / annotation HTTP is not
+ * an MSAT-compare miss.
+ */
+export function honestMsatCompareLitPatent(opts: {
+  literatureCount: number;
+  patentCount: number;
+  traces?: Array<
+    Pick<ApiFetchTrace, "endpointUrl" | "ok" | "notFound" | "error" | "httpStatus">
+  >;
+  fetchErrors?: string[];
+}): { value: string; harvestFail: boolean } {
+  const stat = honestDiagnosticsLitPatentStat(opts);
+  if (stat.harvestFail) {
+    return { value: "harvest failed — not 0/0", harvestFail: true };
+  }
+  return {
+    value: opts.literatureCount + " / " + opts.patentCount,
+    harvestFail: false,
+  };
+}
+
+export function honestMsatCompareHint(opts: {
+  a: MsatCompareSideIn | null;
+  b: MsatCompareSideIn | null;
+}): string {
+  if (!opts.a || !opts.b) return "Warm both live CIDs to compare route pick metrics.";
+  const failed: string[] = [];
+  if (opts.a.harvestFail) failed.push("A");
+  if (opts.b.harvestFail) failed.push("B");
+  if (failed.length) {
+    return (
+      "Harvest failed on " +
+      failed.join(" and ") +
+      " — not similar public density. Retry densify before preferring either."
+    );
+  }
+  const as = opts.a.score ?? 0;
+  const bs = opts.b.score ?? 0;
+  if (as === bs && opts.a.conditions === opts.b.conditions) {
+    return "Similar public density — open patents/lit on both and check EHS before preferring either.";
+  }
+  const better = as >= bs ? opts.a : opts.b;
+  const weaker = as >= bs ? opts.b : opts.a;
+  return (
+    "Public evidence leans " +
+    better.name +
+    " (score " +
+    (better.score ?? "—") +
+    " vs " +
+    (weaker.score ?? "—") +
+    ", " +
+    better.conditions +
+    " vs " +
+    weaker.conditions +
+    " conditions). Still scouting only — not a site selection decision."
+  );
 }

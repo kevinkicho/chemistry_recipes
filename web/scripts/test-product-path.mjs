@@ -632,4 +632,13 @@ ok(
       read("components/dossier/LiveDossierAside.tsx")
     )
 );
+ok(
+  "SEARCH-45 MSAT compare empty copy is not unconditional Similar public density / 0/0",
+  /honestMsatCompareHint/.test(read("components/CompareMsatBoard.tsx")) &&
+    /honestMsatCompareLitPatent/.test(read("components/CompareMsatBoard.tsx")) &&
+    /formatProcessFactsEmptyCopy/.test(read("components/CompareMsatBoard.tsx")) &&
+    /harvest failed.{0,3}not 0\/0/.test(read("lib/dossier/sectionHonesty.ts")) &&
+    /Similar public density/.test(read("lib/dossier/sectionHonesty.ts"))
+);
+
 console.log(`\n${n} product-path checks passed`);
