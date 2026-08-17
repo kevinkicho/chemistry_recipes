@@ -3884,4 +3884,96 @@ ok(
 
 
 
+
+const shiftPanel = read("components/ShiftPackPanel.tsx");
+const shiftPacksSrc = read("lib/workspace/shiftPacks.ts");
+ok(
+  "SEARCH-44 shift-pack empty copy uses honestShiftPackContent",
+  /honestShiftPackContent/.test(shiftPacksSrc) &&
+    /shiftPackSaveDetail/.test(shiftPacksSrc) &&
+    /harvest failed — not 0\/0/.test(shiftPacksSrc) &&
+    /export function honestShiftPackContent/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    )
+);
+ok(
+  "SEARCH-44 shift-pack chips use process-fact traces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(shiftPanel) &&
+    /isProcessFactSourceRef/.test(shiftPanel) &&
+    /field="Shift pack"/.test(shiftPanel) &&
+    /traces=\{traces\}/.test(shiftPanel) &&
+    /sourceRefs=\{sourceRefs\}/.test(shiftPanel) &&
+    !/field="Shift pack"[\s\S]{0,200}pubchemCid=/.test(shiftPanel)
+);
+
+const STUB_STEP = {
+  id: "await-facts-1",
+  title: "No extractable public process sequence yet",
+  order: 1,
+};
+const REAL_STEP = {
+  id: "lit-1",
+  title: "Hydrogenation (public lead)",
+  order: 1,
+  description: "Public abstract",
+};
+
+function shiftPack(traces, extra) {
+  return sectionH.honestShiftPackContent({
+    traces,
+    steps: extra && extra.steps ? extra.steps : [STUB_STEP],
+    gaps: extra && extra.gaps ? extra.gaps : [],
+    litCount: extra && extra.litCount != null ? extra.litCount : 0,
+    patentCount: extra && extra.patentCount != null ? extra.patentCount : 0,
+  });
+}
+
+ok(
+  "SEARCH-44 literature harvest fail is shift-pack error not N-step / 0/0",
+  shiftPack([litFail]).harvestFail &&
+    shiftPack([litFail]).steps.length === 0 &&
+    /Not an empty result|Not a clean miss/.test(shiftPack([litFail]).saveDetail) &&
+    !/^\d+ steps$/.test(shiftPack([litFail]).saveDetail) &&
+    !/^0\/0$/.test(shiftPack([litFail]).litPatentLabel)
+);
+ok(
+  "SEARCH-44 leftover identity is not a shift-pack miss",
+  shiftPack([identityFail]).harvestFail !== true &&
+    shiftPack([identityFail]).steps.length === 0 &&
+    shiftPack([identityFail]).litPatentLabel === "0/0" &&
+    shiftPack([identityFail]).saveDetail === "0 steps"
+);
+ok(
+  "SEARCH-44 leftover ChEMBL annotation fail is not a shift-pack miss",
+  shiftPack([chemblFail]).harvestFail !== true &&
+    shiftPack([chemblFail]).litPatentLabel === "0/0"
+);
+ok(
+  "SEARCH-44 genuine empty stays 0 steps / 0/0",
+  shiftPack([]).harvestFail !== true &&
+    shiftPack([]).steps.length === 0 &&
+    shiftPack([]).litPatentLabel === "0/0" &&
+    shiftPack([]).saveDetail === "0 steps"
+);
+ok(
+  "SEARCH-44 filled steps stay despite leftover identity fail",
+  shiftPack([identityFail], { steps: [REAL_STEP], litCount: 3, patentCount: 1 })
+    .harvestFail !== true &&
+    shiftPack([identityFail], { steps: [REAL_STEP], litCount: 3, patentCount: 1 })
+      .steps.length === 1 &&
+    shiftPack([identityFail], { steps: [REAL_STEP], litCount: 3, patentCount: 1 })
+      .litPatentLabel === "3/1" &&
+    shiftPack([identityFail], { steps: [REAL_STEP], litCount: 3, patentCount: 1 })
+      .saveDetail === "1 steps"
+);
+ok(
+  "SEARCH-44 stub-only steps do not count as public sequence",
+  shiftPack([]).steps.length === 0 &&
+    shiftPack([litFail], { steps: [STUB_STEP] }).steps.length === 0
+);
+ok(
+  "SEARCH-44 local-cache empty stays No saved shift packs",
+  /No saved shift packs for this CID yet/.test(shiftPanel)
+);
+
 console.log(`\n${passed} search-contract checks passed`);

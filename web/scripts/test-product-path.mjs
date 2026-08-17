@@ -467,4 +467,12 @@ ok(
     /annotationStat\.harvestFail/.test(read("components/DossierDiagnostics.tsx")) &&
     /none yet/.test(read("lib/dossier/sectionHonesty.ts"))
 );
+ok(
+  "SEARCH-44 shift-pack empty copy is not unconditional N-step / 0/0 miss",
+  /honestShiftPackContent/.test(read("lib/workspace/shiftPacks.ts")) &&
+    /shiftPackSaveDetail/.test(read("components/ShiftPackPanel.tsx")) &&
+    /harvestEmpty\.kind === "error"/.test(read("components/ShiftPackPanel.tsx")) &&
+    /isProcessFactTrace/.test(read("components/ShiftPackPanel.tsx")) &&
+    /No saved shift packs for this CID yet/.test(read("components/ShiftPackPanel.tsx"))
+);
 console.log(`\n${n} product-path checks passed`);

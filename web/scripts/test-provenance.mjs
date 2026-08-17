@@ -521,6 +521,14 @@ ok(
     /honestDiagnosticsLitPatentStat/.test(read("components/DossierDiagnostics.tsx")) &&
     /none yet/.test(read("lib/dossier/sectionHonesty.ts"))
 );
+ok(
+  "SEARCH-44 shift-pack empty copy uses honestShiftPackContent",
+  /honestShiftPackContent/.test(read("lib/workspace/shiftPacks.ts")) &&
+    /isProcessFactTrace/.test(read("components/ShiftPackPanel.tsx")) &&
+    /isProcessFactSourceRef/.test(read("components/ShiftPackPanel.tsx")) &&
+    /field="Shift pack"/.test(read("components/ShiftPackPanel.tsx")) &&
+    !/field="Shift pack"[\s\S]{0,200}pubchemCid=/.test(read("components/ShiftPackPanel.tsx"))
+);
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
 ok("PdfWorkerPack exists", existsSync(src("components/PdfWorkerPack.tsx")));

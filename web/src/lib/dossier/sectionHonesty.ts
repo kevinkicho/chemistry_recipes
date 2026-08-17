@@ -176,7 +176,7 @@ export function isAnnotationSourceRef(ref: {
  * (literature, patents, PubChem manufacturing, GHS).
  * Leftover identity / properties / annotation HTTP is not process-fact provenance.
  * Plant environment / apparatus, process recipe / route / control-points,
- * related entities / unit-ops, evidence-gaps, process-framing, condition-atlas, operator-job-aid, Monday-pack, route-hypotheses, and problem-unit-op-search chips reuse this family —
+ * related entities / unit-ops, evidence-gaps, process-framing, condition-atlas, operator-job-aid, Monday-pack, shift-pack, route-hypotheses, and problem-unit-op-search chips reuse this family —
  * they derive from process facts, not leftover PubChem identity HTTP.
  */
 export function isProcessFactTrace(endpointUrl: string): boolean {
@@ -444,7 +444,7 @@ const PROCESS_FACT_EMPTY_FAMILIES = [
  * Process-fact atoms come from literature, patents, and manufacturing text.
  * Harvest failure in those families is not "no atoms extracted yet".
  * Leftover identity / GHS / annotation HTTP is not a process-facts miss.
- * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, reaction-network, process-sequence stub, ideal-page, validation-checklist, recipe-readiness, and campaign-brief empty copy reuse this helper —
+ * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, reaction-network, process-sequence stub, ideal-page, validation-checklist, recipe-readiness, campaign-brief, and shift-pack empty copy reuse this helper —
  * no extracted conditions / no process recipe / no process routes / no public process hypothesis / no process facts yet / no route assembled / no procedure windows densified / no route hypotheses assembled / no procedure-scored windows yet / network is center-only / no extractable public process sequence yet / process route synthesis pending / no process steps yet / no GHS text for this CID / missing process overview / checklist Gap / Only 0 sourced condition atom(s) / Few condition observations / No reaction-network edges yet / Insufficient free-public evidence in the campaign package is not a clean miss when
  * lit / patent / manufacturing harvest failed.
  */
@@ -836,5 +836,71 @@ export function honestDiagnosticsLitPatentStat(opts: {
   return {
     value: opts.literatureCount + " · " + opts.patentCount,
     harvestFail: false,
+  };
+}
+
+export type ShiftPackStepIn = {
+  id?: string;
+  title?: string;
+  order?: number;
+  description?: string;
+  mechanismNotes?: string;
+};
+
+/**
+ * Shift-pack snapshot: harvest failure is not a clean N-step pack /
+ * "Lit/patents: 0/0" miss. Stub-only await-ai / await-facts steps are not
+ * a public sequence. Leftover identity / annotation HTTP is not a shift-pack miss.
+ * "No saved shift packs for this CID yet" stays a local-cache gap.
+ */
+export function honestShiftPackContent(opts: {
+  traces?: Array<
+    Pick<ApiFetchTrace, "endpointUrl" | "ok" | "notFound" | "error" | "httpStatus">
+  >;
+  fetchErrors?: string[];
+  steps?: ShiftPackStepIn[];
+  gaps?: string[];
+  litCount: number;
+  patentCount: number;
+}): {
+  steps: Array<{ order: number; title: string; body: string }>;
+  gaps: string[];
+  harvestFail: boolean;
+  litPatentLabel: string;
+  saveDetail: string;
+} {
+  const harvest = formatProcessFactsEmptyCopy({
+    traces: opts.traces,
+    fetchErrors: opts.fetchErrors,
+  });
+  const raw = opts.steps || [];
+  const stubOnly = isStubOnlyProcessSequence(raw);
+  const harvestFail = harvest.kind === "error";
+  const usable = raw.length > 0 && !stubOnly;
+  const steps = usable
+    ? raw.slice(0, 12).map((s, i) => ({
+        order: s.order ?? i + 1,
+        title: (s.title || "Step " + (i + 1)).trim() || "Step " + (i + 1),
+        body: (s.description || s.mechanismNotes || "").slice(0, 400),
+      }))
+    : [];
+  const gaps = [...(opts.gaps || [])];
+  if (harvestFail && !gaps.includes(harvest.message)) {
+    gaps.unshift(harvest.message);
+  }
+  const litPatentLabel =
+    opts.litCount + opts.patentCount > 0
+      ? opts.litCount + "/" + opts.patentCount
+      : harvestFail
+        ? harvest.summary
+        : opts.litCount + "/" + opts.patentCount;
+  const saveDetail =
+    harvestFail && !usable ? harvest.message : steps.length + " steps";
+  return {
+    steps,
+    gaps: gaps.slice(0, 10),
+    harvestFail,
+    litPatentLabel,
+    saveDetail,
   };
 }
