@@ -914,6 +914,12 @@ ok(
     !/field="Reaction network"[\s\S]{0,200}pubchemCid=/.test(reactionNetwork)
 );
 ok(
+  "PROV-37 manufacturing-summary aside stays composite but does not live-fetch leftover identity HTTP",
+  /field="Manufacturing summary"/.test(aside) &&
+    /traces=\{apiTraces\}/.test(aside) &&
+    !/field="Manufacturing summary"[\s\S]{0,200}pubchemCid=/.test(aside)
+);
+ok(
   "PROV-14 live multi-source provenance uses annotationTraces not all harvest HTTP",
   /traces=\{annotationTraces\}[\s\S]{0,200}title="Multi-source free APIs"/.test(liveDossier) &&
     /sourceRefs=\{annotationSourceRefs\}[\s\S]{0,200}title="Multi-source free APIs"/.test(liveDossier) &&

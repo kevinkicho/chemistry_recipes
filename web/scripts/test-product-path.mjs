@@ -624,4 +624,12 @@ ok(
     /field="Reaction network"/.test(read("components/frontier/ReactionNetworkPanel.tsx")) &&
     /liveFetch=\{false\}/.test(read("components/frontier/ReactionNetworkPanel.tsx"))
 );
+ok(
+  "Manufacturing-summary aside stays composite but does not dump leftover harvest HTTP",
+  /field="Manufacturing summary"/.test(read("components/dossier/LiveDossierAside.tsx")) &&
+    /traces=\{apiTraces\}/.test(read("components/dossier/LiveDossierAside.tsx")) &&
+    !/field="Manufacturing summary"[\s\S]{0,200}pubchemCid=/.test(
+      read("components/dossier/LiveDossierAside.tsx")
+    )
+);
 console.log(`\n${n} product-path checks passed`);
