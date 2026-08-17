@@ -3801,6 +3801,87 @@ ok(
   "SEARCH-42 campaign-brief chips stay composite (no leftover-identity claim)",
   /FreePublicBadge/.test(read("components/frontier/CampaignBriefPanel.tsx"))
 );
+const diagSrc = read("components/DossierDiagnostics.tsx");
+ok(
+  "SEARCH-43 diagnostics strip uses honestDiagnosticsAnnotationStat",
+  /honestDiagnosticsAnnotationStat/.test(diagSrc) &&
+    /annotationStat\.value/.test(diagSrc) &&
+    /annotationStat\.harvestFail/.test(diagSrc)
+);
+ok(
+  "SEARCH-43 diagnostics strip uses honestDiagnosticsLitPatentStat",
+  /honestDiagnosticsLitPatentStat/.test(diagSrc) &&
+    /litPatentStat\.value/.test(diagSrc) &&
+    /litPatentStat\.harvestFail/.test(diagSrc)
+);
+
+function annStat(traces, count, sources) {
+  return sectionH.honestDiagnosticsAnnotationStat({
+    annotationCount: count ?? 0,
+    annotationSources: sources,
+    traces,
+  });
+}
+function litPatStat(traces, lit, pat) {
+  return sectionH.honestDiagnosticsLitPatentStat({
+    literatureCount: lit ?? 0,
+    patentCount: pat ?? 0,
+    traces,
+  });
+}
+
+ok(
+  "SEARCH-43 annotation harvest fail is diagnostics error not none yet",
+  annStat([chemblFail]).harvestFail &&
+    /Sources failed|some sources failed/.test(annStat([chemblFail]).value) &&
+    !/none yet/.test(annStat([chemblFail]).value)
+);
+ok(
+  "SEARCH-43 leftover identity is not a diagnostics annotation miss",
+  annStat([identityFail]).harvestFail !== true &&
+    annStat([identityFail]).value === "none yet"
+);
+ok(
+  "SEARCH-43 leftover literature fail is not a diagnostics annotation miss",
+  annStat([litFail]).harvestFail !== true &&
+    annStat([litFail]).value === "none yet"
+);
+ok(
+  "SEARCH-43 genuine annotation empty stays none yet",
+  annStat([]).harvestFail !== true && annStat([]).value === "none yet"
+);
+ok(
+  "SEARCH-43 filled annotations stay despite leftover identity fail",
+  annStat([identityFail], 2, ["chembl", "openfda"]).harvestFail !== true &&
+    /2 · chembl, openfda/.test(annStat([identityFail], 2, ["chembl", "openfda"]).value)
+);
+
+ok(
+  "SEARCH-43 literature harvest fail is diagnostics error not muted 0 · 0",
+  litPatStat([litFail]).harvestFail &&
+    /Sources failed|some sources failed/.test(litPatStat([litFail]).value) &&
+    !/^0 · 0$/.test(litPatStat([litFail]).value)
+);
+ok(
+  "SEARCH-43 leftover identity is not a diagnostics literature miss",
+  litPatStat([identityFail]).harvestFail !== true &&
+    litPatStat([identityFail]).value === "0 · 0"
+);
+ok(
+  "SEARCH-43 leftover ChEMBL annotation fail is not a diagnostics literature miss",
+  litPatStat([chemblFail]).harvestFail !== true &&
+    litPatStat([chemblFail]).value === "0 · 0"
+);
+ok(
+  "SEARCH-43 genuine literature empty stays 0 · 0",
+  litPatStat([]).harvestFail !== true && litPatStat([]).value === "0 · 0"
+);
+ok(
+  "SEARCH-43 filled literature stays despite leftover identity fail",
+  litPatStat([identityFail], 3, 1).harvestFail !== true &&
+    litPatStat([identityFail], 3, 1).value === "3 · 1"
+);
+
 
 
 console.log(`\n${passed} search-contract checks passed`);

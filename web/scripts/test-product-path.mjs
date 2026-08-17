@@ -460,4 +460,11 @@ ok(
     /No reaction-network edges yet/.test(read("lib/dossier/sectionHonesty.ts"))
 );
 
+ok(
+  "SEARCH-43 diagnostics empty copy is not unconditional none yet miss",
+  /honestDiagnosticsAnnotationStat/.test(read("components/DossierDiagnostics.tsx")) &&
+    /honestDiagnosticsLitPatentStat/.test(read("components/DossierDiagnostics.tsx")) &&
+    /annotationStat\.harvestFail/.test(read("components/DossierDiagnostics.tsx")) &&
+    /none yet/.test(read("lib/dossier/sectionHonesty.ts"))
+);
 console.log(`\n${n} product-path checks passed`);

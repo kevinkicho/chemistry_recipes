@@ -11,9 +11,14 @@ import {
   humanizeSoftFailList,
 } from "@/lib/dossier/softFailHuman";
 import { sourceFamilyReportFromDossier } from "@/lib/dossier/sourceFamilyReport";
+import {
+  honestDiagnosticsAnnotationStat,
+  honestDiagnosticsLitPatentStat,
+} from "@/lib/dossier/sectionHonesty";
 
 /**
  * Compact per-dossier health strip for operators / power users.
+ * Harvest failure is not Multi-source APIs "none yet" / muted 0 · 0 literature.
  */
 export function DossierDiagnostics({
   dossier,
@@ -27,6 +32,18 @@ export function DossierDiagnostics({
   const failed = failedFamiliesFromErrors(dossier.fetchErrors);
   const humanFails = humanizeSoftFailList(dossier.fetchErrors);
   const familyReport = sourceFamilyReportFromDossier(dossier);
+  const annotationStat = honestDiagnosticsAnnotationStat({
+    annotationCount: d.annotationCount,
+    annotationSources: d.annotationSources,
+    traces: dossier.traces,
+    fetchErrors: dossier.fetchErrors,
+  });
+  const litPatentStat = honestDiagnosticsLitPatentStat({
+    literatureCount: d.literatureCount,
+    patentCount: d.patentCount,
+    traces: dossier.traces,
+    fetchErrors: dossier.fetchErrors,
+  });
   const [retryBusy, setRetryBusy] = useState(false);
   const [retryMsg, setRetryMsg] = useState<string | null>(null);
 
@@ -106,17 +123,25 @@ export function DossierDiagnostics({
         />
         <Stat
           label="Literature / patents"
-          value={`${d.literatureCount} · ${d.patentCount}`}
-          tone={d.literatureCount + d.patentCount > 0 ? "ok" : "muted"}
+          value={litPatentStat.value}
+          tone={
+            d.literatureCount + d.patentCount > 0
+              ? "ok"
+              : litPatentStat.harvestFail
+                ? "warn"
+                : "muted"
+          }
         />
         <Stat
           label="Multi-source APIs"
-          value={
+          value={annotationStat.value}
+          tone={
             d.annotationCount
-              ? `${d.annotationCount} · ${d.annotationSources.slice(0, 3).join(", ")}`
-              : "none yet"
+              ? "ok"
+              : annotationStat.harvestFail
+                ? "warn"
+                : "muted"
           }
-          tone={d.annotationCount ? "ok" : "muted"}
         />
       </div>
 

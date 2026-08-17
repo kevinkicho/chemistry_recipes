@@ -515,6 +515,12 @@ ok(
     /honestCampaignAgentEmpty/.test(read("lib/frontier/campaignAgent.ts")) &&
     /Few condition observations/.test(read("lib/dossier/sectionHonesty.ts"))
 );
+ok(
+  "SEARCH-43 diagnostics empty copy uses honestDiagnosticsAnnotationStat",
+  /honestDiagnosticsAnnotationStat/.test(read("components/DossierDiagnostics.tsx")) &&
+    /honestDiagnosticsLitPatentStat/.test(read("components/DossierDiagnostics.tsx")) &&
+    /none yet/.test(read("lib/dossier/sectionHonesty.ts"))
+);
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
 ok("PdfWorkerPack exists", existsSync(src("components/PdfWorkerPack.tsx")));
