@@ -107,12 +107,15 @@ export function EvidenceSciencePanel({
             </h2>
             {/* Seed Q&A from evidenceQa — harvest failure is not "No route hypotheses assembled".
                 Leftover identity HTTP is not a science-QA miss.
-                Provenance chips still pass all traces on purpose (composite Q&A). */}
+                Provenance chips still pass all traces on purpose (composite Q&A).
+                Empty traces must not live-fetch leftover PubChem identity HTTP
+                labeled as Evidence science Q&A. */}
             <FreePublicProvenance
               dossier={dossier}
               title="Evidence science"
               field="Evidence science Q&A"
               aiMode="when-parsed"
+              liveFetch={false}
               onRegenerate={onForceRegather}
             />
           </div>

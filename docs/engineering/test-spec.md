@@ -319,6 +319,7 @@ Machine registry: `web/scripts/fixtures/provenance-surface-registry.json`.
 | **PROV-33** | Ideal-page chips stay composite all-traces hydration but do not live-fetch leftover PubChem identity HTTP when traces are empty (identity `/property/` is not an ideal-page family) | `test-provenance`, `test-search-contracts`, `test-product-path`, `test-ideal-page` |
 | **PROV-34** | Validation-checklist / Thin-to-useful / Evidence-score chips stay composite all-traces hydration but do not live-fetch leftover PubChem identity HTTP when traces are empty (identity `/property/` is not those families) | `test-provenance`, `test-search-contracts`, `test-product-path` |
 | **PROV-35** | Recipe-readiness / manager-brief / critique chips stay composite all-traces hydration but do not live-fetch leftover PubChem identity HTTP when traces are empty (identity `/property/` is not those families) | `test-provenance`, `test-search-contracts`, `test-product-path` |
+| **PROV-36** | Science-QA / science-agent / reaction-network chips stay composite all-traces hydration but do not live-fetch leftover PubChem identity HTTP when traces are empty (identity `/property/` is not those families) | `test-provenance`, `test-search-contracts`, `test-product-path` |
 | **PROV-SCAN-*** | Scanner asserts every registry surface still wired | `test-provenance-coverage` |
 
 ## Lifecycle diagram (validated by LIFE-* / DENS-*)

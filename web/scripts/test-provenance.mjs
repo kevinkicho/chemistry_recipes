@@ -885,6 +885,34 @@ ok(
     !/field="Critique"[\s\S]{0,200}pubchemCid=/.test(critique) &&
     !/pubchemCid=\{dossier\.cid\}/.test(critique)
 );
+const scienceAgent = read("components/frontier/ScienceAgentPanel.tsx");
+ok(
+  "PROV-36 science-agent chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Science agent"/.test(scienceAgent) &&
+    /liveFetch=\{false\}/.test(scienceAgent) &&
+    /dossier=\{dossier\}/.test(scienceAgent) &&
+    /field="Science agent answer"/.test(scienceAgent) &&
+    /traces=\{slimTraces\(dossier\.traces/.test(scienceAgent) &&
+    !/field="Science agent"[\s\S]{0,200}pubchemCid=/.test(scienceAgent) &&
+    !/field="Science agent answer"[\s\S]{0,200}pubchemCid=/.test(scienceAgent) &&
+    !/pubchemCid=\{dossier\.cid\}/.test(scienceAgent)
+);
+const evidenceScience = read("components/frontier/EvidenceSciencePanel.tsx");
+ok(
+  "PROV-36 science-QA chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Evidence science Q&A"/.test(evidenceScience) &&
+    /liveFetch=\{false\}/.test(evidenceScience) &&
+    /dossier=\{dossier\}/.test(evidenceScience) &&
+    !/field="Evidence science Q&A"[\s\S]{0,200}pubchemCid=/.test(evidenceScience)
+);
+const reactionNetwork = read("components/frontier/ReactionNetworkPanel.tsx");
+ok(
+  "PROV-36 reaction-network chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Reaction network"/.test(reactionNetwork) &&
+    /liveFetch=\{false\}/.test(reactionNetwork) &&
+    /dossier=\{dossier\}/.test(reactionNetwork) &&
+    !/field="Reaction network"[\s\S]{0,200}pubchemCid=/.test(reactionNetwork)
+);
 ok(
   "PROV-14 live multi-source provenance uses annotationTraces not all harvest HTTP",
   /traces=\{annotationTraces\}[\s\S]{0,200}title="Multi-source free APIs"/.test(liveDossier) &&

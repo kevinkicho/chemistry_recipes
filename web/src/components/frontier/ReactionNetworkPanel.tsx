@@ -171,12 +171,16 @@ export function ReactionNetworkPanel({
         <h2 className="text-sm font-semibold text-slate-50">
           Process reaction network
         </h2>
+        {/* Composite all-traces hydration. Empty traces must not
+            live-fetch leftover PubChem identity HTTP labeled as
+            Reaction network. */}
         <FreePublicProvenance
           dossier={dossier}
           title="Process reaction network"
           field="Reaction network"
           aiField="relatedEntities"
           aiMode="field-or-parsed"
+          liveFetch={false}
           onRegenerate={onRegenerate}
         />
       </div>
