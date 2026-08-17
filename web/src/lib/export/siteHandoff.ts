@@ -4,6 +4,7 @@
  */
 
 import type { LiveDossier } from "@/lib/dossier/types";
+import { honestSiteHandoffProcessFacts } from "@/lib/dossier/sectionHonesty";
 
 export function buildSiteHandoffMarkdown(d: LiveDossier): string {
   const name = d.identity?.name || `CID ${d.cid}`;
@@ -19,7 +20,12 @@ export function buildSiteHandoffMarkdown(d: LiveDossier): string {
     `- Ideal depth: **${d.idealParity?.score ?? "—"}**/100 · Evidence: **${d.evidenceScore?.score ?? "—"}**/100`
   );
   lines.push(
-    `- Process facts: **${d.processFacts?.facts?.filter((f) => f.kind !== "open-gap").length ?? 0}** sourced atoms · Framing: ${d.processFraming || d.processFacts?.framing || "—"}`
+    `- ${honestSiteHandoffProcessFacts({
+      factCount:
+        d.processFacts?.facts?.filter((f) => f.kind !== "open-gap").length ?? 0,
+      traces: d.traces,
+      fetchErrors: d.fetchErrors,
+    }).value} · Framing: ${d.processFraming || d.processFacts?.framing || "—"}`
   );
   lines.push(
     `- Soft-fail notes: **${(d.fetchErrors || []).filter((e: string) => e.startsWith("soft-fail ·") || e.startsWith("api-fail ·")).length}**`

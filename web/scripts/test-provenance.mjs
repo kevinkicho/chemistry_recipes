@@ -640,6 +640,13 @@ ok(
     /field="PDF pack"/.test(read("components/PdfWorkerPack.tsx")) &&
     !/field="PDF pack"[\s\S]{0,200}pubchemCid=/.test(read("components/PdfWorkerPack.tsx"))
 );
+ok(
+  "SEARCH-49 site-handoff process-facts empty copy uses honestSiteHandoffProcessFacts",
+  /honestSiteHandoffProcessFacts/.test(read("lib/export/siteHandoff.ts")) &&
+    /export function honestSiteHandoffProcessFacts/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    )
+);
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
 ok("PdfWorkerPack exists", existsSync(src("components/PdfWorkerPack.tsx")));

@@ -4595,4 +4595,72 @@ ok(
     sectionH.isManufacturingSectionTrace(mfgUrl)
 );
 
+
+ok(
+  "SEARCH-49 site-handoff process-facts empty copy uses honestSiteHandoffProcessFacts",
+  /honestSiteHandoffProcessFacts/.test(read("lib/export/siteHandoff.ts")) &&
+    /export function honestSiteHandoffProcessFacts/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    )
+);
+ok(
+  "SEARCH-49 Thin-to-useful chips stay composite (no leftover-identity claim)",
+  /field="Thin-to-useful"/.test(read("components/ThinToUsefulBanner.tsx")) &&
+    /liveFetch=\{false\}/.test(read("components/ThinToUsefulBanner.tsx")) &&
+    !/field="Thin-to-useful"[\s\S]{0,200}pubchemCid=/.test(
+      read("components/ThinToUsefulBanner.tsx")
+    )
+);
+
+function handoffFacts(traces, count) {
+  return sectionH.honestSiteHandoffProcessFacts({
+    factCount: count ?? 0,
+    traces,
+  });
+}
+
+ok(
+  "SEARCH-49 literature harvest fail is site-handoff error not 0 sourced atoms",
+  handoffFacts([litFail]).harvestFail &&
+    /harvest failed.{0,3}not 0 sourced atoms/.test(handoffFacts([litFail]).value) &&
+    handoffFacts([litFail]).value !== "Process facts: **0** sourced atoms"
+);
+ok(
+  "SEARCH-49 manufacturing harvest fail is site-handoff error not 0 sourced atoms",
+  handoffFacts([mfgFail]).harvestFail &&
+    /harvest failed.{0,3}not 0 sourced atoms/.test(handoffFacts([mfgFail]).value) &&
+    handoffFacts([mfgFail]).value !== "Process facts: **0** sourced atoms"
+);
+ok(
+  "SEARCH-49 leftover identity is not a site-handoff process-facts miss",
+  handoffFacts([identityFail]).harvestFail !== true &&
+    handoffFacts([identityFail]).value === "Process facts: **0** sourced atoms"
+);
+ok(
+  "SEARCH-49 leftover ChEMBL annotation fail is not a site-handoff process-facts miss",
+  handoffFacts([chemblFail]).harvestFail !== true &&
+    handoffFacts([chemblFail]).value === "Process facts: **0** sourced atoms"
+);
+ok(
+  "SEARCH-49 leftover GHS fail is not a site-handoff process-facts miss",
+  handoffFacts([ghsFail]).harvestFail !== true &&
+    handoffFacts([ghsFail]).value === "Process facts: **0** sourced atoms"
+);
+ok(
+  "SEARCH-49 genuine process-facts empty stays 0 sourced atoms",
+  handoffFacts([]).harvestFail !== true &&
+    handoffFacts([]).value === "Process facts: **0** sourced atoms"
+);
+ok(
+  "SEARCH-49 filled process facts stay despite leftover identity fail",
+  handoffFacts([identityFail], 4).harvestFail !== true &&
+    handoffFacts([identityFail], 4).value === "Process facts: **4** sourced atoms"
+);
+ok(
+  "SEARCH-49 leftover PubChem identity is not a site-handoff process-facts miss",
+  !sectionH.isProcessFactTrace(identityUrl) &&
+    sectionH.isProcessFactTrace(litUrl) &&
+    sectionH.isManufacturingSectionTrace(mfgUrl)
+);
+
 console.log(`\n${passed} search-contract checks passed`);
