@@ -59,6 +59,16 @@ ok(
   "ideal panel labels harvest-fail",
   /harvest-fail/.test(read("components/IdealPageParityPanel.tsx"))
 );
+ok(
+  "PROV-33 ideal-page chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Ideal page"/.test(read("components/IdealPageParityPanel.tsx")) &&
+    /traces=\{slimTraces\(dossier\.traces/.test(
+      read("components/IdealPageParityPanel.tsx")
+    ) &&
+    !/pubchemCid=\{dossier\.cid\}/.test(
+      read("components/IdealPageParityPanel.tsx")
+    )
+);
 
 // Mock molecule JSON removed — live densify is the product
 const moleculesDir = join(root, "src/data/molecules");

@@ -586,4 +586,14 @@ ok(
   /field="Source coverage"/.test(read("components/SourceCoverageMap.tsx")) &&
     /liveFetch=\{false\}/.test(read("components/SourceCoverageMap.tsx"))
 );
+ok(
+  "Ideal-page chips do not dump leftover harvest HTTP",
+  /field="Ideal page"/.test(read("components/IdealPageParityPanel.tsx")) &&
+    /traces=\{slimTraces\(dossier\.traces/.test(
+      read("components/IdealPageParityPanel.tsx")
+    ) &&
+    !/pubchemCid=\{dossier\.cid\}/.test(
+      read("components/IdealPageParityPanel.tsx")
+    )
+);
 console.log(`\n${n} product-path checks passed`);

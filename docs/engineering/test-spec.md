@@ -316,6 +316,7 @@ Machine registry: `web/scripts/fixtures/provenance-surface-registry.json`.
 | **PROV-30** | Applications / patents / manufacturing / EHS header chips do not live-fetch leftover PubChem identity HTTP when family traces are empty (identity `/property/` is not those families; PubChem pug_view manufacturing/GHS and PatentsView stay the family sources) | `test-provenance`, `test-search-contracts`, `test-product-path` |
 | **PROV-31** | MSAT compare / batch-densify / network-edge-compare chips stay composite all-traces hydration but do not live-fetch leftover PubChem identity HTTP when traces are empty (identity `/property/` is not those families) | `test-provenance`, `test-search-contracts`, `test-product-path` |
 | **PROV-32** | Source-coverage chips stay composite all-traces hydration but do not live-fetch leftover PubChem identity HTTP when traces are empty (identity `/property/` is not source coverage of this build) | `test-provenance`, `test-search-contracts`, `test-product-path` |
+| **PROV-33** | Ideal-page chips stay composite all-traces hydration but do not live-fetch leftover PubChem identity HTTP when traces are empty (identity `/property/` is not an ideal-page family) | `test-provenance`, `test-search-contracts`, `test-product-path`, `test-ideal-page` |
 | **PROV-SCAN-*** | Scanner asserts every registry surface still wired | `test-provenance-coverage` |
 
 ## Lifecycle diagram (validated by LIFE-* / DENS-*)

@@ -829,6 +829,14 @@ ok(
     /dossier=\{dossier\}/.test(sourceCoverage) &&
     !/field="Source coverage"[\s\S]{0,200}pubchemCid=/.test(sourceCoverage)
 );
+const idealPage = read("components/IdealPageParityPanel.tsx");
+ok(
+  "PROV-33 ideal-page chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Ideal page"/.test(idealPage) &&
+    /traces=\{slimTraces\(dossier\.traces/.test(idealPage) &&
+    !/field="Ideal page"[\s\S]{0,200}pubchemCid=/.test(idealPage) &&
+    !/pubchemCid=\{dossier\.cid\}/.test(idealPage)
+);
 ok(
   "PROV-14 live multi-source provenance uses annotationTraces not all harvest HTTP",
   /traces=\{annotationTraces\}[\s\S]{0,200}title="Multi-source free APIs"/.test(liveDossier) &&

@@ -4193,4 +4193,18 @@ ok(
     !sectionH.isProcessFactTrace(identityUrl) &&
     !sectionH.isManufacturingSectionTrace(identityUrl)
 );
+const idealPage = read("components/IdealPageParityPanel.tsx");
+ok(
+  "PROV-33 ideal-page chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Ideal page"/.test(idealPage) &&
+    /traces=\{slimTraces\(dossier\.traces/.test(idealPage) &&
+    !/field="Ideal page"[\s\S]{0,200}pubchemCid=/.test(idealPage) &&
+    !/pubchemCid=\{dossier\.cid\}/.test(idealPage)
+);
+ok(
+  "PROV-33 leftover PubChem identity is not ideal-page live-fetch",
+  !/pubchemCid=\{dossier\.cid\}/.test(idealPage) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isManufacturingSectionTrace(identityUrl)
+);
 console.log(`\n${passed} search-contract checks passed`);

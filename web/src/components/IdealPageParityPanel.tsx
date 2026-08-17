@@ -65,10 +65,12 @@ export function IdealPageParityPanel({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {/* Composite all-traces hydration. Empty traces must not
+              live-fetch leftover PubChem identity HTTP labeled as
+              Ideal page. */}
           <ContentProvenance
             title="Ideal page parity"
             field="Ideal page"
-            pubchemCid={dossier.cid}
             traces={slimTraces(dossier.traces || [])}
             sourceRefs={dossier.sourceRefs}
             ai={dossier.synthesis.provenance}
