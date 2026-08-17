@@ -3541,4 +3541,135 @@ ok(
     /dossier=\{dossier\}/.test(read("components/ValidationChecklist.tsx"))
 );
 
+
+async function loadRecipeReadiness() {
+  const honestyFile = path.join(src, "lib/dossier/sectionHonesty.ts");
+  const honestyOut = ts.transpileModule(fs.readFileSync(honestyFile, "utf8"), {
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+    },
+    fileName: honestyFile,
+  }).outputText;
+  const honestyPath = path.join(tmpdir(), `sectionHonesty-rr-${process.pid}.mjs`);
+  fs.writeFileSync(honestyPath, honestyOut, "utf8");
+
+  const srcFile = path.join(src, "lib/dossier/recipeReadiness.ts");
+  const { outputText } = ts.transpileModule(fs.readFileSync(srcFile, "utf8"), {
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+    },
+    fileName: srcFile,
+  });
+  const rewritten = outputText.replace(
+    /from ["']@\/lib\/dossier\/sectionHonesty["']/,
+    `from ${JSON.stringify(pathToFileURL(honestyPath).href)}`
+  );
+  const out = path.join(tmpdir(), `recipeReadiness-${process.pid}.mjs`);
+  fs.writeFileSync(out, rewritten, "utf8");
+  return import(pathToFileURL(out).href);
+}
+
+const recipeReadinessSrc = read("lib/dossier/recipeReadiness.ts");
+const recipePanelSrc = read("components/RecipeReadinessPanel.tsx");
+ok(
+  "SEARCH-41 recipe-readiness empty copy uses honestIdealEmptyCopy",
+  /honestIdealEmptyCopy/.test(recipeReadinessSrc) &&
+    /harvestFail/.test(recipeReadinessSrc) &&
+    /family: "process-facts"/.test(recipeReadinessSrc)
+);
+ok(
+  "SEARCH-41 withRecipeReadiness and fallbacks pass harvest traces",
+  /traces: dossier\.traces/.test(recipeReadinessSrc) &&
+    /fetchErrors: dossier\.fetchErrors/.test(recipeReadinessSrc) &&
+    /traces: dossier\.traces/.test(recipePanelSrc) &&
+    /traces: dossier\.traces/.test(read("components/MondayMorningPack.tsx")) &&
+    /traces: dossier\.traces/.test(read("components/SiteGapsExport.tsx"))
+);
+
+const recipeH = await loadRecipeReadiness();
+
+function recipeGaps(traces) {
+  return recipeH.assessRecipeReadiness({ traces }).gaps;
+}
+
+const litFailGaps = recipeGaps([litFail]);
+const condFail = litFailGaps.find((g) => g.id === "conditions");
+const isoFail = litFailGaps.find((g) => g.id === "isolation");
+const srcFail = litFailGaps.find((g) => g.id === "source-breadth");
+const qmsFail = litFailGaps.find((g) => g.id === "site-qms");
+ok(
+  "SEARCH-41 literature harvest fail is recipe-readiness review not Only 0 atoms",
+  condFail?.harvestFail &&
+    isoFail?.harvestFail &&
+    srcFail?.harvestFail &&
+    /Not an empty result|Not a clean miss/.test(condFail?.detail || "") &&
+    !/Only 0 sourced condition atom/.test(condFail?.detail || "") &&
+    !/No isolation language/.test(isoFail?.detail || "") &&
+    !/Only 0 literature/.test(srcFail?.detail || "")
+);
+ok(
+  "SEARCH-41 leftover identity is not a recipe-readiness miss",
+  recipeGaps([identityFail]).find((g) => g.id === "conditions")?.harvestFail !==
+    true &&
+    /Only 0 sourced condition atom/.test(
+      recipeGaps([identityFail]).find((g) => g.id === "conditions")?.detail || ""
+    )
+);
+ok(
+  "SEARCH-41 leftover ChEMBL annotation fail is not a recipe-readiness miss",
+  recipeGaps([chemblFail]).find((g) => g.id === "conditions")?.harvestFail !==
+    true &&
+    /Only 0 sourced condition atom/.test(
+      recipeGaps([chemblFail]).find((g) => g.id === "conditions")?.detail || ""
+    )
+);
+const emptyGaps = recipeGaps([]);
+ok(
+  "SEARCH-41 genuine empty stays Only 0 condition / No isolation copy",
+  emptyGaps.find((g) => g.id === "conditions")?.harvestFail !== true &&
+    /Only 0 sourced condition atom/.test(
+      emptyGaps.find((g) => g.id === "conditions")?.detail || ""
+    ) &&
+    /No isolation language/.test(
+      emptyGaps.find((g) => g.id === "isolation")?.detail || ""
+    ) &&
+    /Only 0 literature/.test(
+      emptyGaps.find((g) => g.id === "source-breadth")?.detail || ""
+    )
+);
+ok(
+  "SEARCH-41 site-QMS gap stays site QMS despite harvest fail",
+  /site QMS/.test(qmsFail?.detail || "") &&
+    qmsFail?.harvestFail !== true &&
+    /site QMS/.test(emptyGaps.find((g) => g.id === "site-qms")?.detail || "")
+);
+ok(
+  "SEARCH-41 filled condition strength stays despite leftover identity fail",
+  recipeH
+    .assessRecipeReadiness({
+      traces: [identityFail],
+      processFacts: { sourcedConditionCount: 4, unitOpCount: 3, framing: "evidence-lead-pack" },
+    })
+    .gaps.every((g) => g.id !== "conditions") &&
+    recipeH
+      .assessRecipeReadiness({
+        traces: [identityFail],
+        processFacts: { sourcedConditionCount: 4, unitOpCount: 3, framing: "evidence-lead-pack" },
+      })
+      .strengths.some((s) => /4 sourced condition/.test(s))
+);
+ok(
+  "SEARCH-41 recipe-readiness chips still pass all traces (composite)",
+  /slimTraces\(dossier\.traces/.test(recipePanelSrc) &&
+    /field="Recipe readiness"/.test(recipePanelSrc)
+);
+ok(
+  "SEARCH-41 panel shows harvest-fail as review not blocker copy",
+  /harvestFail \? "review"/.test(recipePanelSrc) ||
+    /g\.harvestFail \? "review"/.test(recipePanelSrc)
+);
+
+
 console.log(`\n${passed} search-contract checks passed`);

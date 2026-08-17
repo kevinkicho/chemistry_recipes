@@ -4,11 +4,18 @@
  * Modes:
  * - scout-dossier: always valid; identity + evidence map
  * - recipe-draft: only when process-fact density supports process-recipe framing
+ *
+ * Harvest failure is not "Only 0 sourced condition atom(s)" /
+ * "No isolation language" / "Only 0 literature + 0 patent hit(s)".
+ * Leftover identity / annotation HTTP is not a recipe-readiness miss.
+ * Site-QMS gap stays a site gap. Provenance chips still pass all traces
+ * (composite multi-API hydration).
  */
 
 import type { LiveDossier } from "@/lib/dossier/types";
 import type { CompoundEvidence } from "@/lib/dossier/types";
 import type { ProcessFactBundle } from "@/lib/dossier/processFacts";
+import { honestIdealEmptyCopy } from "@/lib/dossier/sectionHonesty";
 
 export type ProductMode = "scout-dossier" | "recipe-draft";
 
@@ -21,6 +28,8 @@ export interface RecipeGap {
   severity: RecipeGapSeverity;
   /** How to densify (public sources / user action) */
   howToFill?: string;
+  /** Harvest failed — not a clean miss. */
+  harvestFail?: boolean;
 }
 
 export interface RecipeReadiness {
@@ -64,6 +73,8 @@ export function assessRecipeReadiness(
     | "view"
     | "annotations"
     | "identity"
+    | "traces"
+    | "fetchErrors"
   >
 ): RecipeReadiness {
   const pf = evidence.processFacts;
@@ -175,6 +186,37 @@ export function assessRecipeReadiness(
     });
   }
 
+  // Harvest failure is not "Only 0 sourced condition atom(s)" /
+  // "No isolation language" / "Only N literature + M patent hit(s)".
+  // Leftover identity / annotation HTTP is not a recipe-readiness miss.
+  // Site-QMS stays a site gap.
+  const traces = evidence.traces || evidence.view?.traces;
+  const fetchErrors = evidence.fetchErrors;
+  const HARVEST_GAP_IDS = new Set([
+    "conditions",
+    "unit-ops",
+    "isolation",
+    "bom-materials",
+    "workup",
+    "procedure-depth",
+    "examples",
+    "source-breadth",
+  ]);
+  for (const g of gaps) {
+    if (!HARVEST_GAP_IDS.has(g.id)) continue;
+    const honest = honestIdealEmptyCopy({
+      family: "process-facts",
+      traces,
+      fetchErrors,
+      cleanDetail: g.detail,
+      cleanHowToClose: g.howToFill,
+    });
+    if (!honest.harvestFail) continue;
+    g.detail = honest.detail;
+    g.howToFill = honest.howToClose;
+    g.harvestFail = true;
+  }
+
   gaps.push({
     id: "site-qms",
     label: "Site CPPs / IPCs / cleaning",
@@ -241,6 +283,8 @@ export function withRecipeReadiness(dossier: LiveDossier): LiveDossier {
     },
     annotations: dossier.annotations,
     identity: dossier.identity,
+    traces: dossier.traces,
+    fetchErrors: dossier.fetchErrors || [],
   });
   return {
     ...dossier,
