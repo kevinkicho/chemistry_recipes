@@ -176,10 +176,12 @@ export function EvidenceCritiquePanel({
         <h2 className="text-sm font-semibold text-violet-100">
           Evidence critique pass
         </h2>
+        {/* Composite all-traces hydration. Empty traces must not
+            live-fetch leftover PubChem identity HTTP labeled as
+            Critique. */}
         <ContentProvenance
           title="Evidence critique"
           field="Critique"
-          pubchemCid={dossier.cid}
           traces={allTraces}
           sourceRefs={dossier.sourceRefs}
           ai={prov}

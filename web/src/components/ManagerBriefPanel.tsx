@@ -87,10 +87,12 @@ export function ManagerBriefPanel({
             <h2 className="text-sm font-semibold text-slate-50">
               Manager / MSAT brief
             </h2>
+            {/* Composite all-traces hydration. Empty traces must not
+                live-fetch leftover PubChem identity HTTP labeled as
+                Manager brief. */}
             <ContentProvenance
               title="Manager / MSAT brief"
               field="Manager brief"
-              pubchemCid={dossier.cid}
               traces={slimTraces(dossier.traces || [])}
               sourceRefs={dossier.sourceRefs}
               ai={aiBrief}

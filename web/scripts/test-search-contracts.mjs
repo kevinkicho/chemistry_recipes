@@ -4239,4 +4239,34 @@ ok(
     !sectionH.isProcessFactTrace(identityUrl) &&
     !sectionH.isManufacturingSectionTrace(identityUrl)
 );
+const recipeReadinessPanel = read("components/RecipeReadinessPanel.tsx");
+ok(
+  "PROV-35 recipe-readiness chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Recipe readiness"/.test(recipeReadinessPanel) &&
+    /traces=\{slimTraces\(dossier\.traces/.test(recipeReadinessPanel) &&
+    !/field="Recipe readiness"[\s\S]{0,200}pubchemCid=/.test(recipeReadinessPanel) &&
+    !/pubchemCid=\{dossier\.cid\}/.test(recipeReadinessPanel)
+);
+ok(
+  "PROV-35 manager-brief chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Manager brief"/.test(managerBrief) &&
+    /traces=\{slimTraces\(dossier\.traces/.test(managerBrief) &&
+    !/field="Manager brief"[\s\S]{0,200}pubchemCid=/.test(managerBrief) &&
+    !/pubchemCid=\{dossier\.cid\}/.test(managerBrief)
+);
+ok(
+  "PROV-35 critique chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Critique"/.test(critique) &&
+    /traces=\{allTraces\}/.test(critique) &&
+    !/field="Critique"[\s\S]{0,200}pubchemCid=/.test(critique) &&
+    !/pubchemCid=\{dossier\.cid\}/.test(critique)
+);
+ok(
+  "PROV-35 leftover PubChem identity is not readiness / brief / critique live-fetch",
+  !/pubchemCid=\{dossier\.cid\}/.test(recipeReadinessPanel) &&
+    !/pubchemCid=\{dossier\.cid\}/.test(managerBrief) &&
+    !/pubchemCid=\{dossier\.cid\}/.test(critique) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isManufacturingSectionTrace(identityUrl)
+);
 console.log(`\n${passed} search-contract checks passed`);
