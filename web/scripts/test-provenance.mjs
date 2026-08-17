@@ -657,6 +657,18 @@ ok(
     /field="Critique"/.test(read("components/EvidenceCritiquePanel.tsx")) &&
     /traces=\{allTraces\}/.test(read("components/EvidenceCritiquePanel.tsx"))
 );
+ok(
+  "SEARCH-51 process-facts header empty copy uses honestProcessFactsCountHeader",
+  /honestProcessFactsCountHeader/.test(read("components/ProcessFactsPanel.tsx")) &&
+    /honestProcessFactsCountHeader/.test(read("components/OperatorJobAid.tsx")) &&
+    /export function honestProcessFactsCountHeader/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    ) &&
+    /field="Process facts"/.test(read("components/ProcessFactsPanel.tsx")) &&
+    /traces=\{factTraces\}/.test(read("components/ProcessFactsPanel.tsx")) &&
+    /field="Operator job aid"/.test(read("components/OperatorJobAid.tsx")) &&
+    /traces=\{traces\}/.test(read("components/OperatorJobAid.tsx"))
+);
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
 ok("PdfWorkerPack exists", existsSync(src("components/PdfWorkerPack.tsx")));
