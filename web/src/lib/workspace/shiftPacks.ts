@@ -7,6 +7,7 @@ import type { LiveDossier } from "@/lib/dossier/types";
 import { getSiteFill } from "@/lib/idb/siteFill";
 import { getWorkPackForCid } from "@/lib/workspace/workPacks";
 import { getUserSupplementsForCid } from "@/lib/idb/userSupplements";
+import { honestShiftPackContent } from "@/lib/dossier/sectionHonesty";
 
 const KEY = "cr-shift-packs-v1";
 
@@ -31,6 +32,8 @@ export interface ShiftPackSnapshot {
   pasteCount: number;
   litCount: number;
   patentCount: number;
+  /** Harvest failure is not a clean 0-step / 0/0 pack. */
+  harvestFail?: boolean;
   aiModel?: string | null;
   accuracyNote: string;
 }
@@ -103,6 +106,15 @@ export function buildShiftPackFromDossier(dossier: LiveDossier): ShiftPackSnapsh
     .slice(0, 20)
     .map((f) => f.claim);
 
+  const honest = honestShiftPackContent({
+    traces: dossier.traces,
+    fetchErrors: dossier.fetchErrors || [],
+    steps: route?.steps || [],
+    gaps,
+    litCount: dossier.literature?.length ?? 0,
+    patentCount: dossier.patents?.length ?? 0,
+  });
+
   return {
     id: uid(),
     schema: "chemistry-recipes.shift-pack.v1",
@@ -116,24 +128,38 @@ export function buildShiftPackFromDossier(dossier: LiveDossier): ShiftPackSnapsh
     framing: dossier.processFraming,
     ehs,
     preferredRouteName: route?.name,
-    steps: (route?.steps || []).slice(0, 12).map((s) => ({
-      order: s.order,
-      title: s.title,
-      body: (s.description || s.mechanismNotes || "").slice(0, 400),
-    })),
-    gaps,
+    steps: honest.steps,
+    gaps: honest.gaps,
     processFactClaims: facts,
     siteFill,
     workNotes: (pack?.notes || []).slice(0, 10).map((n) => n.text),
     pasteCount: pastes.length,
     litCount: dossier.literature?.length ?? 0,
     patentCount: dossier.patents?.length ?? 0,
+    harvestFail: honest.harvestFail,
     aiModel: dossier.synthesis.parsed ? dossier.synthesis.model || null : null,
-    accuracyNote:
-      dossier.processFacts?.metrics?.accuracyScore != null
+    accuracyNote: honest.harvestFail
+      ? honest.saveDetail
+      : dossier.processFacts?.metrics?.accuracyScore != null
         ? `Process-fact accuracy ${dossier.processFacts.metrics.accuracyScore}/100 · sourced conditions only`
         : "Accuracy layer not scored on this capture",
   };
+}
+
+/** Save-status line: harvest failure is not a clean N-step win. */
+export function shiftPackSaveDetail(pack: ShiftPackSnapshot): string {
+  if (pack.harvestFail && pack.steps.length === 0) {
+    return pack.accuracyNote || pack.gaps[0] || "Sources failed — not empty";
+  }
+  return pack.steps.length + " steps";
+}
+
+function litPatentManifestLine(pack: ShiftPackSnapshot): string {
+  if ((pack.litCount || 0) + (pack.patentCount || 0) > 0) {
+    return pack.litCount + "/" + pack.patentCount;
+  }
+  if (pack.harvestFail) return "harvest failed — not 0/0";
+  return pack.litCount + "/" + pack.patentCount;
 }
 
 export function saveShiftPack(pack: ShiftPackSnapshot): ShiftPackSnapshot {
@@ -169,9 +195,9 @@ export function shiftPackManifestText(pack: ShiftPackSnapshot): string {
     `Saved: ${pack.savedAt}`,
     `Evidence: ${pack.evidenceScore ?? "—"}/100 · mode ${pack.productMode || "—"}`,
     `Route: ${pack.preferredRouteName || "—"}`,
-    `Steps: ${pack.steps.length} · Gaps: ${pack.gaps.length}`,
+    `Steps: ${pack.harvestFail && pack.steps.length === 0 ? "harvest failed — not a clean 0-step pack" : pack.steps.length} · Gaps: ${pack.gaps.length}`,
     `EHS: ${pack.ehs.join(" | ") || "—"}`,
-    `Lit/patents: ${pack.litCount}/${pack.patentCount} · pastes ${pack.pasteCount}`,
+    `Lit/patents: ${litPatentManifestLine(pack)} · pastes ${pack.pasteCount}`,
     pack.accuracyNote,
     ``,
     ...pack.steps.map((s) => `${s.order}. ${s.title}`),

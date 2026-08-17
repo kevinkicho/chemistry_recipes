@@ -9,10 +9,16 @@ import {
   listShiftPacksForCid,
   saveShiftPack,
   shiftPackManifestText,
+  shiftPackSaveDetail,
   type ShiftPackSnapshot,
 } from "@/lib/workspace/shiftPacks";
 import { ContentProvenance } from "@/components/ContentProvenance";
 import { slimTraces } from "@/lib/api/trace";
+import {
+  formatProcessFactsEmptyCopy,
+  isProcessFactSourceRef,
+  isProcessFactTrace,
+} from "@/lib/dossier/sectionHonesty";
 
 /**
  * One local shift-pack artifact: save / list / JSON / copy / print.
@@ -27,6 +33,19 @@ export function ShiftPackPanel({
   const [rows, setRows] = useState<ShiftPackSnapshot[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
 
+  // Pack is EHS / preferred path / site gaps. Leftover identity
+  // / annotation HTTP is not shift-pack provenance, and the chip must
+  // not live-fetch identity.
+  const allTraces = slimTraces(dossier.traces || []);
+  const traces = allTraces.filter((tr) =>
+    isProcessFactTrace(tr.endpointUrl)
+  );
+  const sourceRefs = (dossier.sourceRefs || []).filter(isProcessFactSourceRef);
+  const harvestEmpty = formatProcessFactsEmptyCopy({
+    traces: allTraces,
+    fetchErrors: dossier.fetchErrors || [],
+  });
+
   const reload = useCallback(() => {
     setRows(listShiftPacksForCid(dossier.cid));
   }, [dossier.cid]);
@@ -40,7 +59,7 @@ export function ShiftPackPanel({
 
   function saveNow() {
     const pack = saveShiftPack(buildShiftPackFromDossier(dossier));
-    setMsg(`Saved shift pack ${pack.id} · ${pack.steps.length} steps`);
+    setMsg(`Saved shift pack ${pack.id} · ${shiftPackSaveDetail(pack)}`);
     reload();
   }
 
@@ -54,9 +73,8 @@ export function ShiftPackPanel({
         <ContentProvenance
           title="Shift pack"
           field="Shift pack"
-          pubchemCid={dossier.cid}
-          traces={slimTraces(dossier.traces || [])}
-          sourceRefs={dossier.sourceRefs}
+          traces={traces}
+          sourceRefs={sourceRefs}
           ai={dossier.synthesis.provenance}
           showAi={Boolean(dossier.synthesis.provenance)}
           onRegenerate={onRegenerate}
@@ -85,6 +103,11 @@ export function ShiftPackPanel({
           Print floor pack
         </button>
       </div>
+      {harvestEmpty.kind === "error" ? (
+        <p className="mt-2 text-xs text-amber-200/90" role="status">
+          {harvestEmpty.message}
+        </p>
+      ) : null}
       {msg ? <p className="mt-2 text-[11px] text-teal-300/90">{msg}</p> : null}
       {rows.length > 0 ? (
         <ul className="mt-3 space-y-2">
@@ -96,7 +119,7 @@ export function ShiftPackPanel({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-mono text-[10px] text-slate-500">{r.savedAt}</span>
                 <span>
-                  {r.steps.length} steps · score {r.evidenceScore ?? "—"} · pastes{" "}
+                  {shiftPackSaveDetail(r)} · score {r.evidenceScore ?? "—"} · pastes{" "}
                   {r.pasteCount}
                 </span>
               </div>
