@@ -400,6 +400,30 @@ ok(
     !/pubchemCid=/.test(read("components/ProcessFactsPanel.tsx"))
 );
 ok(
+  "applications/patents/mfg/EHS header chips do not dump leftover harvest HTTP",
+  /field="Applications"[\s\S]{0,200}traces=\{applicationTraces\}/.test(
+    read("components/dossier/LiveMoleculeDossier.tsx")
+  ) &&
+    !/field="Applications"[\s\S]{0,200}pubchemCid=/.test(
+      read("components/dossier/LiveMoleculeDossier.tsx")
+    ) &&
+    !/pubchemCid=\{cid\}[\s\S]{0,80}traces=\{patentTraces\}/.test(
+      read("components/dossier/LiveMoleculeDossier.tsx")
+    ) &&
+    !/pubchemCid=\{cid\}[\s\S]{0,80}traces=\{mfgTraces\}/.test(
+      read("components/dossier/LiveMoleculeDossier.tsx")
+    ) &&
+    !/field="EHS highlights"[\s\S]{0,200}pubchemCid=/.test(
+      read("components/dossier/LiveMoleculeDossier.tsx")
+    ) &&
+    !/field="EHS highlights"[\s\S]{0,200}pubchemCid=/.test(
+      read("components/dossier/LiveDossierAside.tsx")
+    ) &&
+    !/pubchemCid=\{cid\}[\s\S]{0,80}traces=\{ghsTraces\}/.test(
+      read("components/dossier/LiveDossierAside.tsx")
+    )
+);
+ok(
   "SEARCH-26 monday-pack empty copy is not unconditional density miss",
   /formatProcessFactsEmptyCopy/.test(read("components/MondayMorningPack.tsx")) &&
     /sequenceEmpty\.kind === "error"/.test(read("components/MondayMorningPack.tsx")) &&

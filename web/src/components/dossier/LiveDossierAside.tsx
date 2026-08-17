@@ -268,10 +268,11 @@ export function LiveDossierAside({
         >
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <h3 className="text-sm font-semibold text-rose-300">EHS highlights</h3>
+            {/* EHS/GHS chips are pug_view hazards. Leftover identity
+                HTTP is not EHS provenance — do not live-fetch. */}
             <ContentProvenance
               title="EHS / GHS"
               field="EHS highlights"
-              pubchemCid={cid}
               traces={ghsTraces}
               sourceRefs={dossier.hazards.sourceRefs}
               ai={ehsAi}
@@ -300,8 +301,8 @@ export function LiveDossierAside({
       >
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-sm font-semibold text-slate-200">Hazards (summary)</h3>
+          {/* Hazards summary is GHS pug_view, not leftover identity. */}
           <ApiProvenance
-            pubchemCid={cid}
             traces={ghsTraces}
             sourceRefs={dossier.hazards.sourceRefs}
             title="PubChem PUG View · GHS / hazards"

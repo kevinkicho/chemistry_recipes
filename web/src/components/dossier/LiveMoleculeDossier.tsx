@@ -698,10 +698,13 @@ export function LiveMoleculeDossier({
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">
                   Applications
                 </span>
+                {/* Applications are Use-and-Manufacturing pug_view.
+                    Leftover PubChem identity HTTP is not Applications
+                    provenance — do not live-fetch when applicationTraces
+                    are empty. */}
                 <ContentProvenance
                   title="Applications"
                   field="Applications"
-                  pubchemCid={cid}
                   traces={applicationTraces}
                   sourceRefs={mfgSourceRefs}
                   ai={aiApplications}
@@ -1326,8 +1329,9 @@ export function LiveMoleculeDossier({
             harvestFailed={mfgEmpty.kind === "error"}
           >
             <div className="mb-3">
+              {/* Manufacturing chips are pug_view Use-and-Manufacturing.
+                  Leftover identity /property/ HTTP is not that family. */}
               <ApiProvenance
-                pubchemCid={cid}
                 traces={mfgTraces}
                 sourceRefs={mfgSourceRefs}
                 title="Use & manufacturing"
@@ -1391,8 +1395,9 @@ export function LiveMoleculeDossier({
             harvestFailed={patentEmpty.kind === "error"}
           >
             <div className="mb-3">
+              {/* Patents chips are PatentsView / patent pug_view.
+                  Leftover identity HTTP is not patents provenance. */}
               <ApiProvenance
-                pubchemCid={cid}
                 traces={patentTraces}
                 sourceRefs={patentSourceRefs}
                 title="Patents & process IP"
@@ -1449,10 +1454,11 @@ export function LiveMoleculeDossier({
             <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
               <div className="mb-2 flex flex-wrap items-center gap-2">
                 <h3 className="text-sm font-semibold text-teal-300">EHS highlights</h3>
+                {/* EHS chips are GHS/safety pug_view. Leftover identity
+                    HTTP is not EHS provenance. */}
                 <ContentProvenance
                   title="EHS highlights"
                   field="EHS highlights"
-                  pubchemCid={cid}
                   traces={ghsTraces}
                   sourceRefs={dossier.hazards.sourceRefs}
                   ai={aiEhs}

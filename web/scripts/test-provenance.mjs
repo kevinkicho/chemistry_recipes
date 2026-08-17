@@ -770,6 +770,33 @@ ok(
     !/field="Applications"[\s\S]{0,200}traces=\{traces\}/.test(liveDossier)
 );
 ok(
+  "PROV-30 applications header chip does not live-fetch leftover identity HTTP",
+  /field="Applications"/.test(liveDossier) &&
+    /field="Applications"[\s\S]{0,200}traces=\{applicationTraces\}/.test(liveDossier) &&
+    !/field="Applications"[\s\S]{0,200}pubchemCid=/.test(liveDossier)
+);
+ok(
+  "PROV-30 patents header chip does not live-fetch leftover identity HTTP",
+  /title="Patents & process IP"/.test(liveDossier) &&
+    /traces=\{patentTraces\}/.test(liveDossier) &&
+    !/pubchemCid=\{cid\}[\s\S]{0,80}traces=\{patentTraces\}/.test(liveDossier)
+);
+ok(
+  "PROV-30 manufacturing header chip does not live-fetch leftover identity HTTP",
+  /title="Use & manufacturing"/.test(liveDossier) &&
+    /traces=\{mfgTraces\}/.test(liveDossier) &&
+    !/pubchemCid=\{cid\}[\s\S]{0,80}traces=\{mfgTraces\}/.test(liveDossier)
+);
+ok(
+  "PROV-30 EHS header chips do not live-fetch leftover identity HTTP",
+  /field="EHS highlights"[\s\S]{0,220}traces=\{ghsTraces\}/.test(liveDossier) &&
+    /field="EHS highlights"[\s\S]{0,220}traces=\{ghsTraces\}/.test(aside) &&
+    !/field="EHS highlights"[\s\S]{0,200}pubchemCid=/.test(liveDossier) &&
+    !/field="EHS highlights"[\s\S]{0,200}pubchemCid=/.test(aside) &&
+    /title="PubChem PUG View · GHS \/ hazards"/.test(aside) &&
+    !/pubchemCid=\{cid\}[\s\S]{0,80}traces=\{ghsTraces\}/.test(aside)
+);
+ok(
   "PROV-14 live multi-source provenance uses annotationTraces not all harvest HTTP",
   /traces=\{annotationTraces\}[\s\S]{0,200}title="Multi-source free APIs"/.test(liveDossier) &&
     /sourceRefs=\{annotationSourceRefs\}[\s\S]{0,200}title="Multi-source free APIs"/.test(liveDossier) &&
@@ -1137,6 +1164,12 @@ ok(
 ok(
   "PROV-13 applications rejects identity /property/ HTTP",
   !isApplicationsTrace(propertyTrace.endpointUrl)
+);
+ok(
+  "PROV-30 leftover identity /property/ is not applications / patents heading / manufacturing pug_view",
+  !isApplicationsTrace(propertyTrace.endpointUrl) &&
+    !isCompoundPatentsHeadingTrace(propertyTrace.endpointUrl) &&
+    !isApplicationsTrace("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/2244/property/Title/JSON")
 );
 ok(
   "PROV-13 applications rejects GHS pug_view",
