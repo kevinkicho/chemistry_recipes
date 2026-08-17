@@ -61,6 +61,7 @@ function Row({ p }: { p: ProcessParameterSpec }) {
 /**
  * Educational biologic / process parameter table.
  * Literature-typical = teaching envelope only — never GMP.
+ * Leftover identity / annotation HTTP is not educational-parameters provenance.
  */
 export function BiologicParametersPanel({
   parameterSet,
@@ -82,10 +83,15 @@ export function BiologicParametersPanel({
           {title || parameterSet.label}
         </h2>
         {dossier ? (
+          // Teaching envelopes are not harvest HTTP. Leftover identity
+          // is not educational-parameters provenance — do not live-fetch.
           <FreePublicProvenance
             dossier={dossier}
             title={title || parameterSet.label}
             field="Educational parameters"
+            traces={[]}
+            sourceRefs={[]}
+            liveFetch={false}
             onRegenerate={onRegenerate}
           />
         ) : (

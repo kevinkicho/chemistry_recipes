@@ -471,6 +471,23 @@ ok(
     /FreePublicBadge/.test(localText) &&
     !/pubchemCid=/.test(localText)
 );
+const biologicParams = read("components/BiologicParametersPanel.tsx");
+ok(
+  "PROV-28 educational-parameters chips do not live-fetch leftover identity HTTP",
+  /field="Educational parameters"/.test(biologicParams) &&
+    /liveFetch=\{false\}/.test(biologicParams) &&
+    /traces=\{\[\]\}/.test(biologicParams) &&
+    /sourceRefs=\{\[\]\}/.test(biologicParams) &&
+    !/pubchemCid=/.test(biologicParams)
+);
+ok(
+  "PROV-28 educational-parameters section title does not claim leftover identity HTTP",
+  /field="Educational parameters"/.test(liveDossier) &&
+    !/field="Educational parameters"[\s\S]{0,200}pubchemCid=/.test(liveDossier) &&
+    !/field="Educational parameters"[\s\S]{0,200}traces=\{identityTraces\}/.test(
+      liveDossier
+    )
+);
 ok(
   "SEARCH-31 unit-op-search empty copy uses formatProcessFactsEmptyCopy",
   /formatProcessFactsEmptyCopy/.test(problemUnitOp) &&

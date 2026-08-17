@@ -892,11 +892,11 @@ export function LiveMoleculeDossier({
 
           {show("parameters") ? (
             <section id="process-parameters" className="scroll-mt-24">
+              {/* Teaching envelopes are not identity harvest. Leftover
+                  PubChem identity HTTP is not educational-parameters
+                  provenance — do not live-fetch PubChem. */}
               <SectionTitle
                 field="Educational parameters"
-                pubchemCid={cid}
-                traces={identityTraces}
-                sourceRefs={overviewSourceRefs}
                 ai={aiChip}
                 showAi={false}
                 onRegenerate={onRegenerate}

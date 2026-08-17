@@ -377,6 +377,22 @@ ok(
     !/pubchemCid=/.test(read("components/LocalTextEnrich.tsx"))
 );
 ok(
+  "educational-parameters chips do not dump leftover harvest HTTP",
+  /field="Educational parameters"/.test(
+    read("components/BiologicParametersPanel.tsx")
+  ) &&
+    /liveFetch=\{false\}/.test(read("components/BiologicParametersPanel.tsx")) &&
+    /traces=\{\[\]\}/.test(read("components/BiologicParametersPanel.tsx")) &&
+    /sourceRefs=\{\[\]\}/.test(read("components/BiologicParametersPanel.tsx")) &&
+    !/pubchemCid=/.test(read("components/BiologicParametersPanel.tsx")) &&
+    !/field="Educational parameters"[\s\S]{0,200}pubchemCid=/.test(
+      read("components/dossier/LiveMoleculeDossier.tsx")
+    ) &&
+    !/field="Educational parameters"[\s\S]{0,200}traces=\{identityTraces\}/.test(
+      read("components/dossier/LiveMoleculeDossier.tsx")
+    )
+);
+ok(
   "SEARCH-26 monday-pack empty copy is not unconditional density miss",
   /formatProcessFactsEmptyCopy/.test(read("components/MondayMorningPack.tsx")) &&
     /sequenceEmpty\.kind === "error"/.test(read("components/MondayMorningPack.tsx")) &&

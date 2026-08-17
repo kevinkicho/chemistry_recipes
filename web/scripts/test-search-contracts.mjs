@@ -4065,4 +4065,30 @@ ok(
     !sectionH.isProcessFactTrace(chemblUrl)
 );
 
+const biologicParams = read("components/BiologicParametersPanel.tsx");
+ok(
+  "PROV-28 educational-parameters chips do not live-fetch leftover identity HTTP",
+  /field="Educational parameters"/.test(biologicParams) &&
+    /liveFetch=\{false\}/.test(biologicParams) &&
+    /traces=\{\[\]\}/.test(biologicParams) &&
+    /sourceRefs=\{\[\]\}/.test(biologicParams) &&
+    !/pubchemCid=/.test(biologicParams)
+);
+ok(
+  "PROV-28 educational-parameters section title does not claim leftover identity HTTP",
+  /field="Educational parameters"/.test(liveDossier) &&
+    !/field="Educational parameters"[\s\S]{0,200}pubchemCid=/.test(liveDossier) &&
+    !/field="Educational parameters"[\s\S]{0,200}traces=\{identityTraces\}/.test(
+      liveDossier
+    )
+);
+ok(
+  "PROV-28 leftover PubChem identity is not educational-parameters HTTP",
+  sectionH.isProcessFactTrace(litUrl) &&
+    sectionH.isProcessFactTrace(ghsUrl) &&
+    sectionH.isProcessFactTrace(mfgUrl) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isProcessFactTrace(chemblUrl)
+);
+
 console.log(`\n${passed} search-contract checks passed`);
