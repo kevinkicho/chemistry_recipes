@@ -8,6 +8,10 @@
 import { ContentProvenance } from "@/components/ContentProvenance";
 import type { LiveDossier } from "@/lib/dossier/types";
 import { slimTraces } from "@/lib/api/trace";
+import {
+  isProcessFactSourceRef,
+  isProcessFactTrace,
+} from "@/lib/dossier/sectionHonesty";
 
 export function PdfWorkerPack({
   dossier,
@@ -23,6 +27,15 @@ export function PdfWorkerPack({
     document.getElementById("monday-pack")?.scrollIntoView({ block: "start" });
     window.setTimeout(() => window.print(), 200);
   }
+
+  // PDF pack reprints Monday pack + job aid. Leftover identity
+  // / annotation HTTP is not PDF-pack provenance, and the chip must
+  // not live-fetch identity.
+  const allTraces = slimTraces(dossier.traces || []);
+  const traces = allTraces.filter((tr) =>
+    isProcessFactTrace(tr.endpointUrl)
+  );
+  const sourceRefs = (dossier.sourceRefs || []).filter(isProcessFactSourceRef);
 
   function copyManifest() {
     const lines = [
@@ -53,9 +66,8 @@ export function PdfWorkerPack({
         <ContentProvenance
           title="PDF worker pack"
           field="PDF pack"
-          pubchemCid={dossier.cid}
-          traces={slimTraces(dossier.traces || [])}
-          sourceRefs={dossier.sourceRefs}
+          traces={traces}
+          sourceRefs={sourceRefs}
           ai={dossier.synthesis.provenance}
           showAi={Boolean(dossier.synthesis.provenance)}
           onRegenerate={onRegenerate}

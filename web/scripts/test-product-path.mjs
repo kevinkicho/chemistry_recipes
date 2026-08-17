@@ -338,6 +338,24 @@ ok(
     /field="Procedure vault"/.test(read("components/ProcedureVaultPanel.tsx"))
 );
 ok(
+  "pdf-pack chips do not dump leftover harvest HTTP",
+  /isProcessFactTrace/.test(read("components/PdfWorkerPack.tsx")) &&
+    /isProcessFactSourceRef/.test(read("components/PdfWorkerPack.tsx")) &&
+    /field="PDF pack"/.test(read("components/PdfWorkerPack.tsx")) &&
+    !/field="PDF pack"[\s\S]{0,200}pubchemCid=/.test(
+      read("components/PdfWorkerPack.tsx")
+    )
+);
+ok(
+  "playbook chips do not dump leftover harvest HTTP",
+  /isProcessFactTrace/.test(read("components/WorkerPlaybookPanel.tsx")) &&
+    /isProcessFactSourceRef/.test(read("components/WorkerPlaybookPanel.tsx")) &&
+    /field="Playbooks"/.test(read("components/WorkerPlaybookPanel.tsx")) &&
+    !/field="Playbooks"[\s\S]{0,200}pubchemCid=/.test(
+      read("components/WorkerPlaybookPanel.tsx")
+    )
+);
+ok(
   "SEARCH-26 monday-pack empty copy is not unconditional density miss",
   /formatProcessFactsEmptyCopy/.test(read("components/MondayMorningPack.tsx")) &&
     /sequenceEmpty\.kind === "error"/.test(read("components/MondayMorningPack.tsx")) &&

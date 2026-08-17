@@ -4002,4 +4002,34 @@ ok(
   )
 );
 
+
+const pdfPack = read("components/PdfWorkerPack.tsx");
+ok(
+  "PROV-26 pdf-pack chips use process-fact traces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(pdfPack) &&
+    /isProcessFactSourceRef/.test(pdfPack) &&
+    /field="PDF pack"/.test(pdfPack) &&
+    /traces=\{traces\}/.test(pdfPack) &&
+    /sourceRefs=\{sourceRefs\}/.test(pdfPack) &&
+    !/field="PDF pack"[\s\S]{0,200}pubchemCid=/.test(pdfPack)
+);
+const playbooks = read("components/WorkerPlaybookPanel.tsx");
+ok(
+  "PROV-26 playbook chips use process-fact traces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(playbooks) &&
+    /isProcessFactSourceRef/.test(playbooks) &&
+    /field="Playbooks"/.test(playbooks) &&
+    /traces=\{traces\}/.test(playbooks) &&
+    /sourceRefs=\{sourceRefs\}/.test(playbooks) &&
+    !/field="Playbooks"[\s\S]{0,200}pubchemCid=/.test(playbooks)
+);
+ok(
+  "PROV-26 leftover PubChem identity is not PDF-pack or playbook HTTP",
+  sectionH.isProcessFactTrace(litUrl) &&
+    sectionH.isProcessFactTrace(ghsUrl) &&
+    sectionH.isProcessFactTrace(mfgUrl) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isProcessFactTrace(chemblUrl)
+);
+
 console.log(`\n${passed} search-contract checks passed`);
