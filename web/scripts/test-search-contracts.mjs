@@ -4269,4 +4269,39 @@ ok(
     !sectionH.isProcessFactTrace(identityUrl) &&
     !sectionH.isManufacturingSectionTrace(identityUrl)
 );
+const scienceAgentProv = read("components/frontier/ScienceAgentPanel.tsx");
+ok(
+  "PROV-36 science-agent chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Science agent"/.test(scienceAgentProv) &&
+    /liveFetch=\{false\}/.test(scienceAgentProv) &&
+    /dossier=\{dossier\}/.test(scienceAgentProv) &&
+    /field="Science agent answer"/.test(scienceAgentProv) &&
+    /traces=\{slimTraces\(dossier\.traces/.test(scienceAgentProv) &&
+    !/field="Science agent"[\s\S]{0,200}pubchemCid=/.test(scienceAgentProv) &&
+    !/field="Science agent answer"[\s\S]{0,200}pubchemCid=/.test(scienceAgentProv) &&
+    !/pubchemCid=\{dossier\.cid\}/.test(scienceAgentProv)
+);
+ok(
+  "PROV-36 science-QA chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Evidence science Q&A"/.test(evidenceSciencePanel) &&
+    /liveFetch=\{false\}/.test(evidenceSciencePanel) &&
+    /dossier=\{dossier\}/.test(evidenceSciencePanel) &&
+    !/field="Evidence science Q&A"[\s\S]{0,200}pubchemCid=/.test(evidenceSciencePanel)
+);
+ok(
+  "PROV-36 reaction-network chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Reaction network"/.test(reactionNetPanel) &&
+    /liveFetch=\{false\}/.test(reactionNetPanel) &&
+    /dossier=\{dossier\}/.test(reactionNetPanel) &&
+    !/field="Reaction network"[\s\S]{0,200}pubchemCid=/.test(reactionNetPanel)
+);
+ok(
+  "PROV-36 leftover PubChem identity is not science-QA / science-agent / reaction-network live-fetch",
+  /liveFetch=\{false\}/.test(scienceAgentProv) &&
+    /liveFetch=\{false\}/.test(evidenceSciencePanel) &&
+    /liveFetch=\{false\}/.test(reactionNetPanel) &&
+    !/pubchemCid=\{dossier\.cid\}/.test(scienceAgentProv) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isManufacturingSectionTrace(identityUrl)
+);
 console.log(`\n${passed} search-contract checks passed`);

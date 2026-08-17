@@ -614,4 +614,14 @@ ok(
     /field="Critique"/.test(read("components/EvidenceCritiquePanel.tsx")) &&
     !/pubchemCid=\{dossier\.cid\}/.test(read("components/EvidenceCritiquePanel.tsx"))
 );
+ok(
+  "Science-QA / science-agent / reaction-network chips do not dump leftover harvest HTTP",
+  /field="Evidence science Q&A"/.test(read("components/frontier/EvidenceSciencePanel.tsx")) &&
+    /liveFetch=\{false\}/.test(read("components/frontier/EvidenceSciencePanel.tsx")) &&
+    /field="Science agent"/.test(read("components/frontier/ScienceAgentPanel.tsx")) &&
+    /liveFetch=\{false\}/.test(read("components/frontier/ScienceAgentPanel.tsx")) &&
+    !/pubchemCid=\{dossier\.cid\}/.test(read("components/frontier/ScienceAgentPanel.tsx")) &&
+    /field="Reaction network"/.test(read("components/frontier/ReactionNetworkPanel.tsx")) &&
+    /liveFetch=\{false\}/.test(read("components/frontier/ReactionNetworkPanel.tsx"))
+);
 console.log(`\n${n} product-path checks passed`);

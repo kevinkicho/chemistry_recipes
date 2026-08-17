@@ -246,11 +246,15 @@ export function ScienceAgentPanel({
         <h2 className="text-sm font-semibold text-slate-50">
           Quote-bound scientific agent
         </h2>
+        {/* Composite all-traces hydration. Empty traces must not
+            live-fetch leftover PubChem identity HTTP labeled as
+            Science agent. */}
         <FreePublicProvenance
           dossier={dossier}
           title="Science agent"
           field="Science agent"
           aiMode="when-parsed"
+          liveFetch={false}
           onRegenerate={onForceRegather}
         />
       </div>
@@ -336,10 +340,12 @@ export function ScienceAgentPanel({
             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">
               Agent answer
             </span>
+            {/* Composite all-traces hydration. Empty traces must not
+                live-fetch leftover PubChem identity HTTP labeled as
+                Science agent answer. */}
             <ContentProvenance
               title="Science agent answer"
               field="Science agent answer"
-              pubchemCid={dossier.cid}
               traces={slimTraces(dossier.traces || [])}
               sourceRefs={dossier.sourceRefs}
               ai={useLlm ? aiProvenanceWhenParsed(dossier.synthesis) : null}
