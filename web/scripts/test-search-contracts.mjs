@@ -4316,4 +4316,96 @@ ok(
     !/field="Manufacturing summary"[\s\S]{0,200}pubchemCid=/.test(asideSrc) &&
     !sectionH.isManufacturingSectionTrace(identityUrl)
 );
+ok(
+  "SEARCH-45 MSAT compare empty copy uses honestMsatCompareHint",
+  /honestMsatCompareHint/.test(msatBoard) &&
+    /honestMsatCompareLitPatent/.test(msatBoard) &&
+    /formatProcessFactsEmptyCopy/.test(msatBoard) &&
+    /export function honestMsatCompareHint/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    )
+);
+ok(
+  "SEARCH-45 MSAT compare chips stay composite (no leftover-identity claim)",
+  /field="MSAT compare"/.test(msatBoard) &&
+    /liveFetch=\{false\}/.test(msatBoard) &&
+    !/field="MSAT compare"[\s\S]{0,200}pubchemCid=/.test(msatBoard)
+);
+
+function msatLit(traces, lit, pat) {
+  return sectionH.honestMsatCompareLitPatent({
+    literatureCount: lit ?? 0,
+    patentCount: pat ?? 0,
+    traces,
+  });
+}
+function msatHint(aFail, bFail, extra) {
+  return sectionH.honestMsatCompareHint({
+    a: {
+      score: extra && extra.as != null ? extra.as : 0,
+      conditions: extra && extra.ac != null ? extra.ac : 0,
+      harvestFail: aFail,
+      name: "Aspirin",
+    },
+    b: {
+      score: extra && extra.bs != null ? extra.bs : 0,
+      conditions: extra && extra.bc != null ? extra.bc : 0,
+      harvestFail: bFail,
+      name: "Ibuprofen",
+    },
+  });
+}
+
+ok(
+  "SEARCH-45 literature harvest fail is MSAT compare error not 0/0",
+  msatLit([litFail]).harvestFail &&
+    /harvest failed.{0,3}not 0\/0/.test(msatLit([litFail]).value) &&
+    !/^0 \/ 0$/.test(msatLit([litFail]).value)
+);
+ok(
+  "SEARCH-45 leftover identity is not an MSAT-compare literature miss",
+  msatLit([identityFail]).harvestFail !== true &&
+    msatLit([identityFail]).value === "0 / 0"
+);
+ok(
+  "SEARCH-45 leftover ChEMBL annotation fail is not an MSAT-compare literature miss",
+  msatLit([chemblFail]).harvestFail !== true &&
+    msatLit([chemblFail]).value === "0 / 0"
+);
+ok(
+  "SEARCH-45 genuine literature empty stays 0 / 0",
+  msatLit([]).harvestFail !== true && msatLit([]).value === "0 / 0"
+);
+ok(
+  "SEARCH-45 filled literature stays despite leftover identity fail",
+  msatLit([identityFail], 3, 1).harvestFail !== true &&
+    msatLit([identityFail], 3, 1).value === "3 / 1"
+);
+ok(
+  "SEARCH-45 literature harvest fail is not Similar public density",
+  /Harvest failed on A and B/.test(msatHint(true, true)) &&
+    /not similar public density/.test(msatHint(true, true)) &&
+    !/Similar public density/.test(msatHint(true, true))
+);
+ok(
+  "SEARCH-45 leftover identity is not an MSAT-compare density miss",
+  /Similar public density/.test(msatHint(false, false)) &&
+    !/Harvest failed/.test(msatHint(false, false))
+);
+ok(
+  "SEARCH-45 genuine equal density stays Similar public density",
+  /Similar public density/.test(msatHint(false, false))
+);
+ok(
+  "SEARCH-45 filled density stays despite leftover identity fail",
+  /Public evidence leans Aspirin/.test(
+    msatHint(false, false, { as: 70, ac: 4, bs: 20, bc: 1 })
+  ) && !/Harvest failed/.test(msatHint(false, false, { as: 70, ac: 4, bs: 20, bc: 1 }))
+);
+ok(
+  "SEARCH-45 leftover PubChem identity is not an MSAT-compare miss",
+  !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isManufacturingSectionTrace(identityUrl)
+);
+
 console.log(`\n${passed} search-contract checks passed`);
