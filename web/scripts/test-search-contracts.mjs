@@ -3976,4 +3976,30 @@ ok(
   /No saved shift packs for this CID yet/.test(shiftPanel)
 );
 
+
+const procedureVault = read("components/ProcedureVaultPanel.tsx");
+ok(
+  "PROV-25 procedure-vault chips use process-fact traces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(procedureVault) &&
+    /isProcessFactSourceRef/.test(procedureVault) &&
+    /liveFetch=\{false\}/.test(procedureVault) &&
+    /field="Procedure vault"/.test(procedureVault) &&
+    /traces=\{traces\}/.test(procedureVault) &&
+    /sourceRefs=\{sourceRefs\}/.test(procedureVault)
+);
+ok(
+  "PROV-25 leftover PubChem identity is not procedure-vault HTTP",
+  sectionH.isProcessFactTrace(litUrl) &&
+    sectionH.isProcessFactTrace(ghsUrl) &&
+    sectionH.isProcessFactTrace(mfgUrl) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isProcessFactTrace(chemblUrl)
+);
+ok(
+  "PROV-25 empty vault stays local-cache gap",
+  /Empty vault — densify OA\/patents or paste public experimental text/.test(
+    procedureVault
+  )
+);
+
 console.log(`\n${passed} search-contract checks passed`);

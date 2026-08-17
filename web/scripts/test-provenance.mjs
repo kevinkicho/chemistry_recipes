@@ -416,6 +416,16 @@ ok(
     /traces=\{traces\}/.test(problemUnitOp) &&
     /sourceRefs=\{sourceRefs\}/.test(problemUnitOp)
 );
+const procedureVault = read("components/ProcedureVaultPanel.tsx");
+ok(
+  "PROV-25 procedure-vault chips use process-fact traces not leftover harvest HTTP",
+  /isProcessFactTrace/.test(procedureVault) &&
+    /isProcessFactSourceRef/.test(procedureVault) &&
+    /liveFetch=\{false\}/.test(procedureVault) &&
+    /field="Procedure vault"/.test(procedureVault) &&
+    /traces=\{traces\}/.test(procedureVault) &&
+    /sourceRefs=\{sourceRefs\}/.test(procedureVault)
+);
 ok(
   "SEARCH-31 unit-op-search empty copy uses formatProcessFactsEmptyCopy",
   /formatProcessFactsEmptyCopy/.test(problemUnitOp) &&

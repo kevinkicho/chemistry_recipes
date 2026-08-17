@@ -331,6 +331,13 @@ ok(
     )
 );
 ok(
+  "procedure-vault chips do not dump leftover harvest HTTP",
+  /isProcessFactTrace/.test(read("components/ProcedureVaultPanel.tsx")) &&
+    /isProcessFactSourceRef/.test(read("components/ProcedureVaultPanel.tsx")) &&
+    /liveFetch=\{false\}/.test(read("components/ProcedureVaultPanel.tsx")) &&
+    /field="Procedure vault"/.test(read("components/ProcedureVaultPanel.tsx"))
+);
+ok(
   "SEARCH-26 monday-pack empty copy is not unconditional density miss",
   /formatProcessFactsEmptyCopy/.test(read("components/MondayMorningPack.tsx")) &&
     /sequenceEmpty\.kind === "error"/.test(read("components/MondayMorningPack.tsx")) &&
