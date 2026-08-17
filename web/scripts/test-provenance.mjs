@@ -503,6 +503,12 @@ ok(
     /isStubOnlyProcessSequence/.test(read("lib/export/techTransfer.ts")) &&
     /No process facts/.test(read("lib/export/techTransfer.ts"))
 );
+ok(
+  "SEARCH-41 recipe-readiness empty copy uses honestIdealEmptyCopy",
+  /honestIdealEmptyCopy/.test(read("lib/dossier/recipeReadiness.ts")) &&
+    /harvestFail/.test(read("lib/dossier/recipeReadiness.ts")) &&
+    /sourced condition atom/.test(read("lib/dossier/recipeReadiness.ts"))
+);
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
 ok("PdfWorkerPack exists", existsSync(src("components/PdfWorkerPack.tsx")));

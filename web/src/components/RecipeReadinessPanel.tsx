@@ -48,6 +48,8 @@ function readinessFromDossier(dossier: LiveDossier): RecipeReadiness {
     },
     annotations: dossier.annotations,
     identity: dossier.identity,
+    traces: dossier.traces,
+    fetchErrors: dossier.fetchErrors || [],
   });
 }
 
@@ -120,9 +122,9 @@ export function RecipeReadinessPanel({
           >
             <div className="flex flex-wrap items-center gap-2">
               <span
-                className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ring-1 ring-inset ${SEV_STYLE[g.severity]}`}
+                className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ring-1 ring-inset ${g.harvestFail ? SEV_STYLE.major : SEV_STYLE[g.severity]}`}
               >
-                {g.severity}
+                {g.harvestFail ? "review" : g.severity}
               </span>
               <span className="text-sm font-medium text-slate-200">{g.label}</span>
             </div>

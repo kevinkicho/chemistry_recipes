@@ -32,6 +32,8 @@ export function SiteGapsExport({ dossier }: { dossier: LiveDossier }) {
         },
         annotations: dossier.annotations,
         identity: dossier.identity,
+        traces: dossier.traces,
+        fetchErrors: dossier.fetchErrors || [],
       });
 
     const name = dossier.identity?.name || `CID ${dossier.cid}`;

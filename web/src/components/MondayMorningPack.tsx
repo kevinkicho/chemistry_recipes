@@ -52,6 +52,8 @@ export function MondayMorningPack({
       },
       annotations: dossier.annotations,
       identity: dossier.identity,
+      traces: dossier.traces,
+      fetchErrors: dossier.fetchErrors || [],
     });
 
   const name = dossier.identity?.name || `CID ${dossier.cid}`;
@@ -85,7 +87,7 @@ export function MondayMorningPack({
   const sourceRefs = (dossier.sourceRefs || []).filter(isProcessFactSourceRef);
   const sequenceEmpty = formatProcessFactsEmptyCopy({
     traces: allTraces,
-    fetchErrors: dossier.fetchErrors,
+    fetchErrors: dossier.fetchErrors || [],
   });
   // Cached await-ai / await-facts stubs are not a real preferred path.
   // Harvest failure is not "Not enough public procedure density".
@@ -160,7 +162,7 @@ export function MondayMorningPack({
                 formatSectionEmptyCopy({
                   family: "hazards",
                   traces: allTraces,
-                  fetchErrors: dossier.fetchErrors,
+                  fetchErrors: dossier.fetchErrors || [],
                 }).message
               }{" "}
               Check PubChem Safety before any plant use.

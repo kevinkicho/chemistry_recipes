@@ -444,4 +444,11 @@ ok(
     /honestChecklistGap/.test(read("lib/dossier/sectionHonesty.ts")) &&
     /No process facts/.test(read("lib/export/techTransfer.ts"))
 );
+ok(
+  "SEARCH-41 recipe-readiness empty copy is not unconditional Only 0 condition atoms miss",
+  /honestIdealEmptyCopy/.test(read("lib/dossier/recipeReadiness.ts")) &&
+    /harvestFail/.test(read("lib/dossier/recipeReadiness.ts")) &&
+    /sourced condition atom/.test(read("lib/dossier/recipeReadiness.ts")) &&
+    /traces: dossier\.traces/.test(read("lib/dossier/recipeReadiness.ts"))
+);
 console.log(`\n${n} product-path checks passed`);
