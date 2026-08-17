@@ -596,4 +596,13 @@ ok(
       read("components/IdealPageParityPanel.tsx")
     )
 );
+ok(
+  "Validation-checklist / thin-to-useful / evidence-score chips do not dump leftover harvest HTTP",
+  /field="Validation checklist"/.test(read("components/ValidationChecklist.tsx")) &&
+    /liveFetch=\{false\}/.test(read("components/ValidationChecklist.tsx")) &&
+    /field="Thin-to-useful"/.test(read("components/ThinToUsefulBanner.tsx")) &&
+    /liveFetch=\{false\}/.test(read("components/ThinToUsefulBanner.tsx")) &&
+    /field="Evidence score"/.test(read("components/EvidenceScoreExplainer.tsx")) &&
+    /liveFetch=\{false\}/.test(read("components/EvidenceScoreExplainer.tsx"))
+);
 console.log(`\n${n} product-path checks passed`);
