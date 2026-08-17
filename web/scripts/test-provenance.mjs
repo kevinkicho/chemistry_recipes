@@ -821,6 +821,14 @@ ok(
     /dossier=\{dossiers\[0\]\}/.test(edgeCompare) &&
     !/field="Network edge compare"[\s\S]{0,200}pubchemCid=/.test(edgeCompare)
 );
+const sourceCoverage = read("components/SourceCoverageMap.tsx");
+ok(
+  "PROV-32 source-coverage chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Source coverage"/.test(sourceCoverage) &&
+    /liveFetch=\{false\}/.test(sourceCoverage) &&
+    /dossier=\{dossier\}/.test(sourceCoverage) &&
+    !/field="Source coverage"[\s\S]{0,200}pubchemCid=/.test(sourceCoverage)
+);
 ok(
   "PROV-14 live multi-source provenance uses annotationTraces not all harvest HTTP",
   /traces=\{annotationTraces\}[\s\S]{0,200}title="Multi-source free APIs"/.test(liveDossier) &&

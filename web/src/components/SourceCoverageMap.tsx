@@ -34,10 +34,14 @@ export function SourceCoverageMap({
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-sm font-semibold text-slate-100">Source coverage</h2>
+          {/* Composite all-traces hydration. Empty traces must not
+              live-fetch leftover PubChem identity HTTP labeled as
+              source coverage. */}
           <FreePublicProvenance
             dossier={dossier}
             title="Source coverage"
             field="Source coverage"
+            liveFetch={false}
             onRegenerate={onRegenerate}
           />
         </div>

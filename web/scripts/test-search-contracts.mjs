@@ -4179,4 +4179,18 @@ ok(
     !sectionH.isProcessFactTrace(identityUrl) &&
     !sectionH.isManufacturingSectionTrace(identityUrl)
 );
+const sourceCoverage = read("components/SourceCoverageMap.tsx");
+ok(
+  "PROV-32 source-coverage chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Source coverage"/.test(sourceCoverage) &&
+    /liveFetch=\{false\}/.test(sourceCoverage) &&
+    /dossier=\{dossier\}/.test(sourceCoverage) &&
+    !/field="Source coverage"[\s\S]{0,200}pubchemCid=/.test(sourceCoverage)
+);
+ok(
+  "PROV-32 leftover PubChem identity is not source-coverage live-fetch",
+  /liveFetch=\{false\}/.test(sourceCoverage) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isManufacturingSectionTrace(identityUrl)
+);
 console.log(`\n${passed} search-contract checks passed`);
