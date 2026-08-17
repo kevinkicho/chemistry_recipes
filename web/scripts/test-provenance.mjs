@@ -509,6 +509,12 @@ ok(
     /harvestFail/.test(read("lib/dossier/recipeReadiness.ts")) &&
     /sourced condition atom/.test(read("lib/dossier/recipeReadiness.ts"))
 );
+ok(
+  "SEARCH-42 campaign-brief empty copy uses honestCampaignBriefEmpty",
+  /honestCampaignBriefEmpty/.test(read("lib/frontier/campaignBrief.ts")) &&
+    /honestCampaignAgentEmpty/.test(read("lib/frontier/campaignAgent.ts")) &&
+    /Few condition observations/.test(read("lib/dossier/sectionHonesty.ts"))
+);
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
 ok("PdfWorkerPack exists", existsSync(src("components/PdfWorkerPack.tsx")));

@@ -451,4 +451,13 @@ ok(
     /sourced condition atom/.test(read("lib/dossier/recipeReadiness.ts")) &&
     /traces: dossier\.traces/.test(read("lib/dossier/recipeReadiness.ts"))
 );
+ok(
+  "SEARCH-42 campaign-brief empty copy is not unconditional Few condition observations miss",
+  /honestCampaignBriefEmpty/.test(read("lib/frontier/campaignBrief.ts")) &&
+    /honestCampaignAgentEmpty/.test(read("lib/frontier/campaignAgent.ts")) &&
+    /harvestEmpty\.harvestFail/.test(read("lib/frontier/campaignBrief.ts")) &&
+    /Few condition observations/.test(read("lib/dossier/sectionHonesty.ts")) &&
+    /No reaction-network edges yet/.test(read("lib/dossier/sectionHonesty.ts"))
+);
+
 console.log(`\n${n} product-path checks passed`);

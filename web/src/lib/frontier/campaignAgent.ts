@@ -17,6 +17,7 @@ import {
   buildCampaignAiGuidanceFromMerged,
   formatCampaignAiGuidanceContext,
 } from "@/lib/frontier/campaignAiGuidance";
+import { honestCampaignAgentEmpty } from "@/lib/dossier/sectionHonesty";
 
 export interface CampaignAgentStep {
   id: string;
@@ -424,8 +425,11 @@ export function answerCampaignQuestion(
         id: `camp:${Date.now()}`,
         question: q,
         answer:
-          "Insufficient free-public evidence in the campaign package for this question. Densify more CIDs, paste public procedure text, or narrow to temperatures, edges, impurities, or network relations." +
-          (tips ? `\n\nDensify next:\n${tips}` : ""),
+          honestCampaignAgentEmpty({
+            dossiers: merged.dossiers,
+            cleanEmpty:
+              "Insufficient free-public evidence in the campaign package for this question. Densify more CIDs, paste public procedure text, or narrow to temperatures, edges, impurities, or network relations.",
+          }) + (tips ? `\n\nDensify next:\n${tips}` : ""),
         grounded: false,
         citations: [],
         insufficientEvidence: true,
