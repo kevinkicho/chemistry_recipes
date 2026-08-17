@@ -444,8 +444,8 @@ const PROCESS_FACT_EMPTY_FAMILIES = [
  * Process-fact atoms come from literature, patents, and manufacturing text.
  * Harvest failure in those families is not "no atoms extracted yet".
  * Leftover identity / GHS / annotation HTTP is not a process-facts miss.
- * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, reaction-network, process-sequence stub, ideal-page, validation-checklist, recipe-readiness, campaign-brief, shift-pack, MSAT-compare, and PDF-pack manifest empty copy reuse this helper —
- * no extracted conditions / no process recipe / no process routes / no public process hypothesis / no process facts yet / no route assembled / no procedure windows densified / no route hypotheses assembled / no procedure-scored windows yet / network is center-only / no extractable public process sequence yet / process route synthesis pending / no process steps yet / no GHS text for this CID / missing process overview / checklist Gap / Only 0 sourced condition atom(s) / Few condition observations / No reaction-network edges yet / Insufficient free-public evidence in the campaign package / Similar public density / 0 / 0 literature-patents / Lit: 0 · Patents: 0 is not a clean miss when
+ * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, reaction-network, process-sequence stub, ideal-page, validation-checklist, recipe-readiness, campaign-brief, shift-pack, MSAT-compare, PDF-pack manifest, and PDF-pack process-facts count empty copy reuse this helper —
+ * no extracted conditions / no process recipe / no process routes / no public process hypothesis / no process facts yet / no route assembled / no procedure windows densified / no route hypotheses assembled / no procedure-scored windows yet / network is center-only / no extractable public process sequence yet / process route synthesis pending / no process steps yet / no GHS text for this CID / missing process overview / checklist Gap / Only 0 sourced condition atom(s) / Few condition observations / No reaction-network edges yet / Insufficient free-public evidence in the campaign package / Similar public density / 0 / 0 literature-patents / Lit: 0 · Patents: 0 / Process facts: 0 is not a clean miss when
  * lit / patent / manufacturing harvest failed.
  */
 export function formatProcessFactsEmptyCopy(opts: {
@@ -1002,7 +1002,8 @@ export function honestMsatCompareHint(opts: {
 /**
  * PDF-pack clipboard manifest: harvest failure is not a clean
  * "Lit: 0 · Patents: 0" miss. Leftover identity / annotation HTTP is not
- * a PDF-pack miss. Filled counts stay. Provenance chips stay process-fact
+ * a PDF-pack literature miss. Filled counts stay. Process-facts "0" is a
+ * separate lit/patent/mfg overlay. Provenance chips stay process-fact
  * traces (PROV-26).
  */
 export function honestPdfPackManifestLitPatent(opts: {
@@ -1021,4 +1022,30 @@ export function honestPdfPackManifestLitPatent(opts: {
     value: "Lit: " + opts.literatureCount + " · Patents: " + opts.patentCount,
     harvestFail: false,
   };
+}
+
+/**
+ * PDF-pack clipboard process-facts count: harvest failure is not a clean
+ * "Process facts: 0" miss. Leftover identity / annotation / GHS HTTP is not
+ * a PDF-pack process-facts miss. Filled counts stay. Provenance chips stay
+ * process-fact traces (PROV-26).
+ */
+export function honestPdfPackManifestProcessFacts(opts: {
+  factCount: number;
+  traces?: Array<
+    Pick<ApiFetchTrace, "endpointUrl" | "ok" | "notFound" | "error" | "httpStatus">
+  >;
+  fetchErrors?: string[];
+}): { value: string; harvestFail: boolean } {
+  if (opts.factCount > 0) {
+    return { value: "Process facts: " + opts.factCount, harvestFail: false };
+  }
+  const harvest = formatProcessFactsEmptyCopy({
+    traces: opts.traces,
+    fetchErrors: opts.fetchErrors,
+  });
+  if (harvest.kind === "error") {
+    return { value: "Process facts: harvest failed — not 0", harvestFail: true };
+  }
+  return { value: "Process facts: 0", harvestFail: false };
 }

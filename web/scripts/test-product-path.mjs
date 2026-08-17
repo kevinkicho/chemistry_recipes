@@ -661,4 +661,15 @@ ok(
     !/`Lit: \$\{dossier\.literature/.test(read("components/PdfWorkerPack.tsx"))
 );
 
+
+ok(
+  "SEARCH-48 PDF-pack process-facts empty copy is not unconditional Process facts: 0",
+  /honestPdfPackManifestProcessFacts/.test(read("components/PdfWorkerPack.tsx")) &&
+    /export function honestPdfPackManifestProcessFacts/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    ) &&
+    /Process facts: harvest failed/.test(read("lib/dossier/sectionHonesty.ts")) &&
+    !/`Process facts: \$\{dossier\.processFacts/.test(read("components/PdfWorkerPack.tsx"))
+);
+
 console.log(`\n${n} product-path checks passed`);
