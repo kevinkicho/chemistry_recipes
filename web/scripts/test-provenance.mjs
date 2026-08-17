@@ -115,6 +115,13 @@ ok(
     !/pubchemCid=\{pubchemCid\}/.test(processFactsPanel)
 );
 ok(
+  "PROV-29 process-facts header chip does not live-fetch leftover identity HTTP",
+  /field="Process facts"/.test(processFactsPanel) &&
+    /traces=\{factTraces\}/.test(processFactsPanel) &&
+    /sourceRefs=\{factSourceRefs\}/.test(processFactsPanel) &&
+    !/pubchemCid=/.test(processFactsPanel)
+);
+ok(
   "PROV-16 environment/apparatus chips use plantTraces not leftover harvest HTTP",
   /isProcessFactTrace/.test(aside) &&
     /plantTraces/.test(aside) &&

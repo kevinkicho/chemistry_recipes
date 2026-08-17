@@ -4091,4 +4091,21 @@ ok(
     !sectionH.isProcessFactTrace(chemblUrl)
 );
 
+const processFactsHeader = read("components/ProcessFactsPanel.tsx");
+ok(
+  "PROV-29 process-facts header chip does not live-fetch leftover identity HTTP",
+  /field="Process facts"/.test(processFactsHeader) &&
+    /traces=\{factTraces\}/.test(processFactsHeader) &&
+    /sourceRefs=\{factSourceRefs\}/.test(processFactsHeader) &&
+    !/pubchemCid=/.test(processFactsHeader)
+);
+ok(
+  "PROV-29 leftover PubChem identity is not process-facts HTTP",
+  sectionH.isProcessFactTrace(litUrl) &&
+    sectionH.isProcessFactTrace(ghsUrl) &&
+    sectionH.isProcessFactTrace(mfgUrl) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isProcessFactTrace(chemblUrl)
+);
+
 console.log(`\n${passed} search-contract checks passed`);

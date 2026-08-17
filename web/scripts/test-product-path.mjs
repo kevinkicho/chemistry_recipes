@@ -393,6 +393,13 @@ ok(
     )
 );
 ok(
+  "process-facts header chip does not dump leftover harvest HTTP",
+  /field="Process facts"/.test(read("components/ProcessFactsPanel.tsx")) &&
+    /traces=\{factTraces\}/.test(read("components/ProcessFactsPanel.tsx")) &&
+    /sourceRefs=\{factSourceRefs\}/.test(read("components/ProcessFactsPanel.tsx")) &&
+    !/pubchemCid=/.test(read("components/ProcessFactsPanel.tsx"))
+);
+ok(
   "SEARCH-26 monday-pack empty copy is not unconditional density miss",
   /formatProcessFactsEmptyCopy/.test(read("components/MondayMorningPack.tsx")) &&
     /sequenceEmpty\.kind === "error"/.test(read("components/MondayMorningPack.tsx")) &&
