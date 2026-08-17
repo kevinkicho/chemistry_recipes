@@ -4108,4 +4108,42 @@ ok(
     !sectionH.isProcessFactTrace(chemblUrl)
 );
 
+ok(
+  "PROV-30 applications header chip does not live-fetch leftover identity HTTP",
+  /field="Applications"/.test(liveDossier) &&
+    /field="Applications"[\s\S]{0,200}traces=\{applicationTraces\}/.test(liveDossier) &&
+    !/field="Applications"[\s\S]{0,200}pubchemCid=/.test(liveDossier)
+);
+ok(
+  "PROV-30 patents header chip does not live-fetch leftover identity HTTP",
+  /title="Patents & process IP"/.test(liveDossier) &&
+    /traces=\{patentTraces\}/.test(liveDossier) &&
+    !/pubchemCid=\{cid\}[\s\S]{0,80}traces=\{patentTraces\}/.test(liveDossier)
+);
+ok(
+  "PROV-30 manufacturing header chip does not live-fetch leftover identity HTTP",
+  /title="Use & manufacturing"/.test(liveDossier) &&
+    /traces=\{mfgTraces\}/.test(liveDossier) &&
+    !/pubchemCid=\{cid\}[\s\S]{0,80}traces=\{mfgTraces\}/.test(liveDossier)
+);
+ok(
+  "PROV-30 EHS header chips do not live-fetch leftover identity HTTP",
+  /field="EHS highlights"[\s\S]{0,220}traces=\{ghsTraces\}/.test(liveDossier) &&
+    /field="EHS highlights"[\s\S]{0,220}traces=\{ghsTraces\}/.test(asideSrc) &&
+    !/field="EHS highlights"[\s\S]{0,200}pubchemCid=/.test(liveDossier) &&
+    !/field="EHS highlights"[\s\S]{0,200}pubchemCid=/.test(asideSrc) &&
+    /title="PubChem PUG View · GHS \/ hazards"/.test(asideSrc) &&
+    !/pubchemCid=\{cid\}[\s\S]{0,80}traces=\{ghsTraces\}/.test(asideSrc)
+);
+ok(
+  "PROV-30 leftover PubChem identity is not applications/patents/mfg/EHS HTTP",
+  sectionH.isManufacturingSectionTrace(mfgUrl) &&
+    sectionH.isHazardsSectionTrace(ghsUrl) &&
+    sectionH.isPatentSectionTrace("https://search.patentsview.org/api/v1/patent/") &&
+    !sectionH.isManufacturingSectionTrace(identityUrl) &&
+    !sectionH.isHazardsSectionTrace(identityUrl) &&
+    !sectionH.isPatentSectionTrace(identityUrl) &&
+    !sectionH.isManufacturingSectionTrace(chemblUrl)
+);
+
 console.log(`\n${passed} search-contract checks passed`);
