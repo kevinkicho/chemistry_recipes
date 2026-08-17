@@ -4408,4 +4408,58 @@ ok(
     !sectionH.isManufacturingSectionTrace(identityUrl)
 );
 
+ok(
+  "SEARCH-46 PDF-pack manifest empty copy uses honestPdfPackManifestLitPatent",
+  /honestPdfPackManifestLitPatent/.test(pdfPack) &&
+    /export function honestPdfPackManifestLitPatent/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    )
+);
+ok(
+  "SEARCH-46 PDF-pack chips stay process-fact (no leftover-identity claim)",
+  /field="PDF pack"/.test(pdfPack) &&
+    /isProcessFactTrace/.test(pdfPack) &&
+    /isProcessFactSourceRef/.test(pdfPack) &&
+    !/field="PDF pack"[\s\S]{0,200}pubchemCid=/.test(pdfPack)
+);
+
+function pdfLit(traces, lit, pat) {
+  return sectionH.honestPdfPackManifestLitPatent({
+    literatureCount: lit ?? 0,
+    patentCount: pat ?? 0,
+    traces,
+  });
+}
+
+ok(
+  "SEARCH-46 literature harvest fail is PDF-pack error not Lit: 0 · Patents: 0",
+  pdfLit([litFail]).harvestFail &&
+    /harvest failed.{0,3}not 0\/0/.test(pdfLit([litFail]).value) &&
+    !/^Lit: 0 · Patents: 0$/.test(pdfLit([litFail]).value)
+);
+ok(
+  "SEARCH-46 leftover identity is not a PDF-pack literature miss",
+  pdfLit([identityFail]).harvestFail !== true &&
+    pdfLit([identityFail]).value === "Lit: 0 · Patents: 0"
+);
+ok(
+  "SEARCH-46 leftover ChEMBL annotation fail is not a PDF-pack literature miss",
+  pdfLit([chemblFail]).harvestFail !== true &&
+    pdfLit([chemblFail]).value === "Lit: 0 · Patents: 0"
+);
+ok(
+  "SEARCH-46 genuine literature empty stays Lit: 0 · Patents: 0",
+  pdfLit([]).harvestFail !== true && pdfLit([]).value === "Lit: 0 · Patents: 0"
+);
+ok(
+  "SEARCH-46 filled literature stays despite leftover identity fail",
+  pdfLit([identityFail], 3, 1).harvestFail !== true &&
+    pdfLit([identityFail], 3, 1).value === "Lit: 3 · Patents: 1"
+);
+ok(
+  "SEARCH-46 leftover PubChem identity is not a PDF-pack miss",
+  !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isManufacturingSectionTrace(identityUrl)
+);
+
 console.log(`\n${passed} search-contract checks passed`);

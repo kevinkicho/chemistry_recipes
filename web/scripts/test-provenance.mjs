@@ -617,6 +617,14 @@ ok(
     /liveFetch=\{false\}/.test(read("components/CompareMsatBoard.tsx")) &&
     !/field="MSAT compare"[\s\S]{0,200}pubchemCid=/.test(read("components/CompareMsatBoard.tsx"))
 );
+ok(
+  "SEARCH-46 PDF-pack manifest empty copy uses honestPdfPackManifestLitPatent",
+  /honestPdfPackManifestLitPatent/.test(read("components/PdfWorkerPack.tsx")) &&
+    /isProcessFactTrace/.test(read("components/PdfWorkerPack.tsx")) &&
+    /isProcessFactSourceRef/.test(read("components/PdfWorkerPack.tsx")) &&
+    /field="PDF pack"/.test(read("components/PdfWorkerPack.tsx")) &&
+    !/field="PDF pack"[\s\S]{0,200}pubchemCid=/.test(read("components/PdfWorkerPack.tsx"))
+);
 ok("EvidenceCritiquePanel exists", existsSync(src("components/EvidenceCritiquePanel.tsx")));
 ok("WorkerPlaybookPanel exists", existsSync(src("components/WorkerPlaybookPanel.tsx")));
 ok("PdfWorkerPack exists", existsSync(src("components/PdfWorkerPack.tsx")));
