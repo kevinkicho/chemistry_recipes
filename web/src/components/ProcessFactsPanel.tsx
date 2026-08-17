@@ -120,6 +120,7 @@ function FactRow({
 
 /**
  * Sourced process fact atoms + explicit open gaps (accuracy layer).
+ * Leftover identity HTTP is not process-facts provenance.
  */
 export function ProcessFactsPanel({
   dossier,
@@ -152,10 +153,12 @@ export function ProcessFactsPanel({
           <h2 className="text-sm font-semibold text-slate-100">
             Public process facts
           </h2>
+          {/* Process facts are lit/patent/mfg/GHS harvest. Leftover
+              PubChem identity HTTP is not process-facts provenance —
+              do not live-fetch when factTraces are empty. */}
           <ContentProvenance
             title="Public process facts"
             field="Process facts"
-            pubchemCid={dossier.cid}
             traces={factTraces}
             sourceRefs={factSourceRefs}
             ai={ai}

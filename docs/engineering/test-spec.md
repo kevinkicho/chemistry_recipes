@@ -312,6 +312,7 @@ Machine registry: `web/scripts/fixtures/provenance-surface-registry.json`.
 | **PROV-26** | PDF-pack / playbook chips claim only literature / patent / manufacturing / GHS harvest HTTP (not leftover PubChem identity or annotation HTTP); they do not live-fetch identity | `test-provenance`, `test-search-contracts`, `test-product-path` |
 | **PROV-27** | Site-fill / ORD-bulk / local-text-enrich chips do not live-fetch leftover PubChem identity HTTP or claim it as those families (site gap / local offline hooks) | `test-provenance`, `test-search-contracts`, `test-product-path` |
 | **PROV-28** | Educational-parameters chips do not live-fetch leftover PubChem identity HTTP or claim it as teaching-envelope provenance (modality templates, not harvest) | `test-provenance`, `test-search-contracts`, `test-product-path` |
+| **PROV-29** | Public process-facts header chip does not live-fetch leftover PubChem identity HTTP when factTraces are empty (per-fact chips already honest; leftover identity is not process-facts) | `test-provenance`, `test-search-contracts`, `test-product-path` |
 | **PROV-SCAN-*** | Scanner asserts every registry surface still wired | `test-provenance-coverage` |
 
 ## Lifecycle diagram (validated by LIFE-* / DENS-*)
