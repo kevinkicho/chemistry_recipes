@@ -12,6 +12,7 @@ import {
   isStubOnlyProcessSequence,
   isProcessFactSourceRef,
   isProcessFactTrace,
+  honestProcessFactsCountHeader,
 } from "@/lib/dossier/sectionHonesty";
 
 type StepEvidence = {
@@ -226,6 +227,12 @@ export function OperatorJobAid({
     fetchErrors: dossier.fetchErrors,
   });
   const sequenceEmpty = formatProcessFactsEmptyCopy({
+    traces: allTraces,
+    fetchErrors: dossier.fetchErrors,
+  });
+  const factCounts = honestProcessFactsCountHeader({
+    conditionCount: pf?.sourcedConditionCount ?? 0,
+    unitOpCount: pf?.unitOpCount ?? 0,
     traces: allTraces,
     fetchErrors: dossier.fetchErrors,
   });
@@ -654,8 +661,12 @@ export function OperatorJobAid({
         Generated {new Date(dossier.generatedAt).toLocaleString()} · Chemistry Recipes
         public process brief · framing{" "}
         <span className="font-medium">{framing}</span> · process facts{" "}
-        {pf?.sourcedConditionCount ?? 0} conditions · {pf?.unitOpCount ?? 0} unit ops ·
-        accuracy {pf?.metrics?.accuracyScore ?? "—"}/100 · Not GMP
+        {factCounts.value}
+        {factCounts.harvestFail ? null : (
+          <>
+            {" "}· accuracy {pf?.metrics?.accuracyScore ?? "—"}/100
+          </>
+        )}{" "}· Not GMP
       </p>
     </div>
   );

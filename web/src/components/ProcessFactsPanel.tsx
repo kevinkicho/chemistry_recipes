@@ -11,6 +11,7 @@ import {
   isProcessFactTrace,
   tracesForProcessFactProvenance,
   formatProcessFactsEmptyCopy,
+  honestProcessFactsCountHeader,
 } from "@/lib/dossier/sectionHonesty";
 
 const KIND_STYLE: Record<string, string> = {
@@ -141,6 +142,12 @@ export function ProcessFactsPanel({
     traces,
     fetchErrors: dossier.fetchErrors,
   });
+  const headerCounts = honestProcessFactsCountHeader({
+    conditionCount: pf.sourcedConditionCount,
+    unitOpCount: pf.unitOpCount,
+    traces,
+    fetchErrors: dossier.fetchErrors,
+  });
   const ai = dossier.synthesis.provenance;
 
   return (
@@ -167,11 +174,17 @@ export function ProcessFactsPanel({
           />
         </div>
         <p className="text-xs text-slate-500">
-          {pf.sourcedConditionCount} conditions · {pf.unitOpCount} unit ops ·{" "}
-          {pf.productionBriefEligible ? (
-            <span className="text-teal-300/90">brief eligible</span>
+          {headerCounts.harvestFail ? (
+            headerCounts.value
           ) : (
-            <span className="text-amber-200/80">thin density</span>
+            <>
+              {headerCounts.value} ·{" "}
+              {pf.productionBriefEligible ? (
+                <span className="text-teal-300/90">brief eligible</span>
+              ) : (
+                <span className="text-amber-200/80">thin density</span>
+              )}
+            </>
           )}
         </p>
       </div>

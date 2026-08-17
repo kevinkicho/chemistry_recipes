@@ -444,7 +444,7 @@ const PROCESS_FACT_EMPTY_FAMILIES = [
  * Process-fact atoms come from literature, patents, and manufacturing text.
  * Harvest failure in those families is not "no atoms extracted yet".
  * Leftover identity / GHS / annotation HTTP is not a process-facts miss.
- * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, reaction-network, process-sequence stub, ideal-page, validation-checklist, recipe-readiness, campaign-brief, shift-pack, MSAT-compare, PDF-pack manifest, PDF-pack process-facts count, site-handoff process-facts, and evidence-critique process-facts empty copy reuse this helper —
+ * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, reaction-network, process-sequence stub, ideal-page, validation-checklist, recipe-readiness, campaign-brief, shift-pack, MSAT-compare, PDF-pack manifest, PDF-pack process-facts count, site-handoff process-facts, evidence-critique process-facts, and process-facts header counts empty copy reuse this helper —
  * no extracted conditions / no process recipe / no process routes / no public process hypothesis / no process facts yet / no route assembled / no procedure windows densified / no route hypotheses assembled / no procedure-scored windows yet / network is center-only / no extractable public process sequence yet / process route synthesis pending / no process steps yet / no GHS text for this CID / missing process overview / checklist Gap / Only 0 sourced condition atom(s) / Few condition observations / No reaction-network edges yet / Insufficient free-public evidence in the campaign package / Similar public density / 0 / 0 literature-patents / Lit: 0 · Patents: 0 / Process facts: 0 / 0 sourced atoms / 0 conditions · 0 unit ops is not a clean miss when
  * lit / patent / manufacturing harvest failed.
  */
@@ -1127,6 +1127,48 @@ export function honestEvidenceCritiqueProcessFacts(opts: {
       "Process facts: 0 conditions · 0 unit ops · accuracy " +
       acc +
       "/100.",
+    harvestFail: false,
+  };
+}
+
+/**
+ * Process-facts panel / operator job-aid header counts: harvest failure
+ * is not a clean "0 conditions · 0 unit ops" miss. Leftover identity /
+ * annotation / GHS HTTP is not a process-facts header miss. Filled
+ * counts stay. SEARCH-50 still only overlays the critique metric.
+ * Provenance chips stay process-fact traces (no leftover-identity
+ * live-fetch).
+ */
+export function honestProcessFactsCountHeader(opts: {
+  conditionCount: number;
+  unitOpCount: number;
+  traces?: Array<
+    Pick<ApiFetchTrace, "endpointUrl" | "ok" | "notFound" | "error" | "httpStatus">
+  >;
+  fetchErrors?: string[];
+}): { value: string; harvestFail: boolean } {
+  if (opts.conditionCount > 0 || opts.unitOpCount > 0) {
+    return {
+      value:
+        opts.conditionCount +
+        " conditions · " +
+        opts.unitOpCount +
+        " unit ops",
+      harvestFail: false,
+    };
+  }
+  const harvest = formatProcessFactsEmptyCopy({
+    traces: opts.traces,
+    fetchErrors: opts.fetchErrors,
+  });
+  if (harvest.kind === "error") {
+    return {
+      value: "harvest failed — not 0 conditions · 0 unit ops",
+      harvestFail: true,
+    };
+  }
+  return {
+    value: "0 conditions · 0 unit ops",
     harvestFail: false,
   };
 }

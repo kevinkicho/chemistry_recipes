@@ -4733,4 +4733,81 @@ ok(
     sectionH.isManufacturingSectionTrace(mfgUrl)
 );
 
+
+ok(
+  "SEARCH-51 process-facts header empty copy uses honestProcessFactsCountHeader",
+  /honestProcessFactsCountHeader/.test(read("components/ProcessFactsPanel.tsx")) &&
+    /honestProcessFactsCountHeader/.test(read("components/OperatorJobAid.tsx")) &&
+    /export function honestProcessFactsCountHeader/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    )
+);
+ok(
+  "SEARCH-51 process-facts chips stay process-fact (no leftover-identity claim)",
+  /field="Process facts"/.test(processFactsHeader) &&
+    /traces=\{factTraces\}/.test(processFactsHeader) &&
+    /sourceRefs=\{factSourceRefs\}/.test(processFactsHeader) &&
+    !/pubchemCid=/.test(processFactsHeader)
+);
+ok(
+  "SEARCH-51 job-aid chips stay process-fact (no leftover-identity claim)",
+  /field="Operator job aid"/.test(operatorJobAid) &&
+    /traces=\{traces\}/.test(operatorJobAid) &&
+    /sourceRefs=\{sourceRefs\}/.test(operatorJobAid) &&
+    !/field="Operator job aid"[\s\S]{0,200}pubchemCid=/.test(operatorJobAid)
+);
+
+function headerFacts(traces, cond, ops) {
+  return sectionH.honestProcessFactsCountHeader({
+    conditionCount: cond ?? 0,
+    unitOpCount: ops ?? 0,
+    traces,
+  });
+}
+
+ok(
+  "SEARCH-51 literature harvest fail is header error not 0 conditions",
+  headerFacts([litFail]).harvestFail &&
+    /harvest failed.{0,3}not 0 conditions/.test(headerFacts([litFail]).value) &&
+    !/^0 conditions/.test(headerFacts([litFail]).value)
+);
+ok(
+  "SEARCH-51 manufacturing harvest fail is header error not 0 conditions",
+  headerFacts([mfgFail]).harvestFail &&
+    /harvest failed.{0,3}not 0 conditions/.test(headerFacts([mfgFail]).value) &&
+    !/^0 conditions/.test(headerFacts([mfgFail]).value)
+);
+ok(
+  "SEARCH-51 leftover identity is not a process-facts header miss",
+  headerFacts([identityFail]).harvestFail !== true &&
+    headerFacts([identityFail]).value === "0 conditions · 0 unit ops"
+);
+ok(
+  "SEARCH-51 leftover ChEMBL annotation fail is not a process-facts header miss",
+  headerFacts([chemblFail]).harvestFail !== true &&
+    headerFacts([chemblFail]).value === "0 conditions · 0 unit ops"
+);
+ok(
+  "SEARCH-51 leftover GHS fail is not a process-facts header miss",
+  headerFacts([ghsFail]).harvestFail !== true &&
+    headerFacts([ghsFail]).value === "0 conditions · 0 unit ops"
+);
+ok(
+  "SEARCH-51 genuine process-facts empty stays 0 conditions",
+  headerFacts([]).harvestFail !== true &&
+    headerFacts([]).value === "0 conditions · 0 unit ops"
+);
+ok(
+  "SEARCH-51 filled process facts stay despite leftover identity fail",
+  headerFacts([identityFail], 4, 3).harvestFail !== true &&
+    headerFacts([identityFail], 4, 3).value ===
+      "4 conditions · 3 unit ops"
+);
+ok(
+  "SEARCH-51 leftover PubChem identity is not a process-facts header miss",
+  !sectionH.isProcessFactTrace(identityUrl) &&
+    sectionH.isProcessFactTrace(litUrl) &&
+    sectionH.isManufacturingSectionTrace(mfgUrl)
+);
+
 console.log(`\n${passed} search-contract checks passed`);

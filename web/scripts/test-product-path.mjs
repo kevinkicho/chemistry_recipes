@@ -695,4 +695,19 @@ ok(
     )
 );
 
+ok(
+  "SEARCH-51 process-facts header empty copy is not unconditional 0 conditions",
+  /honestProcessFactsCountHeader/.test(read("components/ProcessFactsPanel.tsx")) &&
+    /honestProcessFactsCountHeader/.test(read("components/OperatorJobAid.tsx")) &&
+    /export function honestProcessFactsCountHeader/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    ) &&
+    !/\{pf\.sourcedConditionCount\} conditions/.test(
+      read("components/ProcessFactsPanel.tsx")
+    ) &&
+    !/\{pf\?\.sourcedConditionCount \?\? 0\} conditions/.test(
+      read("components/OperatorJobAid.tsx")
+    )
+);
+
 console.log(`\n${n} product-path checks passed`);
