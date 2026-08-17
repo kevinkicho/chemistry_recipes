@@ -4462,4 +4462,66 @@ ok(
     !sectionH.isManufacturingSectionTrace(identityUrl)
 );
 
+ok(
+  "SEARCH-47 MSAT compare GHS empty copy uses honestMsatCompareGhs",
+  /honestMsatCompareGhs/.test(msatBoard) &&
+    /export function honestMsatCompareGhs/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    )
+);
+ok(
+  "SEARCH-47 MSAT compare chips stay composite (no leftover-identity claim)",
+  /field="MSAT compare"/.test(msatBoard) &&
+    /liveFetch=\{false\}/.test(msatBoard) &&
+    !/field="MSAT compare"[\s\S]{0,200}pubchemCid=/.test(msatBoard)
+);
+
+const ghsFail = {
+  endpointUrl: ghsUrl,
+  ok: false,
+  error: "HTTP 503",
+};
+function msatGhs(traces, count) {
+  return sectionH.honestMsatCompareGhs({
+    ghsCount: count ?? 0,
+    traces,
+  });
+}
+
+ok(
+  "SEARCH-47 GHS harvest fail is MSAT compare error not 0",
+  msatGhs([ghsFail]).harvestFail &&
+    /harvest failed.{0,3}not 0/.test(msatGhs([ghsFail]).value) &&
+    msatGhs([ghsFail]).value !== "0"
+);
+ok(
+  "SEARCH-47 leftover identity is not an MSAT-compare GHS miss",
+  msatGhs([identityFail]).harvestFail !== true &&
+    msatGhs([identityFail]).value === "0"
+);
+ok(
+  "SEARCH-47 leftover ChEMBL annotation fail is not an MSAT-compare GHS miss",
+  msatGhs([chemblFail]).harvestFail !== true &&
+    msatGhs([chemblFail]).value === "0"
+);
+ok(
+  "SEARCH-47 leftover literature fail is not an MSAT-compare GHS miss",
+  msatGhs([litFail]).harvestFail !== true &&
+    msatGhs([litFail]).value === "0"
+);
+ok(
+  "SEARCH-47 genuine GHS empty stays 0",
+  msatGhs([]).harvestFail !== true && msatGhs([]).value === "0"
+);
+ok(
+  "SEARCH-47 filled GHS stays despite leftover identity fail",
+  msatGhs([identityFail], 3).harvestFail !== true &&
+    msatGhs([identityFail], 3).value === "3"
+);
+ok(
+  "SEARCH-47 leftover PubChem identity is not an MSAT-compare GHS miss",
+  !sectionH.isHazardsSectionTrace(identityUrl) &&
+    sectionH.isHazardsSectionTrace(ghsUrl)
+);
+
 console.log(`\n${passed} search-contract checks passed`);

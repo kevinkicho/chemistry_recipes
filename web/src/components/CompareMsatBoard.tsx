@@ -9,6 +9,7 @@ import {
 } from "@/components/FreePublicProvenance";
 import {
   formatProcessFactsEmptyCopy,
+  honestMsatCompareGhs,
   honestMsatCompareHint,
   honestMsatCompareLitPatent,
 } from "@/lib/dossier/sectionHonesty";
@@ -19,6 +20,11 @@ function sideMetrics(d: LiveDossier | null) {
   const conditions = d.processFacts?.sourcedConditionCount ?? 0;
   const unitOps = d.processFacts?.unitOpCount ?? 0;
   const ehs = (d.hazards.hazardStatements || []).length;
+  const ghs = honestMsatCompareGhs({
+    ghsCount: ehs,
+    traces: d.traces,
+    fetchErrors: d.fetchErrors,
+  }).value;
   const harvestFail =
     formatProcessFactsEmptyCopy({
       traces: d.traces,
@@ -42,6 +48,7 @@ function sideMetrics(d: LiveDossier | null) {
     lit: d.literature?.length ?? 0,
     patents: d.patents?.length ?? 0,
     ehs,
+    ghs,
     routes: d.processRoutes?.length ?? 0,
     accuracy: d.processFacts?.metrics?.accuracyScore ?? null,
     ai: d.synthesis.parsed ? d.synthesis.model || "AI" : "shell",
@@ -109,8 +116,8 @@ export function CompareMsatBoard({
     {
       key: "ehs",
       label: "GHS statements",
-      va: ma ? String(ma.ehs) : "—",
-      vb: mb ? String(mb.ehs) : "—",
+      va: ma ? ma.ghs : "—",
+      vb: mb ? mb.ghs : "—",
     },
     {
       key: "acc",
