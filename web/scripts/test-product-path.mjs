@@ -581,4 +581,9 @@ ok(
       read("components/frontier/NetworkEdgeComparePanel.tsx")
     )
 );
+ok(
+  "Source-coverage chips do not dump leftover harvest HTTP",
+  /field="Source coverage"/.test(read("components/SourceCoverageMap.tsx")) &&
+    /liveFetch=\{false\}/.test(read("components/SourceCoverageMap.tsx"))
+);
 console.log(`\n${n} product-path checks passed`);
