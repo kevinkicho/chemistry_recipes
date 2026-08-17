@@ -568,4 +568,17 @@ ok(
     /isProcessFactTrace/.test(read("components/ShiftPackPanel.tsx")) &&
     /No saved shift packs for this CID yet/.test(read("components/ShiftPackPanel.tsx"))
 );
+ok(
+  "MSAT/batch-densify/edge-compare chips do not dump leftover harvest HTTP",
+  /field="MSAT compare"/.test(read("components/CompareMsatBoard.tsx")) &&
+    /liveFetch=\{false\}/.test(read("components/CompareMsatBoard.tsx")) &&
+    /field="Batch densify"/.test(read("components/frontier/BatchDensifyPanel.tsx")) &&
+    /liveFetch=\{false\}/.test(read("components/frontier/BatchDensifyPanel.tsx")) &&
+    /field="Network edge compare"/.test(
+      read("components/frontier/NetworkEdgeComparePanel.tsx")
+    ) &&
+    /liveFetch=\{false\}/.test(
+      read("components/frontier/NetworkEdgeComparePanel.tsx")
+    )
+);
 console.log(`\n${n} product-path checks passed`);

@@ -314,6 +314,7 @@ Machine registry: `web/scripts/fixtures/provenance-surface-registry.json`.
 | **PROV-28** | Educational-parameters chips do not live-fetch leftover PubChem identity HTTP or claim it as teaching-envelope provenance (modality templates, not harvest) | `test-provenance`, `test-search-contracts`, `test-product-path` |
 | **PROV-29** | Public process-facts header chip does not live-fetch leftover PubChem identity HTTP when factTraces are empty (per-fact chips already honest; leftover identity is not process-facts) | `test-provenance`, `test-search-contracts`, `test-product-path` |
 | **PROV-30** | Applications / patents / manufacturing / EHS header chips do not live-fetch leftover PubChem identity HTTP when family traces are empty (identity `/property/` is not those families; PubChem pug_view manufacturing/GHS and PatentsView stay the family sources) | `test-provenance`, `test-search-contracts`, `test-product-path` |
+| **PROV-31** | MSAT compare / batch-densify / network-edge-compare chips stay composite all-traces hydration but do not live-fetch leftover PubChem identity HTTP when traces are empty (identity `/property/` is not those families) | `test-provenance`, `test-search-contracts`, `test-product-path` |
 | **PROV-SCAN-*** | Scanner asserts every registry surface still wired | `test-provenance-coverage` |
 
 ## Lifecycle diagram (validated by LIFE-* / DENS-*)
