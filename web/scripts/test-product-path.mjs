@@ -605,4 +605,13 @@ ok(
     /field="Evidence score"/.test(read("components/EvidenceScoreExplainer.tsx")) &&
     /liveFetch=\{false\}/.test(read("components/EvidenceScoreExplainer.tsx"))
 );
+ok(
+  "Recipe-readiness / manager-brief / critique chips do not dump leftover harvest HTTP",
+  /field="Recipe readiness"/.test(read("components/RecipeReadinessPanel.tsx")) &&
+    !/pubchemCid=\{dossier\.cid\}/.test(read("components/RecipeReadinessPanel.tsx")) &&
+    /field="Manager brief"/.test(read("components/ManagerBriefPanel.tsx")) &&
+    !/pubchemCid=\{dossier\.cid\}/.test(read("components/ManagerBriefPanel.tsx")) &&
+    /field="Critique"/.test(read("components/EvidenceCritiquePanel.tsx")) &&
+    !/pubchemCid=\{dossier\.cid\}/.test(read("components/EvidenceCritiquePanel.tsx"))
+);
 console.log(`\n${n} product-path checks passed`);

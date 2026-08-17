@@ -77,10 +77,12 @@ export function RecipeReadinessPanel({
         <h2 className="text-sm font-semibold text-slate-100">
           Recipe readiness
         </h2>
+        {/* Composite all-traces hydration. Empty traces must not
+            live-fetch leftover PubChem identity HTTP labeled as
+            Recipe readiness. */}
         <ContentProvenance
           title="Recipe readiness"
           field="Recipe readiness"
-          pubchemCid={dossier.cid}
           traces={slimTraces(dossier.traces || [])}
           sourceRefs={dossier.sourceRefs}
           ai={dossier.synthesis.provenance}

@@ -861,6 +861,30 @@ ok(
     /dossier=\{dossier\}/.test(evidenceScore) &&
     !/field="Evidence score"[\s\S]{0,200}pubchemCid=/.test(evidenceScore)
 );
+const recipeReadiness = read("components/RecipeReadinessPanel.tsx");
+ok(
+  "PROV-35 recipe-readiness chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Recipe readiness"/.test(recipeReadiness) &&
+    /traces=\{slimTraces\(dossier\.traces/.test(recipeReadiness) &&
+    !/field="Recipe readiness"[\s\S]{0,200}pubchemCid=/.test(recipeReadiness) &&
+    !/pubchemCid=\{dossier\.cid\}/.test(recipeReadiness)
+);
+const managerBrief = read("components/ManagerBriefPanel.tsx");
+ok(
+  "PROV-35 manager-brief chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Manager brief"/.test(managerBrief) &&
+    /traces=\{slimTraces\(dossier\.traces/.test(managerBrief) &&
+    !/field="Manager brief"[\s\S]{0,200}pubchemCid=/.test(managerBrief) &&
+    !/pubchemCid=\{dossier\.cid\}/.test(managerBrief)
+);
+const critique = read("components/EvidenceCritiquePanel.tsx");
+ok(
+  "PROV-35 critique chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Critique"/.test(critique) &&
+    /traces=\{allTraces\}/.test(critique) &&
+    !/field="Critique"[\s\S]{0,200}pubchemCid=/.test(critique) &&
+    !/pubchemCid=\{dossier\.cid\}/.test(critique)
+);
 ok(
   "PROV-14 live multi-source provenance uses annotationTraces not all harvest HTTP",
   /traces=\{annotationTraces\}[\s\S]{0,200}title="Multi-source free APIs"/.test(liveDossier) &&
