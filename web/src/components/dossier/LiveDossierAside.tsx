@@ -145,10 +145,12 @@ export function LiveDossierAside({
       >
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <h3 className="text-sm font-semibold text-teal-300">Manufacturing summary</h3>
+          {/* Composite all-traces hydration (PROV-08 multi-API). Empty traces
+              must not live-fetch leftover PubChem identity HTTP labeled as
+              Manufacturing summary. */}
           <ContentProvenance
             title="Manufacturing summary"
             field="Manufacturing summary"
-            pubchemCid={cid}
             traces={apiTraces}
             sourceRefs={dossier.sourceRefs}
             ai={mfgAi}

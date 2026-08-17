@@ -4304,4 +4304,16 @@ ok(
     !sectionH.isProcessFactTrace(identityUrl) &&
     !sectionH.isManufacturingSectionTrace(identityUrl)
 );
+ok(
+  "PROV-37 manufacturing-summary aside stays composite but does not live-fetch leftover identity HTTP",
+  /field="Manufacturing summary"/.test(asideSrc) &&
+    /traces=\{apiTraces\}/.test(asideSrc) &&
+    !/field="Manufacturing summary"[\s\S]{0,200}pubchemCid=/.test(asideSrc)
+);
+ok(
+  "PROV-37 leftover PubChem identity is not manufacturing-summary live-fetch",
+  /field="Manufacturing summary"/.test(asideSrc) &&
+    !/field="Manufacturing summary"[\s\S]{0,200}pubchemCid=/.test(asideSrc) &&
+    !sectionH.isManufacturingSectionTrace(identityUrl)
+);
 console.log(`\n${passed} search-contract checks passed`);
