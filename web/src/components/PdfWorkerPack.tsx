@@ -9,6 +9,7 @@ import { ContentProvenance } from "@/components/ContentProvenance";
 import type { LiveDossier } from "@/lib/dossier/types";
 import { slimTraces } from "@/lib/api/trace";
 import {
+  honestPdfPackManifestLitPatent,
   isProcessFactSourceRef,
   isProcessFactTrace,
 } from "@/lib/dossier/sectionHonesty";
@@ -30,7 +31,8 @@ export function PdfWorkerPack({
 
   // PDF pack reprints Monday pack + job aid. Leftover identity
   // / annotation HTTP is not PDF-pack provenance, and the chip must
-  // not live-fetch identity.
+  // not live-fetch identity. Harvest failure is not a clean
+  // "Lit: 0 · Patents: 0" miss.
   const allTraces = slimTraces(dossier.traces || []);
   const traces = allTraces.filter((tr) =>
     isProcessFactTrace(tr.endpointUrl)
@@ -46,7 +48,12 @@ export function PdfWorkerPack({
       `Generated: ${dossier.generatedAt}`,
       `Evidence score: ${dossier.evidenceScore?.score ?? "—"}/100`,
       `Mode: ${dossier.productMode || dossier.recipeReadiness?.mode || "—"}`,
-      `Lit: ${dossier.literature?.length ?? 0} · Patents: ${dossier.patents?.length ?? 0}`,
+      honestPdfPackManifestLitPatent({
+        literatureCount: dossier.literature?.length ?? 0,
+        patentCount: dossier.patents?.length ?? 0,
+        traces: dossier.traces,
+        fetchErrors: dossier.fetchErrors,
+      }).value,
       `Process facts: ${dossier.processFacts?.facts?.length ?? 0}`,
       `AI: ${dossier.synthesis.parsed ? dossier.synthesis.model || "parsed" : "shell"}`,
       `NOT a GMP batch record. Validate under site QMS.`,

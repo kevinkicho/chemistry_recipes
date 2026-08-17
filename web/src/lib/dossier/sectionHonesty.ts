@@ -444,8 +444,8 @@ const PROCESS_FACT_EMPTY_FAMILIES = [
  * Process-fact atoms come from literature, patents, and manufacturing text.
  * Harvest failure in those families is not "no atoms extracted yet".
  * Leftover identity / GHS / annotation HTTP is not a process-facts miss.
- * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, reaction-network, process-sequence stub, ideal-page, validation-checklist, recipe-readiness, campaign-brief, shift-pack, and MSAT-compare empty copy reuse this helper —
- * no extracted conditions / no process recipe / no process routes / no public process hypothesis / no process facts yet / no route assembled / no procedure windows densified / no route hypotheses assembled / no procedure-scored windows yet / network is center-only / no extractable public process sequence yet / process route synthesis pending / no process steps yet / no GHS text for this CID / missing process overview / checklist Gap / Only 0 sourced condition atom(s) / Few condition observations / No reaction-network edges yet / Insufficient free-public evidence in the campaign package / Similar public density / 0 / 0 literature-patents is not a clean miss when
+ * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, reaction-network, process-sequence stub, ideal-page, validation-checklist, recipe-readiness, campaign-brief, shift-pack, MSAT-compare, and PDF-pack manifest empty copy reuse this helper —
+ * no extracted conditions / no process recipe / no process routes / no public process hypothesis / no process facts yet / no route assembled / no procedure windows densified / no route hypotheses assembled / no procedure-scored windows yet / network is center-only / no extractable public process sequence yet / process route synthesis pending / no process steps yet / no GHS text for this CID / missing process overview / checklist Gap / Only 0 sourced condition atom(s) / Few condition observations / No reaction-network edges yet / Insufficient free-public evidence in the campaign package / Similar public density / 0 / 0 literature-patents / Lit: 0 · Patents: 0 is not a clean miss when
  * lit / patent / manufacturing harvest failed.
  */
 export function formatProcessFactsEmptyCopy(opts: {
@@ -970,4 +970,28 @@ export function honestMsatCompareHint(opts: {
     weaker.conditions +
     " conditions). Still scouting only — not a site selection decision."
   );
+}
+
+/**
+ * PDF-pack clipboard manifest: harvest failure is not a clean
+ * "Lit: 0 · Patents: 0" miss. Leftover identity / annotation HTTP is not
+ * a PDF-pack miss. Filled counts stay. Provenance chips stay process-fact
+ * traces (PROV-26).
+ */
+export function honestPdfPackManifestLitPatent(opts: {
+  literatureCount: number;
+  patentCount: number;
+  traces?: Array<
+    Pick<ApiFetchTrace, "endpointUrl" | "ok" | "notFound" | "error" | "httpStatus">
+  >;
+  fetchErrors?: string[];
+}): { value: string; harvestFail: boolean } {
+  const stat = honestDiagnosticsLitPatentStat(opts);
+  if (stat.harvestFail) {
+    return { value: "Lit/patents: harvest failed — not 0/0", harvestFail: true };
+  }
+  return {
+    value: "Lit: " + opts.literatureCount + " · Patents: " + opts.patentCount,
+    harvestFail: false,
+  };
 }

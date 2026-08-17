@@ -641,4 +641,14 @@ ok(
     /Similar public density/.test(read("lib/dossier/sectionHonesty.ts"))
 );
 
+ok(
+  "SEARCH-46 PDF-pack manifest empty copy is not unconditional Lit: 0 · Patents: 0",
+  /honestPdfPackManifestLitPatent/.test(read("components/PdfWorkerPack.tsx")) &&
+    /export function honestPdfPackManifestLitPatent/.test(
+      read("lib/dossier/sectionHonesty.ts")
+    ) &&
+    /Lit\/patents: harvest failed/.test(read("lib/dossier/sectionHonesty.ts")) &&
+    !/`Lit: \$\{dossier\.literature/.test(read("components/PdfWorkerPack.tsx"))
+);
+
 console.log(`\n${n} product-path checks passed`);
