@@ -769,3 +769,72 @@ export function honestCampaignAgentEmpty(opts: {
   return harvest.kind === "error" ? harvest.message : opts.cleanEmpty;
 }
 
+/**
+ * Build-diagnostics Multi-source APIs stat: harvest failure is not "none yet".
+ * Leftover identity / literature / patent / GHS HTTP is not an annotation miss.
+ */
+export function honestDiagnosticsAnnotationStat(opts: {
+  annotationCount: number;
+  annotationSources?: string[];
+  traces?: Array<
+    Pick<ApiFetchTrace, "endpointUrl" | "ok" | "notFound" | "error" | "httpStatus">
+  >;
+  fetchErrors?: string[];
+}): { value: string; harvestFail: boolean } {
+  if (opts.annotationCount > 0) {
+    const src = (opts.annotationSources || []).slice(0, 3).join(", ");
+    return {
+      value: src
+        ? opts.annotationCount + " · " + src
+        : String(opts.annotationCount),
+      harvestFail: false,
+    };
+  }
+  const harvest = formatSectionEmptyCopy({
+    family: "annotations",
+    traces: opts.traces,
+    fetchErrors: opts.fetchErrors,
+  });
+  if (harvest.kind === "error") {
+    return { value: harvest.summary, harvestFail: true };
+  }
+  return { value: "none yet", harvestFail: false };
+}
+
+/**
+ * Build-diagnostics Literature / patents stat: harvest failure is not a muted 0 · 0 miss.
+ * Leftover identity / annotation HTTP is not a literature/patent miss.
+ */
+export function honestDiagnosticsLitPatentStat(opts: {
+  literatureCount: number;
+  patentCount: number;
+  traces?: Array<
+    Pick<ApiFetchTrace, "endpointUrl" | "ok" | "notFound" | "error" | "httpStatus">
+  >;
+  fetchErrors?: string[];
+}): { value: string; harvestFail: boolean } {
+  if (opts.literatureCount + opts.patentCount > 0) {
+    return {
+      value: opts.literatureCount + " · " + opts.patentCount,
+      harvestFail: false,
+    };
+  }
+  const lit = formatSectionEmptyCopy({
+    family: "literature",
+    traces: opts.traces,
+    fetchErrors: opts.fetchErrors,
+  });
+  const patents = formatSectionEmptyCopy({
+    family: "patents",
+    traces: opts.traces,
+    fetchErrors: opts.fetchErrors,
+  });
+  if (lit.kind === "error" || patents.kind === "error") {
+    const err = lit.kind === "error" ? lit : patents;
+    return { value: err.summary, harvestFail: true };
+  }
+  return {
+    value: opts.literatureCount + " · " + opts.patentCount,
+    harvestFail: false,
+  };
+}
