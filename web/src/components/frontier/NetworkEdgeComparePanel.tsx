@@ -66,10 +66,14 @@ export function NetworkEdgeComparePanel({
           Compare two network edges
         </h2>
         {dossiers[0] ? (
+          /* Composite all-traces hydration. Empty traces must not
+             live-fetch leftover PubChem identity HTTP labeled as
+             network edge compare. */
           <FreePublicProvenance
             dossier={dossiers[0]}
             title="Network edge compare"
             field="Network edge compare"
+            liveFetch={false}
           />
         ) : (
           <FreePublicBadge note="free-public edge evidence · not GMP" />

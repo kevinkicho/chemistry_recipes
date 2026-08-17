@@ -122,10 +122,14 @@ export function CompareMsatBoard({
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-sm font-semibold text-slate-50">MSAT route-pick board</h2>
         {a ? (
+          /* Composite all-traces hydration. Empty traces must not
+             live-fetch leftover PubChem identity HTTP labeled as
+             MSAT compare. */
           <FreePublicProvenance
             dossier={a}
             title="MSAT compare A"
             field="MSAT compare"
+            liveFetch={false}
           />
         ) : null}
         {b ? (
@@ -133,6 +137,7 @@ export function CompareMsatBoard({
             dossier={b}
             title="MSAT compare B"
             field="MSAT compare"
+            liveFetch={false}
           />
         ) : (
           <FreePublicBadge note="free-public density · not GMP selection" />

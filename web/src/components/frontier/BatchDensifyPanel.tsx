@@ -283,10 +283,14 @@ export function BatchDensifyPanel({
           Multi-CID densify (server)
         </h2>
         {dossier ? (
+          /* Composite all-traces hydration. Empty traces must not
+             live-fetch leftover PubChem identity HTTP labeled as
+             batch densify. */
           <FreePublicProvenance
             dossier={dossier}
             title="Batch densify"
             field="Batch densify"
+            liveFetch={false}
             onRegenerate={onRegenerate}
           />
         ) : (

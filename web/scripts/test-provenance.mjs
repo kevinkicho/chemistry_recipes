@@ -796,6 +796,31 @@ ok(
     /title="PubChem PUG View · GHS \/ hazards"/.test(aside) &&
     !/pubchemCid=\{cid\}[\s\S]{0,80}traces=\{ghsTraces\}/.test(aside)
 );
+const msatBoard = read("components/CompareMsatBoard.tsx");
+ok(
+  "PROV-31 MSAT compare chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="MSAT compare"/.test(msatBoard) &&
+    /liveFetch=\{false\}/.test(msatBoard) &&
+    /dossier=\{a\}/.test(msatBoard) &&
+    /dossier=\{b\}/.test(msatBoard) &&
+    !/field="MSAT compare"[\s\S]{0,200}pubchemCid=/.test(msatBoard)
+);
+const batchDensify = read("components/frontier/BatchDensifyPanel.tsx");
+ok(
+  "PROV-31 batch-densify chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Batch densify"/.test(batchDensify) &&
+    /liveFetch=\{false\}/.test(batchDensify) &&
+    /dossier=\{dossier\}/.test(batchDensify) &&
+    !/field="Batch densify"[\s\S]{0,200}pubchemCid=/.test(batchDensify)
+);
+const edgeCompare = read("components/frontier/NetworkEdgeComparePanel.tsx");
+ok(
+  "PROV-31 network-edge-compare chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Network edge compare"/.test(edgeCompare) &&
+    /liveFetch=\{false\}/.test(edgeCompare) &&
+    /dossier=\{dossiers\[0\]\}/.test(edgeCompare) &&
+    !/field="Network edge compare"[\s\S]{0,200}pubchemCid=/.test(edgeCompare)
+);
 ok(
   "PROV-14 live multi-source provenance uses annotationTraces not all harvest HTTP",
   /traces=\{annotationTraces\}[\s\S]{0,200}title="Multi-source free APIs"/.test(liveDossier) &&

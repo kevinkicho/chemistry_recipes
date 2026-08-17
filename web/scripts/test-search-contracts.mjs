@@ -4146,4 +4146,37 @@ ok(
     !sectionH.isManufacturingSectionTrace(chemblUrl)
 );
 
+const msatBoard = read("components/CompareMsatBoard.tsx");
+const batchDensify = read("components/frontier/BatchDensifyPanel.tsx");
+const edgeCompare = read("components/frontier/NetworkEdgeComparePanel.tsx");
+ok(
+  "PROV-31 MSAT compare chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="MSAT compare"/.test(msatBoard) &&
+    /liveFetch=\{false\}/.test(msatBoard) &&
+    /dossier=\{a\}/.test(msatBoard) &&
+    /dossier=\{b\}/.test(msatBoard) &&
+    !/field="MSAT compare"[\s\S]{0,200}pubchemCid=/.test(msatBoard)
+);
+ok(
+  "PROV-31 batch-densify chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Batch densify"/.test(batchDensify) &&
+    /liveFetch=\{false\}/.test(batchDensify) &&
+    /dossier=\{dossier\}/.test(batchDensify) &&
+    !/field="Batch densify"[\s\S]{0,200}pubchemCid=/.test(batchDensify)
+);
+ok(
+  "PROV-31 network-edge-compare chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Network edge compare"/.test(edgeCompare) &&
+    /liveFetch=\{false\}/.test(edgeCompare) &&
+    /dossier=\{dossiers\[0\]\}/.test(edgeCompare) &&
+    !/field="Network edge compare"[\s\S]{0,200}pubchemCid=/.test(edgeCompare)
+);
+ok(
+  "PROV-31 leftover PubChem identity is not MSAT / batch-densify / edge-compare live-fetch",
+  /liveFetch=\{false\}/.test(msatBoard) &&
+    /liveFetch=\{false\}/.test(batchDensify) &&
+    /liveFetch=\{false\}/.test(edgeCompare) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isManufacturingSectionTrace(identityUrl)
+);
 console.log(`\n${passed} search-contract checks passed`);
