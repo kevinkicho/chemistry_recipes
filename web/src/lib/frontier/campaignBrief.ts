@@ -7,6 +7,7 @@ import type { MergedCampaignKnowledge } from "@/lib/frontier/campaignKnowledge";
 import type { ConditionKind, NextExperiment } from "@/lib/frontier/types";
 import { intervalsConflict } from "@/lib/frontier/unitNormalize";
 import { buildEdgePairExperiments } from "@/lib/frontier/edgeExperiments";
+import { honestCampaignBriefEmpty } from "@/lib/dossier/sectionHonesty";
 
 export const CAMPAIGN_BRIEF_SCHEMA =
   "chemistry-recipes.campaign-brief.v1" as const;
@@ -56,6 +57,8 @@ export interface CampaignScientificBrief {
   topExperiments: NextExperiment[];
   openGaps: string[];
   disclaimer: string;
+  /** Harvest failed — not a clean miss. */
+  harvestFail?: boolean;
 }
 
 const DISCLAIMER =
@@ -205,31 +208,27 @@ export function buildCampaignScientificBrief(
       priority: "high" as const,
     }));
 
-  const openGaps: string[] = [];
-  if (thinCidCount > 0) {
-    openGaps.push(
-      `${thinCidCount} campaign CID(s) missing densify or thin atlas (<${thinThresh} obs)`
-    );
-  }
-  if (merged.totalObservations < 3) {
-    openGaps.push(
-      "Few condition observations — paste public procedure text or densify patents/OA literature"
-    );
-  }
-  if (!merged.network.edges.length) {
-    openGaps.push(
-      "No reaction-network edges yet — densify related materials / route leads"
-    );
-  }
+  // Harvest failure is not "Few condition observations" /
+  // "No reaction-network edges yet" / "Empty campaign package".
+  // Leftover identity / annotation HTTP is not a campaign-brief miss.
+  // cachedCount === 0 stays a local-cache gap.
+  const harvestEmpty = honestCampaignBriefEmpty({
+    dossiers: merged.dossiers,
+    cachedCount: merged.cachedCount,
+    totalObservations: merged.totalObservations,
+    networkEdgeCount: merged.network.edges.length,
+    thinCidCount,
+    thinThresh,
+  });
+  const openGaps: string[] = [...harvestEmpty.openGaps];
   for (const c of crossCidConflicts.slice(0, 3)) {
     openGaps.push(c.note);
   }
 
   const depth = depthScoreOf(merged);
   const summary =
-    merged.cachedCount === 0
-      ? "Empty campaign package — densify CIDs before scientific brief has content."
-      : `Campaign brief · depth ${depth}/100 · ${merged.cachedCount}/${merged.cids.length} densified · ${merged.totalObservations} condition obs · ${crossCidConflicts.length} cross-CID range conflict(s) · ${merged.network.edges.length} network edge(s). Not GMP.`;
+    harvestEmpty.summaryOverlay ||
+    `Campaign brief · depth ${depth}/100 · ${merged.cachedCount}/${merged.cids.length} densified · ${merged.totalObservations} condition obs · ${crossCidConflicts.length} cross-CID range conflict(s) · ${merged.network.edges.length} network edge(s). Not GMP.`;
 
   return {
     schema: CAMPAIGN_BRIEF_SCHEMA,
@@ -252,5 +251,6 @@ export function buildCampaignScientificBrief(
     topExperiments: [...conflictExps, ...edgeExps].slice(0, 10),
     openGaps: openGaps.slice(0, 10),
     disclaimer: DISCLAIMER,
+    harvestFail: harvestEmpty.harvestFail,
   };
 }

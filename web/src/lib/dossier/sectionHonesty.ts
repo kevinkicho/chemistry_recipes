@@ -444,8 +444,8 @@ const PROCESS_FACT_EMPTY_FAMILIES = [
  * Process-fact atoms come from literature, patents, and manufacturing text.
  * Harvest failure in those families is not "no atoms extracted yet".
  * Leftover identity / GHS / annotation HTTP is not a process-facts miss.
- * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, reaction-network, process-sequence stub, ideal-page, validation-checklist, and recipe-readiness empty copy reuse this helper —
- * no extracted conditions / no process recipe / no process routes / no public process hypothesis / no process facts yet / no route assembled / no procedure windows densified / no route hypotheses assembled / no procedure-scored windows yet / network is center-only / no extractable public process sequence yet / process route synthesis pending / no process steps yet / no GHS text for this CID / missing process overview / checklist Gap / Only 0 sourced condition atom(s) is not a clean miss when
+ * Condition-atlas, process-recipe (RoutePanel), route-compare, route-hypotheses, problem-unit-op-search, manager-brief, evidence-critique, evidence-science Q&A, literature-depth, reaction-network, process-sequence stub, ideal-page, validation-checklist, recipe-readiness, and campaign-brief empty copy reuse this helper —
+ * no extracted conditions / no process recipe / no process routes / no public process hypothesis / no process facts yet / no route assembled / no procedure windows densified / no route hypotheses assembled / no procedure-scored windows yet / network is center-only / no extractable public process sequence yet / process route synthesis pending / no process steps yet / no GHS text for this CID / missing process overview / checklist Gap / Only 0 sourced condition atom(s) / Few condition observations / No reaction-network edges yet / Insufficient free-public evidence in the campaign package is not a clean miss when
  * lit / patent / manufacturing harvest failed.
  */
 export function formatProcessFactsEmptyCopy(opts: {
@@ -672,3 +672,100 @@ export function honestChecklistGap(opts: {
     harvestFail: false,
   };
 }
+
+/**
+ * Campaign brief / agent empty copy: harvest failure is not
+ * "Few condition observations" / "No reaction-network edges yet" /
+ * "Empty campaign package" / "Insufficient free-public evidence in the campaign package".
+ * Leftover identity / annotation HTTP is not a campaign miss.
+ * cachedCount === 0 stays a local-cache gap (no harvest traces).
+ */
+export function formatCampaignHarvestEmptyCopy(opts: {
+  dossiers?: Array<{
+    traces?: Array<
+      Pick<ApiFetchTrace, "endpointUrl" | "ok" | "notFound" | "error" | "httpStatus">
+    >;
+    fetchErrors?: string[];
+  }>;
+}): SectionEmptyCopy {
+  const traces = (opts.dossiers || []).flatMap((d) => d.traces || []);
+  const fetchErrors = (opts.dossiers || []).flatMap((d) => d.fetchErrors || []);
+  return formatProcessFactsEmptyCopy({ traces, fetchErrors });
+}
+
+const CLEAN_EMPTY_CAMPAIGN_PACKAGE =
+  "Empty campaign package — densify CIDs before scientific brief has content.";
+const CLEAN_FEW_OBS =
+  "Few condition observations — paste public procedure text or densify patents/OA literature";
+const CLEAN_NO_EDGES =
+  "No reaction-network edges yet — densify related materials / route leads";
+
+/**
+ * Campaign scientific brief gaps/summary: harvest failure is not a clean miss.
+ * Leftover identity / annotation HTTP is not a campaign-brief miss.
+ */
+export function honestCampaignBriefEmpty(opts: {
+  dossiers?: Array<{
+    traces?: Array<
+      Pick<ApiFetchTrace, "endpointUrl" | "ok" | "notFound" | "error" | "httpStatus">
+    >;
+    fetchErrors?: string[];
+  }>;
+  cachedCount: number;
+  totalObservations: number;
+  networkEdgeCount: number;
+  thinCidCount: number;
+  thinThresh?: number;
+}): { summaryOverlay?: string; openGaps: string[]; harvestFail: boolean } {
+  if (opts.cachedCount === 0) {
+    return {
+      summaryOverlay: CLEAN_EMPTY_CAMPAIGN_PACKAGE,
+      openGaps: [],
+      harvestFail: false,
+    };
+  }
+  const harvest = formatCampaignHarvestEmptyCopy({ dossiers: opts.dossiers });
+  if (harvest.kind === "error") {
+    return {
+      summaryOverlay: harvest.message,
+      openGaps: [harvest.message],
+      harvestFail: true,
+    };
+  }
+  const openGaps: string[] = [];
+  if (opts.thinCidCount > 0) {
+    openGaps.push(
+      opts.thinCidCount +
+        " campaign CID(s) missing densify or thin atlas (<" +
+        (opts.thinThresh ?? 2) +
+        " obs)"
+    );
+  }
+  if (opts.totalObservations < 3) {
+    openGaps.push(CLEAN_FEW_OBS);
+  }
+  if (!opts.networkEdgeCount) {
+    openGaps.push(CLEAN_NO_EDGES);
+  }
+  return { openGaps, harvestFail: false };
+}
+
+/**
+ * Campaign agent retrieval miss: harvest failure is not
+ * "Insufficient free-public evidence in the campaign package".
+ * Leftover identity / annotation HTTP is not a campaign-agent miss.
+ * cachedCount === 0 stays a local-cache gap (caller keeps that path).
+ */
+export function honestCampaignAgentEmpty(opts: {
+  dossiers?: Array<{
+    traces?: Array<
+      Pick<ApiFetchTrace, "endpointUrl" | "ok" | "notFound" | "error" | "httpStatus">
+    >;
+    fetchErrors?: string[];
+  }>;
+  cleanEmpty: string;
+}): string {
+  const harvest = formatCampaignHarvestEmptyCopy({ dossiers: opts.dossiers });
+  return harvest.kind === "error" ? harvest.message : opts.cleanEmpty;
+}
+

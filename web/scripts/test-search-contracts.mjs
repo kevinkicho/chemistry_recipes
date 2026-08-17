@@ -3672,4 +3672,135 @@ ok(
 );
 
 
+
+const campaignBriefSrc = read("lib/frontier/campaignBrief.ts");
+const campaignAgentSrc = read("lib/frontier/campaignAgent.ts");
+ok(
+  "SEARCH-42 campaign-brief empty copy uses honestCampaignBriefEmpty",
+  /honestCampaignBriefEmpty/.test(campaignBriefSrc) &&
+    /harvestFail/.test(campaignBriefSrc) &&
+    /harvestEmpty\.harvestFail/.test(campaignBriefSrc)
+);
+ok(
+  "SEARCH-42 campaign-agent empty copy uses honestCampaignAgentEmpty",
+  /honestCampaignAgentEmpty/.test(campaignAgentSrc) &&
+    /Insufficient free-public evidence in the campaign package/.test(campaignAgentSrc)
+);
+ok(
+  "SEARCH-42 cachedCount 0 stays Empty campaign package",
+  sectionH.honestCampaignBriefEmpty({
+    cachedCount: 0,
+    totalObservations: 0,
+    networkEdgeCount: 0,
+    thinCidCount: 1,
+    dossiers: [{ traces: [litFail] }],
+  }).harvestFail !== true &&
+    /Empty campaign package/.test(
+      sectionH.honestCampaignBriefEmpty({
+        cachedCount: 0,
+        totalObservations: 0,
+        networkEdgeCount: 0,
+        thinCidCount: 1,
+        dossiers: [{ traces: [litFail] }],
+      }).summaryOverlay || ""
+    )
+);
+
+function campBrief(traces) {
+  return sectionH.honestCampaignBriefEmpty({
+    cachedCount: 1,
+    totalObservations: 0,
+    networkEdgeCount: 0,
+    thinCidCount: 1,
+    dossiers: [{ traces }],
+  });
+}
+
+const litCamp = campBrief([litFail]);
+ok(
+  "SEARCH-42 literature harvest fail is campaign-brief error not Few observations",
+  litCamp.harvestFail &&
+    /Not an empty result|Not a clean miss/.test(litCamp.summaryOverlay || "") &&
+    !/Few condition observations/.test(litCamp.openGaps.join(" ")) &&
+    !/No reaction-network edges yet/.test(litCamp.openGaps.join(" "))
+);
+ok(
+  "SEARCH-42 leftover identity is not a campaign-brief miss",
+  campBrief([identityFail]).harvestFail !== true &&
+    /Few condition observations/.test(campBrief([identityFail]).openGaps.join(" ")) &&
+    /No reaction-network edges yet/.test(campBrief([identityFail]).openGaps.join(" "))
+);
+ok(
+  "SEARCH-42 leftover ChEMBL annotation fail is not a campaign-brief miss",
+  campBrief([chemblFail]).harvestFail !== true &&
+    /Few condition observations/.test(campBrief([chemblFail]).openGaps.join(" "))
+);
+ok(
+  "SEARCH-42 genuine empty stays Few observations / No edges copy",
+  campBrief([]).harvestFail !== true &&
+    /Few condition observations/.test(campBrief([]).openGaps.join(" ")) &&
+    /No reaction-network edges yet/.test(campBrief([]).openGaps.join(" "))
+);
+ok(
+  "SEARCH-42 filled observations stay despite leftover identity fail",
+  sectionH.honestCampaignBriefEmpty({
+    cachedCount: 1,
+    totalObservations: 8,
+    networkEdgeCount: 3,
+    thinCidCount: 0,
+    dossiers: [{ traces: [identityFail] }],
+  }).harvestFail !== true &&
+    sectionH.honestCampaignBriefEmpty({
+      cachedCount: 1,
+      totalObservations: 8,
+      networkEdgeCount: 3,
+      thinCidCount: 0,
+      dossiers: [{ traces: [identityFail] }],
+    }).openGaps.length === 0
+);
+
+const CLEAN_AGENT =
+  "Insufficient free-public evidence in the campaign package for this question. Densify more CIDs, paste public procedure text, or narrow to temperatures, edges, impurities, or network relations.";
+ok(
+  "SEARCH-42 literature harvest fail is campaign-agent error not package miss",
+  /Not an empty result|Not a clean miss/.test(
+    sectionH.honestCampaignAgentEmpty({
+      dossiers: [{ traces: [litFail] }],
+      cleanEmpty: CLEAN_AGENT,
+    })
+  ) &&
+    !/Insufficient free-public evidence in the campaign package/.test(
+      sectionH.honestCampaignAgentEmpty({
+        dossiers: [{ traces: [litFail] }],
+        cleanEmpty: CLEAN_AGENT,
+      })
+    )
+);
+ok(
+  "SEARCH-42 leftover identity is not a campaign-agent miss",
+  sectionH.honestCampaignAgentEmpty({
+    dossiers: [{ traces: [identityFail] }],
+    cleanEmpty: CLEAN_AGENT,
+  }) === CLEAN_AGENT
+);
+ok(
+  "SEARCH-42 leftover ChEMBL annotation fail is not a campaign-agent miss",
+  sectionH.honestCampaignAgentEmpty({
+    dossiers: [{ traces: [chemblFail] }],
+    cleanEmpty: CLEAN_AGENT,
+  }) === CLEAN_AGENT
+);
+ok(
+  "SEARCH-42 genuine empty stays campaign-package insufficient copy",
+  sectionH.honestCampaignAgentEmpty({
+    dossiers: [{ traces: [] }],
+    cleanEmpty: CLEAN_AGENT,
+  }) === CLEAN_AGENT
+);
+ok(
+  "SEARCH-42 campaign-brief chips stay composite (no leftover-identity claim)",
+  /FreePublicBadge/.test(read("components/frontier/CampaignBriefPanel.tsx"))
+);
+
+
 console.log(`\n${passed} search-contract checks passed`);
