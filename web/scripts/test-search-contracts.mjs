@@ -4207,4 +4207,36 @@ ok(
     !sectionH.isProcessFactTrace(identityUrl) &&
     !sectionH.isManufacturingSectionTrace(identityUrl)
 );
+const validationChecklist = read("components/ValidationChecklist.tsx");
+const thinToUseful = read("components/ThinToUsefulBanner.tsx");
+const evidenceScore = read("components/EvidenceScoreExplainer.tsx");
+ok(
+  "PROV-34 validation-checklist chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Validation checklist"/.test(validationChecklist) &&
+    /liveFetch=\{false\}/.test(validationChecklist) &&
+    /dossier=\{dossier\}/.test(validationChecklist) &&
+    !/field="Validation checklist"[\s\S]{0,200}pubchemCid=/.test(validationChecklist)
+);
+ok(
+  "PROV-34 thin-to-useful chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Thin-to-useful"/.test(thinToUseful) &&
+    /liveFetch=\{false\}/.test(thinToUseful) &&
+    /dossier=\{dossier\}/.test(thinToUseful) &&
+    !/field="Thin-to-useful"[\s\S]{0,200}pubchemCid=/.test(thinToUseful)
+);
+ok(
+  "PROV-34 evidence-score chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Evidence score"/.test(evidenceScore) &&
+    /liveFetch=\{false\}/.test(evidenceScore) &&
+    /dossier=\{dossier\}/.test(evidenceScore) &&
+    !/field="Evidence score"[\s\S]{0,200}pubchemCid=/.test(evidenceScore)
+);
+ok(
+  "PROV-34 leftover PubChem identity is not checklist / thin-to-useful / evidence-score live-fetch",
+  /liveFetch=\{false\}/.test(validationChecklist) &&
+    /liveFetch=\{false\}/.test(thinToUseful) &&
+    /liveFetch=\{false\}/.test(evidenceScore) &&
+    !sectionH.isProcessFactTrace(identityUrl) &&
+    !sectionH.isManufacturingSectionTrace(identityUrl)
+);
 console.log(`\n${passed} search-contract checks passed`);

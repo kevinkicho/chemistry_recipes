@@ -31,10 +31,14 @@ export function EvidenceScoreExplainer({
     >
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-sm font-semibold text-slate-100">Evidence score</h2>
+        {/* Composite all-traces hydration. Empty traces must not
+            live-fetch leftover PubChem identity HTTP labeled as
+            Evidence score. */}
         <FreePublicProvenance
           dossier={dossier}
           title="Evidence score"
           field="Evidence score"
+          liveFetch={false}
           onRegenerate={onRegenerate}
         />
         <span

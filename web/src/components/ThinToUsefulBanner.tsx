@@ -93,10 +93,14 @@ export function ThinToUsefulBanner({
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-200/90">
             Monday path · ready for handoff pack
           </p>
+          {/* Composite all-traces hydration. Empty traces must not
+              live-fetch leftover PubChem identity HTTP labeled as
+              Thin-to-useful. */}
           <FreePublicProvenance
             dossier={dossier}
             title="Monday path"
             field="Thin-to-useful"
+            liveFetch={false}
             onRegenerate={onRegenerate}
           />
         </div>
@@ -130,10 +134,14 @@ export function ThinToUsefulBanner({
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-200/90">
           Monday path · densify first (primary)
         </p>
+        {/* Composite all-traces hydration. Empty traces must not
+            live-fetch leftover PubChem identity HTTP labeled as
+            Thin-to-useful. */}
         <FreePublicProvenance
           dossier={dossier}
           title="Thin to useful"
           field="Thin-to-useful"
+          liveFetch={false}
           onRegenerate={onRegenerate}
         />
       </div>

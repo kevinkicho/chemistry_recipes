@@ -50,10 +50,14 @@ export function ValidationChecklist({
               <h2 className="text-sm font-semibold tracking-tight text-slate-100">
                 Transfer readiness checklist
               </h2>
+              {/* Composite all-traces hydration. Empty traces must not
+                  live-fetch leftover PubChem identity HTTP labeled as
+                  Validation checklist. */}
               <FreePublicProvenance
                 dossier={dossier}
                 title="Transfer readiness checklist"
                 field="Validation checklist"
+                liveFetch={false}
                 onRegenerate={onRegenerate}
               />
             </div>

@@ -837,6 +837,30 @@ ok(
     !/field="Ideal page"[\s\S]{0,200}pubchemCid=/.test(idealPage) &&
     !/pubchemCid=\{dossier\.cid\}/.test(idealPage)
 );
+const validationChecklist = read("components/ValidationChecklist.tsx");
+ok(
+  "PROV-34 validation-checklist chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Validation checklist"/.test(validationChecklist) &&
+    /liveFetch=\{false\}/.test(validationChecklist) &&
+    /dossier=\{dossier\}/.test(validationChecklist) &&
+    !/field="Validation checklist"[\s\S]{0,200}pubchemCid=/.test(validationChecklist)
+);
+const thinToUseful = read("components/ThinToUsefulBanner.tsx");
+ok(
+  "PROV-34 thin-to-useful chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Thin-to-useful"/.test(thinToUseful) &&
+    /liveFetch=\{false\}/.test(thinToUseful) &&
+    /dossier=\{dossier\}/.test(thinToUseful) &&
+    !/field="Thin-to-useful"[\s\S]{0,200}pubchemCid=/.test(thinToUseful)
+);
+const evidenceScore = read("components/EvidenceScoreExplainer.tsx");
+ok(
+  "PROV-34 evidence-score chips stay composite but do not live-fetch leftover identity HTTP",
+  /field="Evidence score"/.test(evidenceScore) &&
+    /liveFetch=\{false\}/.test(evidenceScore) &&
+    /dossier=\{dossier\}/.test(evidenceScore) &&
+    !/field="Evidence score"[\s\S]{0,200}pubchemCid=/.test(evidenceScore)
+);
 ok(
   "PROV-14 live multi-source provenance uses annotationTraces not all harvest HTTP",
   /traces=\{annotationTraces\}[\s\S]{0,200}title="Multi-source free APIs"/.test(liveDossier) &&
